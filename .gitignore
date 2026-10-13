@@ -134,3 +134,21 @@ $RECYCLE.BIN/
 *.core
 core
 vgcore.*
+
+# -----------------------------------------------------------------------------
+# 8. LOCAL-ONLY GOVERNANCE, TOOLS & BOARD ARCHITECTURE DOCUMENTS
+# -----------------------------------------------------------------------------
+# Local-only governance files
+/AGENT.md
+/GEMINI.md
+
+# Local-only board architecture documents (covering exact and plural variations)
+/120_board_architectures.md
+**/120_board_architectures.md
+/120_board_architecture.md
+**/120_board_architecture.md
+
+# Local-only project tools
+/tools/
+**/tools/
+

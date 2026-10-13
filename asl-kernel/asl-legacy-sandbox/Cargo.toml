@@ -1,0 +1,10 @@
+[package]
+name = "asl-legacy-sandbox"
+version = "0.1.0"
+edition = "2021"
+authors = ["ASL Core Avionics Team"]
+description = "Sandboxed Bare-Metal Legacy Container for Vintage 8/16-Bit Architectures (6502, Z80, m68k, 8086)"
+
+[dependencies]
+asl-hal = { path = "../asl-hal" }
+asl-security-vault = { path = "../asl-security-vault" }

@@ -1,0 +1,16 @@
+[package]
+name = "asl-kernel-bin"
+version = "0.1.0"
+edition = "2021"
+authors = ["ASL Core Avionics Team"]
+description = "BIOS & UEFI Bootable Launcher Binary for ASL Core Avionics Microkernel"
+
+[dependencies]
+asl-bootloader = { path = "../asl-bootloader" }
+asl-kernel-core = { path = "../asl-kernel-core" }
+
+[[bin]]
+name = "asl-kernel"
+path = "src/main.rs"
+test = false
+bench = false

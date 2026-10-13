@@ -1,0 +1,136 @@
+# =============================================================================
+# .gitignore - ASL CORE KERNEL & AVIONICS RESEARCH ENVIRONMENT
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# 1. TEMPAT ANALISIS & KARANTINA BINARY (Analysis Staging Area)
+# -----------------------------------------------------------------------------
+# Folder Analysis adalah pos isolasi file eksternal (.dll, .exe, .deb, firmware).
+# Semua file binary mentah & unduhan diabaikan agar repositori git tetap ringan
+# dan bebas dari binary/malware/dump liar.
+# -----------------------------------------------------------------------------
+Analysis/quarantine_incoming/*
+!Analysis/quarantine_incoming/.gitkeep
+!Analysis/quarantine_incoming/README.md
+
+Analysis/binaries_pe_dll_exe/*
+!Analysis/binaries_pe_dll_exe/.gitkeep
+!Analysis/binaries_pe_dll_exe/README.md
+
+Analysis/packages_deb_pkg/*
+!Analysis/packages_deb_pkg/.gitkeep
+!Analysis/packages_deb_pkg/README.md
+
+Analysis/firmware_rom_bin/*
+!Analysis/firmware_rom_bin/.gitkeep
+!Analysis/firmware_rom_bin/README.md
+
+# Laporan analisis (reports) tetap dicatat di git sebagai bukti ilmiah,
+# kecuali file dump binary berukuran besar di dalamnya.
+Analysis/reports/*.dump
+Analysis/reports/*.raw
+Analysis/reports/*.bin
+
+# -----------------------------------------------------------------------------
+# 2. FILE BINER, EKSEKUSI & ARSIP SISTEM (Universal Binary Exclusions)
+# -----------------------------------------------------------------------------
+*.exe
+*.dll
+*.so
+*.dylib
+*.sys
+*.drv
+*.bin
+*.rom
+*.hex
+*.img
+*.iso
+*.qcow2
+*.vmdk
+
+# Linux & Mac Packages
+*.deb
+*.rpm
+*.pkg
+*.dmg
+*.apk
+*.ipa
+
+# Arsip & Kompresi Besar
+*.zip
+*.tar
+*.tar.gz
+*.tgz
+*.tar.xz
+*.7z
+*.rar
+
+# -----------------------------------------------------------------------------
+# 3. ARTEFAK KOMPILASI (Rust, C/C++, LLVM, GCC)
+# -----------------------------------------------------------------------------
+# Rust / Cargo
+target/
+**/*.rs.bk
+Cargo.lock.backup
+
+# C / C++ / Assembly / Object files
+*.o
+*.obj
+*.ko
+*.elf
+*.a
+*.lib
+*.out
+*.asm.out
+
+# -----------------------------------------------------------------------------
+# 4. PYTHON, TOOLS CACHE & LOGS
+# -----------------------------------------------------------------------------
+__pycache__/
+*.py[cod]
+*$py.class
+*.pytest_cache/
+.coverage
+htmlcov/
+*.log
+
+# -----------------------------------------------------------------------------
+# 5. TEMPORARY & SYSTEM OS CLUTTER
+# -----------------------------------------------------------------------------
+# Temporary Files
+*.tmp
+*.temp
+*~
+*.bak
+*.swp
+*.swo
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# -----------------------------------------------------------------------------
+# 6. IDE & EDITOR SETTINGS
+# -----------------------------------------------------------------------------
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# -----------------------------------------------------------------------------
+# 7. CRASH DUMPS & CORE PROFILES
+# -----------------------------------------------------------------------------
+*.dmp
+*.core
+core
+vgcore.*

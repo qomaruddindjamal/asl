@@ -1,0 +1,9 @@
+[package]
+name = "asl-gpu-uvm"
+version = "0.1.0"
+edition = "2021"
+authors = ["ASL Core Avionics Team"]
+description = "Unified Virtual Memory (UVM) Page Fault Handler for GPU Accelerators"
+
+[dependencies]
+asl-memory = { path = "../asl-memory" }

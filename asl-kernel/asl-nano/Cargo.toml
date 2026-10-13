@@ -1,0 +1,9 @@
+[package]
+name = "asl-nano"
+version = "0.1.0"
+edition = "2021"
+authors = ["ASL Core Avionics Team"]
+description = "Ultra-compact No-MMU Tickless Real-Time Subkernel (<32KB Flash, <8KB RAM)"
+
+[dependencies]
+asl-hal = { path = "../asl-hal" }

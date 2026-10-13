@@ -1,0 +1,10 @@
+[package]
+name = "asl-undi-npu"
+version = "0.1.0"
+edition = "2021"
+authors = ["ASL Core Avionics Team"]
+description = "Unified Neural Driver Interface (UNDI) for NPU/TPU Accelerators"
+
+[dependencies]
+asl-memory = { path = "../asl-memory" }
+asl-cctv-dma = { path = "../asl-cctv-dma" }

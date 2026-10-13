@@ -1,0 +1,10 @@
+[package]
+name = "asl-fleet-regression"
+version = "0.1.0"
+edition = "2021"
+authors = ["ASL Core Avionics Team"]
+description = "Automated Multi-Architecture Regression and Zero-Regression Verification Harness for 150 Architectures"
+
+[dependencies]
+asl-bootloader = { path = "../asl-bootloader" }
+asl-hal = { path = "../asl-hal" }

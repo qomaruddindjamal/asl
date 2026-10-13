@@ -1,0 +1,9 @@
+[package]
+name = "asl-tcam"
+version = "0.1.0"
+edition = "2021"
+authors = ["ASL Core Avionics Team"]
+description = "Broadcom StrataXGS and Marvell Prestera TCAM Hardware Rule Ingestion"
+
+[dependencies]
+asl-pmd = { path = "../asl-pmd" }

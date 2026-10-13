@@ -1,0 +1,10 @@
+[package]
+name = "asl-afdx-ipc"
+version = "0.1.0"
+edition = "2021"
+authors = ["ASL Core Avionics Team"]
+description = "AFDX (ARINC 664) Virtual Link Cryptographic Shaper and Ring Buffer IPC"
+
+[dependencies]
+asl-bootloader = { path = "../asl-bootloader" }
+asl-security-vault = { path = "../asl-security-vault" }

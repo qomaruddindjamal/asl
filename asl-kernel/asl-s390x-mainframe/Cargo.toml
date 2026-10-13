@@ -1,0 +1,9 @@
+[package]
+name = "asl-s390x-mainframe"
+version = "0.1.0"
+edition = "2021"
+authors = ["ASL Core Avionics Team"]
+description = "IBM z/Architecture (s390x) Channel I/O Subsystem and 4-Bit Storage Protection Keys"
+
+[dependencies]
+asl-hal = { path = "../asl-hal" }

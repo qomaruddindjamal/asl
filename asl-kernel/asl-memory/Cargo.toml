@@ -1,0 +1,9 @@
+[package]
+name = "asl-memory"
+version = "0.1.0"
+edition = "2021"
+authors = ["ASL Core Avionics Team"]
+description = "Deterministic Buddy-Slab Allocator and Zero-Fragmentation Page Manager"
+
+[dependencies]
+asl-bootloader = { path = "../asl-bootloader" }

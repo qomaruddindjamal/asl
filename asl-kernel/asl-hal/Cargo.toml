@@ -1,0 +1,9 @@
+[package]
+name = "asl-hal"
+version = "0.1.0"
+edition = "2021"
+authors = ["ASL Core Avionics Team"]
+description = "Hardware Abstraction Layer (HAL) Core Traits for 150 Architectures"
+
+[dependencies]
+asl-bootloader = { path = "../asl-bootloader" }

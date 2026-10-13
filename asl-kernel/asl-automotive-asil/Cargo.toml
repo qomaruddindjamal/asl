@@ -1,0 +1,10 @@
+[package]
+name = "asl-automotive-asil"
+version = "0.1.0"
+edition = "2021"
+authors = ["ASL Core Avionics Team"]
+description = "ISO 26262 ASIL-D Dual-Core Lockstep and CAN-FD/FlexRay Automotive Controller"
+
+[dependencies]
+asl-nano = { path = "../asl-nano" }
+asl-mpu = { path = "../asl-mpu" }

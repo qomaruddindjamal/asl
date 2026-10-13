@@ -1,0 +1,11 @@
+[package]
+name = "asl-do178c-cert"
+version = "0.1.0"
+edition = "2021"
+authors = ["ASL Core Avionics Team"]
+description = "DO-178C DAL-A Traceability and Formal Safety Verification Harness"
+
+[dependencies]
+asl-bootloader = { path = "../asl-bootloader" }
+asl-security-vault = { path = "../asl-security-vault" }
+asl-sched = { path = "../asl-sched" }

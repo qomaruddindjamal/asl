@@ -1,0 +1,10 @@
+[package]
+name = "asl-security-vault"
+version = "0.1.0"
+edition = "2021"
+authors = ["ASL Core Avionics Team"]
+description = "Mathematical ARINC 653 Spatial Partitioning and Vault Memory Isolation"
+
+[dependencies]
+asl-bootloader = { path = "../asl-bootloader" }
+asl-memory = { path = "../asl-memory" }

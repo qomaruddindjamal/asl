@@ -1,0 +1,9 @@
+[package]
+name = "asl-olt-carrier"
+version = "0.1.0"
+edition = "2021"
+authors = ["ASL Core Avionics Team"]
+description = "Carrier-Grade GPON/XGS-PON OLT Dynamic Bandwidth Allocation (DBA) Controller"
+
+[dependencies]
+asl-ont-gpon = { path = "../asl-ont-gpon" }

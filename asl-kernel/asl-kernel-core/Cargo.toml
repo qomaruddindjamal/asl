@@ -1,0 +1,14 @@
+[package]
+name = "asl-kernel-core"
+version = "0.1.0"
+edition = "2021"
+authors = ["ASL Core Avionics Team"]
+description = "Core Bare-Metal Microkernel for ASL Operating System"
+
+[dependencies]
+asl-bootloader = { path = "../asl-bootloader" }
+asl-hal = { path = "../asl-hal" }
+asl-memory = { path = "../asl-memory" }
+asl-security-vault = { path = "../asl-security-vault" }
+asl-sched = { path = "../asl-sched" }
+asl-afdx-ipc = { path = "../asl-afdx-ipc" }

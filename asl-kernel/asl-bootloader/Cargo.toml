@@ -1,0 +1,9 @@
+[package]
+name = "asl-bootloader"
+version = "0.1.0"
+edition = "2021"
+authors = ["ASL Core Avionics Team"]
+description = "Agnostic Multi-Architecture Bootloader Protocol Handover for ASL Core Kernel"
+
+[dependencies]
+# Zero external runtime dependencies for bare-metal integrity

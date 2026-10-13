@@ -1,0 +1,10 @@
+[package]
+name = "asl-pmd"
+version = "0.1.0"
+edition = "2021"
+authors = ["ASL Core Avionics Team"]
+description = "Polled-Mode Driver (PMD) Zero-Copy Direct Memory Access Network Engine"
+
+[dependencies]
+asl-hal = { path = "../asl-hal" }
+asl-memory = { path = "../asl-memory" }

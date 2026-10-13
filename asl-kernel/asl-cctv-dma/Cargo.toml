@@ -1,0 +1,10 @@
+[package]
+name = "asl-cctv-dma"
+version = "0.1.0"
+edition = "2021"
+authors = ["ASL Core Avionics Team"]
+description = "Zero-Copy Video DMA Pipeline for MIPI-CSI Camera Sensors and VPU Codecs"
+
+[dependencies]
+asl-hal = { path = "../asl-hal" }
+asl-memory = { path = "../asl-memory" }

@@ -1,0 +1,10 @@
+[package]
+name = "asl-space-tmr"
+version = "0.1.0"
+edition = "2021"
+authors = ["ASL Core Avionics Team"]
+description = "SPARC V8 LEON3/LEON4 Triple-Modular Redundancy (TMR) and Radiation Memory Scrubbing"
+
+[dependencies]
+asl-hal = { path = "../asl-hal" }
+asl-memory = { path = "../asl-memory" }

@@ -1,0 +1,9 @@
+[package]
+name = "asl-dsp-rpc"
+version = "0.1.0"
+edition = "2021"
+authors = ["ASL Core Avionics Team"]
+description = "Low-Latency Shared-Memory RPC for Radar and VLIW DSP Processors"
+
+[dependencies]
+asl-hal = { path = "../asl-hal" }

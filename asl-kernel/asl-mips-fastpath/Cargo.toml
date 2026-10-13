@@ -1,0 +1,9 @@
+[package]
+name = "asl-mips-fastpath"
+version = "0.1.0"
+edition = "2021"
+authors = ["ASL Core Avionics Team"]
+description = "MIPS32/MIPS64 TLB Refill Fastpath and Dual-Endian Edge Network Driver"
+
+[dependencies]
+asl-hal = { path = "../asl-hal" }

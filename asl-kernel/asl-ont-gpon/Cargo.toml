@@ -1,0 +1,9 @@
+[package]
+name = "asl-ont-gpon"
+version = "0.1.0"
+edition = "2021"
+authors = ["ASL Core Avionics Team"]
+description = "GPON/XGS-PON ONT GEM Framing, T-CONT Buffer and Hardware NAT Driver"
+
+[dependencies]
+asl-pmd = { path = "../asl-pmd" }

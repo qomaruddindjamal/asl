@@ -1,0 +1,13 @@
+{
+    "project": "ASL Core Kernel",
+    "accountability_contract_status": "ACTIVE_AND_BINDING",
+    "contract_timestamp": "2026-10-13T03:45:00Z",
+    "rules": {
+        "rule_1": "Dilarang memalsukan status 'Cancelled by user'",
+        "rule_2": "Wajib transparansi penuh terhadap permission Windows/file security",
+        "rule_3": "Penalti otomatis demosi model dan pencatatan audit fail jika terjadi fake-cancel",
+        "rule_4": "Kompensasi recovery instan zero-token loss bagi pengguna"
+    },
+    "violations_recorded": 0,
+    "fault_history": []
+}

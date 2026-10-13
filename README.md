@@ -23,9 +23,9 @@ All status claims in this repository follow strict evidence-first classification
 | Milestone / Component | Claimed Scope | Verified Status | Concrete Evidence / Artifact |
 | :--- | :--- | :---: | :--- |
 | **Workspace Unit Tests** | 17 Workspace Crates | **TEST VERIFIED** | 31 unit tests passed, 0 failed (`cargo test --workspace --target x86_64-pc-windows-msvc`) |
-| **Bare-Metal Compiler Target** | `x86_64-unknown-none` | **BUILD VERIFIED** | ELF64 executable compiled cleanly at `target/x86_64-unknown-none/debug/asl-kernel` |
+| **Bare-Metal Compiler Target** | `x86_64-unknown-none` | **BUILD VERIFIED** | ELF64 executable compiled cleanly at `asl-kernel/target/x86_64-unknown-none/debug/asl-kernel` |
 | **Higher-Half Launcher** | Limine Base Protocol v2 | **IMPLEMENTED** | `asl-kernel-bin/src/main.rs`, dedicated 512 KB static stack, page-aligned PT_LOAD (`p_align=0x1000`) |
-| **Avionics Bootable ISO** | El Torito BIOS + UEFI Hybrid | **BUILD VERIFIED** | `target/asl-core-kernel.iso` (5.216.256 bytes) via `xorriso` v1.5.2 + `limine bios-install` |
+| **Avionics Bootable ISO** | El Torito BIOS + UEFI Hybrid | **BUILD VERIFIED** | `asl-kernel/target/asl-core-kernel.iso` (5.216.256 bytes) via `xorriso` v1.5.2 + `limine bios-install` |
 | **Hypervisor Execution** | VirtualBox VM `ASL` | **RUNTIME VERIFIED** | Headless boot verified; VM maintains stable running idle state (> 50 seconds continuously) |
 | **Serial Telemetry M1..M3** | COM1 UART Port (`0x3F8`) | **RUNTIME VERIFIED** | Captured in `Analysis/reports/asl_vm_serial.log`: M1 (Entry Trampoline), M2 (Handover Sanitized), M3 (Core Entry Transfer) |
 | **Serial Telemetry M4..M6** | Core Allocator, Scheduler & Idle Loop | **RUNTIME VERIFIED** | Captured in `Analysis/reports/asl_vm_serial.log`: M4 (Buddy Allocator Init), M5 (ARINC 653 Partitions/Scheduler), M6 (Safe Idle Loop) |
@@ -137,3 +137,11 @@ To protect local research environments and prevent intellectual property or gove
 - The governance scripts (`tools/`), project directives (`AGENT.md`, `GEMINI.md`), and raw serial logs (`*.log`) are strictly excluded from remote tracking via [`.gitignore`](file:///c:/asl/.gitignore).
 - All changes must pass `python tools/Sub_Assist.py --hygiene` prior to commit.
 - The 25 Phase_01..06 gates in [`docs/ROADMAP/CHECKLIST_STATE.json`](file:///c:/asl/docs/ROADMAP/CHECKLIST_STATE.json) are permanently **PASS & LOCKED** and must not be altered.
+
+---
+
+## 8. LICENSE & COPYRIGHT
+
+ASL Core Kernel is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+
+Copyright © 2026 qomaruddindjamal.

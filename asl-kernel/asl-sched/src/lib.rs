@@ -81,3 +81,41 @@ impl MajorFrameSchedule {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_scheduler_major_frame_slots() {
+        let mut sched = MajorFrameSchedule::new(100_000);
+        assert!(sched.add_slot(1, 20_000, true).is_ok());
+        assert!(sched.add_slot(2, 80_000, false).is_ok());
+        assert_eq!(sched.slot_count, 2);
+
+        // Advance 10ms dalam slot 1 (belum switch)
+        let (p, switched) = sched.advance_tick(10_000);
+        assert_eq!(p, 1);
+        assert!(!switched);
+
+        // Advance 10ms lagi (mencapai 20ms: switch ke slot 2)
+        let (p, switched) = sched.advance_tick(10_000);
+        assert_eq!(p, 2);
+        assert!(switched);
+
+        // Advance 80ms dalam slot 2 (switch kembali ke slot 1 siklik)
+        let (p, switched) = sched.advance_tick(80_000);
+        assert_eq!(p, 1);
+        assert!(switched);
+    }
+
+    #[test]
+    fn test_scheduler_slot_overflow() {
+        let mut sched = MajorFrameSchedule::new(100_000);
+        for i in 0..MAX_SLOTS_PER_MAJOR_FRAME {
+            assert!(sched.add_slot(i as u32, 1000, false).is_ok());
+        }
+        // Slot ke-33 harus error
+        assert_eq!(sched.add_slot(99, 1000, false), Err("ERR_SCHEDULE_SLOTS_FULL"));
+    }
+}

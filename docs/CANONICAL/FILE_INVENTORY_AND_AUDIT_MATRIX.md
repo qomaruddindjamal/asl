@@ -1,7 +1,7 @@
 # ASL CORE FULL-REPOSITORY FILE INVENTORY & AUDIT MATRIX
 =============================================================
-**Scope:** Complete repository filesystem (109 active worktree files)  
-**Excluded from table:** .git/ internals (231 files), 	arget/ build caches (4464 files)  
+**Scope:** Complete repository filesystem (112 active worktree files)
+**Excluded from table:** .git/ internals (231 files), target/ build caches (4464 files)
 
 | File ID | Relative Path | Extension | Category | Tracking Status | Audit Depth | Size | Status |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
@@ -115,3 +115,5 @@
 | ASL-0108 | tools/Accountability_Watchdog.py | .py | LOCAL_AUTOMATION_TOOL | Ignored (Local-Only) | Full Content | 3718 B | Audited |
 | ASL-0109 | tools/Gemini_Assist.py | .py | LOCAL_AUTOMATION_TOOL | Ignored (Local-Only) | Full Content | 9946 B | Audited |
 | ASL-0110 | tools/Sub_Assist.py | .py | LOCAL_AUTOMATION_TOOL | Ignored (Local-Only) | Full Content | 3520 B | Audited |
+| ASL-0111 | docs/CANONICAL/DEVELOPER_ONBOARDING.md | .md | CANONICAL_DOCUMENTATION | Tracked | Full Content | 4192 B | Audited |
+| ASL-0112 | docs/CANONICAL/FILE_INVENTORY_AND_AUDIT_MATRIX.md | .md | CANONICAL_DOCUMENTATION | Tracked | Full Content | 14200 B | Audited |

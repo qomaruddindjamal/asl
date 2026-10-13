@@ -121,3 +121,91 @@ impl<const OBJ_SIZE: usize, const CAPACITY: usize> SlabCache<OBJ_SIZE, CAPACITY>
         false
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use asl_bootloader::{MemoryDescriptor, TargetArch, ASL_BOOT_MAGIC};
+
+    fn make_test_handover(usable_ram_len: u64) -> AslBootHandover {
+        let mut h = AslBootHandover::empty();
+        h.magic = ASL_BOOT_MAGIC;
+        h.protocol_version = 1;
+        h.target_arch = TargetArch::X86_64;
+        h.kernel_physical_base = 0x100000;
+        h.kernel_virtual_base = 0xFFFF_8000_0010_0000;
+        h.kernel_size_bytes = 0x200000;
+        h.memory_map_count = 2;
+        h.memory_map[0] = MemoryDescriptor {
+            base_physical_addr: 0x100000,
+            length_bytes: 0x200000,
+            region_type: MemoryRegionType::KernelImage,
+            flags: 0,
+        };
+        h.memory_map[1] = MemoryDescriptor {
+            base_physical_addr: 0x1000000, // 16 MB
+            length_bytes: usable_ram_len,
+            region_type: MemoryRegionType::UsableRam,
+            flags: 0,
+        };
+        h
+    }
+
+    #[test]
+    fn test_buddy_allocator_init_and_allocate() {
+        let mut alloc = BuddyAllocator::empty();
+        let handover = make_test_handover(16 * 1024 * 1024); // 16MB
+        assert!(alloc.init_from_handover(&handover).is_ok());
+        assert_eq!(alloc.total_pages, (16 * 1024 * 1024) / PAGE_SIZE);
+        assert_eq!(alloc.free_pages, alloc.total_pages);
+
+        // Alokasi order 0 (1 halaman = 4096 bytes)
+        let addr1 = alloc.allocate_pages(0);
+        assert!(addr1.is_some());
+        assert_eq!(alloc.free_pages, alloc.total_pages - 1);
+
+        // Alokasi order 3 (8 halaman)
+        let addr2 = alloc.allocate_pages(3);
+        assert!(addr2.is_some());
+        assert_eq!(alloc.free_pages, alloc.total_pages - 9);
+
+        // Alokasi melebihi MAX_BUDDY_ORDER gagal
+        let invalid_order = alloc.allocate_pages(MAX_BUDDY_ORDER + 1);
+        assert!(invalid_order.is_none());
+
+        // Free halaman
+        alloc.free_pages(addr1.unwrap(), 0);
+        assert_eq!(alloc.free_pages, alloc.total_pages - 8);
+    }
+
+    #[test]
+    fn test_buddy_insufficient_memory() {
+        let mut alloc = BuddyAllocator::empty();
+        let handover = make_test_handover(PAGE_SIZE as u64 * 8); // hanya 8 halaman (< 16 halaman batas minimum)
+        let res = alloc.init_from_handover(&handover);
+        assert_eq!(res, Err("ERR_INSUFFICIENT_MEMORY_FOR_BUDDY"));
+    }
+
+    #[test]
+    fn test_slab_cache_lifecycle() {
+        let mut slab = SlabCache::<64, 4>::new();
+        let p1 = slab.allocate();
+        let p2 = slab.allocate();
+        let p3 = slab.allocate();
+        let p4 = slab.allocate();
+        assert!(p1.is_some());
+        assert!(p2.is_some());
+        assert!(p3.is_some());
+        assert!(p4.is_some());
+
+        // Slab penuh
+        let p5 = slab.allocate();
+        assert!(p5.is_none());
+
+        // Dealokasi dan alokasi kembali
+        assert!(slab.deallocate(p2.unwrap()));
+        let p2_again = slab.allocate();
+        assert!(p2_again.is_some());
+        assert_eq!(p2_again.unwrap(), p2.unwrap());
+    }
+}

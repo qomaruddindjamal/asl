@@ -145,3 +145,37 @@
   Potential endianness confusion during packet parsing on mixed-endian hardware.
 * **Recommended Fix:**
   Use explicit network-to-host (`u32::from_be`) transformations.
+
+---
+
+## STAGE C.1 ARCHITECTURAL RISK FINDINGS (MAINTAINED OPEN)
+
+The following four hardware-platform and device-driver risk findings from Stage C.1 remain formally **OPEN** in the project risk register. They do not block the x86_64 host/hypervisor reference runtime, but are documented as explicit boundary constraints for specific target tiers.
+
+| Finding ID | Title & Target Scope | Severity | Status | Release Disposition |
+| :--- | :--- | :---: | :---: | :--- |
+| **`ATOMIC-SPARC-01`** | SPARC V8 64-bit Atomic CAS Emulation Requirement | **MEDIUM** | **OPEN** | Documented limitation: bare-metal `sparc-unknown-none-elf` lacks 64-bit atomics. Target-specific trap handlers required. |
+| **`DMA-CACHE-01`** | Explicit Cache Invalidation Barriers for Non-Coherent DMA | **MEDIUM** | **OPEN** | Documented limitation: Non-coherent ARM/MIPS/DSP bus masters require explicit cache clean/invalidate barriers. |
+| **`DMA-ADDR-01`** | Physical Address Clipping on Legacy 32-bit Host Bridges | **MEDIUM** | **OPEN** | Documented limitation: Raw physical pointers in `transmit_burst()` require IOMMU translation layers on multi-tenant PCI bridges. |
+| **`ALIGN-01`** | Strict 64-byte Hardware Cache Line Descriptor Alignment | **LOW** | **OPEN** | Documented limitation: DMA packet ring descriptors must enforce 64-byte hardware cache line boundary alignments. |
+
+### Details:
+1. **`ATOMIC-SPARC-01` (OPEN):**
+   - *Affected Target:* 32-bit SPARC V8 (`sparc-unknown-none-elf`, LEON3).
+   - *Technical Description:* Bare-metal SPARC V8 ISA provides atomic `swap` and `ldstub` but lacks a hardware 64-bit compare-and-swap instruction (`target_has_atomic="64"` is false). Subsystems utilizing `AtomicU64` require software trap emulation.
+   - *Status:* **OPEN**. Excluded from x86_64 v1.0.0 support scope.
+
+2. **`DMA-CACHE-01` (OPEN):**
+   - *Affected Components:* `asl-pmd`, `asl-cctv-dma` across non-coherent CPU architectures.
+   - *Technical Description:* Shared memory queues assume cache coherency. On non-coherent platforms, CPU writes to ring buffers may remain in L1/L2 caches, causing DMA engines to fetch stale descriptors.
+   - *Status:* **OPEN**. Non-coherent architectures remain staged/planned.
+
+3. **`DMA-ADDR-01` (OPEN):**
+   - *Affected Components:* `asl-pmd::transmit_burst()`, legacy 32-bit PCI DMA bridges.
+   - *Technical Description:* The burst interface consumes 64-bit physical addresses directly. On platforms with 32-bit legacy DMA addressing or IOMMU domains, addresses >4GB will clip or cause bus faults without bounce-buffering or IOMMU page mapping.
+   - *Status:* **OPEN**. Multi-tenant IOMMU support is staged for Phase 3 carrier switching.
+
+4. **`ALIGN-01` (OPEN):**
+   - *Affected Components:* AFDX and PMD ring buffer descriptors.
+   - *Technical Description:* Ring descriptors require explicit `#[repr(align(64))]` to prevent false sharing and enforce alignment across heterogeneous cacheline architectures (e.g. POWER10 128-byte, ARM 64-byte).
+   - *Status:* **OPEN**. Target-specific alignment wrappers to be consolidated during BSP hardware bring-up.

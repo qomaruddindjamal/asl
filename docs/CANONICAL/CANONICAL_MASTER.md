@@ -27,13 +27,13 @@ To prevent ambiguity, each domain of knowledge has exactly one authoritative mas
 
 | Domain | Authoritative Primary Source | Status | Secondary / Historical References |
 | :--- | :--- | :---: | :--- |
-| **System Architecture & Design** | `docs/CANONICAL/CANONICAL_ARCHITECTURE.md` | **AUTHORITATIVE** | `asl_avionics_kernel_blueprint.md`, `asl_core.md` |
+| **System Architecture & Design** | `asl_avionics_kernel_blueprint.md` | **AUTHORITATIVE** | `docs/CANONICAL/CANONICAL_MASTER.md`, `asl_core.md` |
 | **Complete 150 Taxonomy** | `asl_core.md` | **AUTHORITATIVE** | `master_150_architectures.md`, `120_board_architectures.md` |
 | **Governance & Locking Gates** | `docs/ROADMAP/CHECKLIST_STATE.json` | **AUTHORITATIVE** | `tools/Gemini_Assist.py`, `PHASE_01..06.md` |
 | **Active Handoff State** | `docs/ROADMAP/HANDOFF_STATE.json` | **AUTHORITATIVE** | `docs/ROADMAP/README.md` |
 | **Accountability & Integrity** | `docs/ROADMAP/ACCOUNTABILITY_FAULT_LOG.json` | **AUTHORITATIVE** | `tools/Accountability_Watchdog.py` |
 | **Technical Findings & Audits** | `audit/asl-core-kernel/SECURITY_FINDINGS.md` | **AUTHORITATIVE** | `audit/asl-core-kernel/*.md` |
-| **Bare-Metal Boot & ISO Pipeline**| `docs/CANONICAL/CANONICAL_BOOT_AND_ISO.md` | **AUTHORITATIVE** | `asl-kernel-bin/src/main.rs`, `linker.ld` |
+| **Bare-Metal Boot & ISO Pipeline**| `docs/CANONICAL/DEVELOPER_ONBOARDING.md` | **AUTHORITATIVE** | `asl-kernel-bin/src/main.rs`, `linker.ld` |
 | **Developer Onboarding & SOP** | `docs/CANONICAL/DEVELOPER_ONBOARDING.md` | **AUTHORITATIVE** | `README_ASL_CORE.md`, `Analysis/README.md` |
 
 ---

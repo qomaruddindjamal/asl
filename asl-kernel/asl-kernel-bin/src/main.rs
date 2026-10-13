@@ -8,7 +8,6 @@
 mod serial;
 use serial::SerialPort;
 
-use core::panic::PanicInfo;
 use asl_bootloader::{
     AslBootHandover, TargetArch, MemoryDescriptor, MemoryRegionType, FramebufferConfig,
     MAX_MEMORY_MAP_ENTRIES, ASL_BOOT_MAGIC,
@@ -100,12 +99,8 @@ static KERNEL_ADDR_REQUEST: LimineKernelAddressRequest = LimineKernelAddressRequ
 };
 
 // -----------------------------------------------------------------------------
-// STATIC KERNEL STACK & HANDOVER STORAGE (BSS)
+// STATIC HANDOVER STORAGE (BSS)
 // -----------------------------------------------------------------------------
-
-#[repr(C, align(4096))]
-struct KernelStack([u8; 65536]);
-static mut STACK_STORAGE: KernelStack = KernelStack([0; 65536]);
 
 static mut ASL_HANDOVER_STORAGE: AslBootHandover = AslBootHandover {
     magic: ASL_BOOT_MAGIC,
@@ -293,7 +288,7 @@ pub extern "C" fn asl_launcher_main() -> ! {
     SERIAL.write_str("[ASL-LAUNCHER] M2: Handover Adapted & Memory Map Sanitized.\n");
     SERIAL.write_str("[ASL-LAUNCHER] M3: Transferring Control to ASL Microkernel Core Entry.\n");
 
-    let handover_ptr = unsafe { &ASL_HANDOVER_STORAGE as *const AslBootHandover };
+    let handover_ptr = core::ptr::addr_of!(ASL_HANDOVER_STORAGE);
 
     // Lompat ke Entry Point Resmi ASL Core Microkernel
     unsafe {

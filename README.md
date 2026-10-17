@@ -99,13 +99,19 @@ Execute workspace regression tests and run `tools/Gemini_Assist.py --audit` befo
 
 ## 6. PREREQUISITES & DEVELOPMENT COMMANDS
 
-### Prerequisites
-- **Host OS:** Windows 10/11 (or Linux with cross-compilation tools).
+### Hardware & Runtime Requirements (Verified v1.0.1)
+- **Minimum Target RAM:** **4 MB RAM** (Kernel binary footprint is only ~70 KB; verified running stably with zero crash).
+- **Recommended Target RAM:** **64 MB RAM** or higher.
+- **CPU Architecture:** x86_64 (Long Mode + PAE supported).
+- **Firmware:** BIOS (El Torito CD boot) or UEFI 64-bit with GOP / VBE framebuffer.
+
+### Host Prerequisites & Build Toolchain
+- **Host OS:** Windows 10/11 64-bit (or Linux x86_64).
 - **Rust Toolchain:** `rustc 1.80+` with targets:
   - `x86_64-pc-windows-msvc` (Host compiler & regression harness)
   - `x86_64-unknown-none` (Bare-metal ELF kernel target)
 - **ISO Tools:** `xorriso` (v1.5.0+) and Limine v8.x binaries.
-- **Hypervisor:** Oracle VirtualBox with VM named `ASL`.
+- **Hypervisor:** Oracle VirtualBox (GUI or headless) with VM named `ASL`, or QEMU (`qemu-system-x86_64`).
 
 ### Essential Build & Verification Commands
 

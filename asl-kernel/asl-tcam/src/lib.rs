@@ -93,7 +93,13 @@ impl HardwareTcamEngine {
     }
 
     /// Pencarian kecocokan TCAM perangkat keras (Wire-Speed Lookup)
-    pub fn hardware_lookup(&self, src_ip: u32, dst_ip: u32, proto: u8, port: u16) -> (TcamAction, u8) {
+    pub fn hardware_lookup(
+        &self,
+        src_ip: u32,
+        dst_ip: u32,
+        proto: u8,
+        port: u16,
+    ) -> (TcamAction, u8) {
         let mut i = 0;
         while i < self.active_rule_count {
             let r = &self.rules[i];

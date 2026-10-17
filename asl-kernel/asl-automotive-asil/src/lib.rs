@@ -61,7 +61,11 @@ impl DualCoreLockstepMonitor {
     }
 
     /// Verifikasi kesesuaian output register kedua core pada siklus jam yang sama
-    pub fn compare_execution_registers(&mut self, primary_hash: u64, shadow_hash: u64) -> LockstepStatus {
+    pub fn compare_execution_registers(
+        &mut self,
+        primary_hash: u64,
+        shadow_hash: u64,
+    ) -> LockstepStatus {
         if primary_hash == shadow_hash {
             self.status = LockstepStatus::Synchronized;
         } else {

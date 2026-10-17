@@ -1,0 +1,13 @@
+[package]
+name = "asl-kernel-core-secondary"
+version = "0.1.0"
+edition = "2021"
+authors = ["ASL Core Avionics Team"]
+description = "Hot-Standby Secondary Failover Microkernel Core & Recovery State Machine for ASL Operating System"
+
+[dependencies]
+asl-bootloader = { path = "../asl-bootloader" }
+
+[lib]
+name = "asl_kernel_core_secondary"
+path = "src/lib.rs"

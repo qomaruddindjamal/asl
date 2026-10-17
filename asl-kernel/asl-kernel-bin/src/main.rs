@@ -9,8 +9,8 @@ mod serial;
 use serial::SerialPort;
 
 use asl_bootloader::{
-    AslBootHandover, TargetArch, MemoryDescriptor, MemoryRegionType, FramebufferConfig,
-    MAX_MEMORY_MAP_ENTRIES, ASL_BOOT_MAGIC,
+    AslBootHandover, FramebufferConfig, MemoryDescriptor, MemoryRegionType, TargetArch,
+    ASL_BOOT_MAGIC, MAX_MEMORY_MAP_ENTRIES,
 };
 
 static SERIAL: SerialPort = SerialPort::new();
@@ -126,20 +126,25 @@ unsafe impl Sync for LimineHHDMRequest {}
 #[used]
 #[link_section = ".limine_requests_start"]
 static REQUESTS_START_MARKER: [u64; 4] = [
-    0xf6b8f4b39de7d1ae, 0xfab91a6940fcb9cf,
-    0x785c6ed015d3e316, 0x181e920a7852b9d9
+    0xf6b8f4b39de7d1ae,
+    0xfab91a6940fcb9cf,
+    0x785c6ed015d3e316,
+    0x181e920a7852b9d9,
 ];
 
 #[used]
 #[link_section = ".limine_requests"]
-static mut BASE_REVISION: [u64; 3] = [
-    0xf9562b2d5c95a6c8, 0x6a7b384944536bdc, 2
-];
+static mut BASE_REVISION: [u64; 3] = [0xf9562b2d5c95a6c8, 0x6a7b384944536bdc, 2];
 
 #[used]
 #[link_section = ".limine_requests"]
 static mut MEMMAP_REQUEST: LimineMemmapRequest = LimineMemmapRequest {
-    id: [0xc7b1dd30df4c8b88, 0x0a82e883a194f07b, 0x67cf3d9d378a806f, 0xe304acdfc50c3c62],
+    id: [
+        0xc7b1dd30df4c8b88,
+        0x0a82e883a194f07b,
+        0x67cf3d9d378a806f,
+        0xe304acdfc50c3c62,
+    ],
     revision: 0,
     response: core::ptr::null(),
 };
@@ -147,7 +152,12 @@ static mut MEMMAP_REQUEST: LimineMemmapRequest = LimineMemmapRequest {
 #[used]
 #[link_section = ".limine_requests"]
 static mut KERNEL_ADDR_REQUEST: LimineKernelAddressRequest = LimineKernelAddressRequest {
-    id: [0xc7b1dd30df4c8b88, 0x0a82e883a194f07b, 0x71ba76863cc55f63, 0xb2644a48c516a487],
+    id: [
+        0xc7b1dd30df4c8b88,
+        0x0a82e883a194f07b,
+        0x71ba76863cc55f63,
+        0xb2644a48c516a487,
+    ],
     revision: 0,
     response: core::ptr::null(),
 };
@@ -155,7 +165,12 @@ static mut KERNEL_ADDR_REQUEST: LimineKernelAddressRequest = LimineKernelAddress
 #[used]
 #[link_section = ".limine_requests"]
 static mut FRAMEBUFFER_REQUEST: LimineFramebufferRequest = LimineFramebufferRequest {
-    id: [0xc7b1dd30df4c8b88, 0x0a82e883a194f07b, 0x9d5827dcd881dd75, 0xa3148604f6fab11b],
+    id: [
+        0xc7b1dd30df4c8b88,
+        0x0a82e883a194f07b,
+        0x9d5827dcd881dd75,
+        0xa3148604f6fab11b,
+    ],
     revision: 0,
     response: core::ptr::null(),
 };
@@ -163,16 +178,19 @@ static mut FRAMEBUFFER_REQUEST: LimineFramebufferRequest = LimineFramebufferRequ
 #[used]
 #[link_section = ".limine_requests"]
 static mut HHDM_REQUEST: LimineHHDMRequest = LimineHHDMRequest {
-    id: [0xc7b1dd30df4c8b88, 0x0a82e883a194f07b, 0x48dcf1cb8ad2b852, 0x63984e959a98244b],
+    id: [
+        0xc7b1dd30df4c8b88,
+        0x0a82e883a194f07b,
+        0x48dcf1cb8ad2b852,
+        0x63984e959a98244b,
+    ],
     revision: 0,
     response: core::ptr::null(),
 };
 
 #[used]
 #[link_section = ".limine_requests_end"]
-static REQUESTS_END_MARKER: [u64; 2] = [
-    0xadc0e0531bb10d03, 0x9572709f31764c62
-];
+static REQUESTS_END_MARKER: [u64; 2] = [0xadc0e0531bb10d03, 0x9572709f31764c62];
 
 // -----------------------------------------------------------------------------
 // STATIC HANDOVER STORAGE (BSS)
@@ -207,6 +225,7 @@ static mut ASL_HANDOVER_STORAGE: AslBootHandover = AslBootHandover {
 // DEDICATED ASSEMBLY ENTRY STUB
 // -----------------------------------------------------------------------------
 
+#[cfg(target_arch = "x86_64")]
 core::arch::global_asm!(
     ".section .text.entry, \"ax\"",
     ".global _start",
@@ -225,10 +244,72 @@ core::arch::global_asm!(
     "_asl_stack_top:"
 );
 
+#[cfg(target_arch = "aarch64")]
+core::arch::global_asm!(
+    ".section .text.entry, \"ax\"",
+    ".global _start",
+    "_start:",
+    "adrp x0, _asl_stack_top",
+    "add  sp, x0, :lo12:_asl_stack_top",
+    "bl   asl_launcher_aarch64",
+    "1:",
+    "wfe",
+    "b    1b",
+    ".section .bss",
+    ".align 16",
+    "_asl_stack_bottom:",
+    ".skip 524288",
+    "_asl_stack_top:"
+);
+
 // -----------------------------------------------------------------------------
 // ASL LAUNCHER MAIN & HANDOVER ADAPTER
 // -----------------------------------------------------------------------------
 
+#[cfg(target_arch = "aarch64")]
+#[no_mangle]
+pub extern "C" fn asl_launcher_aarch64() -> ! {
+    SERIAL.init();
+    SERIAL.write_str("\n[ASL-LAUNCHER-AARCH64] Entered AArch64 Native Entry Stub.\n");
+    SERIAL.write_str("[ASL-LAUNCHER-AARCH64] Target: ARMv8-A Cortex-A57 (QEMU virt bare-metal).\n");
+
+    // Persiapkan Handover untuk QEMU virt platform
+    // QEMU virt: RAM 0x4000_0000..0x4400_0000 (64MB)
+    // Kernel base: 0x4008_0000 (size 2MB)
+    unsafe {
+        ASL_HANDOVER_STORAGE.magic = ASL_BOOT_MAGIC;
+        ASL_HANDOVER_STORAGE.protocol_version = 1;
+        ASL_HANDOVER_STORAGE.target_arch = TargetArch::Aarch64;
+        ASL_HANDOVER_STORAGE.kernel_physical_base = 0x4008_0000;
+        ASL_HANDOVER_STORAGE.kernel_virtual_base = 0x4008_0000;
+        ASL_HANDOVER_STORAGE.kernel_size_bytes = 0x200000;
+        ASL_HANDOVER_STORAGE.device_tree_or_acpi_ptr = 0x4000_0000; // QEMU puts DTB at start of RAM
+
+        // Konfigurasi Memory Map
+        ASL_HANDOVER_STORAGE.memory_map_count = 2;
+        ASL_HANDOVER_STORAGE.memory_map[0] = MemoryDescriptor {
+            base_physical_addr: 0x4008_0000,
+            length_bytes: 0x200000,
+            region_type: MemoryRegionType::KernelImage,
+            flags: 0,
+        };
+        ASL_HANDOVER_STORAGE.memory_map[1] = MemoryDescriptor {
+            base_physical_addr: 0x4028_0000,
+            length_bytes: 60 * 1024 * 1024, // 60MB usable RAM
+            region_type: MemoryRegionType::UsableRam,
+            flags: 0,
+        };
+    }
+
+    SERIAL.write_str("[ASL-LAUNCHER-AARCH64] Handover populated. Jumping to _asl_kernel_entry...\n");
+
+    let handover_ptr = core::ptr::addr_of!(ASL_HANDOVER_STORAGE);
+    unsafe {
+        asl_kernel_core::_asl_kernel_entry(handover_ptr);
+    }
+}
+
+#[cfg(target_arch = "x86_64")]
 #[no_mangle]
 pub extern "C" fn asl_launcher_main() -> ! {
     SERIAL.init();
@@ -236,8 +317,10 @@ pub extern "C" fn asl_launcher_main() -> ! {
     SERIAL.write_str(option_env!("ASL_BUILD_PROFILE").unwrap_or("unknown"));
     SERIAL.write_str(") via Assembly Trampoline.\n");
 
-    let memmap_resp = unsafe { core::ptr::read_volatile(core::ptr::addr_of!(MEMMAP_REQUEST.response)) };
-    let kaddr_resp = unsafe { core::ptr::read_volatile(core::ptr::addr_of!(KERNEL_ADDR_REQUEST.response)) };
+    let memmap_resp =
+        unsafe { core::ptr::read_volatile(core::ptr::addr_of!(MEMMAP_REQUEST.response)) };
+    let kaddr_resp =
+        unsafe { core::ptr::read_volatile(core::ptr::addr_of!(KERNEL_ADDR_REQUEST.response)) };
 
     let (kphys, kvirt) = if !kaddr_resp.is_null() {
         let resp = unsafe { &*kaddr_resp };
@@ -372,7 +455,8 @@ pub extern "C" fn asl_launcher_main() -> ! {
     }
 
     SERIAL.write_str("[ASL-LAUNCHER] Inspecting Limine Requests:\n");
-    let base_rev_supported = unsafe { core::ptr::read_volatile(core::ptr::addr_of!(BASE_REVISION[2])) };
+    let base_rev_supported =
+        unsafe { core::ptr::read_volatile(core::ptr::addr_of!(BASE_REVISION[2])) };
     if base_rev_supported == 0 {
         SERIAL.write_str("  -> Base Revision supported.\n");
     } else {
@@ -386,7 +470,7 @@ pub extern "C" fn asl_launcher_main() -> ! {
     }
 
     let hhdm_resp = unsafe { core::ptr::read_volatile(core::ptr::addr_of!(HHDM_REQUEST.response)) };
-    let hhdm_offset = if !hhdm_resp.is_null() {
+    let _hhdm_offset = if !hhdm_resp.is_null() {
         SERIAL.write_str("  -> HHDM response received.\n");
         unsafe { (*hhdm_resp).offset }
     } else {
@@ -394,7 +478,8 @@ pub extern "C" fn asl_launcher_main() -> ! {
         0
     };
 
-    let fb_resp = unsafe { core::ptr::read_volatile(core::ptr::addr_of!(FRAMEBUFFER_REQUEST.response)) };
+    let fb_resp =
+        unsafe { core::ptr::read_volatile(core::ptr::addr_of!(FRAMEBUFFER_REQUEST.response)) };
     if !fb_resp.is_null() {
         SERIAL.write_str("  -> Framebuffer response received.\n");
         let resp = unsafe { &*fb_resp };

@@ -31,6 +31,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "asl-cockpit-shell"
+version = "0.1.0"
+dependencies = [
+ "asl-driver-pci",
+ "asl-driver-ps2-keyboard",
+]
+
+[[package]]
 name = "asl-do178c-cert"
 version = "0.1.0"
 dependencies = [
@@ -38,6 +46,14 @@ dependencies = [
  "asl-sched",
  "asl-security-vault",
 ]
+
+[[package]]
+name = "asl-driver-pci"
+version = "0.1.0"
+
+[[package]]
+name = "asl-driver-ps2-keyboard"
+version = "0.1.0"
 
 [[package]]
 name = "asl-dsp-rpc"
@@ -82,10 +98,22 @@ version = "0.1.0"
 dependencies = [
  "asl-afdx-ipc",
  "asl-bootloader",
+ "asl-cockpit-shell",
+ "asl-driver-pci",
+ "asl-driver-ps2-keyboard",
  "asl-hal",
+ "asl-kernel-core-secondary",
  "asl-memory",
  "asl-sched",
  "asl-security-vault",
+ "asl-storage",
+]
+
+[[package]]
+name = "asl-kernel-core-secondary"
+version = "0.1.0"
+dependencies = [
+ "asl-bootloader",
 ]
 
 [[package]]
@@ -182,6 +210,13 @@ version = "0.1.0"
 dependencies = [
  "asl-hal",
  "asl-memory",
+]
+
+[[package]]
+name = "asl-storage"
+version = "0.1.0"
+dependencies = [
+ "asl-driver-pci",
 ]
 
 [[package]]

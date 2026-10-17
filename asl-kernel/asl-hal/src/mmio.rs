@@ -52,7 +52,9 @@ mod tests {
     #[test]
     fn test_mmio_register_read_write() {
         let mut simulated_hardware_reg: u32 = 0x1234_5678;
-        let reg = unsafe { MmioRegister::<u32>::from_address(&mut simulated_hardware_reg as *mut u32 as usize) };
+        let reg = unsafe {
+            MmioRegister::<u32>::from_address(&mut simulated_hardware_reg as *mut u32 as usize)
+        };
 
         assert_eq!(reg.read(), 0x1234_5678);
 

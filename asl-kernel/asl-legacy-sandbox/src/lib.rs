@@ -12,10 +12,10 @@
 /// Arsitektur Vintage yang Didukung
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum VintageCpuFamily {
-    Mos6502,      // Apple II, Commodore 64, NES
-    ZilogZ80,     // ZX Spectrum, MSX, Game Boy
-    Motorola68k,  // Amiga, Apple Macintosh, Sega Genesis
-    Intel8086,    // IBM PC XT
+    Mos6502,     // Apple II, Commodore 64, NES
+    ZilogZ80,    // ZX Spectrum, MSX, Game Boy
+    Motorola68k, // Amiga, Apple Macintosh, Sega Genesis
+    Intel8086,   // IBM PC XT
 }
 
 /// Keadaan Register CPU Vintage (Universal Virtual Register Frame)
@@ -70,7 +70,11 @@ impl SandboxedLegacyContainer {
     }
 
     /// Pemuatan biner biner lama ke dalam memori virtual container
-    pub fn load_binary_payload(&mut self, offset: usize, payload: &[u8]) -> Result<(), &'static str> {
+    pub fn load_binary_payload(
+        &mut self,
+        offset: usize,
+        payload: &[u8],
+    ) -> Result<(), &'static str> {
         if offset + payload.len() > LEGACY_RAM_CAPACITY {
             return Err("ERR_LEGACY_PAYLOAD_OUT_OF_BOUNDS");
         }
@@ -96,7 +100,8 @@ impl SandboxedLegacyContainer {
         self.cpu_state.clock_cycles_executed += 2; // Simulasi 2 clock cycles
 
         // Trap bila biner mencoba mengakses instruksi privileged atau I/O terlarang
-        if opcode == 0x00 { // BRK / NOP trap
+        if opcode == 0x00 {
+            // BRK / NOP trap
             self.io_traps_intercepted += 1;
         }
 

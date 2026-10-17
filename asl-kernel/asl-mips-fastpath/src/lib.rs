@@ -55,10 +55,13 @@ impl MipsTlbFastpathEngine {
     /// Simulasi handler TLB Refill Exception Coprocessor 0 (CP0)
     /// Menghitung pasangan halaman fisik dalam O(1) deterministik
     #[inline(always)]
-    pub fn handle_tlb_refill_fastpath(&mut self, bad_vaddr: u32) -> Result<MipsTlbEntry, &'static str> {
+    pub fn handle_tlb_refill_fastpath(
+        &mut self,
+        bad_vaddr: u32,
+    ) -> Result<MipsTlbEntry, &'static str> {
         self.tlb_refill_count += 1;
         let vpn2 = bad_vaddr & 0xFFFF_E000; // Ekstraksi bit Virtual Page Number 2
-        
+
         let pfn0 = (vpn2 >> 6) | 0x07; // Valid, Dirty, Cached
         let pfn1 = ((vpn2 + 4096) >> 6) | 0x07;
 
@@ -96,7 +99,9 @@ mod tests {
         assert_eq!(engine.tlb_refill_count, 0);
 
         let bad_vaddr = 0x8000_2000;
-        let entry = engine.handle_tlb_refill_fastpath(bad_vaddr).expect("Should compute TLB entry");
+        let entry = engine
+            .handle_tlb_refill_fastpath(bad_vaddr)
+            .expect("Should compute TLB entry");
         assert_eq!(engine.tlb_refill_count, 1);
         assert_eq!(entry.entry_hi, 0x8000_2000 & 0xFFFF_E000);
         assert_ne!(entry.entry_lo0, 0);
@@ -120,4 +125,3 @@ mod tests {
         assert_eq!(norm_le, u32::from_le(le_raw));
     }
 }
-

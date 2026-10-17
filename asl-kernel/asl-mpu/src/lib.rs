@@ -54,14 +54,22 @@ impl HardwareMpuController {
     pub const fn new() -> Self {
         Self {
             regions: [
-                MpuRegionConfig::empty(0), MpuRegionConfig::empty(1),
-                MpuRegionConfig::empty(2), MpuRegionConfig::empty(3),
-                MpuRegionConfig::empty(4), MpuRegionConfig::empty(5),
-                MpuRegionConfig::empty(6), MpuRegionConfig::empty(7),
-                MpuRegionConfig::empty(8), MpuRegionConfig::empty(9),
-                MpuRegionConfig::empty(10), MpuRegionConfig::empty(11),
-                MpuRegionConfig::empty(12), MpuRegionConfig::empty(13),
-                MpuRegionConfig::empty(14), MpuRegionConfig::empty(15),
+                MpuRegionConfig::empty(0),
+                MpuRegionConfig::empty(1),
+                MpuRegionConfig::empty(2),
+                MpuRegionConfig::empty(3),
+                MpuRegionConfig::empty(4),
+                MpuRegionConfig::empty(5),
+                MpuRegionConfig::empty(6),
+                MpuRegionConfig::empty(7),
+                MpuRegionConfig::empty(8),
+                MpuRegionConfig::empty(9),
+                MpuRegionConfig::empty(10),
+                MpuRegionConfig::empty(11),
+                MpuRegionConfig::empty(12),
+                MpuRegionConfig::empty(13),
+                MpuRegionConfig::empty(14),
+                MpuRegionConfig::empty(15),
             ],
             is_mpu_enabled: false,
         }
@@ -78,7 +86,11 @@ impl HardwareMpuController {
     }
 
     /// Validasi proteksi sebelum eksekusi pergantian task
-    pub fn switch_task_mpu_boundary(&mut self, stack_base: u32, stack_size_order: u8) -> Result<(), &'static str> {
+    pub fn switch_task_mpu_boundary(
+        &mut self,
+        stack_base: u32,
+        stack_size_order: u8,
+    ) -> Result<(), &'static str> {
         // Region 0: Flash/ROM Read-Only Executable
         // Region 1: SRAM Global
         // Region 2: Task Stack Pribadi (Hanya task aktif yang dapat menulis)

@@ -1,0 +1,12 @@
+[package]
+name = "asl-driver-pci"
+version = "0.1.0"
+edition = "2021"
+authors = ["ASL Core Avionics Team"]
+description = "Allocation-Free PCI / PCIe Bus Enumerator for ASL Operating System"
+
+[dependencies]
+
+[lib]
+name = "asl_driver_pci"
+path = "src/lib.rs"

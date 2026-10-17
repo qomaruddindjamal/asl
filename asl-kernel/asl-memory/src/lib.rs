@@ -41,7 +41,9 @@ impl BuddyAllocator {
         let mut i = 0;
         while i < handover.memory_map_count {
             let desc = &handover.memory_map[i];
-            if desc.region_type == MemoryRegionType::UsableRam && desc.length_bytes > largest_usable_len {
+            if desc.region_type == MemoryRegionType::UsableRam
+                && desc.length_bytes > largest_usable_len
+            {
                 largest_usable_base = desc.base_physical_addr;
                 largest_usable_len = desc.length_bytes;
             }
@@ -221,7 +223,10 @@ mod tests {
         let addr = pool_phys.unwrap();
 
         // Jaminan alignment 64-byte mutlak: PAGE_SIZE (4096) adalah kelipatan tepat 64
-        assert_eq!(addr & 0x3F, 0, "Alamat alokasi buddy system wajib selaras batas 64-byte cache line");
+        assert_eq!(
+            addr & 0x3F,
+            0,
+            "Alamat alokasi buddy system wajib selaras batas 64-byte cache line"
+        );
     }
 }
-

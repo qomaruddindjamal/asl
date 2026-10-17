@@ -26,5 +26,10 @@ members = [
     "asl-fleet-regression",
     "asl-do178c-cert",
     "asl-kernel-bin",
+    "asl-driver-pci",
+    "asl-driver-ps2-keyboard",
+    "asl-cockpit-shell",
+    "asl-kernel-core-secondary",
+    "asl-storage",
 ]
 resolver = "2"

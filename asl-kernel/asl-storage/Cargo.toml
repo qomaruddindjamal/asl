@@ -1,0 +1,9 @@
+[package]
+name = "asl-storage"
+version = "0.1.0"
+edition = "2021"
+authors = ["ASL Core Avionics Team"]
+description = "Deterministic DO-178C DAL-A Block Device, Partition Parser, ATA PIO, AHCI & VFS Subsystem for ASL Core Kernel"
+
+[dependencies]
+asl-driver-pci = { path = "../asl-driver-pci" }

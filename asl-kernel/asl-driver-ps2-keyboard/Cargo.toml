@@ -1,0 +1,12 @@
+[package]
+name = "asl-driver-ps2-keyboard"
+version = "0.1.0"
+edition = "2021"
+authors = ["ASL Core Avionics Team"]
+description = "Bounded PS/2 Keyboard Driver & Scan-Code Set 1 Decoder for ASL Operating System"
+
+[dependencies]
+
+[lib]
+name = "asl_driver_ps2_keyboard"
+path = "src/lib.rs"

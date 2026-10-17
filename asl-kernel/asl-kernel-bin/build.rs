@@ -6,5 +6,3 @@ fn main() {
     let profile = if is_debug { "debug" } else { "release" };
     println!("cargo:rustc-env=ASL_BUILD_PROFILE={}", profile);
 }
-
-

@@ -73,7 +73,8 @@ impl AslNanoKernel {
                 self.tasks[i].priority = priority;
                 self.tasks[i].state = TaskState::Ready;
                 // Arahkan stack pointer ke ujung atas buffer (Full Descending Stack)
-                let top_stack = self.tasks[i].stack_storage.as_ptr() as u32 + NANO_STACK_SIZE as u32;
+                let top_stack =
+                    self.tasks[i].stack_storage.as_ptr() as u32 + NANO_STACK_SIZE as u32;
                 self.tasks[i].stack_pointer = top_stack;
                 return Ok(i);
             }
@@ -125,6 +126,10 @@ impl AslNanoKernel {
             i += 1;
         }
 
-        if found_sleeping { min_sleep } else { 1 }
+        if found_sleeping {
+            min_sleep
+        } else {
+            1
+        }
     }
 }

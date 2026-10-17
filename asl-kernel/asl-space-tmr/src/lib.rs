@@ -12,8 +12,8 @@
 /// Hasil Voting Triple-Modular Redundancy
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum TmrVoteResult {
-    Unanimous,         // 3/3 Nilai identik
-    SingleFaultCorrected, // 2/3 Nilai sama (1 bit terbalik akibat radiasi, berhasil dikoreksi)
+    Unanimous,             // 3/3 Nilai identik
+    SingleFaultCorrected,  // 2/3 Nilai sama (1 bit terbalik akibat radiasi, berhasil dikoreksi)
     UnrecoverableTmrFault, // 3 nilai berbeda semua (Anomali fatal radiasi)
 }
 
@@ -217,7 +217,10 @@ mod tests {
         assert_eq!(tmr.vote_and_repair(), (42, TmrVoteResult::Unanimous));
 
         tmr.copy_b = 99; // Corrupted
-        assert_eq!(tmr.vote_and_repair(), (42, TmrVoteResult::SingleFaultCorrected));
+        assert_eq!(
+            tmr.vote_and_repair(),
+            (42, TmrVoteResult::SingleFaultCorrected)
+        );
         assert_eq!(tmr.copy_b, 42); // Repaired
 
         let mut scrubber = ContinuousMemoryScrubber::new(0x1000, 0x2000);
@@ -266,5 +269,3 @@ mod tests {
         }
     }
 }
-
-

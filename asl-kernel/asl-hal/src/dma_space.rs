@@ -41,7 +41,12 @@ pub trait DmaAddressSpace {
     ) -> Result<DmaDeviceAddress, DmaAddressFault>;
 
     /// Melepas pemetaan halaman IOVA
-    fn unmap_iova(&mut self, partition_id: u32, iova: u64, size_bytes: usize) -> Result<(), DmaAddressFault>;
+    fn unmap_iova(
+        &mut self,
+        partition_id: u32,
+        iova: u64,
+        size_bytes: usize,
+    ) -> Result<(), DmaAddressFault>;
 }
 
 // -----------------------------------------------------------------------------
@@ -60,14 +65,21 @@ impl DmaAddressSpace for IdentityDmaSpace {
         size_bytes: usize,
         _is_write: bool,
     ) -> Result<DmaDeviceAddress, DmaAddressFault> {
-        let end = buffer_addr.checked_add(size_bytes as u64).ok_or(DmaAddressFault::AddressOutOfRange)?;
+        let end = buffer_addr
+            .checked_add(size_bytes as u64)
+            .ok_or(DmaAddressFault::AddressOutOfRange)?;
         if end > self.max_physical_limit {
             return Err(DmaAddressFault::AddressOutOfRange);
         }
         Ok(DmaDeviceAddress(buffer_addr))
     }
 
-    fn unmap_iova(&mut self, _partition_id: u32, _iova: u64, _size_bytes: usize) -> Result<(), DmaAddressFault> {
+    fn unmap_iova(
+        &mut self,
+        _partition_id: u32,
+        _iova: u64,
+        _size_bytes: usize,
+    ) -> Result<(), DmaAddressFault> {
         Ok(())
     }
 }
@@ -88,7 +100,9 @@ impl DmaAddressSpace for MpuFirewallDmaSpace {
         size_bytes: usize,
         _is_write: bool,
     ) -> Result<DmaDeviceAddress, DmaAddressFault> {
-        let req_end = buffer_addr.checked_add(size_bytes as u64).ok_or(DmaAddressFault::AddressOutOfRange)?;
+        let req_end = buffer_addr
+            .checked_add(size_bytes as u64)
+            .ok_or(DmaAddressFault::AddressOutOfRange)?;
         for window in &self.partition_windows {
             if window.0 == partition_id {
                 if buffer_addr >= window.1 && req_end <= window.2 {
@@ -99,7 +113,12 @@ impl DmaAddressSpace for MpuFirewallDmaSpace {
         Err(DmaAddressFault::CrossPartitionViolation)
     }
 
-    fn unmap_iova(&mut self, _partition_id: u32, _iova: u64, _size_bytes: usize) -> Result<(), DmaAddressFault> {
+    fn unmap_iova(
+        &mut self,
+        _partition_id: u32,
+        _iova: u64,
+        _size_bytes: usize,
+    ) -> Result<(), DmaAddressFault> {
         Ok(())
     }
 }
@@ -173,7 +192,13 @@ impl IommuTranslationSpace {
     }
 
     /// Catat fault transaksi ke buffer telemetri Health Monitor
-    pub fn record_fault(&mut self, partition_id: u32, kind: DmaAddressFault, illegal_iova: u64, ts: u64) {
+    pub fn record_fault(
+        &mut self,
+        partition_id: u32,
+        kind: DmaAddressFault,
+        illegal_iova: u64,
+        ts: u64,
+    ) {
         if self.fault_count < self.fault_log.len() {
             self.fault_log[self.fault_count] = Some(DmaFaultRecord {
                 partition_id,
@@ -194,7 +219,9 @@ impl DmaAddressSpace for IommuTranslationSpace {
         size_bytes: usize,
         _is_write: bool,
     ) -> Result<DmaDeviceAddress, DmaAddressFault> {
-        let req_end = iova.checked_add(size_bytes as u64).ok_or(DmaAddressFault::AddressOutOfRange)?;
+        let req_end = iova
+            .checked_add(size_bytes as u64)
+            .ok_or(DmaAddressFault::AddressOutOfRange)?;
 
         let mut i = 0;
         while i < MAX_IOMMU_ENTRIES {
@@ -216,11 +243,20 @@ impl DmaAddressSpace for IommuTranslationSpace {
         Err(DmaAddressFault::TranslationNotPresent)
     }
 
-    fn unmap_iova(&mut self, partition_id: u32, iova: u64, size_bytes: usize) -> Result<(), DmaAddressFault> {
+    fn unmap_iova(
+        &mut self,
+        partition_id: u32,
+        iova: u64,
+        size_bytes: usize,
+    ) -> Result<(), DmaAddressFault> {
         let mut i = 0;
         while i < MAX_IOMMU_ENTRIES {
             let entry = &mut self.entries[i];
-            if entry.is_valid && entry.partition_id == partition_id && entry.iova_base == iova && entry.size_bytes == size_bytes {
+            if entry.is_valid
+                && entry.partition_id == partition_id
+                && entry.iova_base == iova
+                && entry.size_bytes == size_bytes
+            {
                 entry.is_valid = false;
                 return Ok(());
             }
@@ -237,7 +273,9 @@ mod tests {
     #[test]
     fn test_iommu_static_map_within_window_success() {
         let mut iommu = IommuTranslationSpace::new();
-        assert!(iommu.map_static_window(1, 0x8000_0000, 0x1000_0000, 0x10000).is_ok());
+        assert!(iommu
+            .map_static_window(1, 0x8000_0000, 0x1000_0000, 0x10000)
+            .is_ok());
 
         // Translasi valid di dalam jendela IOVA
         let res = iommu.translate_and_check(1, 0x8000_0100, 512, false);
@@ -248,9 +286,13 @@ mod tests {
     fn test_iommu_cross_window_access_rejected_and_fault_recorded() {
         let mut iommu = IommuTranslationSpace::new();
         // Partisi 1 dipetakan di 0x8000_0000..0x8001_0000
-        assert!(iommu.map_static_window(1, 0x8000_0000, 0x1000_0000, 0x10000).is_ok());
+        assert!(iommu
+            .map_static_window(1, 0x8000_0000, 0x1000_0000, 0x10000)
+            .is_ok());
         // Partisi 2 dipetakan di 0x9000_0000..0x9001_0000
-        assert!(iommu.map_static_window(2, 0x9000_0000, 0x2000_0000, 0x10000).is_ok());
+        assert!(iommu
+            .map_static_window(2, 0x9000_0000, 0x2000_0000, 0x10000)
+            .is_ok());
 
         // Snapshot integritas Partisi 2 (Checksum tetap tidak berubah)
         let partition2_checksum_before = 0x55AA55AA_u32;
@@ -260,7 +302,12 @@ mod tests {
         assert_eq!(res, Err(DmaAddressFault::CrossPartitionViolation));
 
         // Catat fault ke health monitor
-        iommu.record_fault(1, DmaAddressFault::CrossPartitionViolation, 0x9000_0080, 100);
+        iommu.record_fault(
+            1,
+            DmaAddressFault::CrossPartitionViolation,
+            0x9000_0080,
+            100,
+        );
         assert_eq!(iommu.fault_count, 1);
         assert_eq!(iommu.fault_log[0].unwrap().illegal_iova, 0x9000_0080);
 
@@ -272,7 +319,9 @@ mod tests {
     #[test]
     fn test_iommu_unmap_then_access_faults() {
         let mut iommu = IommuTranslationSpace::new();
-        assert!(iommu.map_static_window(1, 0x8000_0000, 0x1000_0000, 0x10000).is_ok());
+        assert!(iommu
+            .map_static_window(1, 0x8000_0000, 0x1000_0000, 0x10000)
+            .is_ok());
 
         // Unmap jendela
         assert!(iommu.unmap_iova(1, 0x8000_0000, 0x10000).is_ok());
@@ -286,20 +335,31 @@ mod tests {
     fn test_iommu_partition_b_memory_checksum_preserved_after_illegal_cross_partition_dma() {
         let mut iommu = IommuTranslationSpace::new();
         // Partisi A (ID: 1) di 0x8000_0000
-        assert!(iommu.map_static_window(1, 0x8000_0000, 0x1000_0000, 0x10000).is_ok());
+        assert!(iommu
+            .map_static_window(1, 0x8000_0000, 0x1000_0000, 0x10000)
+            .is_ok());
         // Partisi B (ID: 2) di 0x9000_0000
-        assert!(iommu.map_static_window(2, 0x9000_0000, 0x2000_0000, 0x10000).is_ok());
+        assert!(iommu
+            .map_static_window(2, 0x9000_0000, 0x2000_0000, 0x10000)
+            .is_ok());
 
         // Buffer memori representasi Partisi B di host
         let partition_b_memory = [0x5Au8; 256];
-        let checksum_before = partition_b_memory.iter().fold(0u32, |acc, &b| acc.wrapping_add(b as u32));
+        let checksum_before = partition_b_memory
+            .iter()
+            .fold(0u32, |acc, &b| acc.wrapping_add(b as u32));
 
         // Partisi A mencoba menulis (is_write = true) ke jendela Partisi B (0x9000_0040)
         let attempt = iommu.translate_and_check(1, 0x9000_0040, 64, true);
         assert_eq!(attempt, Err(DmaAddressFault::CrossPartitionViolation));
 
         // Karena ditolak IOMMU, hardware DMA tidak pernah menyentuh memori Partisi B
-        let checksum_after = partition_b_memory.iter().fold(0u32, |acc, &b| acc.wrapping_add(b as u32));
-        assert_eq!(checksum_before, checksum_after, "Integritas memori Partisi B wajib 100% identik tanpa korupsi");
+        let checksum_after = partition_b_memory
+            .iter()
+            .fold(0u32, |acc, &b| acc.wrapping_add(b as u32));
+        assert_eq!(
+            checksum_before, checksum_after,
+            "Integritas memori Partisi B wajib 100% identik tanpa korupsi"
+        );
     }
 }

@@ -11,7 +11,7 @@ use asl_hal::MmioRegister;
 /// Format Piksel Frame Video
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum VideoPixelFormat {
-    NV12,       // Standar YUV420 semi-planar
+    NV12, // Standar YUV420 semi-planar
     YUV422,
     RGB888,
     RawBayer12, // Output sensor mentah untuk ISP
@@ -129,7 +129,7 @@ impl VideoDmaPipelineEngine {
 
         let curr_idx = self.active_write_index[ch];
         let completed_frame = self.channels[ch][curr_idx];
-        
+
         self.total_frames_captured += 1;
         self.active_write_index[ch] = (curr_idx + 1) % FRAMES_PER_CHANNEL_RING;
 
@@ -159,8 +159,12 @@ mod tests {
     #[test]
     fn test_cctv_dma_pipeline_channel_setup_and_frame_cycle() {
         let mut engine = VideoDmaPipelineEngine::new();
-        assert!(engine.setup_channel_buffer(0, 0, 0x1000_0000, 0x1008_0000, 1920, 1080).is_ok());
-        assert!(engine.setup_channel_buffer(0, 1, 0x1010_0000, 0x1018_0000, 1920, 1080).is_ok());
+        assert!(engine
+            .setup_channel_buffer(0, 0, 0x1000_0000, 0x1008_0000, 1920, 1080)
+            .is_ok());
+        assert!(engine
+            .setup_channel_buffer(0, 1, 0x1010_0000, 0x1018_0000, 1920, 1080)
+            .is_ok());
 
         // Notifikasi frame complete
         let f0 = engine.on_hardware_frame_complete(0);

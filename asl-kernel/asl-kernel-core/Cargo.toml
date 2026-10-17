@@ -12,3 +12,8 @@ asl-memory = { path = "../asl-memory" }
 asl-security-vault = { path = "../asl-security-vault" }
 asl-sched = { path = "../asl-sched" }
 asl-afdx-ipc = { path = "../asl-afdx-ipc" }
+asl-driver-pci = { path = "../asl-driver-pci" }
+asl-driver-ps2-keyboard = { path = "../asl-driver-ps2-keyboard" }
+asl-cockpit-shell = { path = "../asl-cockpit-shell" }
+asl-kernel-core-secondary = { path = "../asl-kernel-core-secondary" }
+asl-storage = { path = "../asl-storage" }

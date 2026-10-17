@@ -81,8 +81,8 @@ fn early_serial_write_str(s: &str) {
     }
 }
 
-mod font;
-use font::BUILTIN_FONT_8X16;
+pub mod font;
+pub use font::{BUILTIN_FONT_8X16, ASL_FONT_REGULAR_8X16};
 
 // -----------------------------------------------------------------------------
 // LINEAR FRAMEBUFFER CONSOLE (VBE / GOP Graphics Mode)

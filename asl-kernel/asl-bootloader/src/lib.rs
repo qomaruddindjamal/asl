@@ -178,6 +178,35 @@ impl AslBootHandover {
             i += 1;
         }
 
+        // Validasi Framebuffer Config jika diaktifkan (base_physical_addr != 0)
+        let fb = &self.framebuffer;
+        if fb.base_physical_addr != 0 {
+            if fb.width == 0 || fb.height == 0 || fb.pixels_per_scan_line == 0 || fb.bytes_per_pixel == 0 {
+                return Err("ERR_INVALID_FRAMEBUFFER_DIMENSIONS");
+            }
+            if fb.bytes_per_pixel != 2 && fb.bytes_per_pixel != 3 && fb.bytes_per_pixel != 4 {
+                return Err("ERR_UNSUPPORTED_FRAMEBUFFER_BPP");
+            }
+            if fb.pixels_per_scan_line < fb.width {
+                return Err("ERR_FRAMEBUFFER_STRIDE_LESS_THAN_WIDTH");
+            }
+            let pitch = match (fb.pixels_per_scan_line as u64).checked_mul(fb.bytes_per_pixel as u64) {
+                Some(p) => p,
+                None => return Err("ERR_FRAMEBUFFER_PITCH_OVERFLOW"),
+            };
+            let required_bytes = match pitch.checked_mul(fb.height as u64) {
+                Some(bytes) => bytes,
+                None => return Err("ERR_FRAMEBUFFER_SIZE_OVERFLOW"),
+            };
+            let fb_end = match fb.base_physical_addr.checked_add(required_bytes) {
+                Some(end) => end,
+                None => return Err("ERR_FRAMEBUFFER_PHYSICAL_RANGE_OVERFLOW"),
+            };
+            if fb_end > MAX_PHYSICAL_ADDRESS_LIMIT {
+                return Err("ERR_FRAMEBUFFER_EXCEEDS_PHYSICAL_LIMIT");
+            }
+        }
+
         Ok(())
     }
 
@@ -312,5 +341,45 @@ mod tests {
         // Validasi AG-06: option_env fallback menghasilkan string valid
         let profile = option_env!("ASL_BUILD_PROFILE_NON_EXISTENT").unwrap_or("release-fallback");
         assert_eq!(profile, "release-fallback");
+    }
+
+    #[test]
+    fn test_framebuffer_config_validation_positive_and_negative() {
+        let mut h = create_valid_handover();
+        // Positive: Valid Framebuffer
+        h.framebuffer = FramebufferConfig {
+            base_physical_addr: 0xE000_0000,
+            size_bytes: 1024 * 768 * 4,
+            width: 1024,
+            height: 768,
+            pixels_per_scan_line: 1024,
+            bytes_per_pixel: 4,
+        };
+        assert_eq!(h.validate(), Ok(()));
+
+        // Negative: Zero width
+        let mut h_zero_w = h.clone();
+        h_zero_w.framebuffer.width = 0;
+        assert_eq!(h_zero_w.validate(), Err("ERR_INVALID_FRAMEBUFFER_DIMENSIONS"));
+
+        // Negative: Unsupported BPP (e.g. 1 byte per pixel)
+        let mut h_bad_bpp = h.clone();
+        h_bad_bpp.framebuffer.bytes_per_pixel = 1;
+        assert_eq!(h_bad_bpp.validate(), Err("ERR_UNSUPPORTED_FRAMEBUFFER_BPP"));
+
+        // Negative: Stride less than width
+        let mut h_bad_stride = h.clone();
+        h_bad_stride.framebuffer.pixels_per_scan_line = 800; // < 1024 width
+        assert_eq!(h_bad_stride.validate(), Err("ERR_FRAMEBUFFER_STRIDE_LESS_THAN_WIDTH"));
+
+        // Negative: Framebuffer physical address overflow
+        let mut h_overflow = h.clone();
+        h_overflow.framebuffer.base_physical_addr = u64::MAX - 100;
+        assert_eq!(h_overflow.validate(), Err("ERR_FRAMEBUFFER_PHYSICAL_RANGE_OVERFLOW"));
+
+        // Negative: Exceeds 52-bit physical limit
+        let mut h_limit = h.clone();
+        h_limit.framebuffer.base_physical_addr = 0x0010_0000_0000_0000;
+        assert_eq!(h_limit.validate(), Err("ERR_FRAMEBUFFER_EXCEEDS_PHYSICAL_LIMIT"));
     }
 }

@@ -473,6 +473,48 @@ mod tests {
     }
 
     #[test]
+    fn test_fat32_cyclic_cluster_chain_rejection() {
+        let mut dev = MemBlockDevice::<{ 256 * SECTOR_SIZE }>::new();
+
+        // BPB at sector 0: 1 sector per cluster, 32 reserved, 2 FATs, 10 sectors/FAT, root at cluster 2
+        let mut bpb_sec = [0u8; SECTOR_SIZE];
+        bpb_sec[510] = 0x55;
+        bpb_sec[511] = 0xAA;
+        bpb_sec[11..13].copy_from_slice(&512u16.to_le_bytes());
+        bpb_sec[13] = 1;
+        bpb_sec[14..16].copy_from_slice(&32u16.to_le_bytes());
+        bpb_sec[16] = 2;
+        bpb_sec[36..40].copy_from_slice(&10u32.to_le_bytes());
+        bpb_sec[44..48].copy_from_slice(&2u32.to_le_bytes());
+        dev.write_sectors(0, 1, &bpb_sec).unwrap();
+
+        // Cyclic FAT entry chain: Cluster 3 -> Cluster 4 -> Cluster 3 (infinite loop)
+        let mut fat_sec = [0u8; SECTOR_SIZE];
+        fat_sec[8..12].copy_from_slice(&0x0FFF_FFF8u32.to_le_bytes()); // Cluster 2 (root dir) EOC
+        fat_sec[12..16].copy_from_slice(&4u32.to_le_bytes()); // Cluster 3 -> 4
+        fat_sec[16..20].copy_from_slice(&3u32.to_le_bytes()); // Cluster 4 -> 3 (Cycle!)
+        dev.write_sectors(32, 1, &fat_sec).unwrap();
+        dev.write_sectors(42, 1, &fat_sec).unwrap();
+
+        // Root directory at Cluster 2 (LBA 52) pointing to Cluster 3 with declared size 100MB
+        let mut root_dir_sec = [0u8; SECTOR_SIZE];
+        root_dir_sec[0..11].copy_from_slice(b"CYCLE   DAT");
+        root_dir_sec[11] = 0x20;
+        root_dir_sec[26..28].copy_from_slice(&3u16.to_le_bytes()); // Starts at Cluster 3
+        root_dir_sec[28..32].copy_from_slice(&100_000_000u32.to_le_bytes()); // Declared size 100MB
+        dev.write_sectors(52, 1, &root_dir_sec).unwrap();
+
+        let mut fat_fs = Fat32FileSystem::mount(&mut dev, 0).unwrap();
+        let file = fat_fs.lookup("CYCLE.DAT").unwrap();
+
+        // Reading past the cycle with a buffer exceeding 256 clusters (256 * 512 = 128KB)
+        // Declared file is 100MB; buffer is 200KB (> 256 clusters), which must trigger CorruptedMetadata
+        let mut big_buf = [0u8; 200_000];
+        let res = fat_fs.read(&file, 0, &mut big_buf);
+        assert_eq!(res, Err(VfsError::Storage(StorageError::CorruptedMetadata)));
+    }
+
+    #[test]
     fn test_ext4_fail_closed_write_rejection() {
         let mut dev = MemBlockDevice::<{ 1024 * SECTOR_SIZE }>::new();
 

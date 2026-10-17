@@ -16,6 +16,7 @@ pub const FAT32_ENTRY_FREE: u8 = 0xE5;
 pub const FAT32_ENTRY_LAST: u8 = 0x00;
 
 pub const FAT32_EOC: u32 = 0x0FFF_FFF8; // End of cluster chain
+pub const MAX_CLUSTER_TRAVERSAL: usize = 256; // Bounded loop execution to prevent DoS via cyclic cluster chain
 
 #[derive(Debug, Copy, Clone)]
 pub struct Fat32Bpb {
@@ -200,8 +201,14 @@ impl<'a, B: BlockDevice> FileSystem for Fat32FileSystem<'a, B> {
         let target_name = trimmed.trim_start_matches('/');
         let mut cur_cluster = self.bpb.root_cluster;
         let mut sector_buf = [0u8; SECTOR_SIZE];
+        let mut steps = 0;
 
         while cur_cluster < 0x0FFF_FFF8 && cur_cluster >= 2 {
+            steps += 1;
+            if steps > MAX_CLUSTER_TRAVERSAL {
+                return Err(VfsError::Storage(StorageError::CorruptedMetadata));
+            }
+
             let lba_base = match self.bpb.cluster_to_lba(cur_cluster) {
                 Ok(lba) => self.partition_start_lba + lba,
                 Err(e) => return Err(e.into()),
@@ -288,8 +295,14 @@ impl<'a, B: BlockDevice> FileSystem for Fat32FileSystem<'a, B> {
         let mut cur_file_offset: usize = 0;
         let mut read_bytes: usize = 0;
         let mut sector_buf = [0u8; SECTOR_SIZE];
+        let mut steps = 0;
 
         while cur_cluster < 0x0FFF_FFF8 && cur_cluster >= 2 && read_bytes < bytes_to_read {
+            steps += 1;
+            if steps > MAX_CLUSTER_TRAVERSAL {
+                return Err(VfsError::Storage(StorageError::CorruptedMetadata));
+            }
+
             let lba_base = match self.bpb.cluster_to_lba(cur_cluster) {
                 Ok(lba) => self.partition_start_lba + lba,
                 Err(e) => return Err(e.into()),
@@ -343,8 +356,14 @@ impl<'a, B: BlockDevice> FileSystem for Fat32FileSystem<'a, B> {
         let mut cur_file_offset: usize = 0;
         let mut written_bytes: usize = 0;
         let mut sector_buf = [0u8; SECTOR_SIZE];
+        let mut steps = 0;
 
         while cur_cluster < 0x0FFF_FFF8 && cur_cluster >= 2 && written_bytes < buf.len() {
+            steps += 1;
+            if steps > MAX_CLUSTER_TRAVERSAL {
+                return Err(VfsError::Storage(StorageError::CorruptedMetadata));
+            }
+
             let lba_base = match self.bpb.cluster_to_lba(cur_cluster) {
                 Ok(lba) => self.partition_start_lba + lba,
                 Err(e) => return Err(e.into()),
@@ -402,8 +421,14 @@ impl<'a, B: BlockDevice> FileSystem for Fat32FileSystem<'a, B> {
         let mut cur_cluster = node.inode as u32;
         let mut count = 0;
         let mut sector_buf = [0u8; SECTOR_SIZE];
+        let mut steps = 0;
 
         while cur_cluster < 0x0FFF_FFF8 && cur_cluster >= 2 && count < entries.len() {
+            steps += 1;
+            if steps > MAX_CLUSTER_TRAVERSAL {
+                return Err(VfsError::Storage(StorageError::CorruptedMetadata));
+            }
+
             let lba_base = match self.bpb.cluster_to_lba(cur_cluster) {
                 Ok(lba) => self.partition_start_lba + lba,
                 Err(e) => return Err(e.into()),

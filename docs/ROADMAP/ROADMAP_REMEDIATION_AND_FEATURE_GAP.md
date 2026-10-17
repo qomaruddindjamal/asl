@@ -3,6 +3,7 @@
 **Versi Dokumen:** `2.0.0-RND`  
 **Status Audit:** Active Roadmap & Architecture Synthesis  
 **Otoritas Desain:** Standar DO-178C DAL-A / ARINC 653 IMA / 150 Silicon Architectures  
+**Pedoman Rekayasa Rust Khusus:** [`docs/RND/RUST_MICROKERNEL_ENGINEERING_GUIDELINES.md`](file:///c:/asl/docs/RND/RUST_MICROKERNEL_ENGINEERING_GUIDELINES.md)
 
 ---
 

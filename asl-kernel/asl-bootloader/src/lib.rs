@@ -432,5 +432,16 @@ mod tests {
             h_overlap.validate(),
             Err("ERR_FRAMEBUFFER_OVERLAPS_KERNEL_MEMORY")
         );
+
+        // Negative: Framebuffer size calculation overflow
+        let mut h_size_overflow = h.clone();
+        h_size_overflow.framebuffer.height = u32::MAX;
+        h_size_overflow.framebuffer.pixels_per_scan_line = 0x8000_0000;
+        h_size_overflow.framebuffer.width = 100;
+        h_size_overflow.framebuffer.bytes_per_pixel = 4;
+        assert_eq!(
+            h_size_overflow.validate(),
+            Err("ERR_FRAMEBUFFER_SIZE_OVERFLOW")
+        );
     }
 }

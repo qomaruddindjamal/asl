@@ -48,4 +48,7 @@ pub trait BlockDevice {
     fn flush(&mut self) -> StorageResult<()> {
         Ok(())
     }
+
+    /// Fault injection hook for simulation and testability
+    fn set_inject_error(&mut self, _err: bool) {}
 }

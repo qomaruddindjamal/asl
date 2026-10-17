@@ -94,4 +94,15 @@ impl<const TOTAL_BYTES: usize> BlockDevice for MemBlockDevice<TOTAL_BYTES> {
         self.storage[start_offset..end_offset].copy_from_slice(&buf[..needed_bytes]);
         Ok(())
     }
+
+    fn flush(&mut self) -> StorageResult<()> {
+        if self.inject_error {
+            return Err(StorageError::IoError);
+        }
+        Ok(())
+    }
+
+    fn set_inject_error(&mut self, err: bool) {
+        self.inject_error = err;
+    }
 }

@@ -18,6 +18,7 @@ pub mod block;
 pub mod ext4;
 pub mod fat32;
 pub mod partition;
+pub mod raid;
 pub mod ramdisk;
 pub mod vfs;
 
@@ -29,6 +30,10 @@ pub use block::{BlockDevice, StorageError, StorageResult, SECTOR_SIZE};
 pub use ext4::{Ext4FileSystem, Ext4Superblock, EXT4_FEATURE_INCOMPAT_EXTENTS, EXT4_MAGIC};
 pub use fat32::{Fat32Bpb, Fat32FileSystem};
 pub use partition::{Partition, PartitionTable, PartitionType, GPT_SIGNATURE, MBR_MAGIC};
+pub use raid::{
+    Raid0Volume, Raid1MemberStatus, Raid1Volume, Raid1VolumeState, DEFAULT_STRIPE_SECTORS,
+    MAX_RAID_MEMBERS,
+};
 pub use ramdisk::MemBlockDevice;
 pub use vfs::{DirectoryEntry, FileSystem, Vfs, VfsError, VfsNode, VfsNodeType, VfsResult};
 
@@ -567,5 +572,392 @@ mod tests {
         let mut buf = [0u8; 10];
         assert_eq!(vfs.read(&dummy_node, 0, &mut buf), Err(VfsError::NotFound));
         assert_eq!(vfs.write(&dummy_node, 0, &buf), Err(VfsError::NotFound));
+    }
+
+    #[test]
+    fn test_raid0_creation_validation_and_rejections() {
+        let mut d1 = MemBlockDevice::<{ 64 * SECTOR_SIZE }>::new();
+        let mut d2 = MemBlockDevice::<{ 64 * SECTOR_SIZE }>::new();
+        let mut d3 = MemBlockDevice::<{ 16 * SECTOR_SIZE }>::new();
+        let mut d4 = MemBlockDevice::<{ 64 * SECTOR_SIZE }>::new();
+
+        // 1. Reject less than 2 members
+        let members1: [&mut dyn BlockDevice; MAX_RAID_MEMBERS] =
+            [&mut d1, &mut d2, &mut d3, &mut d4];
+        assert_eq!(
+            Raid0Volume::new(members1, 1, 16).err(),
+            Some(StorageError::InvalidParameter)
+        );
+
+        // 2. Reject zero or non-power-of-two stripe size
+        let mut d1_b = MemBlockDevice::<{ 64 * SECTOR_SIZE }>::new();
+        let mut d2_b = MemBlockDevice::<{ 64 * SECTOR_SIZE }>::new();
+        let mut d3_b = MemBlockDevice::<{ 16 * SECTOR_SIZE }>::new();
+        let mut d4_b = MemBlockDevice::<{ 64 * SECTOR_SIZE }>::new();
+        let members2: [&mut dyn BlockDevice; MAX_RAID_MEMBERS] =
+            [&mut d1_b, &mut d2_b, &mut d3_b, &mut d4_b];
+        assert_eq!(
+            Raid0Volume::new(members2, 2, 0).err(),
+            Some(StorageError::InvalidParameter)
+        );
+
+        let mut d1_c = MemBlockDevice::<{ 64 * SECTOR_SIZE }>::new();
+        let mut d2_c = MemBlockDevice::<{ 64 * SECTOR_SIZE }>::new();
+        let mut d3_c = MemBlockDevice::<{ 16 * SECTOR_SIZE }>::new();
+        let mut d4_c = MemBlockDevice::<{ 64 * SECTOR_SIZE }>::new();
+        let members3: [&mut dyn BlockDevice; MAX_RAID_MEMBERS] =
+            [&mut d1_c, &mut d2_c, &mut d3_c, &mut d4_c];
+        assert_eq!(
+            Raid0Volume::new(members3, 2, 15).err(),
+            Some(StorageError::InvalidParameter)
+        ); // 15 is not power of 2
+
+        // 3. Valid creation with two members of 64 sectors and stripe size 16
+        let mut d1_v = MemBlockDevice::<{ 64 * SECTOR_SIZE }>::new();
+        let mut d2_v = MemBlockDevice::<{ 64 * SECTOR_SIZE }>::new();
+        let mut d3_v = MemBlockDevice::<{ 16 * SECTOR_SIZE }>::new();
+        let mut d4_v = MemBlockDevice::<{ 64 * SECTOR_SIZE }>::new();
+        let members_valid: [&mut dyn BlockDevice; MAX_RAID_MEMBERS] =
+            [&mut d1_v, &mut d2_v, &mut d3_v, &mut d4_v];
+        let r0 = Raid0Volume::new(members_valid, 2, 16).unwrap();
+        assert_eq!(r0.member_count(), 2);
+        assert_eq!(r0.stripe_sectors(), 16);
+        assert_eq!(r0.member_usable_sectors(), 64);
+        assert_eq!(r0.total_sectors(), 128); // 64 * 2 = 128 sectors
+    }
+
+    #[test]
+    fn test_raid0_striping_sector_mapping_across_boundaries() {
+        let mut d1 = MemBlockDevice::<{ 32 * SECTOR_SIZE }>::new();
+        let mut d2 = MemBlockDevice::<{ 32 * SECTOR_SIZE }>::new();
+        let mut d3 = MemBlockDevice::<{ 16 * SECTOR_SIZE }>::new();
+        let mut d4 = MemBlockDevice::<{ 16 * SECTOR_SIZE }>::new();
+
+        // 2 members, stripe size = 4 sectors (2048 bytes per stripe chunk)
+        let members: [&mut dyn BlockDevice; MAX_RAID_MEMBERS] =
+            [&mut d1, &mut d2, &mut d3, &mut d4];
+        let mut r0 = Raid0Volume::new(members, 2, 4).unwrap();
+        assert_eq!(r0.total_sectors(), 64);
+
+        // Fill pattern spanning 3 stripes (10 sectors: LBA 2..12)
+        // LBA 2..4: in stripe 0 (on disk 0, offset 2..4) -> 2 sectors
+        // LBA 4..8: in stripe 1 (on disk 1, offset 0..4) -> 4 sectors
+        // LBA 8..12: in stripe 2 (on disk 0, offset 4..8) -> 4 sectors
+        let mut write_data = [0u8; 10 * SECTOR_SIZE];
+        for i in 0..write_data.len() {
+            write_data[i] = (i & 0xFF) as u8;
+        }
+
+        r0.write_sectors(2, 10, &write_data).unwrap();
+
+        // Read back via RAID 0 and verify
+        let mut read_data = [0u8; 10 * SECTOR_SIZE];
+        r0.read_sectors(2, 10, &mut read_data).unwrap();
+        assert_eq!(read_data, write_data);
+
+        // Verify out-of-bounds LBA rejected
+        let mut err_buf = [0u8; 512];
+        assert_eq!(
+            r0.read_sectors(64, 1, &mut err_buf),
+            Err(StorageError::InvalidLba)
+        );
+        let err_buf_5 = [0u8; 5 * 512];
+        assert_eq!(
+            r0.write_sectors(60, 5, &err_buf_5),
+            Err(StorageError::InvalidLba)
+        );
+    }
+
+    #[test]
+    fn test_raid0_member_failure_propagation() {
+        let mut d1 = MemBlockDevice::<{ 32 * SECTOR_SIZE }>::new();
+        let mut d2 = MemBlockDevice::<{ 32 * SECTOR_SIZE }>::new();
+        let mut d3 = MemBlockDevice::<{ 16 * SECTOR_SIZE }>::new();
+        let mut d4 = MemBlockDevice::<{ 16 * SECTOR_SIZE }>::new();
+
+        // Inject error on d2
+        d2.set_inject_error(true);
+
+        let members: [&mut dyn BlockDevice; MAX_RAID_MEMBERS] =
+            [&mut d1, &mut d2, &mut d3, &mut d4];
+        let mut r0 = Raid0Volume::new(members, 2, 4).unwrap();
+
+        let mut buf = [0u8; 8 * SECTOR_SIZE]; // Spans across both d1 and d2
+                                              // Must fail with IoError when accessing d2
+        assert_eq!(r0.read_sectors(0, 8, &mut buf), Err(StorageError::IoError));
+        assert_eq!(r0.write_sectors(0, 8, &buf), Err(StorageError::IoError));
+    }
+
+    #[test]
+    fn test_raid1_mirror_write_readback_and_consistency() {
+        let mut d1 = MemBlockDevice::<{ 64 * SECTOR_SIZE }>::new();
+        let mut d2 = MemBlockDevice::<{ 64 * SECTOR_SIZE }>::new();
+        let mut d3 = MemBlockDevice::<{ 16 * SECTOR_SIZE }>::new();
+        let mut d4 = MemBlockDevice::<{ 16 * SECTOR_SIZE }>::new();
+
+        let members: [&mut dyn BlockDevice; MAX_RAID_MEMBERS] =
+            [&mut d1, &mut d2, &mut d3, &mut d4];
+        let mut r1 = Raid1Volume::new(members, 2).unwrap();
+        assert_eq!(r1.member_count(), 2);
+        assert_eq!(r1.total_sectors(), 64);
+        assert_eq!(r1.volume_state(), Raid1VolumeState::Optimal);
+
+        let write_buf = [0x5Au8; 512];
+        r1.write_sectors(10, 1, &write_buf).unwrap();
+
+        // Read back through RAID 1 volume
+        let mut read_buf = [0u8; 512];
+        r1.read_sectors(10, 1, &mut read_buf).unwrap();
+        assert_eq!(read_buf, write_buf);
+
+        // Verify that BOTH underlying physical members received the exact identical data
+        let mut d1_check = [0u8; 512];
+        let mut d2_check = [0u8; 512];
+        r1.members[0].read_sectors(10, 1, &mut d1_check).unwrap();
+        r1.members[1].read_sectors(10, 1, &mut d2_check).unwrap();
+        assert_eq!(d1_check, write_buf);
+        assert_eq!(d2_check, write_buf);
+    }
+
+    #[test]
+    fn test_raid1_degraded_mode_read_fallback_and_no_false_success() {
+        let mut d1 = MemBlockDevice::<{ 64 * SECTOR_SIZE }>::new();
+        let mut d2 = MemBlockDevice::<{ 64 * SECTOR_SIZE }>::new();
+        let mut d3 = MemBlockDevice::<{ 16 * SECTOR_SIZE }>::new();
+        let mut d4 = MemBlockDevice::<{ 16 * SECTOR_SIZE }>::new();
+
+        let members: [&mut dyn BlockDevice; MAX_RAID_MEMBERS] =
+            [&mut d1, &mut d2, &mut d3, &mut d4];
+        let mut r1 = Raid1Volume::new(members, 2).unwrap();
+
+        // Write initial data while optimal
+        let initial_data = [0xC3u8; 512];
+        r1.write_sectors(5, 1, &initial_data).unwrap();
+
+        // Inject fault on primary member d1
+        r1.members[0].set_inject_error(true);
+
+        // Read operation must fallback to d2 and mark d1 as Failed
+        let mut read_fallback = [0u8; 512];
+        assert_eq!(r1.read_sectors(5, 1, &mut read_fallback), Ok(()));
+        assert_eq!(read_fallback, initial_data);
+        assert_eq!(r1.member_status(0), Some(Raid1MemberStatus::Failed));
+        assert_eq!(r1.member_status(1), Some(Raid1MemberStatus::Healthy));
+        assert_eq!(r1.volume_state(), Raid1VolumeState::Degraded);
+
+        // Subsequent write in Degraded mode will only attempt to healthy members (d2), succeeding
+        let new_data = [0xE5u8; 512];
+        assert_eq!(r1.write_sectors(5, 1, &new_data), Ok(()));
+
+        // Read back confirms d2 has updated data
+        let mut read_degraded = [0u8; 512];
+        assert_eq!(r1.read_sectors(5, 1, &mut read_degraded), Ok(()));
+        assert_eq!(read_degraded, new_data);
+
+        // Now inject fault on d2 as well -> All members offline
+        r1.members[1].set_inject_error(true);
+        assert_eq!(
+            r1.read_sectors(5, 1, &mut read_degraded),
+            Err(StorageError::IoError)
+        );
+        assert_eq!(r1.volume_state(), Raid1VolumeState::Offline);
+        assert_eq!(
+            r1.write_sectors(5, 1, &new_data),
+            Err(StorageError::DeviceNotFound)
+        );
+    }
+
+    #[test]
+    fn test_raid1_partial_write_failure_policy() {
+        let mut d1 = MemBlockDevice::<{ 64 * SECTOR_SIZE }>::new();
+        let mut d2 = MemBlockDevice::<{ 64 * SECTOR_SIZE }>::new();
+        let mut d3 = MemBlockDevice::<{ 16 * SECTOR_SIZE }>::new();
+        let mut d4 = MemBlockDevice::<{ 16 * SECTOR_SIZE }>::new();
+
+        let members: [&mut dyn BlockDevice; MAX_RAID_MEMBERS] =
+            [&mut d1, &mut d2, &mut d3, &mut d4];
+        let mut r1 = Raid1Volume::new(members, 2).unwrap();
+
+        // Inject error on member 1 only
+        r1.members[1].set_inject_error(true);
+
+        // Attempting to write while both are marked healthy must FAIL with IoError
+        // and must NOT return false-success Ok(())!
+        let buf = [0x99u8; 512];
+        assert_eq!(r1.write_sectors(0, 1, &buf), Err(StorageError::IoError));
+
+        // Member 1 must now be marked Failed, transitioning volume to Degraded
+        assert_eq!(r1.member_status(1), Some(Raid1MemberStatus::Failed));
+        assert_eq!(r1.volume_state(), Raid1VolumeState::Degraded);
+    }
+
+    #[test]
+    fn test_raid1_flush_failure_propagation() {
+        let mut d1 = MemBlockDevice::<{ 64 * SECTOR_SIZE }>::new();
+        let mut d2 = MemBlockDevice::<{ 64 * SECTOR_SIZE }>::new();
+        let mut d3 = MemBlockDevice::<{ 16 * SECTOR_SIZE }>::new();
+        let mut d4 = MemBlockDevice::<{ 16 * SECTOR_SIZE }>::new();
+
+        let members: [&mut dyn BlockDevice; MAX_RAID_MEMBERS] =
+            [&mut d1, &mut d2, &mut d3, &mut d4];
+        let mut r1 = Raid1Volume::new(members, 2).unwrap();
+
+        // Normal flush succeeds
+        assert_eq!(r1.flush(), Ok(()));
+
+        // Inject fault on member 0
+        r1.members[0].set_inject_error(true);
+        // Flush must propagate error and mark member 0 Failed
+        assert_eq!(r1.flush(), Err(StorageError::IoError));
+        assert_eq!(r1.member_status(0), Some(Raid1MemberStatus::Failed));
+        assert_eq!(r1.volume_state(), Raid1VolumeState::Degraded);
+    }
+
+    #[test]
+    fn test_vfs_mounted_on_raid1_volume() {
+        let mut d1 = MemBlockDevice::<{ 256 * SECTOR_SIZE }>::new();
+        let mut d2 = MemBlockDevice::<{ 256 * SECTOR_SIZE }>::new();
+        let mut d3 = MemBlockDevice::<{ 16 * SECTOR_SIZE }>::new();
+        let mut d4 = MemBlockDevice::<{ 16 * SECTOR_SIZE }>::new();
+
+        let members: [&mut dyn BlockDevice; MAX_RAID_MEMBERS] =
+            [&mut d1, &mut d2, &mut d3, &mut d4];
+        let mut r1 = Raid1Volume::new(members, 2).unwrap();
+
+        // Write FAT32 BPB on RAID 1 volume
+        let mut bpb_sec = [0u8; SECTOR_SIZE];
+        bpb_sec[510] = 0x55;
+        bpb_sec[511] = 0xAA;
+        bpb_sec[11..13].copy_from_slice(&512u16.to_le_bytes());
+        bpb_sec[13] = 1;
+        bpb_sec[14..16].copy_from_slice(&32u16.to_le_bytes());
+        bpb_sec[16] = 2;
+        bpb_sec[36..40].copy_from_slice(&10u32.to_le_bytes());
+        bpb_sec[44..48].copy_from_slice(&2u32.to_le_bytes());
+        r1.write_sectors(0, 1, &bpb_sec).unwrap();
+
+        // Setup FAT
+        let mut fat_sec = [0u8; SECTOR_SIZE];
+        fat_sec[8..12].copy_from_slice(&0x0FFF_FFF8u32.to_le_bytes()); // Root dir EOC
+        fat_sec[12..16].copy_from_slice(&0x0FFF_FFF8u32.to_le_bytes()); // File EOC
+        r1.write_sectors(32, 1, &fat_sec).unwrap();
+        r1.write_sectors(42, 1, &fat_sec).unwrap();
+
+        // Root directory entry for "RAID1   TXT" pointing to cluster 3
+        let mut root_dir_sec = [0u8; SECTOR_SIZE];
+        root_dir_sec[0..11].copy_from_slice(b"RAID1   TXT");
+        root_dir_sec[11] = 0x20;
+        root_dir_sec[26..28].copy_from_slice(&3u16.to_le_bytes());
+        root_dir_sec[28..32].copy_from_slice(&11u32.to_le_bytes()); // 11 bytes
+        r1.write_sectors(52, 1, &root_dir_sec).unwrap();
+
+        // Write payload to Cluster 3 (LBA 53)
+        let mut payload_sec = [0u8; SECTOR_SIZE];
+        payload_sec[..11].copy_from_slice(b"HELLO_RAID1");
+        r1.write_sectors(53, 1, &payload_sec).unwrap();
+
+        // Mount FAT32 filesystem directly on RAID 1 block device
+        let mut fat_fs = Fat32FileSystem::mount(&mut r1, 0).unwrap();
+        let file_node = fat_fs.lookup("RAID1.TXT").unwrap();
+        assert_eq!(file_node.size_bytes, 11);
+
+        let mut read_buf = [0u8; 11];
+        let bytes_read = fat_fs.read(&file_node, 0, &mut read_buf).unwrap();
+        assert_eq!(bytes_read, 11);
+        assert_eq!(&read_buf, b"HELLO_RAID1");
+
+        // Verify that VFS can manage the mounted FAT32 filesystem
+        let mut vfs = Vfs::new();
+        vfs.mount_root(&mut fat_fs);
+        assert_eq!(vfs.is_mounted(), true);
+        let vfs_node = vfs.open("RAID1.TXT").unwrap();
+        let mut vfs_buf = [0u8; 11];
+        let vfs_read = vfs.read(&vfs_node, 0, &mut vfs_buf).unwrap();
+        assert_eq!(vfs_read, 11);
+        assert_eq!(&vfs_buf, b"HELLO_RAID1");
+    }
+
+    #[test]
+    fn test_raid1_member0_failure_behavior_symmetric() {
+        let mut d1 = MemBlockDevice::<{ 64 * SECTOR_SIZE }>::new();
+        let mut d2 = MemBlockDevice::<{ 64 * SECTOR_SIZE }>::new();
+        let mut d3 = MemBlockDevice::<{ 16 * SECTOR_SIZE }>::new();
+        let mut d4 = MemBlockDevice::<{ 16 * SECTOR_SIZE }>::new();
+
+        let members: [&mut dyn BlockDevice; MAX_RAID_MEMBERS] =
+            [&mut d1, &mut d2, &mut d3, &mut d4];
+        let mut r1 = Raid1Volume::new(members, 2).unwrap();
+
+        // Inject fault on member 0 (the primary member)
+        r1.members[0].set_inject_error(true);
+
+        // Writing while both are healthy should fail on member 0, propagate error,
+        // and transition volume to Degraded with member 0 marked Failed
+        let buf = [0x77u8; 512];
+        assert_eq!(r1.write_sectors(0, 1, &buf), Err(StorageError::IoError));
+        assert_eq!(r1.member_status(0), Some(Raid1MemberStatus::Failed));
+        assert_eq!(r1.member_status(1), Some(Raid1MemberStatus::Healthy));
+        assert_eq!(r1.volume_state(), Raid1VolumeState::Degraded);
+
+        // Subsequent read must read from healthy member 1 without panicking or failing
+        let mut read_buf = [0u8; 512];
+        assert_eq!(r1.read_sectors(0, 1, &mut read_buf), Ok(()));
+    }
+
+    #[test]
+    fn test_raid_boundary_heterogeneous_capacity_and_zero_sector_ops() {
+        // Heterogeneous capacities: 64 sectors and 128 sectors
+        let mut d1 = MemBlockDevice::<{ 64 * SECTOR_SIZE }>::new();
+        let mut d2 = MemBlockDevice::<{ 128 * SECTOR_SIZE }>::new();
+        let mut d3 = MemBlockDevice::<{ 16 * SECTOR_SIZE }>::new();
+        let mut d4 = MemBlockDevice::<{ 16 * SECTOR_SIZE }>::new();
+
+        let members_r0: [&mut dyn BlockDevice; MAX_RAID_MEMBERS] =
+            [&mut d1, &mut d2, &mut d3, &mut d4];
+        // In RAID 0, capacity is limited by minimum member capacity (64) aligned to stripe size (16)
+        // 64 * 2 = 128 sectors
+        let mut r0 = Raid0Volume::new(members_r0, 2, 16).unwrap();
+        assert_eq!(r0.total_sectors(), 128);
+
+        // Zero-sector read and write must be safe no-ops
+        let mut dummy = [0u8; 512];
+        assert_eq!(r0.read_sectors(0, 0, &mut dummy), Ok(()));
+        assert_eq!(r0.write_sectors(0, 0, &dummy), Ok(()));
+
+        // Buffer too small check
+        let mut small = [0u8; 256];
+        assert_eq!(
+            r0.read_sectors(0, 1, &mut small),
+            Err(StorageError::BufferTooSmall)
+        );
+        assert_eq!(
+            r0.write_sectors(0, 1, &small),
+            Err(StorageError::BufferTooSmall)
+        );
+
+        // RAID 1 heterogeneous capacity test
+        let mut d1_m = MemBlockDevice::<{ 64 * SECTOR_SIZE }>::new();
+        let mut d2_m = MemBlockDevice::<{ 128 * SECTOR_SIZE }>::new();
+        let mut d3_m = MemBlockDevice::<{ 16 * SECTOR_SIZE }>::new();
+        let mut d4_m = MemBlockDevice::<{ 16 * SECTOR_SIZE }>::new();
+        let members_r1: [&mut dyn BlockDevice; MAX_RAID_MEMBERS] =
+            [&mut d1_m, &mut d2_m, &mut d3_m, &mut d4_m];
+        let mut r1 = Raid1Volume::new(members_r1, 2).unwrap();
+        // RAID 1 capacity must be min(64, 128) = 64 sectors
+        assert_eq!(r1.total_sectors(), 64);
+
+        // Zero sector read and write no-op on RAID 1
+        assert_eq!(r1.read_sectors(0, 0, &mut dummy), Ok(()));
+        assert_eq!(r1.write_sectors(0, 0, &dummy), Ok(()));
+
+        // Out of bounds on RAID 1
+        assert_eq!(
+            r1.read_sectors(64, 1, &mut dummy),
+            Err(StorageError::InvalidLba)
+        );
+        assert_eq!(
+            r1.write_sectors(64, 1, &dummy),
+            Err(StorageError::InvalidLba)
+        );
     }
 }

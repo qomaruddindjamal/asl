@@ -131,6 +131,15 @@ Berdasarkan sintesis riset mendalam dari repositori open-source kelas dunia (Lin
     * Mampu menjalankan VM guest terisolasi dengan overhead RAM **kurang dari 1 MB**!
     * Memanfaatkan partisi deterministik ARINC 653 untuk menjamin alokasi CPU core VM guest tidak pernah mencuri waktu kernel utama (*Zero-Jitter VM Partitioning*).
 
+### 6. Subsystem Ketahanan Mutlak: Secondary Failover Core (`asl-kernel-core-secondary`)
+* **Filosofi & Konsep Desain:**
+  * Crate mandiri `#![no_std]` yang bertindak sebagai **Kernel Inti Sekunder (Hot-Standby / Disaster Recovery Core)**.
+  * Beroperasi secara berdampingan namun terisolasi penuh (*air-gapped partition*) dari kernel primer (`asl-kernel-core`).
+* **Karakteristik Keamanan & Kekebalan:**
+  1. **Memori Read-Only & Imutabel:** Alamat memori `asl-kernel-core-secondary` dikunci oleh MMU sebagai Read-Only permanen saat boot, sehingga virus, trojan, atau korupsi memori di kernel primer mustahil menginfeksi kernel sekunder.
+  2. **Watchdog Heartbeat Monitor:** Terus memantau kesehatan kernel primer melalui polling timer deterministik. Jika terjadi kernel panic, freeze, atau korupsi bit silikon, interupsi NMI langsung memicu **Autonomous Switchover**.
+  3. **Zero-Blackout Takeover (<1 ms):** Mengambil alih kontrol CPU, menyelamatkan task penting, membersihkan (*auto-purge*) memori kernel primer yang rusak, dan menyediakan akses pemulihan melalui konsol darurat.
+
 ---
 
 ## BAGIAN 4: ROADMAP INTEGRATIF 8 MILESTONE PENGEMBANGAN v1.0.2 - v2.0.0

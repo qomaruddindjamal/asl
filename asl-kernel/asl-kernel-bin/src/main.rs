@@ -271,6 +271,14 @@ pub extern "C" fn asl_launcher_main() -> ! {
             let entry_ptr = unsafe { *entries_ptr.add(i) };
             if !entry_ptr.is_null() {
                 let entry = unsafe { &*entry_ptr };
+                SERIAL.write_str("  [MEMMAP] base: ");
+                SERIAL.write_u64(entry.base);
+                SERIAL.write_str(" len: ");
+                SERIAL.write_u64(entry.length);
+                SERIAL.write_str(" typ: ");
+                SERIAL.write_u64(entry.typ);
+                SERIAL.write_str("\n");
+
                 let reg_type = match entry.typ {
                     LIMINE_MEMMAP_USABLE => MemoryRegionType::UsableRam,
                     LIMINE_MEMMAP_RESERVED => MemoryRegionType::Reserved,

@@ -246,6 +246,24 @@ impl FbConsole {
             self.draw_char(b);
         }
     }
+
+    pub fn write_u64(&mut self, mut n: u64) {
+        if n == 0 {
+            self.draw_char(b'0');
+            return;
+        }
+        let mut buf = [0u8; 20];
+        let mut i = 0;
+        while n > 0 {
+            buf[i] = b'0' + (n % 10) as u8;
+            n /= 10;
+            i += 1;
+        }
+        while i > 0 {
+            i -= 1;
+            self.draw_char(buf[i]);
+        }
+    }
 }
 
 static mut FB_CONSOLE: FbConsole = FbConsole::new();
@@ -337,9 +355,153 @@ impl VgaConsole {
             self.write_char(b);
         }
     }
+
+    pub fn write_u64(&mut self, mut n: u64) {
+        if n == 0 {
+            self.write_char(b'0');
+            return;
+        }
+        let mut buf = [0u8; 20];
+        let mut i = 0;
+        while n > 0 {
+            buf[i] = b'0' + (n % 10) as u8;
+            n /= 10;
+            i += 1;
+        }
+        while i > 0 {
+            i -= 1;
+            self.write_char(buf[i]);
+        }
+    }
 }
 
 static mut VGA: VgaConsole = VgaConsole::new();
+
+/// Membaca CMOS port 0x70/0x71 untuk mendapatkan ukuran memori fisik yang terpasang (dalam MB)
+#[cfg(target_arch = "x86_64")]
+pub fn read_cmos_reg(reg: u8) -> u8 {
+    unsafe {
+        core::arch::asm!("out 0x70, al", in("al") reg, options(nomem, nostack, preserves_flags));
+        let val: u8;
+        core::arch::asm!("in al, 0x71", out("al") val, options(nomem, nostack, preserves_flags));
+        val
+    }
+}
+
+/// Membaca CMOS port 0x70/0x71 untuk mendapatkan ukuran memori fisik yang terpasang (dalam MB)
+#[cfg(target_arch = "x86_64")]
+pub fn read_cmos_memory_mb() -> u64 {
+    let r30 = read_cmos_reg(0x30) as u64;
+    let r31 = read_cmos_reg(0x31) as u64;
+    let r34 = read_cmos_reg(0x34) as u64;
+    let r35 = read_cmos_reg(0x35) as u64;
+    let r5b = read_cmos_reg(0x5b) as u64;
+    let r5c = read_cmos_reg(0x5c) as u64;
+    let r5d = read_cmos_reg(0x5d) as u64;
+
+    early_serial_write_str("[ASL-CORE] CMOS Memory DUMP: 0x30/31=");
+    early_serial_write_u64((r31 << 8) | r30);
+    early_serial_write_str(" KB, 0x34/35=");
+    early_serial_write_u64((r35 << 8) | r34);
+    early_serial_write_str(" (64KB units), 0x5b/5c/5d=");
+    early_serial_write_u64(r5b | (r5c << 8) | (r5d << 16));
+    early_serial_write_str("\n");
+
+    // CMOS 0x34 & 0x35: Actual extended memory above 16MB in 64KB chunks (IBM / Phoenix / Bochs / VirtualBox standard)
+    let chunks_64k = (r35 << 8) | r34;
+    if chunks_64k > 0 {
+        // total MB = 16MB + (chunks_64k * 64KB / 1024KB) = 16 + chunks_64k / 16
+        return 16 + (chunks_64k * 64 / 1024);
+    }
+
+    // CMOS 0x5b, 0x5c, 0x5d: Memory in 64KB blocks
+    let blocks_5b = r5b | (r5c << 8) | (r5d << 16);
+    if blocks_5b > 0 {
+        return 16 + (blocks_5b * 64 / 1024);
+    }
+
+    // CMOS 0x30 & 0x31: Extended memory up to 15MB/64MB in 1KB units
+    let ext_kb = (r31 << 8) | r30;
+    if ext_kb > 0 {
+        return (ext_kb / 1024) + 1;
+    }
+
+    0
+}
+
+/// Helper untuk menulis u64 ke serial output UART COM1
+pub fn early_serial_write_u64(mut n: u64) {
+    if n == 0 {
+        early_serial_write_str("0");
+        return;
+    }
+    let mut buf = [0u8; 20];
+    let mut i = 0;
+    while n > 0 {
+        buf[i] = b'0' + (n % 10) as u8;
+        n /= 10;
+        i += 1;
+    }
+    while i > 0 {
+        i -= 1;
+        let b = buf[i];
+        let slice = core::str::from_utf8(core::slice::from_ref(&b)).unwrap_or("0");
+        early_serial_write_str(slice);
+    }
+}
+
+/// Mengambil Brand CPU x86 langsung dari instruksi CPUID (daun 0x80000002..0x80000004)
+#[cfg(target_arch = "x86_64")]
+pub fn get_x86_cpu_brand() -> [u8; 49] {
+    let mut brand = [0u8; 49]; // 48 bytes + 1 null terminator
+    let mut max_ext: u32;
+
+    unsafe {
+        // Periksa apakah extended CPUID didukung
+        core::arch::asm!(
+            "push rbx",
+            "cpuid",
+            "pop rbx",
+            inout("eax") 0x80000000u32 => max_ext,
+            out("ecx") _,
+            out("edx") _,
+            options(nomem, nostack, preserves_flags)
+        );
+
+        if max_ext >= 0x80000004 {
+            let mut offset = 0;
+            for leaf in 0x80000002u32..=0x80000004u32 {
+                let a: u32;
+                let b: u32;
+                let c: u32;
+                let d: u32;
+                core::arch::asm!(
+                    "push rbx",
+                    "cpuid",
+                    "mov {tmp:e}, ebx",
+                    "pop rbx",
+                    tmp = out(reg) b,
+                    inout("eax") leaf => a,
+                    out("ecx") c,
+                    out("edx") d,
+                    options(nomem, nostack, preserves_flags)
+                );
+
+                for reg in [a, b, c, d] {
+                    let bytes = reg.to_le_bytes();
+                    for byte in bytes {
+                        if offset < 48 {
+                            brand[offset] = byte;
+                            offset += 1;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    brand
+}
 
 /// State Utama Kernel Tunggal (Integrated Modular Avionics Core)
 pub struct AslAvionicsKernel {
@@ -498,36 +660,80 @@ pub unsafe extern "C" fn _asl_kernel_entry(handover_ptr: *const AslBootHandover)
             (*vga).set_color(0x0A); // Light Green
             (*vga).write_str("   [ OK ] ");
             (*vga).set_color(0x0F);
-            (*vga).write_str("Kernel initialized\n");
+            (*vga).write_str("Kernel initialized: ASL Core Kernel v1.0.1\n");
 
             (*fb).set_fg_color(0x0000FF00); // Green
             (*fb).write_str("   [ OK ] ");
             (*fb).set_fg_color(0x00FFFFFF);
-            (*fb).write_str("Kernel initialized\n");
+            (*fb).write_str("Kernel initialized: ASL Core Kernel v1.0.1\n");
         }
 
         if mem_init_ok {
+            let mut installed_mb = if !handover_ptr.is_null() {
+                let handover = &*handover_ptr;
+                handover.calculate_installed_memory() / (1024 * 1024)
+            } else {
+                0
+            };
+
+            #[cfg(target_arch = "x86_64")]
+            {
+                if installed_mb == 0 {
+                    installed_mb = read_cmos_memory_mb();
+                }
+            }
+
             (*vga).set_color(0x0A); // Light Green
             (*vga).write_str("   [ OK ] ");
             (*vga).set_color(0x0F);
-            (*vga).write_str("Memory manager initialized\n");
+            (*vga).write_str("Memory manager initialized: ");
+            (*vga).write_u64(installed_mb);
+            (*vga).write_str(" MB RAM detected\n");
 
             (*fb).set_fg_color(0x0000FF00); // Green
             (*fb).write_str("   [ OK ] ");
             (*fb).set_fg_color(0x00FFFFFF);
-            (*fb).write_str("Memory manager initialized\n");
+            (*fb).write_str("Memory manager initialized: ");
+            (*fb).write_u64(installed_mb);
+            (*fb).write_str(" MB RAM detected\n");
         }
 
         if cpu_arch_detected {
+            #[cfg(target_arch = "x86_64")]
+            let brand_bytes = get_x86_cpu_brand();
+
+            let mut brand_len = 0;
+            while brand_len < 48 && brand_bytes[brand_len] != 0 {
+                brand_len += 1;
+            }
+            let brand_str = core::str::from_utf8(&brand_bytes[..brand_len]).unwrap_or("x86_64 Processor");
+            let trimmed_brand = brand_str.trim();
+
+            // CPU Load: ARINC 653 Core Partition Slot / Major Frame
+            let major_frame = kernel.scheduler.major_frame_duration_us as u64;
+            let cpu_load_pct = if major_frame > 0 && kernel.scheduler.slot_count > 0 {
+                (kernel.scheduler.slots[0].duration_microseconds as u64 * 100) / major_frame
+            } else {
+                0
+            };
+
             (*vga).set_color(0x0A); // Light Green
             (*vga).write_str("   [ OK ] ");
             (*vga).set_color(0x0F);
-            (*vga).write_str("CPU architecture detected\n");
+            (*vga).write_str("CPU architecture detected: ");
+            (*vga).write_str(trimmed_brand);
+            (*vga).write_str(" | CPU Load: ");
+            (*vga).write_u64(cpu_load_pct);
+            (*vga).write_str("%\n");
 
             (*fb).set_fg_color(0x0000FF00); // Green
             (*fb).write_str("   [ OK ] ");
             (*fb).set_fg_color(0x00FFFFFF);
-            (*fb).write_str("CPU architecture detected\n");
+            (*fb).write_str("CPU architecture detected: ");
+            (*fb).write_str(trimmed_brand);
+            (*fb).write_str(" | CPU Load: ");
+            (*fb).write_u64(cpu_load_pct);
+            (*fb).write_str("%\n");
         }
 
         (*vga).write_str("\n");
@@ -541,13 +747,50 @@ pub unsafe extern "C" fn _asl_kernel_entry(handover_ptr: *const AslBootHandover)
 
     early_serial_write_str(logo);
     if kernel_init_ok {
-        early_serial_write_str("   [ OK ] Kernel initialized\n");
+        early_serial_write_str("   [ OK ] Kernel initialized: ASL Core Kernel v1.0.1\n");
     }
     if mem_init_ok {
-        early_serial_write_str("   [ OK ] Memory manager initialized\n");
+        let mut installed_mb = if !handover_ptr.is_null() {
+            let handover = &*handover_ptr;
+            handover.calculate_installed_memory() / (1024 * 1024)
+        } else {
+            0
+        };
+
+        #[cfg(target_arch = "x86_64")]
+        {
+            if installed_mb == 0 {
+                installed_mb = read_cmos_memory_mb();
+            }
+        }
+
+        early_serial_write_str("   [ OK ] Memory manager initialized: ");
+        early_serial_write_u64(installed_mb);
+        early_serial_write_str(" MB RAM detected\n");
     }
     if cpu_arch_detected {
-        early_serial_write_str("   [ OK ] CPU architecture detected\n");
+        #[cfg(target_arch = "x86_64")]
+        let brand_bytes = get_x86_cpu_brand();
+
+        let mut brand_len = 0;
+        while brand_len < 48 && brand_bytes[brand_len] != 0 {
+            brand_len += 1;
+        }
+        let brand_str = core::str::from_utf8(&brand_bytes[..brand_len]).unwrap_or("x86_64 Processor");
+        let trimmed_brand = brand_str.trim();
+
+        let major_frame = kernel.scheduler.major_frame_duration_us as u64;
+        let cpu_load_pct = if major_frame > 0 && kernel.scheduler.slot_count > 0 {
+            (kernel.scheduler.slots[0].duration_microseconds as u64 * 100) / major_frame
+        } else {
+            0
+        };
+
+        early_serial_write_str("   [ OK ] CPU architecture detected: ");
+        early_serial_write_str(trimmed_brand);
+        early_serial_write_str(" | CPU Load: ");
+        early_serial_write_u64(cpu_load_pct);
+        early_serial_write_str("%\n");
     }
     early_serial_write_str("\n   ASL kernel booted successfully.\n");
 

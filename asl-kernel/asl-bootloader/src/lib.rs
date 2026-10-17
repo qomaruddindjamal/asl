@@ -186,6 +186,34 @@ impl AslBootHandover {
         }
         total
     }
+
+    /// Menghitung total RAM fisik yang terpasang (Installed RAM: Usable + Reserved + ACPI + Kernel + Bootloader)
+    /// Mengabaikan MMIO / PCI BAR / Framebuffer address space di address tinggi (> 0x8000_0000).
+    pub fn calculate_installed_memory(&self) -> u64 {
+        let mut total: u64 = 0;
+        let mut i = 0;
+        while i < self.memory_map_count {
+            let desc = &self.memory_map[i];
+            // Wilayah MMIO/PCI/Framebuffer video memory dipetakan di alamat tinggi (> 2GB / 0x8000_0000)
+            if desc.base_physical_addr < 0x8000_0000 {
+                match desc.region_type {
+                    MemoryRegionType::BadMemory | MemoryRegionType::FrameBuffer => {}
+                    _ => {
+                        total += desc.length_bytes;
+                    }
+                }
+            }
+            i += 1;
+        }
+        // Round to nearest megabyte (+ 512KB) to accurately reflect physical DIMM / motherboard base RAM
+        // (accounting for standard EBDA / BIOS reservation below 1MB)
+        if total > 0 {
+            let mb_half = 512 * 1024;
+            ((total + mb_half) / (1024 * 1024)) * 1024 * 1024
+        } else {
+            0
+        }
+    }
 }
 
 #[cfg(test)]

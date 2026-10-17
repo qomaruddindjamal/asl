@@ -140,6 +140,25 @@ Berdasarkan sintesis riset mendalam dari repositori open-source kelas dunia (Lin
   2. **Watchdog Heartbeat Monitor:** Terus memantau kesehatan kernel primer melalui polling timer deterministik. Jika terjadi kernel panic, freeze, atau korupsi bit silikon, interupsi NMI langsung memicu **Autonomous Switchover**.
   3. **Zero-Blackout Takeover (<1 ms):** Mengambil alih kontrol CPU, menyelamatkan task penting, membersihkan (*auto-purge*) memori kernel primer yang rusak, dan menyediakan akses pemulihan melalui konsol darurat.
 
+* **KONSEP LENGKAP PENGAMBILALIHAN SUBSYSTEM (TAKEOVER ARCHITECTURE):**
+  Saat `asl-kernel-core` primer rusak, `asl-kernel-core-secondary` tidak sekadar berjalan kosong, melainkan mengambil alih seluruh fungsi operasi komputer:
+  1. **Pengambilalihan Manajemen Memori (Memory Vault Handover):**
+     - Kernel sekunder memiliki tabel alokasi memori (*Shadow Buddy Allocator*) tersendiri.
+     - Segmen RAM milik kernel primer yang korup di-quarantine dan dibersihkan (*zeroed-out*).
+     - Ruang RAM aplikasi yang tidak terinfeksi dipetakan ulang (*re-mapped*) ke dalam tabel halaman baru milik kernel sekunder tanpa mematikan data penting pengguna.
+  2. **Pengambilalihan Jalur Driver & Perangkat Keras (Driver Bus Re-Binding):**
+     - Driver di ASL hidup di partisi mandiri (*microkernel driver partitions*).
+     - Kernel sekunder menyambung kembali (*re-bind*) bus komunikasi AFDX / ring buffer ke driver-driver aktif:
+       * **Display Framebuffer:** Mengambil alih `FbConsole` dan merender status pemulihan di layar monitor.
+       * **Input Keyboard PS/2:** Mengalihkan interrupt handler IRQ 1 ke antrean sekunder sehingga ketikan pengguna tidak terputus.
+       * **Storage AHCI / NVMe:** Mengamankan file descriptor dan menyelesaikan write-buffer yang tertunda agar data harddisk tidak korup.
+       * **Network Stack (e1000 / VirtIO):** Mengirim paket ARP broadcast bahwa gateway komunikasi telah diambil alih oleh MAC/IP failover.
+  3. **Pengambilalihan Shell & Aplikasi Pengguna (Cockpit Shell Session Rescue):**
+     - Kursor prompt interaktif langsung dialihkan:
+       `ASL-OS [SECONDARY-CORE]> `
+     - Sesi aplikasi pengguna yang berada di partisi memori terisolasi tetap dipertahankan (*Process Migration / State Preservation*).
+     - Administrator dapat menjalankan perintah diagnosis: `failover status`, `core-restore`, `mem-purge`, dan `rebind-drivers`.
+
 ---
 
 ## BAGIAN 4: ROADMAP INTEGRATIF 8 MILESTONE PENGEMBANGAN v1.0.2 - v2.0.0

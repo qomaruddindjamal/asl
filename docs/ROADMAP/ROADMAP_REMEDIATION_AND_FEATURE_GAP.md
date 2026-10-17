@@ -1,7 +1,7 @@
 # DOKUMEN MASTER INVENTARISASI KEKURANGAN & ROADMAP PEMBARUAN RND LENGKAP (2026)
-## "The Universal Sovereign OS: Desktop, Mobile, Tablet, Modem, Router & Carrier Fiber"
+## "The Universal Sovereign OS: Desktop, Mobile, Tablet, Modem, Router, Carrier Fiber, Micro-Hypervisor & Avionics Remote Desktop"
 
-Dokumen ini memuat inventarisasi lengkap kekurangan sistem serta **Roadmap Terintegrasi 7 Milestone** yang mencakup seluruh perangkat: Desktop, Laptop, HP/Smartphone, Tablet, Smartwatch, Router, Modem FTTH (XPON ONT), dan Carrier OLT.
+Dokumen ini memuat inventarisasi lengkap kekurangan sistem serta **Roadmap Terintegrasi 8 Milestone** yang mencakup seluruh perangkat: Desktop, Laptop, HP/Smartphone, Tablet, Smartwatch, Router, Modem FTTH (XPON ONT), Carrier OLT, serta subsystem unggulan: **ASL Avionics Remote Desktop (ARD)** dan **ASL Micro-Hypervisor (KVM/VM Ultra-Lightweight)**.
 
 ---
 
@@ -12,7 +12,7 @@ Dokumen ini memuat inventarisasi lengkap kekurangan sistem serta **Roadmap Terin
 
 ---
 
-## BAGIAN 2: MATRIKS KEBUTUHAN DRIVER PER KATEGORI PERANGKAT
+## BAGIAN 2: MATRIKS KEBUTUHAN SUBSYSTEM & DRIVER PER KATEGORI PERANGKAT
 
 ### 1. Kategori Desktop, Laptop & Server (x86_64 / ARM64 / RISC-V)
 * **Bus & Interconnect:**
@@ -25,7 +25,7 @@ Dokumen ini memuat inventarisasi lengkap kekurangan sistem serta **Roadmap Terin
     * `asl-driver-gpu-intel`: Intel Iris Xe / Arc / UHD Graphics.
     * `asl-driver-gpu-amd`: AMD Radeon RDNA / GCN (AMDGPU kernel submission ring).
     * `asl-driver-gpu-nvidia`: NVIDIA GeForce / RTX (GSP firmware pushbuffer interface).
-* **Penyimpanan (Storage):**
+* **Penyimpanan (Storage) & Partisi:**
   * `asl-driver-ata-pio`: IDE hard disk legacy (<10 KB RAM).
   * `asl-driver-ahci`: Kontroler SATA SSD / HDD (FIS & Command List).
   * `asl-driver-nvme`: Kontroler NVMe PCIe SSD berkecepatan tinggi.
@@ -68,9 +68,24 @@ Dokumen ini memuat inventarisasi lengkap kekurangan sistem serta **Roadmap Terin
   * `asl-driver-olt-mac`: Antarmuka register fisik chip OLT (Broadcom BCM68620 / BCM68650).
   * `asl-driver-sfp-plus-10g`: Driver kartu fiber 10G/25G SFP+ (Intel 82599 / X520 / Mellanox ConnectX).
 
+### 5. Kategori Khusus: Remote Desktop Khas ASL & Micro-Hypervisor Bawaan Kernel
+* **ASL Avionics Remote Desktop (ARD / `asl-remote-desktop`):**
+  * *Filosofi:* Remote desktop bawaan kernel yang sangat responsif, hemat bandwidth, dan ultra-ringan (RAM footprint <64 KB).
+  * *Mekanisme:* Menggunakan teknik **Dirty-Tile Framebuffer Streaming**:
+    * Hanya mengirimkan blok tile piksel (16x16 atau 32x32) yang berubah (*differential rendering*), bukan kompresi video berat yang memakan CPU.
+    * Enkripsi data bawaan berlatensi sub-milidetik berbasis chacha20-poly1305.
+    * Protokol adaptif: dapat diakses langsung dari browser web via WebSocket / WebRTC atau client desktop native ASL.
+* **ASL Micro-Hypervisor (`asl-micro-kvm`):**
+  * *Filosofi:* Mesin virtualisasi hardware-assisted ultra-ringan (Type-1 Embedded Hypervisor) berbasis instruksi silikon:
+    * Intel VT-x (`VMX`) dan AMD-V (`SVM`).
+    * ARM Virtualization Extensions (EL2 Hypervisor mode).
+  * *Karakteristik:*
+    * Mampu menjalankan VM guest terisolasi dengan overhead RAM **kurang dari 1 MB**!
+    * Memanfaatkan partisi deterministik ARINC 653 untuk menjamin alokasi CPU core VM guest tidak pernah mencuri waktu kernel utama (*Zero-Jitter VM Partitioning*).
+
 ---
 
-## BAGIAN 3: ROADMAP STRATEGIS 7 MILESTONE EKSEKUSI RND
+## BAGIAN 3: ROADMAP STRATEGIS 8 MILESTONE EKSEKUSI RND
 
 ```
 [MILESTONE 1] Input, Root Build & Bus Discovery (Makefile, PCI Scanner, PS/2 Keyboard)
@@ -85,46 +100,19 @@ Dokumen ini memuat inventarisasi lengkap kekurangan sistem serta **Roadmap Terin
      │
 [MILESTONE 6] Peripheral Modern (USB 2/3 xHCI, Thunderbolt, HDMI, GPU Intel/AMD/NVIDIA)
      │
-[MILESTONE 7] Mobile, Tablet & Multi-Arch Fleet (Touch I2C, BLE, ARM64/MIPS/QEMU Suite)
+[MILESTONE 7] Micro-Hypervisor (KVM Ultra-Ringan) & Avionics Remote Desktop (ARD)
+     │
+[MILESTONE 8] Mobile, Tablet & Multi-Arch Fleet (Touch I2C, BLE, ARM64/MIPS/QEMU Suite)
 ```
 
 ---
 
-### Rincian Target Tiap Milestone:
+### Rincian Target Milestone Tambahan (Milestone 7):
 
-#### MILESTONE 1: PONDASI BUS, INPUT & ALAT BUILD ROOT
-* **Target 1.1:** Tambahkan `Makefile` di root proyek untuk mempermudah developer (`make build`, `make iso`, `make run`).
-* **Target 1.2:** Implementasikan `asl-driver-pci` (scanner otomatis perangkat hardware via I/O `0xCF8`/`0xCFC`).
-* **Target 1.3:** Implementasikan `asl-driver-ps2-keyboard` (menangani input ketikan keyboard di port `0x60`).
-
-#### MILESTONE 2: INTERACTIVE COCKPIT SHELL & PERINTAH DASAR
-* **Target 2.1:** Implementasikan `asl-cockpit-shell` dengan prompt interaktif `ASL-OS> `.
-* **Target 2.2:** Sediakan built-in commands awal: `help`, `clear`, `meminfo`, `cpuinfo`, `lspci`.
-* **Target 2.3:** Siapkan struktur in-memory VFS awal untuk perintah direktori: `mkdir`, `ls`, `cat`.
-
-#### MILESTONE 3: STORAGE SUBSYSTEM, PARTED & RAID ENGINE
-* **Target 3.1:** Implementasikan `asl-driver-ata-pio` (IDE) dan `asl-driver-ahci` (SATA SSD/HDD).
-* **Target 3.2:** Bangun utilitas partisi disk `asl-parted` (mengelola tabel partisi GPT/MBR di disk fisik).
-* **Target 3.3:** Implementasikan mesin Software RAID `asl-storage-raid` (RAID 0, 1, 5).
-
-#### MILESTONE 4: TELEKOMUNIKASI FIBER XPON SEJATI (GPON + EPON) & OLT
-* **Target 4.1:** Perluas crate `asl-ont-gpon` menjadi dual-mode **XPON Auto-Sensing** (GPON GEM + EPON MPCP 802.3ah).
-* **Target 4.2:** Implementasikan `asl-driver-sfp-ddm` untuk membaca daya laser optik fisik asli (TX/RX dBm, arus bias, suhu).
-* **Target 4.3:** Integrasikan register abstraction kontrol OLT carrier multi-rate.
-
-#### MILESTONE 5: NETWORKING, SFP+ 10G & TCP/IP STACK
-* **Target 5.1:** Implementasikan `asl-driver-virtio-net` dan `asl-driver-e1000`.
-* **Target 5.2:** Implementasikan driver kartu fiber SFP+ 10G (`Intel 82599 / ixgbe`).
-* **Target 5.3:** Implementasikan stack protokol jaringan ringan `asl-net-stack` (ARP, IPv4, ICMP Ping).
-
-#### MILESTONE 6: DRIVER PERIPHERAL MODERN (USB 3, THUNDERBOLT, HDMI, GPU)
-* **Target 6.1:** Implementasikan kontroler USB 2.0 (EHCI) & USB 3.0/3.1 (xHCI) untuk flashdisk/keyboard USB.
-* **Target 6.2:** Siapkan kerangka Thunderbolt PCIe tunneling controller.
-* **Target 6.3:** Implementasikan pembaca HDMI I2C DDC/EDID dan display timing controller.
-* **Target 6.4:** Integrasikan abstraction ring GPU untuk Intel Iris Xe, AMD Radeon, dan NVIDIA GeForce.
-
-#### MILESTONE 7: MOBILE, TABLET & VERIFIKASI MULTI-ARSITEKTUR LENGKAP
-* **Target 7.1:** Implementasikan driver layar sentuh I2C Touchscreen & Bluetooth Low Energy (BLE).
-* **Target 7.2:** Otomatisasi pengujian kompilasi & boot pada `qemu-system-aarch64` (Handphone/Tablet Snapdragon & Cortex-A).
-* **Target 7.3:** Otomatisasi boot pada `qemu-system-riscv64` dan `qemu-system-mips` (Smartwatch & Router).
-* **Target 7.4:** Otomatisasi boot pada `qemu-system-sparc` dan `qemu-system-s390x` (Avionik Satelit & Mainframe).
+#### MILESTONE 7: MICRO-HYPERVISOR & AVIONICS REMOTE DESKTOP
+* **Target 7.1:** Implementasikan `asl-micro-kvm` (inisialisasi Intel VMXON/VMCS dan AMD SVM VMCB) untuk menjalankan OS guest terisolasi dengan footprint RAM <1 MB.
+* **Target 7.2:** Implementasikan `asl-remote-desktop` (ARD):
+  * Engine *Dirty-Rectangle Framebuffer Scraper* (hanya mengirim piksel yang berubah).
+  * Paket transmisi frame latensi rendah melalui saluran virtual terenkripsi AFDX / UDP.
+  * Dukungan kontrol remote mouse & keyboard responsif tanpa lag.
+* **Target 7.3:** Verifikasi performa responsif remote desktop dan micro-VM pada kondisi alokasi RAM minimal 4 MB.

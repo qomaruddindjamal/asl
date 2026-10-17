@@ -37,6 +37,33 @@ Repositori dokumen di dalam folder `docs/RND/` adalah fondasi ilmiah, arsitektur
      * Kerangka kerja simulator virtual lintas 150 arsitektur (*QEMU Multi-System, Renode IoT, Spike Vector, GPGPU-Sim, Mininet P4*).
      * 5 Gerbang kelayakan (*Gate Criteria*) sebelum melangkah ke Fase Roadmap Implementasi.
 
+5. [**`RND_05_CRITICAL_REMEDIATION.md`**](file:///c:/asl/docs/RND/RND_05_CRITICAL_REMEDIATION.md)
+   * **Judul:** Desain Teknis Remediasi 4 Temuan Kritis (Level Kode Rust).
+   * **Topik Utama:**
+     * Penegakan batas keselarasan 64-byte (`ALIGN-01`) pada struktur data DMA.
+     * Abstraksi pemeliharaan cache (`DMA-CACHE-01`) dan Isolated Bounce Buffer.
+     * Translasi dan firewall alamat DMA (`DMA-ADDR-01`) via IOMMU Translation Space.
+     * Dual-track atomics pada SPARC V8/V9 (`ATOMIC-SPARC-01`).
+
+6. [**`RND_06_TARGET_FEASIBILITY.md`**](file:///c:/asl/docs/RND/RND_06_TARGET_FEASIBILITY.md)
+   * **Judul:** Matriks Kelayakan 150 Target Silikon & Evaluasi Kompiler.
+   * **Topik Utama:**
+     * Klasifikasi 4 Tier Realitas Eksekusi Kompiler: Native Rust Tier-A, Custom Spec Tier-B, C-Toolchain FFI Tier-C, dan Sandboxed Retro Tier-D.
+     * Disposisi arsitektur lawas IA-64, s390x, dan chip retro 8-bit (Z80, 6502).
+
+7. [**`RND_07_FORMAL_VERIFICATION.md`**](file:///c:/asl/docs/RND/RND_07_FORMAL_VERIFICATION.md)
+   * **Judul:** Rencana Verifikasi Formal Berlapis & Studi Kelayakan Ferrocene.
+   * **Topik Utama:**
+     * Model verifikasi 4-layer (Miri UB, Kani SAT/SMT, TLA+/PlusCal, Ferrocene).
+     * Verifikasi temporal ketiadaan deadlock pada SPSC Ring Buffer AFDX.
+
+8. [**`RUST_MICROKERNEL_ENGINEERING_GUIDELINES.md`**](file:///c:/asl/docs/RND/RUST_MICROKERNEL_ENGINEERING_GUIDELINES.md)
+   * **Judul:** Panduan Standar Rekayasa Microkernel Rust (Efisiensi Low-Spec & Responsivitas).
+   * **Topik Utama:**
+     * Doktrin Zero-Heap di driver path untuk alokasi RAM minimal (teruji di 4 MB RAM).
+     * Bounded Polling Loop & Timeout Recovery untuk responsivitas tinggi anti-hang.
+     * Standar disiplin penulisan `#![no_std]` dan mitigasi `unsafe` code.
+
 ---
 
 *Seluruh dokumen R&D ini tersimpan rapi dan terisolasi di dalam direktori `c:\asl\docs\RND` untuk menjaga kebersihan root proyek.*

@@ -443,5 +443,10 @@ mod tests {
             h_size_overflow.validate(),
             Err("ERR_FRAMEBUFFER_SIZE_OVERFLOW")
         );
+
+        // Positive: Framebuffer base 0 (disabled) is explicitly allowed and skips framebuffer checks
+        let mut h_no_fb = h.clone();
+        h_no_fb.framebuffer.base_physical_addr = 0;
+        assert_eq!(h_no_fb.validate(), Ok(()));
     }
 }

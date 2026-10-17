@@ -738,6 +738,11 @@ mod tests {
         // 7. Test write and readback of valid pointer within bounds
         fat_fs.write_fat_entry(3, 4).unwrap();
         assert_eq!(fat_fs.read_fat_entry(3), Ok(4));
+
+        // 8. Test write failure in multi-FAT copies: error injection must fail-closed and return IoError
+        fat_fs.device.set_inject_error(true);
+        assert_eq!(fat_fs.write_fat_entry(3, 5), Err(StorageError::IoError));
+        fat_fs.device.set_inject_error(false);
     }
 
     #[test]

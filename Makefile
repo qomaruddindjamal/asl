@@ -3,7 +3,7 @@
 # Target: Windows (PowerShell / GNU Make) & Cross-Platform
 # =============================================================================
 
-.PHONY: all build test iso run-vm run-qemu clean help
+.PHONY: all build build-aarch64 test iso run-vm run-qemu run-qemu-aarch64 clean help
 
 # Configuration variables
 WORKSPACE_DIR := asl-kernel
@@ -16,15 +16,20 @@ all: build
 help:
 	@echo "ASL Core Kernel Build System"
 	@echo "Targets:"
-	@echo "  make build    - Compile bare-metal kernel binary (release mode)"
-	@echo "  make test     - Run full host unit test suite"
-	@echo "  make iso      - Package bootable hybrid El Torito ISO"
-	@echo "  make run-vm   - Launch existing Oracle VirtualBox VM 'ASL'"
-	@echo "  make run-qemu - Launch kernel in headless QEMU with serial console"
-	@echo "  make clean    - Remove build artifacts"
+	@echo "  make build             - Compile bare-metal x86_64 kernel binary (release mode)"
+	@echo "  make build-aarch64     - Compile bare-metal AArch64 kernel binary (release mode)"
+	@echo "  make test              - Run full host unit test suite"
+	@echo "  make iso               - Package bootable hybrid El Torito ISO (x86_64)"
+	@echo "  make run-vm            - Launch existing Oracle VirtualBox VM 'ASL'"
+	@echo "  make run-qemu          - Launch x86_64 kernel in headless QEMU with serial console"
+	@echo "  make run-qemu-aarch64  - Launch AArch64 kernel in QEMU virt platform"
+	@echo "  make clean             - Remove build artifacts"
 
 build:
 	@powershell -ExecutionPolicy Bypass -File ./scripts/build_kernel.ps1 -Action build
+
+build-aarch64:
+	@powershell -ExecutionPolicy Bypass -File ./scripts/build_kernel.ps1 -Action build-aarch64
 
 test:
 	@powershell -ExecutionPolicy Bypass -File ./scripts/build_kernel.ps1 -Action test
@@ -37,6 +42,9 @@ run-vm:
 
 run-qemu:
 	@powershell -ExecutionPolicy Bypass -File ./scripts/build_kernel.ps1 -Action run-qemu
+
+run-qemu-aarch64:
+	@powershell -ExecutionPolicy Bypass -File ./scripts/build_kernel.ps1 -Action run-qemu-aarch64
 
 clean:
 	@powershell -ExecutionPolicy Bypass -File ./scripts/build_kernel.ps1 -Action clean

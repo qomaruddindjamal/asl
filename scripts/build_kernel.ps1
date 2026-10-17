@@ -3,7 +3,7 @@
 # =============================================================================
 param(
     [Parameter(Mandatory=$true)]
-    [ValidateSet("build", "test", "iso", "run-vm", "run-qemu", "clean")]
+    [ValidateSet("build", "build-aarch64", "test", "iso", "run-vm", "run-qemu", "run-qemu-aarch64", "clean")]
     [string]$Action
 )
 
@@ -128,5 +128,31 @@ switch ($Action) {
         Set-Location $Workspace
         & cargo clean
         Write-Host "[OK] Cargo target directory cleaned." -ForegroundColor Green
+    }
+
+    "build-aarch64" {
+        Write-Host "==> Compiling ASL Core Kernel (aarch64-unknown-none-softfloat) in release mode..." -ForegroundColor Cyan
+        Set-Location $Workspace
+        & cargo build --package asl-kernel-bin --target aarch64-unknown-none-softfloat --release
+        if ($LASTEXITCODE -ne 0) {
+            Write-Error "Cargo build failed with exit code $LASTEXITCODE"
+            exit $LASTEXITCODE
+        }
+        Write-Host "[OK] AArch64 Kernel ELF successfully compiled." -ForegroundColor Green
+    }
+
+    "run-qemu-aarch64" {
+        Write-Host "==> Launching AArch64 QEMU bare-metal virt test..." -ForegroundColor Cyan
+        $qemu = "C:\Program Files\qemu\qemu-system-aarch64.exe"
+        if (-not (Test-Path $qemu)) {
+            Write-Error "QEMU AArch64 not found at '$qemu'."
+            exit 1
+        }
+        $kernel = Join-Path $Workspace "target\aarch64-unknown-none-softfloat\release\asl-kernel"
+        if (-not (Test-Path $kernel)) {
+            Write-Error "AArch64 kernel ELF not found at '$kernel'. Please run 'make build-aarch64' first."
+            exit 1
+        }
+        & $qemu -M virt -cpu cortex-a57 -m 64M -nographic -kernel $kernel -serial stdio
     }
 }

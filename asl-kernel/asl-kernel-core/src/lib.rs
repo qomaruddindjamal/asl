@@ -25,44 +25,39 @@ use asl_security_vault::{MemoryWindow, PartitionAccessRights, SpatialPartitionMa
 // BOUNDED EARLY SERIAL TELEMETRY (COM1 0x3F8)
 // -----------------------------------------------------------------------------
 
+#[cfg(target_arch = "x86_64")]
 const COM1_PORT: u16 = 0x3F8;
 
+#[cfg(target_arch = "x86_64")]
 #[inline(always)]
 unsafe fn early_outb(port: u16, val: u8) {
-    #[cfg(target_arch = "x86_64")]
     core::arch::asm!(
         "out dx, al",
         in("dx") port,
         in("al") val,
         options(nomem, nostack, preserves_flags)
     );
-    #[cfg(not(target_arch = "x86_64"))]
-    {
-        let _ = (port, val);
-    }
 }
 
+#[cfg(target_arch = "x86_64")]
 #[inline(always)]
 unsafe fn early_inb(port: u16) -> u8 {
-    #[cfg(target_arch = "x86_64")]
-    {
-        let ret: u8;
-        core::arch::asm!(
-            "in al, dx",
-            out("al") ret,
-            in("dx") port,
-            options(nomem, nostack, preserves_flags)
-        );
-        ret
-    }
-    #[cfg(not(target_arch = "x86_64"))]
-    {
-        let _ = port;
-        0
-    }
+    let ret: u8;
+    core::arch::asm!(
+        "in al, dx",
+        out("al") ret,
+        in("dx") port,
+        options(nomem, nostack, preserves_flags)
+    );
+    ret
 }
 
+// PL011 UART Base Address pada platform QEMU 'virt' AArch64 (0x0900_0000)
+#[cfg(target_arch = "aarch64")]
+const PL011_UART_BASE: usize = 0x0900_0000;
+
 fn early_serial_write_str(s: &str) {
+    #[cfg(target_arch = "x86_64")]
     for b in s.bytes() {
         if b == b'\n' {
             let mut timeout = 100_000;
@@ -79,6 +74,29 @@ fn early_serial_write_str(s: &str) {
         }
         unsafe { early_outb(COM1_PORT, b) };
     }
+
+    #[cfg(target_arch = "aarch64")]
+    for b in s.bytes() {
+        if b == b'\n' {
+            unsafe {
+                // Tunggu Transmit FIFO Not Full (PL011 Flag Register FR bit 5 TXFF)
+                while (core::ptr::read_volatile((PL011_UART_BASE + 0x18) as *const u32) & (1 << 5)) != 0 {
+                    core::hint::spin_loop();
+                }
+                // Kirim CR (\r)
+                core::ptr::write_volatile(PL011_UART_BASE as *mut u32, b'\r' as u32);
+            }
+        }
+        unsafe {
+            while (core::ptr::read_volatile((PL011_UART_BASE + 0x18) as *const u32) & (1 << 5)) != 0 {
+                core::hint::spin_loop();
+            }
+            core::ptr::write_volatile(PL011_UART_BASE as *mut u32, b as u32);
+        }
+    }
+
+    #[cfg(not(any(target_arch = "x86_64", target_arch = "aarch64")))]
+    let _ = s;
 }
 
 pub mod font;
@@ -617,7 +635,13 @@ pub unsafe extern "C" fn _asl_kernel_entry(handover_ptr: *const AslBootHandover)
         }
     }
 
+    #[cfg(target_arch = "x86_64")]
     let mut kernel = AslAvionicsKernel::new(TargetArch::X86_64);
+    #[cfg(target_arch = "aarch64")]
+    let mut kernel = AslAvionicsKernel::new(TargetArch::Aarch64);
+    #[cfg(not(any(target_arch = "x86_64", target_arch = "aarch64")))]
+    let mut kernel = AslAvionicsKernel::new(TargetArch::Unknown);
+
     let mut kernel_init_ok = false;
     let mut mem_init_ok = false;
     let mut cpu_arch_detected = false;
@@ -641,7 +665,12 @@ pub unsafe extern "C" fn _asl_kernel_entry(handover_ptr: *const AslBootHandover)
                     );
                 }
 
+                #[cfg(target_arch = "x86_64")]
                 if handover.target_arch == TargetArch::X86_64 {
+                    cpu_arch_detected = true;
+                }
+                #[cfg(target_arch = "aarch64")]
+                if handover.target_arch == TargetArch::Aarch64 {
                     cpu_arch_detected = true;
                 }
 
@@ -807,14 +836,19 @@ pub unsafe extern "C" fn _asl_kernel_entry(handover_ptr: *const AslBootHandover)
     if cpu_arch_detected {
         #[cfg(target_arch = "x86_64")]
         let brand_bytes = get_x86_cpu_brand();
-
-        let mut brand_len = 0;
-        while brand_len < 48 && brand_bytes[brand_len] != 0 {
-            brand_len += 1;
-        }
-        let brand_str =
-            core::str::from_utf8(&brand_bytes[..brand_len]).unwrap_or("x86_64 Processor");
-        let trimmed_brand = brand_str.trim();
+        #[cfg(target_arch = "x86_64")]
+        let trimmed_brand = {
+            let mut len = 0;
+            while len < 48 && brand_bytes[len] != 0 {
+                len += 1;
+            }
+            let s = core::str::from_utf8(&brand_bytes[..len]).unwrap_or("x86_64 Processor");
+            s.trim()
+        };
+        #[cfg(target_arch = "aarch64")]
+        let trimmed_brand = "ARMv8-A Cortex Processor (AArch64)";
+        #[cfg(not(any(target_arch = "x86_64", target_arch = "aarch64")))]
+        let trimmed_brand = "Universal Sovereign CPU";
 
         let major_frame = kernel.scheduler.major_frame_duration_us as u64;
         let cpu_load_pct = if major_frame > 0 && kernel.scheduler.slot_count > 0 {
@@ -884,25 +918,43 @@ pub unsafe extern "C" fn _asl_kernel_entry(handover_ptr: *const AslBootHandover)
 
         // Poll keyboard input (PS/2 Hardware and Serial COM1 Data Ready)
         #[cfg(target_arch = "x86_64")]
-        {
-            let mut input_char: Option<u8> = unsafe { keyboard.poll_hardware() };
-
-            // Jika tidak ada input PS/2, periksa apakah ada karakter di port serial COM1 (0x3F8)
-            if input_char.is_none() {
+        let mut input_char: Option<u8> = {
+            let mut ch = unsafe { keyboard.poll_hardware() };
+            if ch.is_none() {
                 let lsr = unsafe { early_inb(COM1_PORT + 5) };
                 if (lsr & 0x01) != 0 {
                     let serial_byte = unsafe { early_inb(COM1_PORT) };
-                    // Konversi CR (\r) ke LF (\n)
                     let normalized = if serial_byte == b'\r' {
                         b'\n'
                     } else {
                         serial_byte
                     };
-                    input_char = Some(normalized);
+                    ch = Some(normalized);
                 }
             }
+            ch
+        };
 
-            if let Some(ascii) = input_char {
+        // Poll serial input on AArch64 via PL011 UART (QEMU virt 0x0900_0000)
+        #[cfg(target_arch = "aarch64")]
+        let input_char: Option<u8> = {
+            // Periksa Flag Register (FR bit 4: RXFE Receive FIFO Empty)
+            let fr = unsafe { core::ptr::read_volatile((PL011_UART_BASE + 0x18) as *const u32) };
+            if (fr & (1 << 4)) == 0 {
+                // Ada karakter di Data Register (DR)
+                let dr = unsafe { core::ptr::read_volatile(PL011_UART_BASE as *const u32) };
+                let b = (dr & 0xFF) as u8;
+                let normalized = if b == b'\r' { b'\n' } else { b };
+                Some(normalized)
+            } else {
+                None
+            }
+        };
+
+        #[cfg(not(any(target_arch = "x86_64", target_arch = "aarch64")))]
+        let input_char: Option<u8> = None;
+
+        if let Some(ascii) = input_char {
                 // Echo key to serial
                 if ascii == b'\x08' {
                     early_serial_write_str("\x08 \x08");
@@ -972,13 +1024,19 @@ pub unsafe extern "C" fn _asl_kernel_entry(handover_ptr: *const AslBootHandover)
                         asl_cockpit_shell::ShellCommand::CpuInfo => {
                             #[cfg(target_arch = "x86_64")]
                             let brand_bytes = get_x86_cpu_brand();
-                            let mut brand_len = 0;
-                            while brand_len < 48 && brand_bytes[brand_len] != 0 {
-                                brand_len += 1;
-                            }
-                            let brand_str = core::str::from_utf8(&brand_bytes[..brand_len])
-                                .unwrap_or("x86_64 Processor");
-                            let trimmed_brand = brand_str.trim();
+                            #[cfg(target_arch = "x86_64")]
+                            let trimmed_brand = {
+                                let mut len = 0;
+                                while len < 48 && brand_bytes[len] != 0 {
+                                    len += 1;
+                                }
+                                let s = core::str::from_utf8(&brand_bytes[..len]).unwrap_or("x86_64 Processor");
+                                s.trim()
+                            };
+                            #[cfg(target_arch = "aarch64")]
+                            let trimmed_brand = "ARMv8-A Cortex Processor (AArch64)";
+                            #[cfg(not(any(target_arch = "x86_64", target_arch = "aarch64")))]
+                            let trimmed_brand = "Universal Sovereign CPU";
 
                             early_serial_write_str("CPU Model: ");
                             early_serial_write_str(trimmed_brand);
@@ -1038,15 +1096,29 @@ pub unsafe extern "C" fn _asl_kernel_entry(handover_ptr: *const AslBootHandover)
                         }
                         asl_cockpit_shell::ShellCommand::Reboot => {
                             early_serial_write_str("Rebooting machine...\n");
+                            #[cfg(target_arch = "x86_64")]
                             unsafe {
                                 asl_cockpit_shell::CockpitShell::trigger_x86_reboot();
                             }
+                            #[cfg(target_arch = "aarch64")]
+                            unsafe {
+                                asl_cockpit_shell::CockpitShell::trigger_aarch64_reboot();
+                            }
+                            #[cfg(not(any(target_arch = "x86_64", target_arch = "aarch64")))]
+                            loop { core::hint::spin_loop(); }
                         }
                         asl_cockpit_shell::ShellCommand::Halt => {
                             early_serial_write_str("System halted.\n");
+                            #[cfg(target_arch = "x86_64")]
                             unsafe {
                                 asl_cockpit_shell::CockpitShell::trigger_x86_halt();
                             }
+                            #[cfg(target_arch = "aarch64")]
+                            unsafe {
+                                asl_cockpit_shell::CockpitShell::trigger_aarch64_halt();
+                            }
+                            #[cfg(not(any(target_arch = "x86_64", target_arch = "aarch64")))]
+                            loop { core::hint::spin_loop(); }
                         }
                         asl_cockpit_shell::ShellCommand::Unknown => {
                             let unk_msg = "Unknown command. Type 'help' for available commands.\n";
@@ -1066,7 +1138,6 @@ pub unsafe extern "C" fn _asl_kernel_entry(handover_ptr: *const AslBootHandover)
                     }
                 }
             }
-        }
 
         #[cfg(target_arch = "x86_64")]
         core::arch::asm!("pause", options(nomem, nostack, preserves_flags));

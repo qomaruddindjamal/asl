@@ -10,3 +10,11 @@ rustflags = [
     "-C", "code-model=kernel",
 ]
 
+[target.aarch64-unknown-none-softfloat]
+rustflags = [
+    "-C", "link-arg=-Taarch64_virt.ld",
+    "-C", "link-arg=-z",
+    "-C", "link-arg=max-page-size=0x1000",
+    "-C", "relocation-model=static",
+]
+

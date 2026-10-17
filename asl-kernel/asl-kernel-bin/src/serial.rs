@@ -2,8 +2,13 @@
 //! ==================================
 //! Direct Port I/O (0x3F8) untuk pancaran telemetri milestone boot avionik M1..M6.
 
+#[cfg(target_arch = "x86_64")]
 const COM1_PORT: u16 = 0x3F8;
 
+#[cfg(target_arch = "aarch64")]
+const PL011_UART_BASE: usize = 0x0900_0000;
+
+#[cfg(target_arch = "x86_64")]
 #[inline(always)]
 unsafe fn outb(port: u16, val: u8) {
     core::arch::asm!(
@@ -14,6 +19,7 @@ unsafe fn outb(port: u16, val: u8) {
     );
 }
 
+#[cfg(target_arch = "x86_64")]
 #[inline(always)]
 unsafe fn inb(port: u16) -> u8 {
     let ret: u8;
@@ -34,6 +40,7 @@ impl SerialPort {
     }
 
     pub fn init(&self) {
+        #[cfg(target_arch = "x86_64")]
         unsafe {
             outb(COM1_PORT + 1, 0x00); // Disable interrupts
             outb(COM1_PORT + 3, 0x80); // Enable DLAB (set baud rate divisor)
@@ -43,19 +50,42 @@ impl SerialPort {
             outb(COM1_PORT + 2, 0xC7); // Enable FIFO, clear them, with 14-byte threshold
             outb(COM1_PORT + 4, 0x0B); // IRQs enabled, RTS/DSR set
         }
+
+        #[cfg(target_arch = "aarch64")]
+        {
+            // PL011 is pre-initialized by QEMU virt, nothing strictly needed for early print
+        }
     }
 
     pub fn is_transmit_empty(&self) -> bool {
+        #[cfg(target_arch = "x86_64")]
         unsafe { (inb(COM1_PORT + 5) & 0x20) != 0 }
+
+        #[cfg(target_arch = "aarch64")]
+        unsafe {
+            // PL011 FR bit 5 is TXFF (Transmit FIFO Full). Return true if NOT full.
+            let fr = core::ptr::read_volatile((PL011_UART_BASE + 0x18) as *const u32);
+            (fr & (1 << 5)) == 0
+        }
+
+        #[cfg(not(any(target_arch = "x86_64", target_arch = "aarch64")))]
+        true
     }
 
     pub fn write_byte(&self, b: u8) {
         while !self.is_transmit_empty() {
             core::hint::spin_loop();
         }
+        #[cfg(target_arch = "x86_64")]
         unsafe {
             outb(COM1_PORT, b);
         }
+        #[cfg(target_arch = "aarch64")]
+        unsafe {
+            core::ptr::write_volatile(PL011_UART_BASE as *mut u32, b as u32);
+        }
+        #[cfg(not(any(target_arch = "x86_64", target_arch = "aarch64")))]
+        let _ = b;
     }
 
     pub fn write_str(&self, s: &str) {

@@ -225,6 +225,7 @@ static mut ASL_HANDOVER_STORAGE: AslBootHandover = AslBootHandover {
 // DEDICATED ASSEMBLY ENTRY STUB
 // -----------------------------------------------------------------------------
 
+#[cfg(target_arch = "x86_64")]
 core::arch::global_asm!(
     ".section .text.entry, \"ax\"",
     ".global _start",
@@ -243,10 +244,72 @@ core::arch::global_asm!(
     "_asl_stack_top:"
 );
 
+#[cfg(target_arch = "aarch64")]
+core::arch::global_asm!(
+    ".section .text.entry, \"ax\"",
+    ".global _start",
+    "_start:",
+    "adrp x0, _asl_stack_top",
+    "add  sp, x0, :lo12:_asl_stack_top",
+    "bl   asl_launcher_aarch64",
+    "1:",
+    "wfe",
+    "b    1b",
+    ".section .bss",
+    ".align 16",
+    "_asl_stack_bottom:",
+    ".skip 524288",
+    "_asl_stack_top:"
+);
+
 // -----------------------------------------------------------------------------
 // ASL LAUNCHER MAIN & HANDOVER ADAPTER
 // -----------------------------------------------------------------------------
 
+#[cfg(target_arch = "aarch64")]
+#[no_mangle]
+pub extern "C" fn asl_launcher_aarch64() -> ! {
+    SERIAL.init();
+    SERIAL.write_str("\n[ASL-LAUNCHER-AARCH64] Entered AArch64 Native Entry Stub.\n");
+    SERIAL.write_str("[ASL-LAUNCHER-AARCH64] Target: ARMv8-A Cortex-A57 (QEMU virt bare-metal).\n");
+
+    // Persiapkan Handover untuk QEMU virt platform
+    // QEMU virt: RAM 0x4000_0000..0x4400_0000 (64MB)
+    // Kernel base: 0x4008_0000 (size 2MB)
+    unsafe {
+        ASL_HANDOVER_STORAGE.magic = ASL_BOOT_MAGIC;
+        ASL_HANDOVER_STORAGE.protocol_version = 1;
+        ASL_HANDOVER_STORAGE.target_arch = TargetArch::Aarch64;
+        ASL_HANDOVER_STORAGE.kernel_physical_base = 0x4008_0000;
+        ASL_HANDOVER_STORAGE.kernel_virtual_base = 0x4008_0000;
+        ASL_HANDOVER_STORAGE.kernel_size_bytes = 0x200000;
+        ASL_HANDOVER_STORAGE.device_tree_or_acpi_ptr = 0x4000_0000; // QEMU puts DTB at start of RAM
+
+        // Konfigurasi Memory Map
+        ASL_HANDOVER_STORAGE.memory_map_count = 2;
+        ASL_HANDOVER_STORAGE.memory_map[0] = MemoryDescriptor {
+            base_physical_addr: 0x4008_0000,
+            length_bytes: 0x200000,
+            region_type: MemoryRegionType::KernelImage,
+            flags: 0,
+        };
+        ASL_HANDOVER_STORAGE.memory_map[1] = MemoryDescriptor {
+            base_physical_addr: 0x4028_0000,
+            length_bytes: 60 * 1024 * 1024, // 60MB usable RAM
+            region_type: MemoryRegionType::UsableRam,
+            flags: 0,
+        };
+    }
+
+    SERIAL.write_str("[ASL-LAUNCHER-AARCH64] Handover populated. Jumping to _asl_kernel_entry...\n");
+
+    let handover_ptr = core::ptr::addr_of!(ASL_HANDOVER_STORAGE);
+    unsafe {
+        asl_kernel_core::_asl_kernel_entry(handover_ptr);
+    }
+}
+
+#[cfg(target_arch = "x86_64")]
 #[no_mangle]
 pub extern "C" fn asl_launcher_main() -> ! {
     SERIAL.init();

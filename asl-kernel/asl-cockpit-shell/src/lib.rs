@@ -123,11 +123,35 @@ impl CockpitShell {
         }
     }
 
-    /// Eksekusi halt prosesor
+    /// Eksekusi halt prosesor x86_64
     #[cfg(target_arch = "x86_64")]
     pub unsafe fn trigger_x86_halt() -> ! {
         loop {
             core::arch::asm!("cli; hlt", options(nomem, nostack, preserves_flags));
+        }
+    }
+
+    /// Eksekusi reboot AArch64 via PSCI SYSTEM_RESET (HVC / SMC fid 0x84000009)
+    #[cfg(target_arch = "aarch64")]
+    pub unsafe fn trigger_aarch64_reboot() -> ! {
+        // PSCI SYSTEM_RESET: fn_id 0x84000009
+        core::arch::asm!(
+            "mov x0, #0x0009",
+            "movk x0, #0x8400, lsl #16",
+            "hvc #0",
+            options(nomem, nostack)
+        );
+        // Fallback: spinning wfi loop
+        loop {
+            core::arch::asm!("wfi", options(nomem, nostack, preserves_flags));
+        }
+    }
+
+    /// Eksekusi halt prosesor AArch64 via spinning wfi loop
+    #[cfg(target_arch = "aarch64")]
+    pub unsafe fn trigger_aarch64_halt() -> ! {
+        loop {
+            core::arch::asm!("wfi", options(nomem, nostack, preserves_flags));
         }
     }
 }

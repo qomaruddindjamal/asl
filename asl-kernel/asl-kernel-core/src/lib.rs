@@ -644,17 +644,20 @@ pub unsafe extern "C" fn _asl_kernel_entry(handover_ptr: *const AslBootHandover)
                         let pitch_bytes = (fb_cfg.pixels_per_scan_line as usize)
                             * (fb_cfg.bytes_per_pixel as usize);
                         // Map physical framebuffer address into Higher Half Direct Map (HHDM) virtual address space
-                        let virt_addr = HHDM_OFFSET + (fb_cfg.base_physical_addr as usize);
-                        (*fb).init(
-                            virt_addr,
-                            fb_cfg.width as usize,
-                            fb_cfg.height as usize,
-                            pitch_bytes,
-                            (fb_cfg.bytes_per_pixel as usize) * 8,
-                        );
-                        (*fb).set_scale(1); // Native 1:1 Pixel-Perfect 8x16 font rendering (ultra-sharp & clean)
-                        (*fb).clear();
-                        (*fb).cursor_y = 16;
+                        if let Some(virt_addr) =
+                            HHDM_OFFSET.checked_add(fb_cfg.base_physical_addr as usize)
+                        {
+                            (*fb).init(
+                                virt_addr,
+                                fb_cfg.width as usize,
+                                fb_cfg.height as usize,
+                                pitch_bytes,
+                                (fb_cfg.bytes_per_pixel as usize) * 8,
+                            );
+                            (*fb).set_scale(1); // Native 1:1 Pixel-Perfect 8x16 font rendering (ultra-sharp & clean)
+                            (*fb).clear();
+                            (*fb).cursor_y = 16;
+                        }
                     }
                 }
 

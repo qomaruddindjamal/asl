@@ -177,9 +177,7 @@ impl SecondaryCoreEngine {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use asl_bootloader::{
-        MemoryDescriptor, MemoryRegionType, TargetArch, ASL_BOOT_MAGIC,
-    };
+    use asl_bootloader::{MemoryDescriptor, MemoryRegionType, TargetArch, ASL_BOOT_MAGIC};
 
     fn make_mock_handover() -> AslBootHandover {
         let mut h = AslBootHandover::empty();

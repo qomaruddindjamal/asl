@@ -191,6 +191,14 @@ mod tests {
             bpb.cluster_to_lba(1).err(),
             Some(StorageError::InvalidParameter)
         );
+
+        // Verify total_data_clusters and max_valid_cluster calculation
+        let mut sector_sized = sector;
+        sector_sized[32..36].copy_from_slice(&10_032u32.to_le_bytes()); // 10,032 total sectors
+        let bpb_sized = Fat32Bpb::parse(&sector_sized).unwrap();
+        // data sectors = 10,032 - 2032 = 8000; clusters = 8000 / 8 = 1000
+        assert_eq!(bpb_sized.total_data_clusters(), 1000);
+        assert_eq!(bpb_sized.max_valid_cluster(), 1002);
     }
 
     #[test]
@@ -484,6 +492,7 @@ mod tests {
         bpb_sec[13] = 1;
         bpb_sec[14..16].copy_from_slice(&32u16.to_le_bytes());
         bpb_sec[16] = 2;
+        bpb_sec[32..36].copy_from_slice(&256u32.to_le_bytes()); // Total sectors: 256 (MemBlockDevice capacity)
         bpb_sec[36..40].copy_from_slice(&10u32.to_le_bytes());
         bpb_sec[44..48].copy_from_slice(&2u32.to_le_bytes());
         dev.write_sectors(0, 1, &bpb_sec).unwrap();
@@ -507,11 +516,99 @@ mod tests {
         let mut fat_fs = Fat32FileSystem::mount(&mut dev, 0).unwrap();
         let file = fat_fs.lookup("CYCLE.DAT").unwrap();
 
-        // Reading past the cycle with a buffer exceeding 256 clusters (256 * 512 = 128KB)
-        // Declared file is 100MB; buffer is 200KB (> 256 clusters), which must trigger CorruptedMetadata
+        // Reading past the cycle with a buffer exceeding the volume data cluster count
+        // Declared file is 100MB; buffer is 200KB (> 204 clusters on 256-sector device), which must trigger CorruptedMetadata
         let mut big_buf = [0u8; 200_000];
         let res = fat_fs.read(&file, 0, &mut big_buf);
         assert_eq!(res, Err(VfsError::Storage(StorageError::CorruptedMetadata)));
+    }
+
+    #[test]
+    fn test_fat32_large_file_exceeding_256_clusters() {
+        // Device with 600 sectors: 32 reserved + (2 * 10) FAT + 548 data sectors
+        // Data clusters = 548. Valid clusters 2..550.
+        let mut dev = MemBlockDevice::<{ 600 * SECTOR_SIZE }>::new();
+
+        let mut bpb_sec = [0u8; SECTOR_SIZE];
+        bpb_sec[510] = 0x55;
+        bpb_sec[511] = 0xAA;
+        bpb_sec[11..13].copy_from_slice(&512u16.to_le_bytes());
+        bpb_sec[13] = 1; // 1 sector per cluster
+        bpb_sec[14..16].copy_from_slice(&32u16.to_le_bytes()); // 32 reserved
+        bpb_sec[16] = 2; // 2 FATs
+        bpb_sec[32..36].copy_from_slice(&600u32.to_le_bytes()); // 600 total sectors
+        bpb_sec[36..40].copy_from_slice(&10u32.to_le_bytes()); // 10 sectors/FAT
+        bpb_sec[44..48].copy_from_slice(&2u32.to_le_bytes()); // Root cluster 2
+        dev.write_sectors(0, 1, &bpb_sec).unwrap();
+
+        // Build a linear valid file chain across 300 clusters (Cluster 3 -> 4 -> ... -> 302 -> EOC)
+        // FAT starts at LBA 32 and LBA 42. Each FAT sector holds 128 entries (512 / 4).
+        // Cluster 0..127 in FAT sector 0, Cluster 128..255 in FAT sector 1, Cluster 256..383 in FAT sector 2.
+        let mut fat_sec0 = [0u8; SECTOR_SIZE];
+        let mut fat_sec1 = [0u8; SECTOR_SIZE];
+        let mut fat_sec2 = [0u8; SECTOR_SIZE];
+
+        // Root cluster 2: EOC
+        fat_sec0[8..12].copy_from_slice(&0x0FFF_FFF8u32.to_le_bytes());
+
+        // Clusters 3..127 in sector 0
+        for c in 3..128u32 {
+            let offset = (c as usize) * 4;
+            fat_sec0[offset..offset + 4].copy_from_slice(&(c + 1).to_le_bytes());
+        }
+
+        // Clusters 128..255 in sector 1
+        for c in 128..256u32 {
+            let offset = ((c - 128) as usize) * 4;
+            fat_sec1[offset..offset + 4].copy_from_slice(&(c + 1).to_le_bytes());
+        }
+
+        // Clusters 256..301 in sector 2 (points to next), Cluster 302 is EOC
+        for c in 256..302u32 {
+            let offset = ((c - 256) as usize) * 4;
+            fat_sec2[offset..offset + 4].copy_from_slice(&(c + 1).to_le_bytes());
+        }
+        let eoc_offset = ((302 - 256) as usize) * 4;
+        fat_sec2[eoc_offset..eoc_offset + 4].copy_from_slice(&0x0FFF_FFF8u32.to_le_bytes());
+
+        // Write FAT sectors to FAT1 (LBA 32..) and FAT2 (LBA 42..)
+        dev.write_sectors(32, 1, &fat_sec0).unwrap();
+        dev.write_sectors(33, 1, &fat_sec1).unwrap();
+        dev.write_sectors(34, 1, &fat_sec2).unwrap();
+
+        dev.write_sectors(42, 1, &fat_sec0).unwrap();
+        dev.write_sectors(43, 1, &fat_sec1).unwrap();
+        dev.write_sectors(44, 1, &fat_sec2).unwrap();
+
+        // Write a marker byte in each of the 300 data sectors:
+        // Cluster 3 starts at data LBA = 32 + 20 + (3 - 2) * 1 = 53
+        for i in 0..300u64 {
+            let mut sec = [0u8; SECTOR_SIZE];
+            sec[0] = (i % 250) as u8;
+            dev.write_sectors(53 + i, 1, &sec).unwrap();
+        }
+
+        // Directory entry in Cluster 2 (LBA 52) for "BIGFILE DAT" -> Cluster 3, size = 300 * 512 = 153,600 bytes
+        let mut root_dir_sec = [0u8; SECTOR_SIZE];
+        root_dir_sec[0..11].copy_from_slice(b"BIGFILE DAT");
+        root_dir_sec[11] = 0x20;
+        root_dir_sec[26..28].copy_from_slice(&3u16.to_le_bytes()); // Start cluster 3
+        root_dir_sec[28..32].copy_from_slice(&153_600u32.to_le_bytes()); // File size 153,600
+        dev.write_sectors(52, 1, &root_dir_sec).unwrap();
+
+        let mut fat_fs = Fat32FileSystem::mount(&mut dev, 0).unwrap();
+        let file = fat_fs.lookup("BIGFILE.DAT").unwrap();
+        assert_eq!(file.size_bytes, 153_600);
+
+        // Read all 153,600 bytes (300 clusters) — this exceeds 256 clusters and must succeed!
+        let mut read_buf = [0u8; 153_600];
+        let bytes_read = fat_fs.read(&file, 0, &mut read_buf).unwrap();
+        assert_eq!(bytes_read, 153_600);
+
+        // Verify marker bytes across clusters
+        for i in 0..300usize {
+            assert_eq!(read_buf[i * 512], (i % 250) as u8);
+        }
     }
 
     #[test]

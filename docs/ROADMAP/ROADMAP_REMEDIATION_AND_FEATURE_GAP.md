@@ -146,7 +146,11 @@ Berdasarkan sintesis riset mendalam dari repositori open-source kelas dunia (Lin
 
 ```
 ┌────────────────────────────────────────────────────────────────────────────────────────┐
-│ [MILESTONE 1] Input, Root Build & Bus Discovery (Makefile, PCI Scanner, PS/2 Keyboard) │
+│ [MILESTONE 1] Input, Root Build, Bus Discovery & Dual-Core Failover                    │
+│  - Root Makefile Universal (/Makefile)                                                 │
+│  - PCI Bus Scanner (asl-driver-pci)                                                    │
+│  - PS/2 Keyboard Driver (asl-driver-ps2-keyboard)                                      │
+│  - Secondary Failover Core Topology (asl-kernel-core-secondary)                         │
 └──────────────────────────────────────────┬─────────────────────────────────────────────┘
                                            │
 ┌──────────────────────────────────────────▼─────────────────────────────────────────────┐
@@ -176,6 +180,43 @@ Berdasarkan sintesis riset mendalam dari repositori open-source kelas dunia (Lin
 ┌──────────────────────────────────────────▼─────────────────────────────────────────────┐
 │ [MILESTONE 8] Mobile, Tablet & Multi-Arch Fleet (Touch I2C, BLE, ARM64/MIPS/QEMU Suite)│
 └────────────────────────────────────────────────────────────────────────────────────────┘
+```
+
+### TOPOLOGI FAILOVER & ARSITEKTUR KETAHANAN KERNEL (ACTIVE-STANDBY DUAL-CORE)
+
+```
++=======================================================================================+
+|                   ASL SURVIVABLE DUAL-CORE FAILOVER TOPOLOGY                          |
++=======================================================================================+
+|                                                                                       |
+|   +------------------------------------+    Heartbeat Ping    +-------------------+   |
+|   |         PRIMARY KERNEL CORE        | -------------------> | HARDWARE WATCHDOG |   |
+|   |          "asl-kernel-core"         |                      |   & NMI MONITOR   |   |
+|   |                                    |                      +---------+---------+   |
+|   |  - Status: ACTIVE (Default)        |                                │             |
+|   |  - Melayani Shell, Apps & Driver   |                                │ Timeout /   |
+|   |  - Memori: Read/Write/Execute      |                                │ Panic Hook  |
+|   +-----------------+------------------+                                │             |
+|                     │                                                   │             |
+|        [ KORUPSI MEMORI / ROOTKIT ]                                     ▼             |
+|                     │                                       +-----------+---------+   |
+|                     ▼                                       |  SECONDARY FAILOVER |   |
+|          MMU AIR-GAP ISOLATION                              |     KERNEL CORE     |   |
+|       (Bus Diputus & RAM di-Purge)                          | "asl-kernel-core-   |   |
+|                                                             |    secondary"       |   |
+|                                                             |                     |   |
+|                                                             | - Status: STANDBY   |   |
+|                                                             | - Read-Only LOCKED  |   |
+|                                                             | - Takeover < 1 ms   |   |
+|                                                             +----------+----------+   |
+|                                                                        │              |
+|                                                                        ▼              |
+|                                                             +----------+----------+   |
+|                                                             | EMERGENCY LIFE-LINE |   |
+|                                                             | Cockpit Shell, Logs |   |
+|                                                             | & Network Rescued   |   |
+|                                                             +---------------------+   |
++=======================================================================================+
 ```
 
 ---
@@ -215,6 +256,12 @@ Berdasarkan sintesis riset mendalam dari repositori open-source kelas dunia (Lin
   - `cpuinfo`: Menampilkan model brand string CPU fisik via CPUID.
   - `lspci`: Menampilkan daftar seluruh perangkat hardware yang terdeteksi di bus PCI.
   - `reboot` / `halt`: Menjalankan restart atau safe ACPI/APM shutdown.
+
+### Target 1.5: Secondary Failover Kernel Core (`asl-kernel-core-secondary`)
+- Crate baru `asl-kernel-core-secondary` berstandar `#![no_std]` (Hot-Standby Core).
+- Dialokasikan pada partisi memori terisolasi ARINC 653 berstatus **Read-Only Locked**.
+- Terintegrasi dengan watchdog heartbeat monitor dan panic trap handler.
+- Menyediakan fungsi `emergency_takeover()` untuk penyelamatan sistem dalam waktu < 1 ms jika kernel primer korup/rusak.
 
 ---
 

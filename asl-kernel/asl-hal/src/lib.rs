@@ -7,13 +7,19 @@
 #![no_std]
 
 pub mod cache;
-pub use cache::{CacheMaintenanceOps, CoherentNoopOps, BounceBufferPolicy, BounceDecision, IsolatedBounceBuffer, CACHE_LINE};
+pub use cache::{
+    BounceBufferPolicy, BounceDecision, CacheMaintenanceOps, CoherentNoopOps, IsolatedBounceBuffer,
+    CACHE_LINE,
+};
 
 pub mod mmio;
 pub use mmio::MmioRegister;
 
 pub mod dma_space;
-pub use dma_space::{DmaAddressSpace, DmaDeviceAddress, DmaAddressFault, DmaFaultRecord, IdentityDmaSpace, MpuFirewallDmaSpace, IommuTranslationSpace};
+pub use dma_space::{
+    DmaAddressFault, DmaAddressSpace, DmaDeviceAddress, DmaFaultRecord, IdentityDmaSpace,
+    IommuTranslationSpace, MpuFirewallDmaSpace,
+};
 
 use asl_bootloader::TargetArch;
 

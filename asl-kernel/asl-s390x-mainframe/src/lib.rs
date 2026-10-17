@@ -11,7 +11,7 @@
 /// Kunci Proteksi Memori 4-bit IBM z/Architecture (Storage Key)
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct StorageKey {
-    pub access_key: u8,   // 4-bit key (0..15)
+    pub access_key: u8,      // 4-bit key (0..15)
     pub fetch_protect: bool, // 1-bit fetch protection
     pub reference_bit: bool, // 1-bit hardware reference
     pub change_bit: bool,    // 1-bit dirty change tracking
@@ -78,13 +78,17 @@ impl MainframeChannelIoController {
 
         // Key 0 adalah Master Supervisor Key (Dapat mengakses seluruh memori)
         if psw_key == 0 {
-            if is_write { sk.change_bit = true; }
+            if is_write {
+                sk.change_bit = true;
+            }
             return true;
         }
 
         // Kunci harus cocok persis dengan Storage Key blok memori
         if psw_key == sk.access_key {
-            if is_write { sk.change_bit = true; }
+            if is_write {
+                sk.change_bit = true;
+            }
             true
         } else {
             // Pelanggaran kunci memori memicu Hardware Protection Exception
@@ -93,7 +97,11 @@ impl MainframeChannelIoController {
     }
 
     /// Eksekusi rantai CCW I/O asinkron
-    pub fn execute_channel_program(&mut self, subchannel: usize, ccw: ChannelCommandWord) -> Result<(), &'static str> {
+    pub fn execute_channel_program(
+        &mut self,
+        subchannel: usize,
+        ccw: ChannelCommandWord,
+    ) -> Result<(), &'static str> {
         if subchannel >= MAX_MAINFRAME_SUBCHANNELS {
             return Err("ERR_INVALID_SUBCHANNEL");
         }

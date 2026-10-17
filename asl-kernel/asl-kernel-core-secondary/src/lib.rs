@@ -137,7 +137,8 @@ impl SecondaryCoreEngine {
 
         // 1. Standby -> FaultDetected
         self.transition_to(RecoveryState::FaultDetected)?;
-        self.diagnostics.set_log("Fault detected. Initiating emergency failover sequence.");
+        self.diagnostics
+            .set_log("Fault detected. Initiating emergency failover sequence.");
 
         // 2. FaultDetected -> IsolationRequested (Air-Gap)
         self.transition_to(RecoveryState::IsolationRequested)?;
@@ -158,7 +159,8 @@ impl SecondaryCoreEngine {
 
         // 5. Validation -> Operational (Secondary Core Aktif Penuh)
         self.transition_to(RecoveryState::Operational)?;
-        self.diagnostics.set_log("Secondary core takeover operational. Subsystems rescued.");
+        self.diagnostics
+            .set_log("Secondary core takeover operational. Subsystems rescued.");
 
         Ok(self.state)
     }
@@ -175,7 +177,9 @@ impl SecondaryCoreEngine {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use asl_bootloader::{TargetArch, MemoryDescriptor, MemoryRegionType, FramebufferConfig, ASL_BOOT_MAGIC};
+    use asl_bootloader::{
+        MemoryDescriptor, MemoryRegionType, TargetArch, ASL_BOOT_MAGIC,
+    };
 
     fn make_mock_handover() -> AslBootHandover {
         let mut h = AslBootHandover::empty();
@@ -210,7 +214,10 @@ mod tests {
         assert_eq!(res, Ok(RecoveryState::Operational));
         assert_eq!(engine.state, RecoveryState::Operational);
         assert_eq!(engine.diagnostics.fault_reason, FaultReason::KernelPanic);
-        assert_eq!(engine.diagnostics.message_str(), "Secondary core takeover operational. Subsystems rescued.");
+        assert_eq!(
+            engine.diagnostics.message_str(),
+            "Secondary core takeover operational. Subsystems rescued."
+        );
     }
 
     #[test]
@@ -228,5 +235,52 @@ mod tests {
         let mock_handover = make_mock_handover();
         let res = engine.inject_simulated_fault(&mock_handover as *const AslBootHandover);
         assert_eq!(res, Ok(RecoveryState::Operational));
+    }
+
+    #[test]
+    fn test_corrupted_handover_fails_to_recovery_failed() {
+        let mut engine = SecondaryCoreEngine::new();
+        let mut bad_handover = make_mock_handover();
+        bad_handover.magic = 0xDEADBEEF; // Corrupt magic
+
+        let res = engine.trigger_fault_recovery(
+            FaultReason::MemoryIntegrityCorruption,
+            999,
+            &bad_handover as *const AslBootHandover,
+        );
+        assert_eq!(res, Err("ERR_INVALID_BOOT_MAGIC"));
+        assert_eq!(engine.state, RecoveryState::RecoveryFailed);
+        assert_eq!(
+            engine.diagnostics.current_state,
+            RecoveryState::RecoveryFailed
+        );
+    }
+
+    #[test]
+    fn test_diagnostic_log_bounding_and_truncation() {
+        let mut diag = RecoveryDiagnostics::empty();
+        // Coba tulis pesan sepanjang 300 byte (melebihi DIAGNOSTIC_LOG_SIZE 256)
+        let long_msg = "A".repeat(300);
+        diag.set_log(&long_msg);
+        assert_eq!(diag.log_len, DIAGNOSTIC_LOG_SIZE);
+        assert_eq!(diag.message_str().len(), DIAGNOSTIC_LOG_SIZE);
+    }
+
+    #[test]
+    fn test_operational_rearm_to_standby() {
+        let mut engine = SecondaryCoreEngine::new();
+        let mock_handover = make_mock_handover();
+        assert_eq!(
+            engine.trigger_fault_recovery(
+                FaultReason::WatchdogTimeout,
+                100,
+                &mock_handover as *const AslBootHandover
+            ),
+            Ok(RecoveryState::Operational)
+        );
+
+        // Setelah primary kernel pulih atau reboot disiapkan, secondary core dapat di-rearm ke Standby
+        assert_eq!(engine.transition_to(RecoveryState::Standby), Ok(()));
+        assert_eq!(engine.state, RecoveryState::Standby);
     }
 }

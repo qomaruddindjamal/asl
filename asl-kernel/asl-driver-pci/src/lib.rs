@@ -52,7 +52,11 @@ pub struct PciAddress {
 
 impl PciAddress {
     pub const fn new(bus: u8, device: u8, function: u8) -> Self {
-        Self { bus, device, function }
+        Self {
+            bus,
+            device,
+            function,
+        }
     }
 
     /// Menghitung format register alamat port 0xCF8
@@ -219,7 +223,10 @@ impl EcamTransport {
             return None;
         }
         let bus_rel = (addr.bus - self.start_bus) as usize;
-        let off = (bus_rel << 20) | ((addr.device as usize) << 15) | ((addr.function as usize) << 12) | (offset as usize);
+        let off = (bus_rel << 20)
+            | ((addr.device as usize) << 15)
+            | ((addr.function as usize) << 12)
+            | (offset as usize);
         Some(self.base_virtual_address + off)
     }
 }
@@ -292,7 +299,7 @@ impl PciScanner {
             while bar_idx < 6 {
                 let bar_offset = 0x10 + (bar_idx as u8 * 4);
                 let bar_val = transport.read_u32(addr, bar_offset);
-                
+
                 if bar_val == 0 || bar_val == 0xFFFF_FFFF {
                     desc.bars[bar_idx] = PciBar {
                         bar_type: BarType::None,
@@ -320,7 +327,7 @@ impl PciScanner {
                         let next_offset = bar_offset + 4;
                         let bar_high = transport.read_u32(addr, next_offset);
                         let addr_64 = ((bar_high as u64) << 32) | ((bar_val & 0xFFFF_FFF0) as u64);
-                        
+
                         desc.bars[bar_idx] = PciBar {
                             bar_type: BarType::Memory64 {
                                 address: addr_64,
@@ -421,7 +428,9 @@ mod tests {
 
     #[test]
     fn test_absent_pci_device() {
-        let mock = MockPciTransport { devices: [(PciAddress::new(0, 0, 0), 0xFFFF_FFFF, 0, 0, 0); 4] };
+        let mock = MockPciTransport {
+            devices: [(PciAddress::new(0, 0, 0), 0xFFFF_FFFF, 0, 0, 0); 4],
+        };
         unsafe {
             let res = PciScanner::scan_function(&mock, PciAddress::new(1, 1, 0));
             assert_eq!(res, None);
@@ -432,9 +441,27 @@ mod tests {
     fn test_valid_pci_device_and_bars() {
         let mock = MockPciTransport {
             devices: [
-                (PciAddress::new(0, 2, 0), 0x1234_8086, 0x0002_0007, 0x0300_0000, 0x0000_0000), // Intel Display
-                (PciAddress::new(0, 3, 0), 0x100E_8086, 0x0002_0007, 0x0200_0000, 0x0080_0000), // Intel e1000 Multifunction
-                (PciAddress::new(0, 3, 1), 0x100F_8086, 0x0002_0007, 0x0200_0000, 0x0000_0000), // Function 1
+                (
+                    PciAddress::new(0, 2, 0),
+                    0x1234_8086,
+                    0x0002_0007,
+                    0x0300_0000,
+                    0x0000_0000,
+                ), // Intel Display
+                (
+                    PciAddress::new(0, 3, 0),
+                    0x100E_8086,
+                    0x0002_0007,
+                    0x0200_0000,
+                    0x0080_0000,
+                ), // Intel e1000 Multifunction
+                (
+                    PciAddress::new(0, 3, 1),
+                    0x100F_8086,
+                    0x0002_0007,
+                    0x0200_0000,
+                    0x0000_0000,
+                ), // Function 1
                 (PciAddress::new(0, 0, 0), 0xFFFF_FFFF, 0, 0, 0),
             ],
         };
@@ -449,7 +476,63 @@ mod tests {
         assert_eq!(buffer[0].class_name(), "Display Controller (VGA/GPU)");
 
         // BAR checks
-        assert_eq!(buffer[0].bars[0].bar_type, BarType::Memory32 { address: 0xF000_0000, prefetchable: false });
+        assert_eq!(
+            buffer[0].bars[0].bar_type,
+            BarType::Memory32 {
+                address: 0xF000_0000,
+                prefetchable: false
+            }
+        );
         assert_eq!(buffer[0].bars[1].bar_type, BarType::IoPort { port: 0xD000 });
+    }
+
+    #[test]
+    fn test_pci_hex_formatting_and_16bit_bounds() {
+        let dev = PciDeviceDescriptor {
+            address: PciAddress::new(0, 31, 7),
+            vendor_id: 0x8086,
+            device_id: 0x2918,
+            command: 0x0007,
+            status: 0x0280,
+            revision_id: 0x02,
+            prog_if: 0x00,
+            subclass: 0x01,
+            class_code: 0x06,
+            header_type: 0x80,
+            bars: [PciBar::empty(); 6],
+        };
+
+        assert_eq!(dev.vendor_id, 0x8086);
+        assert_eq!(dev.device_id, 0x2918);
+        assert_eq!(dev.class_name(), "Bridge Device");
+
+        // Test boundary values
+        let max_dev = PciDeviceDescriptor {
+            address: PciAddress::new(255, 31, 7),
+            vendor_id: 0xFFFE,
+            device_id: 0xFFFF,
+            command: 0xFFFF,
+            status: 0xFFFF,
+            revision_id: 0xFF,
+            prog_if: 0xFF,
+            subclass: 0xFF,
+            class_code: 0xFF,
+            header_type: 0xFF,
+            bars: [PciBar::empty(); 6],
+        };
+        assert_eq!(max_dev.address.bus, 255);
+        assert_eq!(max_dev.address.device, 31);
+        assert_eq!(max_dev.address.function, 7);
+        assert_eq!(max_dev.vendor_id, 0xFFFE);
+    }
+
+    #[test]
+    fn test_ecam_out_of_bounds_bus_rejected() {
+        let ecam = EcamTransport::new(0xE000_0000, 0, 1);
+        // Bus 2 berada di luar rentang bus 0..1
+        let addr_out = PciAddress::new(2, 0, 0);
+        unsafe {
+            assert_eq!(ecam.read_u32(addr_out, 0), 0xFFFF_FFFF);
+        }
     }
 }

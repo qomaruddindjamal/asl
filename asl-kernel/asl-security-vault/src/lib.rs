@@ -92,18 +92,35 @@ impl PartitionVault {
     }
 
     /// Validasi matematis apakah upaya akses memori legal
-    pub fn verify_access(&self, address: u64, size: u64, requested_rights: PartitionAccessRights) -> bool {
+    pub fn verify_access(
+        &self,
+        address: u64,
+        size: u64,
+        requested_rights: PartitionAccessRights,
+    ) -> bool {
         let mut i = 0;
         while i < MAX_WINDOWS_PER_PARTITION {
             let win = &self.windows[i];
             if win.contains(address, size) {
                 match (win.rights, requested_rights) {
-                    (PartitionAccessRights::ReadWrite, PartitionAccessRights::ReadOnly) => return true,
-                    (PartitionAccessRights::ReadWrite, PartitionAccessRights::ReadWrite) => return true,
-                    (PartitionAccessRights::ReadOnly, PartitionAccessRights::ReadOnly) => return true,
-                    (PartitionAccessRights::ReadExecute, PartitionAccessRights::ReadOnly) => return true,
-                    (PartitionAccessRights::ReadExecute, PartitionAccessRights::ExecuteOnly) => return true,
-                    (PartitionAccessRights::ReadExecute, PartitionAccessRights::ReadExecute) => return true,
+                    (PartitionAccessRights::ReadWrite, PartitionAccessRights::ReadOnly) => {
+                        return true
+                    }
+                    (PartitionAccessRights::ReadWrite, PartitionAccessRights::ReadWrite) => {
+                        return true
+                    }
+                    (PartitionAccessRights::ReadOnly, PartitionAccessRights::ReadOnly) => {
+                        return true
+                    }
+                    (PartitionAccessRights::ReadExecute, PartitionAccessRights::ReadOnly) => {
+                        return true
+                    }
+                    (PartitionAccessRights::ReadExecute, PartitionAccessRights::ExecuteOnly) => {
+                        return true
+                    }
+                    (PartitionAccessRights::ReadExecute, PartitionAccessRights::ReadExecute) => {
+                        return true
+                    }
                     _ => return false,
                 }
             }
@@ -213,4 +230,3 @@ mod tests {
         assert!(!vault.verify_access(u64::MAX - 10, 20, PartitionAccessRights::ReadOnly));
     }
 }
-

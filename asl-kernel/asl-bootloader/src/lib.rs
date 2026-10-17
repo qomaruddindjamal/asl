@@ -73,18 +73,18 @@ pub struct AslBootHandover {
     pub protocol_version: u32,
     /// Arsitektur hardware yang terdeteksi
     pub target_arch: TargetArch,
-    
+
     /// Virtual base offset tempat kernel di-remap (Higher Half Kernel)
     pub kernel_virtual_base: u64,
     pub kernel_physical_base: u64,
     pub kernel_size_bytes: u64,
-    
+
     /// Pointer fisik ke tabel ACPI RSDP atau Flattened Device Tree (DTB)
     pub device_tree_or_acpi_ptr: u64,
-    
+
     /// Konfigurasi Framebuffer grafis awal
     pub framebuffer: FramebufferConfig,
-    
+
     /// Memory Map fisik
     pub memory_map_count: usize,
     pub memory_map: [MemoryDescriptor; MAX_MEMORY_MAP_ENTRIES],
@@ -138,7 +138,10 @@ impl AslBootHandover {
         }
 
         // Validasi pembatasan integer overflow pada alamat fisik kernel
-        let kernel_phys_end = match self.kernel_physical_base.checked_add(self.kernel_size_bytes) {
+        let kernel_phys_end = match self
+            .kernel_physical_base
+            .checked_add(self.kernel_size_bytes)
+        {
             Some(end) => end,
             None => return Err("ERR_KERNEL_PHYSICAL_RANGE_OVERFLOW"),
         };
@@ -150,7 +153,11 @@ impl AslBootHandover {
         }
 
         // Validasi pembatasan integer overflow pada alamat virtual kernel
-        if self.kernel_virtual_base.checked_add(self.kernel_size_bytes).is_none() {
+        if self
+            .kernel_virtual_base
+            .checked_add(self.kernel_size_bytes)
+            .is_none()
+        {
             return Err("ERR_KERNEL_VIRTUAL_RANGE_OVERFLOW");
         }
 
@@ -274,7 +281,10 @@ mod tests {
         let mut h = create_valid_handover();
         h.kernel_physical_base = 0x0010_0000_0000_0000; // > 52-bit limit
         h.kernel_size_bytes = 0x1000;
-        assert_eq!(h.validate(), Err("ERR_KERNEL_PHYSICAL_ADDRESS_OUT_OF_BOUNDS"));
+        assert_eq!(
+            h.validate(),
+            Err("ERR_KERNEL_PHYSICAL_ADDRESS_OUT_OF_BOUNDS")
+        );
     }
 
     #[test]
@@ -304,5 +314,3 @@ mod tests {
         assert_eq!(profile, "release-fallback");
     }
 }
-
-

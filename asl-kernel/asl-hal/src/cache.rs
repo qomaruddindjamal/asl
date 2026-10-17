@@ -245,7 +245,9 @@ pub struct IsolatedBounceBuffer<const CAPACITY: usize = 2048> {
 
 impl<const CAPACITY: usize> IsolatedBounceBuffer<CAPACITY> {
     pub const fn new() -> Self {
-        Self { data: [0u8; CAPACITY] }
+        Self {
+            data: [0u8; CAPACITY],
+        }
     }
 }
 
@@ -256,13 +258,25 @@ mod tests {
     #[test]
     fn test_bounce_buffer_policy_decisions() {
         // Aligned 64-byte address dan length -> DirectZeroCopy
-        assert_eq!(BounceBufferPolicy::evaluate(0x1000_0000, 128), BounceDecision::DirectZeroCopy);
-        assert_eq!(BounceBufferPolicy::evaluate(0x1000_0040, 64), BounceDecision::DirectZeroCopy);
+        assert_eq!(
+            BounceBufferPolicy::evaluate(0x1000_0000, 128),
+            BounceDecision::DirectZeroCopy
+        );
+        assert_eq!(
+            BounceBufferPolicy::evaluate(0x1000_0040, 64),
+            BounceDecision::DirectZeroCopy
+        );
 
         // Misaligned address (offset 1) -> RequiresBounceBuffer
-        assert_eq!(BounceBufferPolicy::evaluate(0x1000_0001, 128), BounceDecision::RequiresBounceBuffer);
+        assert_eq!(
+            BounceBufferPolicy::evaluate(0x1000_0001, 128),
+            BounceDecision::RequiresBounceBuffer
+        );
         // Misaligned length (panjang ganjil misal 1518 byte frame ethernet) -> RequiresBounceBuffer
-        assert_eq!(BounceBufferPolicy::evaluate(0x1000_0000, 1518), BounceDecision::RequiresBounceBuffer);
+        assert_eq!(
+            BounceBufferPolicy::evaluate(0x1000_0000, 1518),
+            BounceDecision::RequiresBounceBuffer
+        );
     }
 
     #[test]

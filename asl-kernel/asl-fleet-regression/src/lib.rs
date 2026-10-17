@@ -55,7 +55,12 @@ impl FleetRegressionEngine {
     }
 
     /// Daftarkan hasil regresi untuk satu arsitektur
-    pub fn record_architecture_test(&mut self, arch_id: u16, name_hash: u32, cycles: u32) -> Result<(), &'static str> {
+    pub fn record_architecture_test(
+        &mut self,
+        arch_id: u16,
+        name_hash: u32,
+        cycles: u32,
+    ) -> Result<(), &'static str> {
         if self.tested_count >= TOTAL_MONITORED_ARCHITECTURES {
             return Err("ERR_REGRESSION_MATRIX_FULL");
         }

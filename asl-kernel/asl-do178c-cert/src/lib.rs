@@ -50,14 +50,20 @@ pub struct Do178cCertificationHarness {
 impl Do178cCertificationHarness {
     pub const fn new() -> Self {
         Self {
-            requirements: [SafetyRequirementTrace::new(0, DesignAssuranceLevel::DalA_Catastrophic); MAX_SAFETY_REQUIREMENTS],
+            requirements: [SafetyRequirementTrace::new(0, DesignAssuranceLevel::DalA_Catastrophic);
+                MAX_SAFETY_REQUIREMENTS],
             active_count: 0,
             certification_audit_passed: false,
         }
     }
 
     /// Daftarkan persyaratan keselamatan avionic
-    pub fn register_safety_evidence(&mut self, req_id: u32, proven: bool, mcdc: bool) -> Result<(), &'static str> {
+    pub fn register_safety_evidence(
+        &mut self,
+        req_id: u32,
+        proven: bool,
+        mcdc: bool,
+    ) -> Result<(), &'static str> {
         if self.active_count >= MAX_SAFETY_REQUIREMENTS {
             return Err("ERR_REQUIREMENT_TRACE_CAPACITY_FULL");
         }

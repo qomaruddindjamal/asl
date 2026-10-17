@@ -30,10 +30,14 @@ impl Power10MmaAccumulator {
 
     /// Operasi Outer Product Akumulasi Matriks (GEMM 512-bit)
     pub fn accumulate_outer_product(&mut self, vector_a: [u64; 2], vector_b: [u64; 2]) {
-        self.data_quadwords[0] = self.data_quadwords[0].wrapping_add(vector_a[0].wrapping_mul(vector_b[0]));
-        self.data_quadwords[1] = self.data_quadwords[1].wrapping_add(vector_a[0].wrapping_mul(vector_b[1]));
-        self.data_quadwords[2] = self.data_quadwords[2].wrapping_add(vector_a[1].wrapping_mul(vector_b[0]));
-        self.data_quadwords[3] = self.data_quadwords[3].wrapping_add(vector_a[1].wrapping_mul(vector_b[1]));
+        self.data_quadwords[0] =
+            self.data_quadwords[0].wrapping_add(vector_a[0].wrapping_mul(vector_b[0]));
+        self.data_quadwords[1] =
+            self.data_quadwords[1].wrapping_add(vector_a[0].wrapping_mul(vector_b[1]));
+        self.data_quadwords[2] =
+            self.data_quadwords[2].wrapping_add(vector_a[1].wrapping_mul(vector_b[0]));
+        self.data_quadwords[3] =
+            self.data_quadwords[3].wrapping_add(vector_a[1].wrapping_mul(vector_b[1]));
     }
 }
 

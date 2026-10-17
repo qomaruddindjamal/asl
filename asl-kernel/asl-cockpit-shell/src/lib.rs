@@ -170,4 +170,38 @@ mod tests {
 
         assert_eq!(shell.handle_char(b'\n'), Some(ShellCommand::Empty));
     }
+
+    #[test]
+    fn test_all_shell_commands_and_unknown() {
+        let commands = [
+            ("clear", ShellCommand::Clear),
+            ("meminfo", ShellCommand::MemInfo),
+            ("cpuinfo", ShellCommand::CpuInfo),
+            ("reboot", ShellCommand::Reboot),
+            ("halt", ShellCommand::Halt),
+            ("unknown_cmd", ShellCommand::Unknown),
+        ];
+
+        for (cmd_str, expected_cmd) in commands {
+            let mut shell = CockpitShell::new();
+            for b in cmd_str.bytes() {
+                shell.handle_char(b);
+            }
+            assert_eq!(shell.handle_char(b'\n'), Some(expected_cmd));
+            // Buffer harus di-reset setelah enter
+            assert_eq!(shell.current_line(), "");
+        }
+    }
+
+    #[test]
+    fn test_shell_buffer_overflow_protection() {
+        let mut shell = CockpitShell::new();
+        // Coba masukkan 200 karakter 'x' (melebihi SHELL_BUFFER_MAX 128)
+        for _ in 0..200 {
+            shell.handle_char(b'x');
+        }
+        // Pastikan panjang string terpotong aman pada SHELL_BUFFER_MAX - 1 (127)
+        assert_eq!(shell.current_line().len(), SHELL_BUFFER_MAX - 1);
+        assert_eq!(shell.handle_char(b'\n'), Some(ShellCommand::Unknown));
+    }
 }

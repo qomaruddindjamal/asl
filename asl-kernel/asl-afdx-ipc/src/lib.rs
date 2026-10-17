@@ -34,7 +34,7 @@ impl AfdxFrame {
     }
 }
 
-use core::sync::atomic::{AtomicUsize, AtomicU64, Ordering};
+use core::sync::atomic::{AtomicU64, AtomicUsize, Ordering};
 
 /// Zero-Copy Lock-Free SPSC Circular Ring Buffer untuk IPC Antar-Partisi (SMP Safe)
 ///
@@ -104,7 +104,8 @@ impl AfdxVirtualLinkRingBuffer {
         self.buffer[tail] = frame;
 
         // Publikasikan payload secara aman ke consumer
-        self.last_transmission_time_us.store(current_time_us, Ordering::Relaxed);
+        self.last_transmission_time_us
+            .store(current_time_us, Ordering::Relaxed);
         self.tail.store(next_tail, Ordering::Release);
 
         Ok(())
@@ -169,7 +170,10 @@ mod tests {
 
         assert_eq!(queue.send(100, frame), Ok(()));
         // Kirim sebelum 100 us berlalu harus ditolak rate-limiting
-        assert_eq!(queue.send(150, frame), Err("ERR_AFDX_BAG_VIOLATION_RATE_LIMITED"));
+        assert_eq!(
+            queue.send(150, frame),
+            Err("ERR_AFDX_BAG_VIOLATION_RATE_LIMITED")
+        );
         // Kirim setelah 100 us berlalu harus berhasil
         assert_eq!(queue.send(205, frame), Ok(()));
     }
@@ -195,4 +199,3 @@ mod tests {
         assert_eq!(queue.send(101, frame), Ok(()));
     }
 }
-

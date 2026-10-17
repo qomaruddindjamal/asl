@@ -11,7 +11,7 @@
 /// Status Transceiver Optik BOSA (Bidirectional Optical Sub-Assembly)
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum OpticalLinkState {
-    LossOfSignal,     // Tidak ada cahaya terdeteksi (Kabel terputus)
+    LossOfSignal, // Tidak ada cahaya terdeteksi (Kabel terputus)
     O1_InitialState,
     O2_StandbyState,
     O3_SerialNumState,
@@ -73,10 +73,14 @@ impl GponOntDriver {
             link_state: OpticalLinkState::LossOfSignal,
             rx_optical_power_dbm: -4000,
             tconts: [
-                TContQueue::new(256), TContQueue::new(257),
-                TContQueue::new(258), TContQueue::new(259),
-                TContQueue::new(260), TContQueue::new(261),
-                TContQueue::new(262), TContQueue::new(263),
+                TContQueue::new(256),
+                TContQueue::new(257),
+                TContQueue::new(258),
+                TContQueue::new(259),
+                TContQueue::new(260),
+                TContQueue::new(261),
+                TContQueue::new(262),
+                TContQueue::new(263),
             ],
             hardware_nat_enabled: true,
         }
@@ -149,4 +153,3 @@ mod tests {
         assert_eq!(orig_dst, dst);
     }
 }
-

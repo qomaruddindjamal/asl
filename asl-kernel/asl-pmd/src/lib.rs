@@ -10,7 +10,7 @@ pub const RX_RING_SIZE: usize = 128;
 pub const TX_RING_SIZE: usize = 128;
 pub const MAX_PACKET_BUFFER_SIZE: usize = 2048;
 
-use core::sync::atomic::{AtomicU16, AtomicUsize, AtomicU64, Ordering};
+use core::sync::atomic::{AtomicU16, AtomicU64, AtomicUsize, Ordering};
 
 /// Error terkait manajemen pool memori DMA dan alignment
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -34,18 +34,24 @@ pub enum DmaPoolError {
 /// - Dilarang mencampuradukkan penulisan simultan antara CPU dan DMA pada sel flags yang sama.
 #[repr(C, align(64))]
 pub struct DmaPacketDescriptor {
-    pub physical_buffer_addr: u64,          // 8 bytes (offset 0..8)
-    pub length_bytes: u16,                  // 2 bytes (offset 8..10)
-    pub flags: AtomicU16,                   // 2 bytes (offset 10..12) - Bit 0: Ownership (0 = Host, 1 = NIC DMA)
-    pub vlan_tag: u16,                      // 2 bytes (offset 12..14)
-    pub checksum_offload_result: u16,       // 2 bytes (offset 14..16)
-    pub _padding: [u8; 48],                 // 48 bytes padding (total: 64 bytes)
+    pub physical_buffer_addr: u64,    // 8 bytes (offset 0..8)
+    pub length_bytes: u16,            // 2 bytes (offset 8..10)
+    pub flags: AtomicU16, // 2 bytes (offset 10..12) - Bit 0: Ownership (0 = Host, 1 = NIC DMA)
+    pub vlan_tag: u16,    // 2 bytes (offset 12..14)
+    pub checksum_offload_result: u16, // 2 bytes (offset 14..16)
+    pub _padding: [u8; 48], // 48 bytes padding (total: 64 bytes)
 }
 
 // Compile-Time Static Assertions untuk ukuran dan alignment tepat 64 byte (DO-178C DAL-A)
 const _: () = {
-    assert!(core::mem::size_of::<DmaPacketDescriptor>() == 64, "DmaPacketDescriptor must be exactly 64 bytes!");
-    assert!(core::mem::align_of::<DmaPacketDescriptor>() == 64, "DmaPacketDescriptor must be aligned to 64 bytes!");
+    assert!(
+        core::mem::size_of::<DmaPacketDescriptor>() == 64,
+        "DmaPacketDescriptor must be exactly 64 bytes!"
+    );
+    assert!(
+        core::mem::align_of::<DmaPacketDescriptor>() == 64,
+        "DmaPacketDescriptor must be aligned to 64 bytes!"
+    );
 };
 
 impl DmaPacketDescriptor {
@@ -130,7 +136,8 @@ impl ZeroCopyPmdQueue {
 
         if count > 0 {
             self.rx_head.store(curr_head, Ordering::Release);
-            self.packets_processed_total.fetch_add(count as u64, Ordering::Relaxed);
+            self.packets_processed_total
+                .fetch_add(count as u64, Ordering::Relaxed);
         }
 
         count
@@ -141,9 +148,17 @@ impl ZeroCopyPmdQueue {
     /// # Invariant & Kontrak Prekondisi (DO-178C DAL-A):
     /// Pemanggil (Driver/Stack Jaringan) menjamin bahwa `phys_addr` selaras dengan 64-byte (`phys_addr & 0x3F == 0`).
     /// Invariant ini ditegakkan via `debug_assert!` untuk deteksi dini dalam fase pengujian.
-    pub fn transmit_burst(&mut self, phys_addr: u64, len: u16, vlan: u16) -> Result<(), &'static str> {
+    pub fn transmit_burst(
+        &mut self,
+        phys_addr: u64,
+        len: u16,
+        vlan: u16,
+    ) -> Result<(), &'static str> {
         // Kontrak invariant keselarasan 64-byte cache line
-        debug_assert!((phys_addr & 0x3F) == 0, "Precondition violation: DMA buffer address must be 64-byte aligned");
+        debug_assert!(
+            (phys_addr & 0x3F) == 0,
+            "Precondition violation: DMA buffer address must be 64-byte aligned"
+        );
 
         let curr_tail = self.tx_tail.load(Ordering::Relaxed);
         let desc = &mut self.tx_ring[curr_tail];
@@ -201,7 +216,10 @@ mod tests {
         assert_eq!(queue.packets_processed_total.load(Ordering::Relaxed), 1);
 
         queue.tx_ring[1].flags.store(0x01, Ordering::Relaxed);
-        assert_eq!(queue.transmit_burst(0x2000_1000, 256, 100), Err("ERR_TX_RING_CONGESTION"));
+        assert_eq!(
+            queue.transmit_burst(0x2000_1000, 256, 100),
+            Err("ERR_TX_RING_CONGESTION")
+        );
     }
 
     // =========================================================================
@@ -212,9 +230,18 @@ mod tests {
     fn test_align01_pool_misaligned_rejected() {
         let mut queue = ZeroCopyPmdQueue::new();
         // Alamat tidak selaras 64 byte (offset 1 hingga 63)
-        assert_eq!(queue.init_pool(0x1000_0001, 32768), Err(DmaPoolError::PoolMisaligned));
-        assert_eq!(queue.init_pool(0x1000_003F, 32768), Err(DmaPoolError::PoolMisaligned));
-        assert_eq!(queue.init_pool(0x1000_0010, 32768), Err(DmaPoolError::PoolMisaligned));
+        assert_eq!(
+            queue.init_pool(0x1000_0001, 32768),
+            Err(DmaPoolError::PoolMisaligned)
+        );
+        assert_eq!(
+            queue.init_pool(0x1000_003F, 32768),
+            Err(DmaPoolError::PoolMisaligned)
+        );
+        assert_eq!(
+            queue.init_pool(0x1000_0010, 32768),
+            Err(DmaPoolError::PoolMisaligned)
+        );
     }
 
     #[test]

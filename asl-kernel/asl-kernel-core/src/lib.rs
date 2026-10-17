@@ -14,12 +14,12 @@
 
 use core::panic::PanicInfo;
 
+use asl_afdx_ipc::AfdxVirtualLinkRingBuffer;
 use asl_bootloader::{AslBootHandover, TargetArch};
 use asl_hal::ArchitectureRuntime;
 use asl_memory::BuddyAllocator;
-use asl_security_vault::{SpatialPartitionManager, PartitionAccessRights, MemoryWindow};
 use asl_sched::MajorFrameSchedule;
-use asl_afdx_ipc::AfdxVirtualLinkRingBuffer;
+use asl_security_vault::{MemoryWindow, PartitionAccessRights, SpatialPartitionManager};
 
 // -----------------------------------------------------------------------------
 // BOUNDED EARLY SERIAL TELEMETRY (COM1 0x3F8)
@@ -82,7 +82,7 @@ fn early_serial_write_str(s: &str) {
 }
 
 pub mod font;
-pub use font::{BUILTIN_FONT_8X16, ASL_FONT_REGULAR_8X16};
+pub use font::{ASL_FONT_REGULAR_8X16, BUILTIN_FONT_8X16};
 
 // -----------------------------------------------------------------------------
 // LINEAR FRAMEBUFFER CONSOLE (VBE / GOP Graphics Mode)
@@ -119,7 +119,14 @@ impl FbConsole {
         }
     }
 
-    pub fn init(&mut self, base: usize, width: usize, height: usize, pitch_bytes: usize, bpp: usize) {
+    pub fn init(
+        &mut self,
+        base: usize,
+        width: usize,
+        height: usize,
+        pitch_bytes: usize,
+        bpp: usize,
+    ) {
         self.base = base;
         self.width = width;
         self.height = height;
@@ -262,6 +269,14 @@ impl FbConsole {
         while i > 0 {
             i -= 1;
             self.draw_char(buf[i]);
+        }
+    }
+
+    pub fn write_hex16(&mut self, val: u16) {
+        const HEX_DIGITS: &[u8; 16] = b"0123456789ABCDEF";
+        for shift in [12, 8, 4, 0] {
+            let nibble = ((val >> shift) & 0x0F) as usize;
+            self.draw_char(HEX_DIGITS[nibble]);
         }
     }
 }
@@ -450,6 +465,17 @@ pub fn early_serial_write_u64(mut n: u64) {
     }
 }
 
+/// Helper untuk menulis nilai 16-bit dalam format heksadesimal 4 digit (misal "8086", "1234")
+pub fn early_serial_write_hex16(val: u16) {
+    const HEX_DIGITS: &[u8; 16] = b"0123456789ABCDEF";
+    for shift in [12, 8, 4, 0] {
+        let nibble = ((val >> shift) & 0x0F) as usize;
+        let b = HEX_DIGITS[nibble];
+        let slice = core::str::from_utf8(core::slice::from_ref(&b)).unwrap_or("0");
+        early_serial_write_str(slice);
+    }
+}
+
 /// Mengambil Brand CPU x86 langsung dari instruksi CPUID (daun 0x80000002..0x80000004)
 #[cfg(target_arch = "x86_64")]
 pub fn get_x86_cpu_brand() -> [u8; 49] {
@@ -575,7 +601,8 @@ pub unsafe extern "C" fn _asl_kernel_entry(handover_ptr: *const AslBootHandover)
             let fb_cfg = &(*handover_ptr).framebuffer;
             if fb_cfg.base_physical_addr != 0 {
                 let fb = core::ptr::addr_of_mut!(FB_CONSOLE);
-                let pitch_bytes = (fb_cfg.pixels_per_scan_line as usize) * (fb_cfg.bytes_per_pixel as usize);
+                let pitch_bytes =
+                    (fb_cfg.pixels_per_scan_line as usize) * (fb_cfg.bytes_per_pixel as usize);
                 (*fb).init(
                     fb_cfg.base_physical_addr as usize,
                     fb_cfg.width as usize,
@@ -602,11 +629,16 @@ pub unsafe extern "C" fn _asl_kernel_entry(handover_ptr: *const AslBootHandover)
                 kernel_init_ok = true;
 
                 // MILESTONE M4: Direct Proof of Allocator & Initial Page Availability
-                if kernel.memory_allocator.total_pages > 0 && kernel.memory_allocator.free_pages > 0 {
+                if kernel.memory_allocator.total_pages > 0 && kernel.memory_allocator.free_pages > 0
+                {
                     mem_init_ok = true;
-                    early_serial_write_str("[ASL-CORE] M4: Buddy Allocator & Heap Memory Subsystem Initialized.\n");
+                    early_serial_write_str(
+                        "[ASL-CORE] M4: Buddy Allocator & Heap Memory Subsystem Initialized.\n",
+                    );
                 } else {
-                    early_serial_write_str("[ASL-CORE] M4: WARNING - Allocator initialized with 0 available pages.\n");
+                    early_serial_write_str(
+                        "[ASL-CORE] M4: WARNING - Allocator initialized with 0 available pages.\n",
+                    );
                 }
 
                 if handover.target_arch == TargetArch::X86_64 {
@@ -614,7 +646,8 @@ pub unsafe extern "C" fn _asl_kernel_entry(handover_ptr: *const AslBootHandover)
                 }
 
                 // MILESTONE M5: Direct Proof of ARINC 653 Partitions & Major Frame Scheduler
-                if kernel.vault_manager.partitions[0].is_active && kernel.scheduler.slot_count == 2 {
+                if kernel.vault_manager.partitions[0].is_active && kernel.scheduler.slot_count == 2
+                {
                     // Verifikasi tick deterministik pertama (advance 10ms)
                     let (active_part, _switched) = kernel.scheduler.advance_tick(10_000);
                     if active_part == 1 {
@@ -623,7 +656,9 @@ pub unsafe extern "C" fn _asl_kernel_entry(handover_ptr: *const AslBootHandover)
                         early_serial_write_str("[ASL-CORE] M5: WARNING - Unexpected active partition on initial tick.\n");
                     }
                 } else {
-                    early_serial_write_str("[ASL-CORE] M5: WARNING - Partition slots incomplete.\n");
+                    early_serial_write_str(
+                        "[ASL-CORE] M5: WARNING - Partition slots incomplete.\n",
+                    );
                 }
             }
             Err(e) => {
@@ -637,11 +672,11 @@ pub unsafe extern "C" fn _asl_kernel_entry(handover_ptr: *const AslBootHandover)
     }
 
     // MILESTONE M6: Direct Proof of Reaching Safe Kernel Idle Loop
-    early_serial_write_str("[ASL-CORE] M6: Kernel Cold Boot Complete. Entering Deterministic Idle Loop.\n");
+    early_serial_write_str(
+        "[ASL-CORE] M6: Kernel Cold Boot Complete. Entering Deterministic Idle Loop.\n",
+    );
 
-    let logo = 
-"       ___    ____    __   \n      /   |  / __/   / /   \n     / /| |  \\ \\    / /    \n    / ___ | _/ /   / /___  \n   /_/  |_|/___/  /_____/  \n\n   ASL Kernel v1.0.2\n   Selamat Datang Di ASL Kernel\n\n";
-
+    let logo = "       ___    ____    __   \n      /   |  / __/   / /   \n     / /| |  \\ \\    / /    \n    / ___ | _/ /   / /___  \n   /_/  |_|/___/  /_____/  \n\n   ASL Kernel v1.0.2\n   Selamat Datang Di ASL Kernel\n\n";
 
     #[cfg(target_arch = "x86_64")]
     {
@@ -706,7 +741,8 @@ pub unsafe extern "C" fn _asl_kernel_entry(handover_ptr: *const AslBootHandover)
             while brand_len < 48 && brand_bytes[brand_len] != 0 {
                 brand_len += 1;
             }
-            let brand_str = core::str::from_utf8(&brand_bytes[..brand_len]).unwrap_or("x86_64 Processor");
+            let brand_str =
+                core::str::from_utf8(&brand_bytes[..brand_len]).unwrap_or("x86_64 Processor");
             let trimmed_brand = brand_str.trim();
 
             // CPU Load: ARINC 653 Core Partition Slot / Major Frame
@@ -776,7 +812,8 @@ pub unsafe extern "C" fn _asl_kernel_entry(handover_ptr: *const AslBootHandover)
         while brand_len < 48 && brand_bytes[brand_len] != 0 {
             brand_len += 1;
         }
-        let brand_str = core::str::from_utf8(&brand_bytes[..brand_len]).unwrap_or("x86_64 Processor");
+        let brand_str =
+            core::str::from_utf8(&brand_bytes[..brand_len]).unwrap_or("x86_64 Processor");
         let trimmed_brand = brand_str.trim();
 
         let major_frame = kernel.scheduler.major_frame_duration_us as u64;
@@ -803,9 +840,11 @@ pub unsafe extern "C" fn _asl_kernel_entry(handover_ptr: *const AslBootHandover)
     early_serial_write_str("[ASL-CORE] Secondary Failover Core Engine: STANDBY ARMED.\n");
 
     // 2. Scan PCI Bus
-    let mut pci_devices = [asl_driver_pci::PciDeviceDescriptor::empty(); asl_driver_pci::MAX_PCI_DEVICES];
+    let mut pci_devices =
+        [asl_driver_pci::PciDeviceDescriptor::empty(); asl_driver_pci::MAX_PCI_DEVICES];
     let pci_transport = asl_driver_pci::X86PortIoTransport;
-    let pci_count = unsafe { asl_driver_pci::PciScanner::scan_all(&pci_transport, &mut pci_devices, 0) };
+    let pci_count =
+        unsafe { asl_driver_pci::PciScanner::scan_all(&pci_transport, &mut pci_devices, 0) };
 
     early_serial_write_str("[ASL-CORE] PCI Discovery: Found ");
     early_serial_write_u64(pci_count as u64);
@@ -854,7 +893,11 @@ pub unsafe extern "C" fn _asl_kernel_entry(handover_ptr: *const AslBootHandover)
                 if (lsr & 0x01) != 0 {
                     let serial_byte = unsafe { early_inb(COM1_PORT) };
                     // Konversi CR (\r) ke LF (\n)
-                    let normalized = if serial_byte == b'\r' { b'\n' } else { serial_byte };
+                    let normalized = if serial_byte == b'\r' {
+                        b'\n'
+                    } else {
+                        serial_byte
+                    };
                     input_char = Some(normalized);
                 }
             }
@@ -893,7 +936,9 @@ pub unsafe extern "C" fn _asl_kernel_entry(handover_ptr: *const AslBootHandover)
                         asl_cockpit_shell::ShellCommand::Help => {
                             let msg = "Available commands:\n  help    - Show command list\n  clear   - Clear display console\n  meminfo - Display installed RAM & memory map\n  cpuinfo - Display CPU brand & scheduler load\n  lspci   - List detected PCI bus devices\n  uname   - Display kernel release version\n  reboot  - Restart machine\n  halt    - Halt processor\n";
                             early_serial_write_str(msg);
-                            unsafe { (*fb).write_str(msg); }
+                            unsafe {
+                                (*fb).write_str(msg);
+                            }
                         }
                         asl_cockpit_shell::ShellCommand::Clear => {
                             unsafe {
@@ -904,7 +949,9 @@ pub unsafe extern "C" fn _asl_kernel_entry(handover_ptr: *const AslBootHandover)
                         }
                         asl_cockpit_shell::ShellCommand::MemInfo => {
                             let installed_mb = if !handover_ptr.is_null() {
-                                unsafe { (*handover_ptr).calculate_installed_memory() / (1024 * 1024) }
+                                unsafe {
+                                    (*handover_ptr).calculate_installed_memory() / (1024 * 1024)
+                                }
                             } else {
                                 0
                             };
@@ -926,8 +973,11 @@ pub unsafe extern "C" fn _asl_kernel_entry(handover_ptr: *const AslBootHandover)
                             #[cfg(target_arch = "x86_64")]
                             let brand_bytes = get_x86_cpu_brand();
                             let mut brand_len = 0;
-                            while brand_len < 48 && brand_bytes[brand_len] != 0 { brand_len += 1; }
-                            let brand_str = core::str::from_utf8(&brand_bytes[..brand_len]).unwrap_or("x86_64 Processor");
+                            while brand_len < 48 && brand_bytes[brand_len] != 0 {
+                                brand_len += 1;
+                            }
+                            let brand_str = core::str::from_utf8(&brand_bytes[..brand_len])
+                                .unwrap_or("x86_64 Processor");
                             let trimmed_brand = brand_str.trim();
 
                             early_serial_write_str("CPU Model: ");
@@ -942,7 +992,9 @@ pub unsafe extern "C" fn _asl_kernel_entry(handover_ptr: *const AslBootHandover)
                         }
                         asl_cockpit_shell::ShellCommand::LsPci => {
                             early_serial_write_str("PCI Bus Devices:\n");
-                            unsafe { (*fb).write_str("PCI Bus Devices:\n"); }
+                            unsafe {
+                                (*fb).write_str("PCI Bus Devices:\n");
+                            }
 
                             for i in 0..pci_count {
                                 let dev = &pci_devices[i];
@@ -953,9 +1005,9 @@ pub unsafe extern "C" fn _asl_kernel_entry(handover_ptr: *const AslBootHandover)
                                 early_serial_write_str(".");
                                 early_serial_write_u64(dev.address.function as u64);
                                 early_serial_write_str("] Vendor: 0x");
-                                early_serial_write_u64(dev.vendor_id as u64);
+                                early_serial_write_hex16(dev.vendor_id);
                                 early_serial_write_str(" Device: 0x");
-                                early_serial_write_u64(dev.device_id as u64);
+                                early_serial_write_hex16(dev.device_id);
                                 early_serial_write_str(" Class: ");
                                 early_serial_write_str(dev.class_name());
                                 early_serial_write_str("\n");
@@ -967,7 +1019,11 @@ pub unsafe extern "C" fn _asl_kernel_entry(handover_ptr: *const AslBootHandover)
                                     (*fb).write_u64(dev.address.device as u64);
                                     (*fb).write_str(".");
                                     (*fb).write_u64(dev.address.function as u64);
-                                    (*fb).write_str("] ");
+                                    (*fb).write_str("] 0x");
+                                    (*fb).write_hex16(dev.vendor_id);
+                                    (*fb).write_str(":0x");
+                                    (*fb).write_hex16(dev.device_id);
+                                    (*fb).write_str(" ");
                                     (*fb).write_str(dev.class_name());
                                     (*fb).write_str("\n");
                                 }
@@ -976,20 +1032,28 @@ pub unsafe extern "C" fn _asl_kernel_entry(handover_ptr: *const AslBootHandover)
                         asl_cockpit_shell::ShellCommand::Uname => {
                             let uname_msg = "ASL Core Kernel v1.0.2 (x86_64-unknown-none) [DO-178C DAL-A Standard]\n";
                             early_serial_write_str(uname_msg);
-                            unsafe { (*fb).write_str(uname_msg); }
+                            unsafe {
+                                (*fb).write_str(uname_msg);
+                            }
                         }
                         asl_cockpit_shell::ShellCommand::Reboot => {
                             early_serial_write_str("Rebooting machine...\n");
-                            unsafe { asl_cockpit_shell::CockpitShell::trigger_x86_reboot(); }
+                            unsafe {
+                                asl_cockpit_shell::CockpitShell::trigger_x86_reboot();
+                            }
                         }
                         asl_cockpit_shell::ShellCommand::Halt => {
                             early_serial_write_str("System halted.\n");
-                            unsafe { asl_cockpit_shell::CockpitShell::trigger_x86_halt(); }
+                            unsafe {
+                                asl_cockpit_shell::CockpitShell::trigger_x86_halt();
+                            }
                         }
                         asl_cockpit_shell::ShellCommand::Unknown => {
                             let unk_msg = "Unknown command. Type 'help' for available commands.\n";
                             early_serial_write_str(unk_msg);
-                            unsafe { (*fb).write_str(unk_msg); }
+                            unsafe {
+                                (*fb).write_str(unk_msg);
+                            }
                         }
                         asl_cockpit_shell::ShellCommand::Empty => {}
                     }

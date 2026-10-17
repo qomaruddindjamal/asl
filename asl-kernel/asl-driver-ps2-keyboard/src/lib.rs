@@ -297,4 +297,40 @@ mod tests {
         // Tekan Backspace (make code 0x0E)
         assert_eq!(kbd.process_scancode(0x0E), Some(b'\x08'));
     }
+
+    #[test]
+    fn test_ps2_caps_lock_and_wraparound() {
+        let mut kbd = Ps2Keyboard::new();
+
+        // Caps Lock toggle on (make code 0x3A)
+        assert_eq!(kbd.process_scancode(0x3A), None);
+        assert!(kbd.modifiers.caps_lock);
+        // Huruf 'b' menjadi 'B'
+        assert_eq!(kbd.process_scancode(0x30), Some(b'B'));
+
+        // Tekan Shift saat Caps Lock aktif -> XOR -> huruf kecil 'b'
+        assert_eq!(kbd.process_scancode(0x2A), None);
+        assert_eq!(kbd.process_scancode(0x30), Some(b'b'));
+
+        // Lepas Shift
+        assert_eq!(kbd.process_scancode(0xAA), None);
+        // Toggle Caps Lock off
+        assert_eq!(kbd.process_scancode(0x3A), None);
+        assert!(!kbd.modifiers.caps_lock);
+        assert_eq!(kbd.process_scancode(0x30), Some(b'b'));
+
+        // Test Ring Buffer Wraparound
+        let mut buf = KeyboardRingBuffer::new();
+        for i in 0..50 {
+            assert!(buf.push(i));
+        }
+        for _ in 0..30 {
+            buf.pop();
+        }
+        // Sekarang head di 30, tail di 50. Tambahkan 40 elemen lagi untuk memicu wraparound
+        for i in 50..90 {
+            assert!(buf.push(i));
+        }
+        assert_eq!(buf.len(), 60);
+    }
 }

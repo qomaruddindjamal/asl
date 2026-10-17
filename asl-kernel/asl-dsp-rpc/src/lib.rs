@@ -176,4 +176,3 @@ mod tests {
         assert_eq!(rpc.invoke_dsp_task(msg), Ok(()));
     }
 }
-

@@ -47,7 +47,12 @@ impl MajorFrameSchedule {
     }
 
     /// Menambahkan Minor Frame Slot ke dalam siklus
-    pub fn add_slot(&mut self, partition_id: u32, duration_us: u32, is_critical: bool) -> Result<(), &'static str> {
+    pub fn add_slot(
+        &mut self,
+        partition_id: u32,
+        duration_us: u32,
+        is_critical: bool,
+    ) -> Result<(), &'static str> {
         if self.slot_count >= MAX_SLOTS_PER_MAJOR_FRAME {
             return Err("ERR_SCHEDULE_SLOTS_FULL");
         }
@@ -116,6 +121,9 @@ mod tests {
             assert!(sched.add_slot(i as u32, 1000, false).is_ok());
         }
         // Slot ke-33 harus error
-        assert_eq!(sched.add_slot(99, 1000, false), Err("ERR_SCHEDULE_SLOTS_FULL"));
+        assert_eq!(
+            sched.add_slot(99, 1000, false),
+            Err("ERR_SCHEDULE_SLOTS_FULL")
+        );
     }
 }

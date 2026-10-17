@@ -455,9 +455,9 @@ pub unsafe extern "C" fn _asl_kernel_entry(handover_ptr: *const AslBootHandover)
     // MILESTONE M6: Direct Proof of Reaching Safe Kernel Idle Loop
     early_serial_write_str("[ASL-CORE] M6: Kernel Cold Boot Complete. Entering Deterministic Idle Loop.\n");
 
-    // Cetak banner resmi ASL Kernel ke VGA Console, Framebuffer Console, dan Serial
     let logo = 
-"       ___    ____  _\n      /   |  / __ \\| |\n     / /| | / /_/ / |\n    / ___ |/ ____/| |\n   /_/  |_/_/     |_|\n\n   ASL Kernel v1.0.1\n   Selamat Datang Di ASL Kernel\n\n";
+"       ___    ____    __   \n      /   |  / __/   / /   \n     / /| |  \\ \\    / /    \n    / ___ | _/ /   / /___  \n   /_/  |_|/___/  /_____/  \n\n   ASL Kernel v1.0.1\n   Selamat Datang Di ASL Kernel\n\n";
+
 
     #[cfg(target_arch = "x86_64")]
     {

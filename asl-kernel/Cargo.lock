@@ -106,6 +106,7 @@ dependencies = [
  "asl-memory",
  "asl-sched",
  "asl-security-vault",
+ "asl-storage",
 ]
 
 [[package]]
@@ -209,6 +210,13 @@ version = "0.1.0"
 dependencies = [
  "asl-hal",
  "asl-memory",
+]
+
+[[package]]
+name = "asl-storage"
+version = "0.1.0"
+dependencies = [
+ "asl-driver-pci",
 ]
 
 [[package]]

@@ -35,21 +35,21 @@ The development workstation requires:
 
 ### A. Running Host Regression Tests (All Crates)
 ```powershell
-cargo test --workspace --target x86_64-pc-windows-msvc
+cargo test --workspace --target x86_64-pc-windows-msvc --lib
 ```
-*Expected Result:* 26 passed, 0 failed.
+*Expected Result:* 45 passed, 0 failed.
 
 ### B. Building Bare-Metal Kernel Binary
 ```powershell
 cd C:\asl\asl-kernel
-cargo build --package asl-kernel-bin --target x86_64-unknown-none
+cargo build --package asl-kernel-bin --target x86_64-unknown-none --release
 ```
-*Output Artifact:* `target\x86_64-unknown-none\debug\asl-kernel` (ELF64 executable).
+*Output Artifact:* `target\x86_64-unknown-none\release\asl-kernel` (ELF64 executable).
 
 ### C. Rebuilding Bootable Avionics ISO
 ```powershell
 # Copy kernel binary to staging root
-Copy-Item C:\asl\asl-kernel\target\x86_64-unknown-none\debug\asl-kernel C:\asl\asl-kernel\target\iso_root\boot\asl-kernel.elf -Force
+Copy-Item C:\asl\asl-kernel\target\x86_64-unknown-none\release\asl-kernel C:\asl\asl-kernel\target\iso_root\boot\asl-kernel.elf -Force
 
 # Master ISO image
 xorriso -as mkisofs -b boot/limine/limine-bios-cd.bin -no-emul-boot -boot-load-size 4 -boot-info-table --efi-boot boot/limine/limine-uefi-cd.bin -efi-boot-part --efi-boot-image --protective-msdos-label /cygdrive/c/asl/asl-kernel/target/iso_root -o /cygdrive/c/asl/asl-kernel/target/asl-core-kernel.iso
@@ -62,7 +62,7 @@ C:\asl\asl-kernel\target\limine_v8_binary\limine.exe bios-install C:\asl\asl-ker
 ```powershell
 & 'C:\Program Files\Oracle\VirtualBox\VBoxManage.exe' startvm 'ASL' --type headless
 ```
-*Verification Check:* Inspect serial log (`asl_vm_serial.log`) for milestones M1..M3 and monitor VM state (`State: running`).
+*Verification Check:* Inspect serial log (`asl_vm_serial_release.log`) for milestones M1..M6 and inspect screen output (`asl_vm_screen.png`).
 
 ### E. Workspace Hygiene Audit
 ```powershell

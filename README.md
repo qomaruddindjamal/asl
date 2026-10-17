@@ -22,13 +22,13 @@ All status claims in this repository follow strict evidence-first classification
 
 | Milestone / Component | Claimed Scope | Verified Status | Concrete Evidence / Artifact |
 | :--- | :--- | :---: | :--- |
-| **Workspace Unit Tests** | 17 Workspace Crates | **TEST VERIFIED** | 31 unit tests passed, 0 failed (`cargo test --workspace --target x86_64-pc-windows-msvc`) |
-| **Bare-Metal Compiler Target** | `x86_64-unknown-none` | **BUILD VERIFIED** | ELF64 executable compiled cleanly at `asl-kernel/target/x86_64-unknown-none/debug/asl-kernel` |
-| **Higher-Half Launcher** | Limine Base Protocol v2 | **IMPLEMENTED** | `asl-kernel-bin/src/main.rs`, dedicated 512 KB static stack, page-aligned PT_LOAD (`p_align=0x1000`) |
-| **Avionics Bootable ISO** | El Torito BIOS + UEFI Hybrid | **BUILD VERIFIED** | `asl-kernel/target/asl-core-kernel.iso` (5.216.256 bytes) via `xorriso` v1.5.2 + `limine bios-install` |
-| **Hypervisor Execution** | VirtualBox VM `ASL` | **RUNTIME VERIFIED** | Headless boot verified; VM maintains stable running idle state (> 50 seconds continuously) |
-| **Serial Telemetry M1..M3** | COM1 UART Port (`0x3F8`) | **RUNTIME VERIFIED** | Captured in `Analysis/reports/asl_vm_serial.log`: M1 (Entry Trampoline), M2 (Handover Sanitized), M3 (Core Entry Transfer) |
-| **Serial Telemetry M4..M6** | Core Allocator, Scheduler & Idle Loop | **RUNTIME VERIFIED** | Captured in `Analysis/reports/asl_vm_serial.log`: M4 (Buddy Allocator Init), M5 (ARINC 653 Partitions/Scheduler), M6 (Safe Idle Loop) |
+| **Workspace Unit Tests** | 17 Workspace Crates | **TEST VERIFIED** | 45 unit tests passed, 0 failed (`cargo test --workspace --target x86_64-pc-windows-msvc --lib`) |
+| **Bare-Metal Compiler Target** | `x86_64-unknown-none` | **BUILD VERIFIED** | ELF64 executable compiled cleanly at `asl-kernel/target/x86_64-unknown-none/release/asl-kernel` |
+| **Higher-Half Launcher** | Limine Base Protocol v2 | **IMPLEMENTED** | `asl-kernel-bin/src/main.rs`, dedicated 512 KB static stack, page-aligned PT_LOAD (`p_align=0x1000`), FLAGS(6) |
+| **Avionics Bootable ISO** | El Torito BIOS + UEFI Hybrid | **BUILD VERIFIED** | `asl-kernel/target/asl-core-kernel.iso` (3.917.824 bytes) via `xorriso` v1.5.2 + `limine bios-install` |
+| **Hypervisor Execution** | VirtualBox VM `ASL` | **RUNTIME VERIFIED** | Headless boot verified; VM boots to completion and executes deterministic ARINC 653 idle loop |
+| **Linear Framebuffer Display** | VBE / GOP 1024x768x32-bpp | **RUNTIME VERIFIED** | Direct screen render verified in `Analysis/reports/asl_vm_screen.png`: ASL ASCII Art banner & `[ OK ]` status |
+| **Serial Telemetry M1..M6** | COM1 UART Port (`0x3F8`) | **RUNTIME VERIFIED** | Captured in `Analysis/reports/asl_vm_serial_release.log`: M1 (Entry), M2 (Handover), M3 (Transfer), M4 (Buddy), M5 (ARINC 653), M6 (Idle) |
 | **Governance Gates** | Phase 1 to Phase 6 Gates (25 total) | **LOCKED & VERIFIED** | 25/25 checklist gates confirmed `PASS & LOCKED` in `docs/ROADMAP/CHECKLIST_STATE.json` |
 | **150 Hardware Architecture Deployment** | Physical Board Silicon Deployment | **PLANNED / STAGED** | Formal specification complete in `asl_core.md`; physical board BSPs scheduled across 36-month roadmap |
 
@@ -115,10 +115,10 @@ cargo test --workspace --target x86_64-pc-windows-msvc
 
 # 2. Build the bare-metal higher-half launcher binary
 cd C:\asl\asl-kernel
-cargo build --package asl-kernel-bin --target x86_64-unknown-none
+cargo build --package asl-kernel-bin --target x86_64-unknown-none --release
 
 # 3. Master the bootable hybrid ISO
-Copy-Item target\x86_64-unknown-none\debug\asl-kernel target\iso_root\boot\asl-kernel.elf -Force
+Copy-Item target\x86_64-unknown-none\release\asl-kernel target\iso_root\boot\asl-kernel.elf -Force
 xorriso -as mkisofs -b boot/limine/limine-bios-cd.bin -no-emul-boot -boot-load-size 4 -boot-info-table --efi-boot boot/limine/limine-uefi-cd.bin -efi-boot-part --efi-boot-image --protective-msdos-label /cygdrive/c/asl/asl-kernel/target/iso_root -o /cygdrive/c/asl/asl-kernel/target/asl-core-kernel.iso
 C:\asl\asl-kernel\target\limine_v8_binary\limine.exe bios-install C:\asl\asl-kernel\target\asl-core-kernel.iso
 
@@ -126,7 +126,7 @@ C:\asl\asl-kernel\target\limine_v8_binary\limine.exe bios-install C:\asl\asl-ker
 & 'C:\Program Files\Oracle\VirtualBox\VBoxManage.exe' startvm 'ASL' --type headless
 
 # 5. Verify local workspace hygiene (Must return 100% clean)
-python C:\asl\tools\Sub_Assist.py --hygiene
+python C:\asl\tools\Sub_Assist.py
 ```
 
 ---

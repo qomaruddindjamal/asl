@@ -640,7 +640,7 @@ pub unsafe extern "C" fn _asl_kernel_entry(handover_ptr: *const AslBootHandover)
     early_serial_write_str("[ASL-CORE] M6: Kernel Cold Boot Complete. Entering Deterministic Idle Loop.\n");
 
     let logo = 
-"       ___    ____    __   \n      /   |  / __/   / /   \n     / /| |  \\ \\    / /    \n    / ___ | _/ /   / /___  \n   /_/  |_|/___/  /_____/  \n\n   ASL Kernel v1.0.1\n   Selamat Datang Di ASL Kernel\n\n";
+"       ___    ____    __   \n      /   |  / __/   / /   \n     / /| |  \\ \\    / /    \n    / ___ | _/ /   / /___  \n   /_/  |_|/___/  /_____/  \n\n   ASL Kernel v1.0.2\n   Selamat Datang Di ASL Kernel\n\n";
 
 
     #[cfg(target_arch = "x86_64")]
@@ -660,12 +660,12 @@ pub unsafe extern "C" fn _asl_kernel_entry(handover_ptr: *const AslBootHandover)
             (*vga).set_color(0x0A); // Light Green
             (*vga).write_str("   [ OK ] ");
             (*vga).set_color(0x0F);
-            (*vga).write_str("Kernel initialized: ASL Core Kernel v1.0.1\n");
+            (*vga).write_str("Kernel initialized: ASL Core Kernel v1.0.2\n");
 
             (*fb).set_fg_color(0x0000FF00); // Green
             (*fb).write_str("   [ OK ] ");
             (*fb).set_fg_color(0x00FFFFFF);
-            (*fb).write_str("Kernel initialized: ASL Core Kernel v1.0.1\n");
+            (*fb).write_str("Kernel initialized: ASL Core Kernel v1.0.2\n");
         }
 
         if mem_init_ok {
@@ -747,7 +747,7 @@ pub unsafe extern "C" fn _asl_kernel_entry(handover_ptr: *const AslBootHandover)
 
     early_serial_write_str(logo);
     if kernel_init_ok {
-        early_serial_write_str("   [ OK ] Kernel initialized: ASL Core Kernel v1.0.1\n");
+        early_serial_write_str("   [ OK ] Kernel initialized: ASL Core Kernel v1.0.2\n");
     }
     if mem_init_ok {
         let mut installed_mb = if !handover_ptr.is_null() {
@@ -792,11 +792,220 @@ pub unsafe extern "C" fn _asl_kernel_entry(handover_ptr: *const AslBootHandover)
         early_serial_write_u64(cpu_load_pct);
         early_serial_write_str("%\n");
     }
-    early_serial_write_str("\n   ASL kernel booted successfully.\n");
+    early_serial_write_str("\n   ASL kernel booted successfully.\n\n");
 
+    // =========================================================================
+    // MILESTONE 1 (v1.0.2): PCI Discovery, PS/2 Keyboard & Cockpit Shell Integration
+    // =========================================================================
+
+    // 1. Inisialisasi Secondary Failover Core Engine (Standby Readiness)
+    let _secondary_engine = asl_kernel_core_secondary::SecondaryCoreEngine::new();
+    early_serial_write_str("[ASL-CORE] Secondary Failover Core Engine: STANDBY ARMED.\n");
+
+    // 2. Scan PCI Bus
+    let mut pci_devices = [asl_driver_pci::PciDeviceDescriptor::empty(); asl_driver_pci::MAX_PCI_DEVICES];
+    let pci_transport = asl_driver_pci::X86PortIoTransport;
+    let pci_count = unsafe { asl_driver_pci::PciScanner::scan_all(&pci_transport, &mut pci_devices, 0) };
+
+    early_serial_write_str("[ASL-CORE] PCI Discovery: Found ");
+    early_serial_write_u64(pci_count as u64);
+    early_serial_write_str(" devices on Bus 0.\n");
+
+    #[cfg(target_arch = "x86_64")]
+    {
+        let fb = core::ptr::addr_of_mut!(FB_CONSOLE);
+        (*fb).set_fg_color(0x00FFFF00); // Yellow
+        (*fb).write_str("   [ OK ] ");
+        (*fb).set_fg_color(0x00FFFFFF);
+        (*fb).write_str("PCI Bus Enumerator: ");
+        (*fb).write_u64(pci_count as u64);
+        (*fb).write_str(" devices discovered\n");
+
+        (*fb).set_fg_color(0x0000FFFF); // Cyan
+        (*fb).write_str("   [ OK ] ");
+        (*fb).set_fg_color(0x00FFFFFF);
+        (*fb).write_str("Secondary Failover Engine: Active-Standby Ready\n\n");
+
+        // Tampilkan prompt Cockpit Shell pertama kali
+        (*fb).set_fg_color(0x0000FF00); // Green
+        (*fb).write_str("ASL-OS> ");
+        (*fb).set_fg_color(0x00FFFFFF);
+    }
+
+    early_serial_write_str("\nASL-OS> ");
+
+    // 3. Inisialisasi PS/2 Keyboard & Cockpit Shell Engine
+    let mut keyboard = asl_driver_ps2_keyboard::Ps2Keyboard::new();
+    let mut shell = asl_cockpit_shell::CockpitShell::new();
+
+    // 4. Interactive Cockpit Shell & Deterministic Event Loop
+    let mut _shell_ticks: u64 = 0;
     loop {
+        _shell_ticks = _shell_ticks.wrapping_add(1);
+
+        // Poll keyboard input (PS/2 Hardware and Serial COM1 Data Ready)
         #[cfg(target_arch = "x86_64")]
-        core::arch::asm!("hlt", options(nomem, nostack, preserves_flags));
+        {
+            let mut input_char: Option<u8> = unsafe { keyboard.poll_hardware() };
+
+            // Jika tidak ada input PS/2, periksa apakah ada karakter di port serial COM1 (0x3F8)
+            if input_char.is_none() {
+                let lsr = unsafe { early_inb(COM1_PORT + 5) };
+                if (lsr & 0x01) != 0 {
+                    let serial_byte = unsafe { early_inb(COM1_PORT) };
+                    // Konversi CR (\r) ke LF (\n)
+                    let normalized = if serial_byte == b'\r' { b'\n' } else { serial_byte };
+                    input_char = Some(normalized);
+                }
+            }
+
+            if let Some(ascii) = input_char {
+                // Echo key to serial
+                if ascii == b'\x08' {
+                    early_serial_write_str("\x08 \x08");
+                } else if ascii == b'\n' {
+                    early_serial_write_str("\n");
+                } else {
+                    let b = [ascii];
+                    if let Ok(s) = core::str::from_utf8(&b) {
+                        early_serial_write_str(s);
+                    }
+                }
+
+                // Echo to Framebuffer
+                let fb = core::ptr::addr_of_mut!(FB_CONSOLE);
+                unsafe {
+                    if ascii == b'\x08' {
+                        if (*fb).cursor_x >= 8 {
+                            (*fb).cursor_x -= 8;
+                            (*fb).draw_char(b' ');
+                            (*fb).cursor_x -= 8;
+                        }
+                    } else {
+                        (*fb).draw_char(ascii);
+                    }
+                }
+
+                // Process command in shell
+                if let Some(cmd) = shell.handle_char(ascii) {
+                    let fb = core::ptr::addr_of_mut!(FB_CONSOLE);
+                    match cmd {
+                        asl_cockpit_shell::ShellCommand::Help => {
+                            let msg = "Available commands:\n  help    - Show command list\n  clear   - Clear display console\n  meminfo - Display installed RAM & memory map\n  cpuinfo - Display CPU brand & scheduler load\n  lspci   - List detected PCI bus devices\n  uname   - Display kernel release version\n  reboot  - Restart machine\n  halt    - Halt processor\n";
+                            early_serial_write_str(msg);
+                            unsafe { (*fb).write_str(msg); }
+                        }
+                        asl_cockpit_shell::ShellCommand::Clear => {
+                            unsafe {
+                                (*fb).clear();
+                                (*fb).cursor_y = 16;
+                            }
+                            early_serial_write_str("\x1B[2J\x1B[H");
+                        }
+                        asl_cockpit_shell::ShellCommand::MemInfo => {
+                            let installed_mb = if !handover_ptr.is_null() {
+                                unsafe { (*handover_ptr).calculate_installed_memory() / (1024 * 1024) }
+                            } else {
+                                0
+                            };
+                            early_serial_write_str("Installed RAM: ");
+                            early_serial_write_u64(installed_mb);
+                            early_serial_write_str(" MB\nFree Heap Pages: ");
+                            early_serial_write_u64(kernel.memory_allocator.free_pages as u64);
+                            early_serial_write_str("\n");
+
+                            unsafe {
+                                (*fb).write_str("Installed RAM: ");
+                                (*fb).write_u64(installed_mb);
+                                (*fb).write_str(" MB | Free Heap Pages: ");
+                                (*fb).write_u64(kernel.memory_allocator.free_pages as u64);
+                                (*fb).write_str("\n");
+                            }
+                        }
+                        asl_cockpit_shell::ShellCommand::CpuInfo => {
+                            #[cfg(target_arch = "x86_64")]
+                            let brand_bytes = get_x86_cpu_brand();
+                            let mut brand_len = 0;
+                            while brand_len < 48 && brand_bytes[brand_len] != 0 { brand_len += 1; }
+                            let brand_str = core::str::from_utf8(&brand_bytes[..brand_len]).unwrap_or("x86_64 Processor");
+                            let trimmed_brand = brand_str.trim();
+
+                            early_serial_write_str("CPU Model: ");
+                            early_serial_write_str(trimmed_brand);
+                            early_serial_write_str("\n");
+
+                            unsafe {
+                                (*fb).write_str("CPU Model: ");
+                                (*fb).write_str(trimmed_brand);
+                                (*fb).write_str("\n");
+                            }
+                        }
+                        asl_cockpit_shell::ShellCommand::LsPci => {
+                            early_serial_write_str("PCI Bus Devices:\n");
+                            unsafe { (*fb).write_str("PCI Bus Devices:\n"); }
+
+                            for i in 0..pci_count {
+                                let dev = &pci_devices[i];
+                                early_serial_write_str("  [");
+                                early_serial_write_u64(dev.address.bus as u64);
+                                early_serial_write_str(":");
+                                early_serial_write_u64(dev.address.device as u64);
+                                early_serial_write_str(".");
+                                early_serial_write_u64(dev.address.function as u64);
+                                early_serial_write_str("] Vendor: 0x");
+                                early_serial_write_u64(dev.vendor_id as u64);
+                                early_serial_write_str(" Device: 0x");
+                                early_serial_write_u64(dev.device_id as u64);
+                                early_serial_write_str(" Class: ");
+                                early_serial_write_str(dev.class_name());
+                                early_serial_write_str("\n");
+
+                                unsafe {
+                                    (*fb).write_str("  [");
+                                    (*fb).write_u64(dev.address.bus as u64);
+                                    (*fb).write_str(":");
+                                    (*fb).write_u64(dev.address.device as u64);
+                                    (*fb).write_str(".");
+                                    (*fb).write_u64(dev.address.function as u64);
+                                    (*fb).write_str("] ");
+                                    (*fb).write_str(dev.class_name());
+                                    (*fb).write_str("\n");
+                                }
+                            }
+                        }
+                        asl_cockpit_shell::ShellCommand::Uname => {
+                            let uname_msg = "ASL Core Kernel v1.0.2 (x86_64-unknown-none) [DO-178C DAL-A Standard]\n";
+                            early_serial_write_str(uname_msg);
+                            unsafe { (*fb).write_str(uname_msg); }
+                        }
+                        asl_cockpit_shell::ShellCommand::Reboot => {
+                            early_serial_write_str("Rebooting machine...\n");
+                            unsafe { asl_cockpit_shell::CockpitShell::trigger_x86_reboot(); }
+                        }
+                        asl_cockpit_shell::ShellCommand::Halt => {
+                            early_serial_write_str("System halted.\n");
+                            unsafe { asl_cockpit_shell::CockpitShell::trigger_x86_halt(); }
+                        }
+                        asl_cockpit_shell::ShellCommand::Unknown => {
+                            let unk_msg = "Unknown command. Type 'help' for available commands.\n";
+                            early_serial_write_str(unk_msg);
+                            unsafe { (*fb).write_str(unk_msg); }
+                        }
+                        asl_cockpit_shell::ShellCommand::Empty => {}
+                    }
+
+                    early_serial_write_str("ASL-OS> ");
+                    unsafe {
+                        (*fb).set_fg_color(0x0000FF00); // Green
+                        (*fb).write_str("ASL-OS> ");
+                        (*fb).set_fg_color(0x00FFFFFF);
+                    }
+                }
+            }
+        }
+
+        #[cfg(target_arch = "x86_64")]
+        core::arch::asm!("pause", options(nomem, nostack, preserves_flags));
         #[cfg(not(target_arch = "x86_64"))]
         core::hint::spin_loop();
     }

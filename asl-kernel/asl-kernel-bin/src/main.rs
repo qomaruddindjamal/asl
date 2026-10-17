@@ -386,7 +386,7 @@ pub extern "C" fn asl_launcher_main() -> ! {
     }
 
     let hhdm_resp = unsafe { core::ptr::read_volatile(core::ptr::addr_of!(HHDM_REQUEST.response)) };
-    let hhdm_offset = if !hhdm_resp.is_null() {
+    let _hhdm_offset = if !hhdm_resp.is_null() {
         SERIAL.write_str("  -> HHDM response received.\n");
         unsafe { (*hhdm_resp).offset }
     } else {

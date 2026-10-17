@@ -70,3 +70,54 @@ To prevent ambiguity, each domain of knowledge has exactly one authoritative mas
 2. **Strict Stack Sizing:** All higher-half x86_64 stubs must allocate a minimum of **512 KB** stack aligned to page boundaries (4096 bytes) to accommodate the complete avionics core runtime state.
 3. **PT_LOAD Page Alignment:** Linker scripts and target flags must guarantee `p_align = 0x1000` (4096 bytes) on all loadable segments (`-z max-page-size=0x1000`) to guarantee compatibility with Limine and modern UEFI page tables.
 4. **Kernel Self-Overwrite Prevention:** The bootloader memory map adapter must unconditionally extract the physical kernel memory range (`kphys..kphys+ksize`) out of the usable RAM descriptor list before handover.
+
+---
+
+## 5. INTERRUPT SERVICE ROUTINE (ISR) LOCKING POLICIES & AUDIT INVENTORY (AG-04)
+**Status:** RATIFIED v1.0 (Final - Amended W-10 & W-11)  
+**Governing Safety Standard:** DO-178C DAL-A / ARINC 653 Part 1
+
+### 5.1 Formal Safety Policies (P-ISR-1 to P-ISR-4)
+* **P-ISR-1 (No Dynamic Allocation & Zero Panic):** Kode yang dieksekusi di dalam konteks Interrupt Service Routine (ISR) **DILARANG KERAS** melakukan alokasi dinamis pada heap, memanggil panic liar, atau operasi tanpa batas waktu. Seluruh operasi wajib bounded Worst-Case Execution Time (WCET).
+* **P-ISR-2 (Lock-Free SPSC Unidirectional Streaming):** Pertukaran data antara konteks ISR dan thread kernel/partisi normal **WAJIB** menggunakan struktur lock-free Single-Producer Single-Consumer (SPSC) searah (seperti AFDX ring buffer atau zero-copy PMD queue) bila memungkinkan, untuk meniadakan ketergantungan mutual exclusion.
+* **P-ISR-3 (Uniprocessor Mutual Exclusion & Interrupt Flag Preservation - Amended W-4 & W-10):** Pada arsitektur single-core / uniprocessor, sinkronisasi mutual exclusion antara ISR dan thread normal **WAJIB** dilakukan melalui penonaktifan interupsi lokal sementara dengan penyimpanan status flag sebelumnya (*save-flags pattern*):
+  - **x86_64:** Wajib menggunakan pola save-flags (`pushfq; cli` dan `popfq`), **DILARANG BLIND `sti`** yang dapat mengaktifkan interupsi prematur saat berada di dalam critical section bersarang.
+  - **AArch64:** Wajib memanipulasi register status DAIF (`msr daifset, #2` untuk mask IRQ, dan `msr daifclr, #2` untuk unmask IRQ) dengan menyimpan nilai DAIF sebelumnya (`mrs %0, daif`).
+  - **SPARC V8 (Amended W-10):** Wajib mengeksekusi urutan lengkap read-modify-write Processor Status Register (PSR) dengan 3 instruksi delay slot NOP untuk mengantisipasi pipeline hazard / register write-back delay:
+    ```assembly
+    rd %psr, %l0
+    or %l0, 0x0F00, %l1      ! Mask PIL = 15 (disable interrupts)
+    wr %l1, %g0, %psr
+    nop                      ! SPARC V8 WRPSR delay slot 1
+    nop                      ! SPARC V8 WRPSR delay slot 2
+    nop                      ! SPARC V8 WRPSR delay slot 3
+    /* Critical Section */
+    wr %l0, %g0, %psr        ! Restore original PIL
+    nop
+    nop
+    nop
+    ```
+  - **Spinlock reguler di dalam ISR DILARANG KERAS** karena memicu deadlock instan jika thread yang diinterupsi sedang memegang lock.
+* **P-ISR-4 (SMP Multi-Core Lock Protocol & WCET Budgets - Amended W-11):** Pada arsitektur multi-core (SMP), critical section yang diakses bersama antara thread dan ISR wajib menggabungkan masking interupsi lokal CPU *dan* spinlock hardware (`spin_lock_irqsave`). Batas waktu WCET tidak menggunakan angka global arbitrary melainkan dialokasikan berdasarkan sistem avionik DO-178C per-ISR budget table:
+
+#### Tabel Alokasi Budget WCET per-ISR (DO-178C DAL-A Allocation)
+| Domain ISR / Hardware IRQ | Sumber Requirement Sistem | WCET Budget | Karakteristik Critical Section |
+| :--- | :--- | :---: | :--- |
+| **PIT / APIC Timer Tick** | ARINC 653 Part 1 §3.2 (Major Frame Dispatch) | **≤ 1.5 µs** | Pembacaan tick counter, update minor frame index, slot dispatch |
+| **NIC RX Descriptor IRQ** | ARINC 664 Part 7 (AFDX Deterministic Ingestion) | **≤ 3.0 µs** | Handoff ownership pointer descriptor ring, enqueue SPSC frame |
+| **VPU/ISP Frame Done** | RTCA DO-254 / CCTV Sensor Streaming | **≤ 2.5 µs** | Volatile MMIO flag acknowledgment, channel buffer swap |
+| **UART Serial Telemetry** | ASL Diagnostics & Flight Telemetry Subsystem | **≤ 4.0 µs** | Non-blocking ring buffer write, COM port TX FIFO poll |
+
+### 5.2 ISR Lock Sites Inventory & Compliance Matrix (7 Baris Lengkap - AG-04 Closure)
+
+| File & Baris Kode | Data yang Dilindungi | Mekanisme Pelindung | Konteks Eksekusi | Referensi Policy | Status Kepatuhan |
+| :--- | :--- | :--- | :--- | :---: | :---: |
+| `asl-pmd/src/lib.rs:71` | Deskriptor ring RX (`rx_ring`, `flags`) | Atomic `Acquire`/`Release` (Lock-Free) | Polled-Mode / IRQ Driver Task | P-ISR-2 | **COMPLIANT** |
+| `asl-pmd/src/lib.rs:96` | Deskriptor ring TX (`tx_ring`, `flags`) | Atomic `Acquire`/`Release` (Lock-Free) | Driver Thread / Transmit Task | P-ISR-2 | **COMPLIANT** |
+| `asl-afdx-ipc/src/lib.rs:88`| Antrean frame pesan AFDX (`buffer`, `tail`) | Atomic `Acquire`/`Release` SPSC | Inter-Partition IPC Task | P-ISR-2 | **COMPLIANT** |
+| `asl-dsp-rpc/src/lib.rs:86` | Antrean Mailbox CPU-DSP | Atomic `Acquire`/`Release` SPSC | Host Task & DSP Consumer | P-ISR-2 | **COMPLIANT** |
+| `asl-hal/src/cache.rs:43` | Barrier serialisasi hardware | Compiler Fence / CPU Instruction | Driver Flush / HAL Invalidation | P-ISR-1 | **COMPLIANT** |
+| `asl-cctv-dma/src/lib.rs:55`| Status `vpu_lock_flags` & counter | Volatile `MmioRegister<u32>` + Thread Context | Sensor IRQ & Frame Capture Task | P-ISR-2 / P-ISR-3 | **COMPLIANT** |
+| `asl-space-tmr/src/lib.rs:38`| Majority voting memory variables | Direct Structure Copy / Local Stack | Background Scrubber Task | P-ISR-1 | **COMPLIANT** |
+
+

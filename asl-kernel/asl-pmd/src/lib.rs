@@ -12,15 +12,41 @@ pub const MAX_PACKET_BUFFER_SIZE: usize = 2048;
 
 use core::sync::atomic::{AtomicU16, AtomicUsize, AtomicU64, Ordering};
 
+/// Error terkait manajemen pool memori DMA dan alignment
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub enum DmaPoolError {
+    PoolMisaligned,
+    InvalidPoolSize,
+    BufferAddressMisaligned,
+}
+
 /// Deskriptor DMA Paket Jaringan Hardware
+///
+/// Enforce 64-byte hardware cache line boundary alignment (`#[repr(C, align(64))]`)
+/// untuk mencegah false sharing dan menjamin isolasi cache line saat operasi
+/// invalidate/clean pada arsitektur non-coherent.
+///
+/// # Model Kepemilikan Sel Flags (W-2 Resolution):
+/// - Bit 0 `Ownership` adalah field yang ditulis oleh hardware NIC DMA engine saat paket selesai ditransfer (DMA Done).
+/// - CPU bertindak sebagai consumer eksklusif yang membaca Bit 0 via atomic load `Ordering::Acquire`.
+/// - Konfirmasi selesai proses oleh CPU dikembalikan ke DMA engine melalui mekanisme handoff eksplisit
+///   (menulis flags bit 0 = 1 via `Ordering::Release` atau membunyikan Doorbell MMIO register terpisah).
+/// - Dilarang mencampuradukkan penulisan simultan antara CPU dan DMA pada sel flags yang sama.
 #[repr(C, align(64))]
 pub struct DmaPacketDescriptor {
-    pub physical_buffer_addr: u64,
-    pub length_bytes: u16,
-    pub flags: AtomicU16, // Bit 0: Ownership (0 = Host, 1 = NIC DMA), Bit 1: EOP, Bit 2: Error
-    pub vlan_tag: u16,
-    pub checksum_offload_result: u16,
+    pub physical_buffer_addr: u64,          // 8 bytes (offset 0..8)
+    pub length_bytes: u16,                  // 2 bytes (offset 8..10)
+    pub flags: AtomicU16,                   // 2 bytes (offset 10..12) - Bit 0: Ownership (0 = Host, 1 = NIC DMA)
+    pub vlan_tag: u16,                      // 2 bytes (offset 12..14)
+    pub checksum_offload_result: u16,       // 2 bytes (offset 14..16)
+    pub _padding: [u8; 48],                 // 48 bytes padding (total: 64 bytes)
 }
+
+// Compile-Time Static Assertions untuk ukuran dan alignment tepat 64 byte (DO-178C DAL-A)
+const _: () = {
+    assert!(core::mem::size_of::<DmaPacketDescriptor>() == 64, "DmaPacketDescriptor must be exactly 64 bytes!");
+    assert!(core::mem::align_of::<DmaPacketDescriptor>() == 64, "DmaPacketDescriptor must be aligned to 64 bytes!");
+};
 
 impl DmaPacketDescriptor {
     pub const fn empty() -> Self {
@@ -30,6 +56,7 @@ impl DmaPacketDescriptor {
             flags: AtomicU16::new(0),
             vlan_tag: 0,
             checksum_offload_result: 0,
+            _padding: [0u8; 48],
         }
     }
 }
@@ -47,6 +74,7 @@ pub struct ZeroCopyPmdQueue {
     pub rx_head: AtomicUsize,
     pub tx_tail: AtomicUsize,
     pub packets_processed_total: AtomicU64,
+    pub dma_pool_base_phys: u64,
 }
 
 impl ZeroCopyPmdQueue {
@@ -58,7 +86,25 @@ impl ZeroCopyPmdQueue {
             rx_head: AtomicUsize::new(0),
             tx_tail: AtomicUsize::new(0),
             packets_processed_total: AtomicU64::new(0),
+            dma_pool_base_phys: 0,
         }
+    }
+
+    /// Inisialisasi pool memori DMA dengan verifikasi keselarasan batas 64-byte nyata saat runtime
+    ///
+    /// # Safety & DAL-A Invariant:
+    /// Pemeriksaan ini wajib berupa pemeriksaan nilai riil (`(base_phys & 0x3F) == 0`) yang mengembalikan
+    /// `Result::Err(DmaPoolError::PoolMisaligned)`, BUKAN sekadar `debug_assert!` yang tereliminasi di build release.
+    pub fn init_pool(&mut self, base_phys: u64, total_size: usize) -> Result<(), DmaPoolError> {
+        if (base_phys & 0x3F) != 0 {
+            return Err(DmaPoolError::PoolMisaligned);
+        }
+        if total_size < (RX_RING_SIZE + TX_RING_SIZE) * 64 {
+            return Err(DmaPoolError::InvalidPoolSize);
+        }
+
+        self.dma_pool_base_phys = base_phys;
+        Ok(())
     }
 
     /// Polling penerimaan paket tanpa interupsi CPU (Polled-Mode)
@@ -91,7 +137,14 @@ impl ZeroCopyPmdQueue {
     }
 
     /// Transmisi burst paket langsung ke DMA transmit ring
+    ///
+    /// # Invariant & Kontrak Prekondisi (DO-178C DAL-A):
+    /// Pemanggil (Driver/Stack Jaringan) menjamin bahwa `phys_addr` selaras dengan 64-byte (`phys_addr & 0x3F == 0`).
+    /// Invariant ini ditegakkan via `debug_assert!` untuk deteksi dini dalam fase pengujian.
     pub fn transmit_burst(&mut self, phys_addr: u64, len: u16, vlan: u16) -> Result<(), &'static str> {
+        // Kontrak invariant keselarasan 64-byte cache line
+        debug_assert!((phys_addr & 0x3F) == 0, "Precondition violation: DMA buffer address must be 64-byte aligned");
+
         let curr_tail = self.tx_tail.load(Ordering::Relaxed);
         let desc = &mut self.tx_ring[curr_tail];
 
@@ -120,14 +173,12 @@ mod tests {
     #[test]
     fn test_pmd_empty_rx_poll() {
         let mut queue = ZeroCopyPmdQueue::new();
-        // Semua descriptor awalnya length_bytes = 0, sehingga burst poll harus 0
         assert_eq!(queue.poll_rx_burst(32), 0);
     }
 
     #[test]
     fn test_pmd_rx_poll_with_packets() {
         let mut queue = ZeroCopyPmdQueue::new();
-        // Simulasikan NIC DMA mengisi 2 paket (ownership flag bit 0 = 0)
         queue.rx_ring[0].length_bytes = 64;
         queue.rx_ring[0].flags.store(0x00, Ordering::Relaxed);
         queue.rx_ring[1].length_bytes = 128;
@@ -138,7 +189,6 @@ mod tests {
         assert_eq!(queue.packets_processed_total.load(Ordering::Relaxed), 2);
         assert_eq!(queue.rx_head.load(Ordering::Relaxed), 2);
 
-        // Setelah diproses, ownership dikembalikan ke NIC (bit 0 = 1)
         assert_eq!(queue.rx_ring[0].flags.load(Ordering::Relaxed) & 0x01, 1);
         assert_eq!(queue.rx_ring[1].flags.load(Ordering::Relaxed) & 0x01, 1);
     }
@@ -150,9 +200,40 @@ mod tests {
         assert_eq!(queue.tx_tail.load(Ordering::Relaxed), 1);
         assert_eq!(queue.packets_processed_total.load(Ordering::Relaxed), 1);
 
-        // Slot 1 yang baru dialokasikan masih dimiliki NIC jika flags bit 0 == 1
         queue.tx_ring[1].flags.store(0x01, Ordering::Relaxed);
         assert_eq!(queue.transmit_burst(0x2000_1000, 256, 100), Err("ERR_TX_RING_CONGESTION"));
     }
-}
 
+    // =========================================================================
+    // UNIT TESTS RESMI ALIGN-01 (4 KASUS KELENGKAPAN SESUAI AMENDEMEN A)
+    // =========================================================================
+
+    #[test]
+    fn test_align01_pool_misaligned_rejected() {
+        let mut queue = ZeroCopyPmdQueue::new();
+        // Alamat tidak selaras 64 byte (offset 1 hingga 63)
+        assert_eq!(queue.init_pool(0x1000_0001, 32768), Err(DmaPoolError::PoolMisaligned));
+        assert_eq!(queue.init_pool(0x1000_003F, 32768), Err(DmaPoolError::PoolMisaligned));
+        assert_eq!(queue.init_pool(0x1000_0010, 32768), Err(DmaPoolError::PoolMisaligned));
+    }
+
+    #[test]
+    fn test_align01_pool_aligned_accepted() {
+        let mut queue = ZeroCopyPmdQueue::new();
+        // Alamat selaras 64 byte (kelipatan 0x40)
+        assert_eq!(queue.init_pool(0x1000_0000, 32768), Ok(()));
+        assert_eq!(queue.dma_pool_base_phys, 0x1000_0000);
+        assert_eq!(queue.init_pool(0x2000_0040, 32768), Ok(()));
+        assert_eq!(queue.dma_pool_base_phys, 0x2000_0040);
+    }
+
+    #[test]
+    fn test_align01_descriptor_size_exact_64() {
+        assert_eq!(core::mem::size_of::<DmaPacketDescriptor>(), 64);
+    }
+
+    #[test]
+    fn test_align01_descriptor_alignment_exact_64() {
+        assert_eq!(core::mem::align_of::<DmaPacketDescriptor>(), 64);
+    }
+}

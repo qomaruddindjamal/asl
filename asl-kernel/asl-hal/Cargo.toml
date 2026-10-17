@@ -7,3 +7,9 @@ description = "Hardware Abstraction Layer (HAL) Core Traits for 150 Architecture
 
 [dependencies]
 asl-bootloader = { path = "../asl-bootloader" }
+
+[features]
+default = []
+dal-a = []
+identity-dma = []
+

@@ -208,4 +208,20 @@ mod tests {
         assert!(p2_again.is_some());
         assert_eq!(p2_again.unwrap(), p2.unwrap());
     }
+
+    #[test]
+    fn test_buddy_allocator_64byte_alignment_for_dma_pool() {
+        let mut alloc = BuddyAllocator::empty();
+        let handover = make_test_handover(PAGE_SIZE as u64 * 32);
+        assert!(alloc.init_from_handover(&handover).is_ok());
+
+        // Alokasikan halaman untuk DMA pool (Order 2 = 4 halaman = 16 KB)
+        let pool_phys = alloc.allocate_pages(2);
+        assert!(pool_phys.is_some());
+        let addr = pool_phys.unwrap();
+
+        // Jaminan alignment 64-byte mutlak: PAGE_SIZE (4096) adalah kelipatan tepat 64
+        assert_eq!(addr & 0x3F, 0, "Alamat alokasi buddy system wajib selaras batas 64-byte cache line");
+    }
 }
+

@@ -6,6 +6,15 @@
 
 #![no_std]
 
+pub mod cache;
+pub use cache::{CacheMaintenanceOps, CoherentNoopOps, BounceBufferPolicy, BounceDecision, IsolatedBounceBuffer, CACHE_LINE};
+
+pub mod mmio;
+pub use mmio::MmioRegister;
+
+pub mod dma_space;
+pub use dma_space::{DmaAddressSpace, DmaDeviceAddress, DmaAddressFault, DmaFaultRecord, IdentityDmaSpace, MpuFirewallDmaSpace, IommuTranslationSpace};
+
 use asl_bootloader::TargetArch;
 
 /// Trait pengontrol interupsi CPU (APIC/PIC di x86, GIC di ARM, PLIC di RISC-V, dsb.)

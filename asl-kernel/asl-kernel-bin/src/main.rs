@@ -71,32 +71,108 @@ pub struct LimineKernelAddressRequest {
 }
 unsafe impl Sync for LimineKernelAddressRequest {}
 
+#[repr(C)]
+pub struct LimineFramebuffer {
+    pub address: *mut u8,
+    pub width: u64,
+    pub height: u64,
+    pub pitch: u64,
+    pub bpp: u16,
+    pub memory_model: u8,
+    pub red_mask_size: u8,
+    pub red_mask_shift: u8,
+    pub green_mask_size: u8,
+    pub green_mask_shift: u8,
+    pub blue_mask_size: u8,
+    pub blue_mask_shift: u8,
+    pub unused: [u8; 7],
+    pub edid_size: u64,
+    pub edid: *const u8,
+}
+
+#[repr(C)]
+pub struct LimineFramebufferResponse {
+    pub revision: u64,
+    pub framebuffer_count: u64,
+    pub framebuffers: *const *const LimineFramebuffer,
+}
+
+#[repr(C)]
+pub struct LimineFramebufferRequest {
+    pub id: [u64; 4],
+    pub revision: u64,
+    pub response: *const LimineFramebufferResponse,
+}
+unsafe impl Sync for LimineFramebufferRequest {}
+
+#[repr(C)]
+pub struct LimineHHDMResponse {
+    pub revision: u64,
+    pub offset: u64,
+}
+
+#[repr(C)]
+pub struct LimineHHDMRequest {
+    pub id: [u64; 4],
+    pub revision: u64,
+    pub response: *const LimineHHDMResponse,
+}
+unsafe impl Sync for LimineHHDMRequest {}
+
 // -----------------------------------------------------------------------------
 // LIMINE REQUEST ANCHORS (Ditempatkan di section .limine_requests)
 // -----------------------------------------------------------------------------
 
 #[used]
-#[link_section = ".limine_requests"]
-static BASE_REVISION: LimineBaseRevision = LimineBaseRevision {
-    id: [0xf9562b2d3616ae62, 0x831252811a66e404],
-    revision: 2,
-};
+#[link_section = ".limine_requests_start"]
+static REQUESTS_START_MARKER: [u64; 4] = [
+    0xf6b8f4b39de7d1ae, 0xfab91a6940fcb9cf,
+    0x785c6ed015d3e316, 0x181e920a7852b9d9
+];
 
 #[used]
 #[link_section = ".limine_requests"]
-static MEMMAP_REQUEST: LimineMemmapRequest = LimineMemmapRequest {
-    id: [0xc7b1dd30df4c8b88, 0x0a82e883a194f07b, 0x67cf3d9d378a15e6, 0x8d5004882da0f324],
+static mut BASE_REVISION: [u64; 3] = [
+    0xf9562b2d5c95a6c8, 0x6a7b384944536bdc, 2
+];
+
+#[used]
+#[link_section = ".limine_requests"]
+static mut MEMMAP_REQUEST: LimineMemmapRequest = LimineMemmapRequest {
+    id: [0xc7b1dd30df4c8b88, 0x0a82e883a194f07b, 0x67cf3d9d378a806f, 0xe304acdfc50c3c62],
     revision: 0,
     response: core::ptr::null(),
 };
 
 #[used]
 #[link_section = ".limine_requests"]
-static KERNEL_ADDR_REQUEST: LimineKernelAddressRequest = LimineKernelAddressRequest {
+static mut KERNEL_ADDR_REQUEST: LimineKernelAddressRequest = LimineKernelAddressRequest {
     id: [0xc7b1dd30df4c8b88, 0x0a82e883a194f07b, 0x71ba76863cc55f63, 0xb2644a48c516a487],
     revision: 0,
     response: core::ptr::null(),
 };
+
+#[used]
+#[link_section = ".limine_requests"]
+static mut FRAMEBUFFER_REQUEST: LimineFramebufferRequest = LimineFramebufferRequest {
+    id: [0xc7b1dd30df4c8b88, 0x0a82e883a194f07b, 0x9d5827dcd881dd75, 0xa3148604f6fab11b],
+    revision: 0,
+    response: core::ptr::null(),
+};
+
+#[used]
+#[link_section = ".limine_requests"]
+static mut HHDM_REQUEST: LimineHHDMRequest = LimineHHDMRequest {
+    id: [0xc7b1dd30df4c8b88, 0x0a82e883a194f07b, 0x48dcf1cb8ad2b852, 0x63984e959a98244b],
+    revision: 0,
+    response: core::ptr::null(),
+};
+
+#[used]
+#[link_section = ".limine_requests_end"]
+static REQUESTS_END_MARKER: [u64; 2] = [
+    0xadc0e0531bb10d03, 0x9572709f31764c62
+];
 
 // -----------------------------------------------------------------------------
 // STATIC HANDOVER STORAGE (BSS)
@@ -156,10 +232,12 @@ core::arch::global_asm!(
 #[no_mangle]
 pub extern "C" fn asl_launcher_main() -> ! {
     SERIAL.init();
-    SERIAL.write_str("\n[ASL-LAUNCHER] M1: Entered Limine Entry Stub via Assembly Trampoline.\n");
+    SERIAL.write_str("\n[ASL-LAUNCHER] M1: Entered Limine Entry Stub (profile=");
+    SERIAL.write_str(option_env!("ASL_BUILD_PROFILE").unwrap_or("unknown"));
+    SERIAL.write_str(") via Assembly Trampoline.\n");
 
-    let memmap_resp = MEMMAP_REQUEST.response;
-    let kaddr_resp = KERNEL_ADDR_REQUEST.response;
+    let memmap_resp = unsafe { core::ptr::read_volatile(core::ptr::addr_of!(MEMMAP_REQUEST.response)) };
+    let kaddr_resp = unsafe { core::ptr::read_volatile(core::ptr::addr_of!(KERNEL_ADDR_REQUEST.response)) };
 
     let (kphys, kvirt) = if !kaddr_resp.is_null() {
         let resp = unsafe { &*kaddr_resp };
@@ -283,6 +361,62 @@ pub extern "C" fn asl_launcher_main() -> ! {
                 flags: 0,
             };
         }
+    }
+
+    SERIAL.write_str("[ASL-LAUNCHER] Inspecting Limine Requests:\n");
+    let base_rev_supported = unsafe { core::ptr::read_volatile(core::ptr::addr_of!(BASE_REVISION[2])) };
+    if base_rev_supported == 0 {
+        SERIAL.write_str("  -> Base Revision supported.\n");
+    } else {
+        SERIAL.write_str("  -> Base Revision unsupported or unchanged.\n");
+    }
+
+    if !memmap_resp.is_null() {
+        SERIAL.write_str("  -> Memmap response received.\n");
+    } else {
+        SERIAL.write_str("  -> Memmap response NULL.\n");
+    }
+
+    let hhdm_resp = unsafe { core::ptr::read_volatile(core::ptr::addr_of!(HHDM_REQUEST.response)) };
+    let hhdm_offset = if !hhdm_resp.is_null() {
+        SERIAL.write_str("  -> HHDM response received.\n");
+        unsafe { (*hhdm_resp).offset }
+    } else {
+        SERIAL.write_str("  -> HHDM response NULL.\n");
+        0
+    };
+
+    let fb_resp = unsafe { core::ptr::read_volatile(core::ptr::addr_of!(FRAMEBUFFER_REQUEST.response)) };
+    if !fb_resp.is_null() {
+        SERIAL.write_str("  -> Framebuffer response received.\n");
+        let resp = unsafe { &*fb_resp };
+        if resp.framebuffer_count > 0 && !resp.framebuffers.is_null() {
+            let first_fb_ptr = unsafe { *resp.framebuffers };
+            if !first_fb_ptr.is_null() {
+                let fb = unsafe { &*first_fb_ptr };
+                let bytes_pp = (fb.bpp / 8) as u8;
+                let ppsl = if bytes_pp > 0 {
+                    (fb.pitch / bytes_pp as u64) as u32
+                } else {
+                    fb.width as u32
+                };
+                let total_size = fb.pitch * fb.height;
+
+                unsafe {
+                    ASL_HANDOVER_STORAGE.framebuffer = FramebufferConfig {
+                        base_physical_addr: fb.address as u64,
+                        size_bytes: total_size,
+                        width: fb.width as u32,
+                        height: fb.height as u32,
+                        pixels_per_scan_line: ppsl,
+                        bytes_per_pixel: bytes_pp,
+                    };
+                }
+                SERIAL.write_str("  -> Framebuffer configured successfully.\n");
+            }
+        }
+    } else {
+        SERIAL.write_str("  -> Framebuffer response NULL.\n");
     }
 
     SERIAL.write_str("[ASL-LAUNCHER] M2: Handover Adapted & Memory Map Sanitized.\n");

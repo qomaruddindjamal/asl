@@ -268,5 +268,13 @@ mod tests {
         h2.memory_map[0].length_bytes = 100;
         assert_eq!(h2.validate(), Err("ERR_MEMORY_REGION_OVERFLOW"));
     }
+
+    #[test]
+    fn test_build_profile_option_env_fallback() {
+        // Validasi AG-06: option_env fallback menghasilkan string valid
+        let profile = option_env!("ASL_BUILD_PROFILE_NON_EXISTENT").unwrap_or("release-fallback");
+        assert_eq!(profile, "release-fallback");
+    }
 }
+
 

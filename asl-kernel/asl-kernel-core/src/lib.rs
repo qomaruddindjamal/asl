@@ -98,6 +98,8 @@ pub struct FbConsole {
     pub cursor_y: usize,
     pub fg_color: u32,
     pub bg_color: u32,
+    pub scale: usize,
+    pub bold: bool,
 }
 
 impl FbConsole {
@@ -112,6 +114,8 @@ impl FbConsole {
             cursor_y: 0,
             fg_color: 0x00FFFFFF, // White
             bg_color: 0x00000000, // Black
+            scale: 1,
+            bold: true,
         }
     }
 
@@ -125,6 +129,16 @@ impl FbConsole {
         self.cursor_y = 0;
         self.fg_color = 0x00FFFFFF;
         self.bg_color = 0x00000000;
+        self.scale = 1;
+        self.bold = true;
+    }
+
+    pub fn set_bold(&mut self, bold: bool) {
+        self.bold = bold;
+    }
+
+    pub fn set_scale(&mut self, scale: usize) {
+        self.scale = if scale == 0 { 1 } else { scale };
     }
 
     pub fn is_available(&self) -> bool {
@@ -152,11 +166,11 @@ impl FbConsole {
 
     pub fn new_line(&mut self) {
         self.cursor_x = 0;
-        let line_height = 16;
+        let line_height = 16 * self.scale;
         if self.cursor_y + line_height * 2 <= self.height {
             self.cursor_y += line_height;
         } else {
-            // Scroll frame up by 16 pixels
+            // Scroll frame up
             let stride_u32 = self.pitch_bytes / 4;
             let ptr = self.base as *mut u32;
             let copy_lines = self.height - line_height;
@@ -169,7 +183,7 @@ impl FbConsole {
                     }
                 }
             }
-            // Clear last 16 lines
+            // Clear last lines
             for y in copy_lines..self.height {
                 for x in 0..self.width {
                     unsafe {
@@ -188,7 +202,8 @@ impl FbConsole {
             b'\n' => self.new_line(),
             b'\r' => self.cursor_x = 0,
             _ => {
-                if self.cursor_x + 8 > self.width {
+                let char_width = 8 * self.scale;
+                if self.cursor_x + char_width > self.width {
                     self.new_line();
                 }
                 let glyph_idx = c as usize;
@@ -200,23 +215,30 @@ impl FbConsole {
 
                 for row in 0..16 {
                     let bits = glyph[row];
-                    let py = self.cursor_y + row;
-                    if py >= self.height {
-                        break;
-                    }
-                    for col in 0..8 {
-                        let px = self.cursor_x + col;
-                        if px >= self.width {
+                    for sy in 0..self.scale {
+                        let py = self.cursor_y + row * self.scale + sy;
+                        if py >= self.height {
                             break;
                         }
-                        let is_fg = (bits & (0x80 >> col)) != 0;
-                        let color = if is_fg { self.fg_color } else { self.bg_color };
-                        unsafe {
-                            core::ptr::write_volatile(ptr.add(py * stride_u32 + px), color);
+                        for col in 0..8 {
+                            let is_fg = (bits & (0x80 >> col)) != 0;
+                            let is_bold_fg = self.bold && col > 0 && ((bits & (0x80 >> (col - 1))) != 0);
+                            let active = is_fg || is_bold_fg;
+                            let color = if active { self.fg_color } else { self.bg_color };
+
+                            for sx in 0..self.scale {
+                                let px = self.cursor_x + col * self.scale + sx;
+                                if px >= self.width {
+                                    break;
+                                }
+                                unsafe {
+                                    core::ptr::write_volatile(ptr.add(py * stride_u32 + px), color);
+                                }
+                            }
                         }
                     }
                 }
-                self.cursor_x += 8;
+                self.cursor_x += char_width;
             }
         }
     }
@@ -401,7 +423,10 @@ pub unsafe extern "C" fn _asl_kernel_entry(handover_ptr: *const AslBootHandover)
                     pitch_bytes,
                     (fb_cfg.bytes_per_pixel as usize) * 8,
                 );
+                (*fb).set_scale(2); // 2x Scaling: 16x32px per glyph for crisp readability on 1024x768
+                (*fb).set_bold(true); // Enhanced font weight
                 (*fb).clear();
+                (*fb).cursor_y = 24; // Elegant top margin
             }
         }
     }

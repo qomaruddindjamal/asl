@@ -16,8 +16,15 @@ pub enum PartitionType {
     LinuxSwap,
     EfiSystem,
     GptGenericData,
+    RaidMember,
     Other(u8),
 }
+
+pub const MBR_TYPE_LINUX_RAID: u8 = 0xFD; // Linux software RAID partition
+                                          // Linux RAID partition GUID: A19D880F-05FC-4D3B-A006-743F0F84911E (little-endian bytes)
+pub const GPT_GUID_LINUX_RAID: [u8; 16] = [
+    0x0F, 0x88, 0x9D, 0xA1, 0xFC, 0x05, 0x3B, 0x4D, 0xA0, 0x06, 0x74, 0x3F, 0x0F, 0x84, 0x91, 0x1E,
+];
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct Partition {
@@ -143,6 +150,7 @@ impl PartitionTable {
                 0x83 => PartitionType::LinuxNative,
                 0x82 => PartitionType::LinuxSwap,
                 0xEF => PartitionType::EfiSystem,
+                MBR_TYPE_LINUX_RAID => PartitionType::RaidMember,
                 other => PartitionType::Other(other),
             };
 
@@ -307,9 +315,14 @@ impl PartitionTable {
 
                 if last_lba >= first_lba && first_lba < disk_sectors && last_lba < disk_sectors {
                     let sector_count = last_lba - first_lba + 1;
+                    let part_type = if type_guid == GPT_GUID_LINUX_RAID {
+                        PartitionType::RaidMember
+                    } else {
+                        PartitionType::GptGenericData
+                    };
                     self.partitions[self.count] = Partition {
                         part_num: (scanned + 1) as u8,
-                        part_type: PartitionType::GptGenericData,
+                        part_type,
                         start_lba: first_lba,
                         sector_count,
                         bootable: false,

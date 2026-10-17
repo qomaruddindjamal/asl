@@ -29,10 +29,15 @@ pub use ata::{
 pub use block::{BlockDevice, StorageError, StorageResult, SECTOR_SIZE};
 pub use ext4::{Ext4FileSystem, Ext4Superblock, EXT4_FEATURE_INCOMPAT_EXTENTS, EXT4_MAGIC};
 pub use fat32::{Fat32Bpb, Fat32FileSystem};
-pub use partition::{Partition, PartitionTable, PartitionType, GPT_SIGNATURE, MBR_MAGIC};
+pub use partition::{
+    Partition, PartitionTable, PartitionType, GPT_GUID_LINUX_RAID, GPT_SIGNATURE, MBR_MAGIC,
+    MBR_TYPE_LINUX_RAID,
+};
 pub use raid::{
-    Raid0Volume, Raid1MemberStatus, Raid1Volume, Raid1VolumeState, DEFAULT_STRIPE_SECTORS,
-    MAX_RAID_MEMBERS,
+    DedicatedPartitionReservation, GenerationOrder, Raid0Volume, Raid1MemberStatus, Raid1Volume,
+    Raid1VolumeState, RaidInitializationPolicy, RaidMetadataState, RaidSuperblock, RaidType,
+    DEFAULT_STRIPE_SECTORS, MAX_RAID_MEMBERS, RAID_RESERVED_SECTORS, RAID_SUPERBLOCK_MAGIC,
+    RAID_SUPERBLOCK_VERSION_1, RAID_SUPERBLOCK_WIRE_SIZE,
 };
 pub use ramdisk::MemBlockDevice;
 pub use vfs::{DirectoryEntry, FileSystem, Vfs, VfsError, VfsNode, VfsNodeType, VfsResult};
@@ -958,6 +963,765 @@ mod tests {
         assert_eq!(
             r1.write_sectors(64, 1, &dummy),
             Err(StorageError::InvalidLba)
+        );
+    }
+
+    #[test]
+    fn test_raid_metadata_crc32_known_answer_vector() {
+        // Known-answer test (KAT) for IEEE 802.3 CRC32:
+        // ASCII string b"123456789" CRC32 MUST be 0xCBF43926
+        let kat_input = b"123456789";
+        let computed = partition::crc32(kat_input);
+        assert_eq!(computed, 0xCBF4_3926);
+    }
+
+    #[test]
+    fn test_raid_metadata_roundtrip_raid0_and_raid1() {
+        // Test RAID 0 metadata roundtrip
+        let sb_r0 = RaidSuperblock {
+            version: RAID_SUPERBLOCK_VERSION_1,
+            raid_type: RaidType::Raid0,
+            generation: 42,
+            array_uuid: [0x11; 16],
+            member_uuid: [0x22; 16],
+            member_index: 0,
+            member_count: 2,
+            stripe_sectors: 16,
+            array_capacity_sectors: 2048,
+            member_usable_sectors: 1024,
+            data_start_lba: 8,
+            state: RaidMetadataState::ActiveClean,
+        };
+
+        let mut buf_r0 = [0u8; SECTOR_SIZE];
+        sb_r0.encode(&mut buf_r0).unwrap();
+        let decoded_r0 = RaidSuperblock::decode(&buf_r0).unwrap();
+        assert_eq!(decoded_r0, sb_r0);
+
+        // Test RAID 1 metadata roundtrip
+        let sb_r1 = RaidSuperblock {
+            version: RAID_SUPERBLOCK_VERSION_1,
+            raid_type: RaidType::Raid1,
+            generation: 100,
+            array_uuid: [0xAA; 16],
+            member_uuid: [0xBB; 16],
+            member_index: 1,
+            member_count: 2,
+            stripe_sectors: 0,
+            array_capacity_sectors: 512,
+            member_usable_sectors: 512,
+            data_start_lba: 8,
+            state: RaidMetadataState::Degraded,
+        };
+
+        let mut buf_r1 = [0u8; SECTOR_SIZE];
+        sb_r1.encode(&mut buf_r1).unwrap();
+        let decoded_r1 = RaidSuperblock::decode(&buf_r1).unwrap();
+        assert_eq!(decoded_r1, sb_r1);
+    }
+
+    #[test]
+    fn test_raid_metadata_corruption_and_rejections() {
+        let sb = RaidSuperblock {
+            version: RAID_SUPERBLOCK_VERSION_1,
+            raid_type: RaidType::Raid0,
+            generation: 1,
+            array_uuid: [0x01; 16],
+            member_uuid: [0x02; 16],
+            member_index: 0,
+            member_count: 2,
+            stripe_sectors: 16,
+            array_capacity_sectors: 200,
+            member_usable_sectors: 100,
+            data_start_lba: 8,
+            state: RaidMetadataState::ActiveClean,
+        };
+
+        let mut valid_buf = [0u8; SECTOR_SIZE];
+        sb.encode(&mut valid_buf).unwrap();
+
+        // 1. Corrupt magic
+        let mut bad_magic = valid_buf;
+        bad_magic[0] = b'X';
+        assert_eq!(
+            RaidSuperblock::decode(&bad_magic).err(),
+            Some(StorageError::CorruptedMetadata)
+        );
+
+        // 2. Corrupt CRC32
+        let mut bad_crc = valid_buf;
+        bad_crc[16] ^= 0xFF;
+        assert_eq!(
+            RaidSuperblock::decode(&bad_crc).err(),
+            Some(StorageError::CorruptedMetadata)
+        );
+
+        // 3. Unsupported version (recompute CRC so version check fails)
+        let mut bad_ver = valid_buf;
+        bad_ver[8] = 99;
+        bad_ver[16..20].fill(0);
+        let new_crc = partition::crc32(&bad_ver);
+        bad_ver[16..20].copy_from_slice(&new_crc.to_le_bytes());
+        assert_eq!(
+            RaidSuperblock::decode(&bad_ver).err(),
+            Some(StorageError::UnsupportedFeature)
+        );
+
+        // 4. Non-zero reserved bytes rejection
+        let mut bad_reserved = valid_buf;
+        bad_reserved[100] = 0xAA;
+        bad_reserved[16..20].fill(0);
+        let r_crc = partition::crc32(&bad_reserved);
+        bad_reserved[16..20].copy_from_slice(&r_crc.to_le_bytes());
+        assert_eq!(
+            RaidSuperblock::decode(&bad_reserved).err(),
+            Some(StorageError::CorruptedMetadata)
+        );
+
+        // 5. Invalid member count (< 2)
+        let mut bad_count = valid_buf;
+        bad_count[64..68].copy_from_slice(&1u32.to_le_bytes());
+        bad_count[16..20].fill(0);
+        let c_crc = partition::crc32(&bad_count);
+        bad_count[16..20].copy_from_slice(&c_crc.to_le_bytes());
+        assert_eq!(
+            RaidSuperblock::decode(&bad_count).err(),
+            Some(StorageError::CorruptedMetadata)
+        );
+
+        // 6. Invalid member index (>= member count)
+        let mut bad_idx = valid_buf;
+        bad_idx[60..64].copy_from_slice(&2u32.to_le_bytes()); // Index 2 on count 2
+        bad_idx[16..20].fill(0);
+        let i_crc = partition::crc32(&bad_idx);
+        bad_idx[16..20].copy_from_slice(&i_crc.to_le_bytes());
+        assert_eq!(
+            RaidSuperblock::decode(&bad_idx).err(),
+            Some(StorageError::CorruptedMetadata)
+        );
+
+        // 7. All-zero UUID rejection
+        let mut zero_uuid = valid_buf;
+        zero_uuid[28..44].fill(0);
+        zero_uuid[16..20].fill(0);
+        let z_crc = partition::crc32(&zero_uuid);
+        zero_uuid[16..20].copy_from_slice(&z_crc.to_le_bytes());
+        assert_eq!(
+            RaidSuperblock::decode(&zero_uuid).err(),
+            Some(StorageError::CorruptedMetadata)
+        );
+    }
+
+    #[test]
+    fn test_raid_metadata_generation_counter_wraparound() {
+        // Equal
+        assert_eq!(
+            RaidSuperblock::compare_generation(10, 10),
+            GenerationOrder::Equal
+        );
+
+        // Simple progression
+        assert_eq!(
+            RaidSuperblock::compare_generation(11, 10),
+            GenerationOrder::Newer
+        );
+        assert_eq!(
+            RaidSuperblock::compare_generation(10, 11),
+            GenerationOrder::Older
+        );
+
+        // Wraparound edge: 5 is newer than u64::MAX
+        assert_eq!(
+            RaidSuperblock::compare_generation(5, u64::MAX),
+            GenerationOrder::Newer
+        );
+        assert_eq!(
+            RaidSuperblock::compare_generation(u64::MAX, 5),
+            GenerationOrder::Older
+        );
+
+        // Ambiguous midpoint (distance exactly 2^63)
+        let midpoint_a = 0u64;
+        let midpoint_b = 1u64 << 63;
+        assert_eq!(
+            RaidSuperblock::compare_generation(midpoint_a, midpoint_b),
+            GenerationOrder::Ambiguous
+        );
+    }
+
+    #[test]
+    fn test_raid_metadata_peer_compatibility() {
+        let member0 = RaidSuperblock {
+            version: RAID_SUPERBLOCK_VERSION_1,
+            raid_type: RaidType::Raid1,
+            generation: 1,
+            array_uuid: [0x55; 16],
+            member_uuid: [0x01; 16],
+            member_index: 0,
+            member_count: 2,
+            stripe_sectors: 0,
+            array_capacity_sectors: 1000,
+            member_usable_sectors: 1000,
+            data_start_lba: 2048,
+            state: RaidMetadataState::ActiveClean,
+        };
+
+        let mut member1 = member0;
+        member1.member_uuid = [0x02; 16];
+        member1.member_index = 1;
+
+        // Compatible peers
+        assert_eq!(member0.validate_peer_compatibility(&member1), Ok(()));
+
+        // Incompatible: duplicate member index
+        let mut dup_member = member1;
+        dup_member.member_index = 0;
+        assert_eq!(
+            member0.validate_peer_compatibility(&dup_member),
+            Err(StorageError::AlreadyExists)
+        );
+
+        // Incompatible: different array UUID
+        let mut diff_array = member1;
+        diff_array.array_uuid = [0x99; 16];
+        assert_eq!(
+            member0.validate_peer_compatibility(&diff_array),
+            Err(StorageError::CorruptedMetadata)
+        );
+    }
+
+    #[test]
+    fn test_raid_metadata_reservation_and_lba0_protection() {
+        // Rule: partition_start_lba == 0 MUST be strictly rejected (LBA 0 is MBR / Protective MBR)
+        assert_eq!(
+            DedicatedPartitionReservation::new(0, 1000, 1, 8),
+            Err(StorageError::InvalidParameter)
+        );
+
+        // Rule: zero sector count partition rejected
+        assert_eq!(
+            DedicatedPartitionReservation::new(2048, 0, 1, 8),
+            Err(StorageError::InvalidParameter)
+        );
+
+        // Rule: metadata sector overlapping with data area rejected
+        assert_eq!(
+            DedicatedPartitionReservation::new(2048, 1000, 5, 5),
+            Err(StorageError::InvalidParameter)
+        );
+
+        // Rule: data offset exceeding partition sector count rejected
+        assert_eq!(
+            DedicatedPartitionReservation::new(2048, 100, 1, 100),
+            Err(StorageError::InvalidParameter)
+        );
+
+        // Rule: arithmetic overflow protection on partition bounds
+        assert_eq!(
+            DedicatedPartitionReservation::new(u64::MAX - 10, 20, 1, 8),
+            Err(StorageError::InvalidParameter)
+        );
+
+        // Valid reservation: Dedicated partition starting at LBA 64, 100 sectors
+        // metadata at offset 1 (LBA 65), data starts at offset 8 (LBA 72)
+        let reservation = DedicatedPartitionReservation::new(64, 100, 1, 8).unwrap();
+        assert_eq!(reservation.absolute_metadata_lba().unwrap(), 65);
+        assert_eq!(reservation.absolute_data_start_lba().unwrap(), 72);
+        assert_eq!(reservation.usable_member_sectors(), 92);
+
+        // Set up test disk device (256 sectors = 128KB on stack)
+        let mut disk = MemBlockDevice::<{ 256 * SECTOR_SIZE }>::new();
+
+        // Populate LBA 0 (MBR) and LBA 1..34 (GPT header and partition entries) with mock bytes
+        let mbr_pattern = [0x5Au8; SECTOR_SIZE];
+        let gpt_pattern = [0xA5u8; SECTOR_SIZE];
+        disk.write_sectors(0, 1, &mbr_pattern).unwrap();
+        disk.write_sectors(1, 1, &gpt_pattern).unwrap();
+
+        // Create initial disk snapshot
+        let mut snapshot_lba0 = [0u8; SECTOR_SIZE];
+        disk.read_sectors(0, 1, &mut snapshot_lba0).unwrap();
+        assert_eq!(snapshot_lba0, mbr_pattern);
+
+        let mut snapshot_lba1 = [0u8; SECTOR_SIZE];
+        disk.read_sectors(1, 1, &mut snapshot_lba1).unwrap();
+        assert_eq!(snapshot_lba1, gpt_pattern);
+
+        // Superblock matching the explicit reservation
+        let sb = RaidSuperblock {
+            version: RAID_SUPERBLOCK_VERSION_1,
+            raid_type: RaidType::Raid1,
+            generation: 1,
+            array_uuid: [0x42; 16],
+            member_uuid: [0x11; 16],
+            member_index: 0,
+            member_count: 2,
+            stripe_sectors: 0,
+            array_capacity_sectors: 92,
+            member_usable_sectors: 92,
+            data_start_lba: 72,
+            state: RaidMetadataState::ActiveClean,
+        };
+
+        // Write superblock to device using explicit reservation
+        assert_eq!(sb.write_to_device(&mut disk, &reservation), Ok(()));
+
+        // CRITICAL INVARIANCE CHECK: Verify LBA 0 and LBA 1 are 100% UNTOUCHED
+        let mut check_lba0 = [0u8; SECTOR_SIZE];
+        disk.read_sectors(0, 1, &mut check_lba0).unwrap();
+        assert_eq!(check_lba0, mbr_pattern);
+
+        let mut check_lba1 = [0u8; SECTOR_SIZE];
+        disk.read_sectors(1, 1, &mut check_lba1).unwrap();
+        assert_eq!(check_lba1, gpt_pattern);
+
+        // Verify readback matches superblock exactly
+        let readback = RaidSuperblock::read_from_device(&mut disk, &reservation).unwrap();
+        assert_eq!(readback, sb);
+
+        // Fail-Closed Check 1: Insufficient disk capacity fails closed
+        let mut small_disk = MemBlockDevice::<{ 16 * SECTOR_SIZE }>::new(); // Only 16 sectors, needs 164
+        assert_eq!(
+            sb.write_to_device(&mut small_disk, &reservation),
+            Err(StorageError::InvalidParameter)
+        );
+
+        // Fail-Closed Check 2: Mismatched data_start_lba in superblock vs reservation
+        let mut mismatched_sb = sb;
+        mismatched_sb.data_start_lba = 70; // Expected 72
+        assert_eq!(
+            mismatched_sb.write_to_device(&mut disk, &reservation),
+            Err(StorageError::InvalidParameter)
+        );
+
+        // Fail-Closed Check 3: Error injection propagation on write
+        disk.set_inject_error(true);
+        assert_eq!(
+            sb.write_to_device(&mut disk, &reservation),
+            Err(StorageError::IoError)
+        );
+        assert_eq!(
+            RaidSuperblock::read_from_device(&mut disk, &reservation),
+            Err(StorageError::IoError)
+        );
+        disk.set_inject_error(false);
+
+        // Fail-Closed Check 4: Corrupted metadata on disk fails closed
+        let corrupt_data = [0xFFu8; SECTOR_SIZE];
+        let meta_lba = reservation.absolute_metadata_lba().unwrap();
+        disk.write_sectors(meta_lba, 1, &corrupt_data).unwrap();
+        assert_eq!(
+            RaidSuperblock::read_from_device(&mut disk, &reservation),
+            Err(StorageError::CorruptedMetadata)
+        );
+
+        // Fail-Closed Check 5: from_verified_partition integration and full sector invariance
+        let mut verified_disk = MemBlockDevice::<{ 256 * SECTOR_SIZE }>::new();
+        // Fill all sectors with unique known byte patterns to verify strict invariance
+        for s in 0..256u64 {
+            let pattern = [(s & 0xFF) as u8; SECTOR_SIZE];
+            verified_disk.write_sectors(s, 1, &pattern).unwrap();
+        }
+
+        // Negative Test 1: Reject Empty partition
+        let empty_part = Partition {
+            part_num: 1,
+            part_type: PartitionType::Empty,
+            start_lba: 100,
+            sector_count: 50,
+            bootable: false,
+        };
+        assert_eq!(
+            DedicatedPartitionReservation::from_verified_partition(&empty_part, 1, 4),
+            Err(StorageError::InvalidParameter)
+        );
+
+        // Negative Test 2: Reject EFI System partition (protecting bootloader)
+        let efi_part = Partition {
+            part_num: 1,
+            part_type: PartitionType::EfiSystem,
+            start_lba: 100,
+            sector_count: 50,
+            bootable: false,
+        };
+        assert_eq!(
+            DedicatedPartitionReservation::from_verified_partition(&efi_part, 1, 4),
+            Err(StorageError::InvalidParameter)
+        );
+
+        // Negative Test 3: Reject non-RAID data partitions (Fat32, LinuxNative, GptGenericData)
+        // to prevent accidental overwrite of existing user filesystems!
+        let fat_part = Partition {
+            part_num: 2,
+            part_type: PartitionType::Fat32,
+            start_lba: 100,
+            sector_count: 50,
+            bootable: false,
+        };
+        assert_eq!(
+            DedicatedPartitionReservation::from_verified_partition(&fat_part, 1, 4),
+            Err(StorageError::InvalidParameter)
+        );
+
+        let data_part = Partition {
+            part_num: 3,
+            part_type: PartitionType::LinuxNative,
+            start_lba: 100,
+            sector_count: 50,
+            bootable: false,
+        };
+        assert_eq!(
+            DedicatedPartitionReservation::from_verified_partition(&data_part, 1, 4),
+            Err(StorageError::InvalidParameter)
+        );
+
+        let gpt_generic_part = Partition {
+            part_num: 4,
+            part_type: PartitionType::GptGenericData,
+            start_lba: 100,
+            sector_count: 50,
+            bootable: false,
+        };
+        assert_eq!(
+            DedicatedPartitionReservation::from_verified_partition(&gpt_generic_part, 1, 4),
+            Err(StorageError::InvalidParameter)
+        );
+
+        // Positive Test: Authorize dedicated RaidMember partition
+        let raid_member_part = Partition {
+            part_num: 1,
+            part_type: PartitionType::RaidMember,
+            start_lba: 100,
+            sector_count: 50,
+            bootable: false,
+        };
+        let verified_res = DedicatedPartitionReservation::from_verified_partition(
+            &raid_member_part,
+            1, // metadata at LBA 101
+            4, // data at LBA 104
+        )
+        .unwrap();
+        assert_eq!(verified_res.absolute_metadata_lba().unwrap(), 101);
+        assert_eq!(verified_res.absolute_data_start_lba().unwrap(), 104);
+
+        let v_sb = RaidSuperblock {
+            version: RAID_SUPERBLOCK_VERSION_1,
+            raid_type: RaidType::Raid1,
+            generation: 1,
+            array_uuid: [0x77; 16],
+            member_uuid: [0x88; 16],
+            member_index: 0,
+            member_count: 2,
+            stripe_sectors: 0,
+            array_capacity_sectors: 46,
+            member_usable_sectors: 46,
+            data_start_lba: 104,
+            state: RaidMetadataState::ActiveClean,
+        };
+
+        // Write superblock
+        assert_eq!(
+            v_sb.write_to_device(&mut verified_disk, &verified_res),
+            Ok(())
+        );
+
+        // INVARIANCE VERIFICATION: Every single sector on disk EXCEPT LBA 101 MUST remain 100% unchanged!
+        for s in 0..256u64 {
+            let mut sec = [0u8; SECTOR_SIZE];
+            verified_disk.read_sectors(s, 1, &mut sec).unwrap();
+            let expected_byte = (s & 0xFF) as u8;
+            if s == 101 {
+                // Sektor 101 adalah target metadata yang ditulis
+                assert_eq!(&sec[0..8], RAID_SUPERBLOCK_MAGIC);
+            } else {
+                // Seluruh sektor lain (termasuk LBA 0 MBR, LBA 1..34 GPT, dan data) TIDAK TERUBAH
+                assert!(
+                    sec.iter().all(|&b| b == expected_byte),
+                    "Sektor {} tercemar!",
+                    s
+                );
+            }
+        }
+
+        // Test RaidInitializationPolicy collision protection
+        // Attempting to initialize over an already valid array member with CreateNewArraySafe MUST fail closed!
+        assert_eq!(
+            v_sb.initialize_member(
+                &mut verified_disk,
+                &verified_res,
+                RaidInitializationPolicy::CreateNewArraySafe
+            ),
+            Err(StorageError::AlreadyExists)
+        );
+
+        // Operational Update Tests:
+        // 1. Generation progression enforced: updating with equal generation fails closed
+        assert_eq!(
+            v_sb.update_operational_member(&mut verified_disk, &verified_res),
+            Err(StorageError::InvalidParameter)
+        );
+
+        // 2. Mismatched Array UUID rejected
+        let mut alien_sb = v_sb;
+        alien_sb.array_uuid = [0x99; 16];
+        alien_sb.generation = 2;
+        assert_eq!(
+            alien_sb.update_operational_member(&mut verified_disk, &verified_res),
+            Err(StorageError::CorruptedMetadata)
+        );
+
+        // 3. Valid operational update (newer generation) succeeds with verified readback
+        let mut updated_sb = v_sb;
+        updated_sb.generation = 2;
+        updated_sb.state = RaidMetadataState::Degraded;
+        assert_eq!(
+            updated_sb.update_operational_member(&mut verified_disk, &verified_res),
+            Ok(())
+        );
+        let readback = RaidSuperblock::read_from_device(&mut verified_disk, &verified_res).unwrap();
+        assert_eq!(readback, updated_sb);
+
+        // 4. Fault Injection during Operational Update:
+        // Error injected on write must fail closed and NOT report success
+        verified_disk.set_inject_error(true);
+        let mut next_sb = updated_sb;
+        next_sb.generation = 3;
+        assert_eq!(
+            next_sb.update_operational_member(&mut verified_disk, &verified_res),
+            Err(StorageError::IoError)
+        );
+        verified_disk.set_inject_error(false);
+    }
+
+    #[test]
+    fn test_raid_metadata_operational_update_fault_injection_and_readback_tamper() {
+        let mut disk = MemBlockDevice::<{ 256 * SECTOR_SIZE }>::new();
+        let res = DedicatedPartitionReservation::new(64, 100, 1, 8).unwrap();
+
+        let initial_sb = RaidSuperblock {
+            version: RAID_SUPERBLOCK_VERSION_1,
+            raid_type: RaidType::Raid1,
+            generation: 10,
+            array_uuid: [0x33; 16],
+            member_uuid: [0x44; 16],
+            member_index: 0,
+            member_count: 2,
+            stripe_sectors: 0,
+            array_capacity_sectors: 92,
+            member_usable_sectors: 92,
+            data_start_lba: 72,
+            state: RaidMetadataState::ActiveClean,
+        };
+
+        // Initialize clean member
+        assert_eq!(
+            initial_sb.initialize_member(
+                &mut disk,
+                &res,
+                RaidInitializationPolicy::CreateNewArraySafe
+            ),
+            Ok(())
+        );
+
+        // Fault Injection 1: Flush failure propagation
+        // Inject error right during flush, verify error returned and state not falsely claimed
+        disk.set_inject_error(true);
+        let mut update_sb = initial_sb;
+        update_sb.generation = 11;
+        assert_eq!(
+            update_sb.update_operational_member(&mut disk, &res),
+            Err(StorageError::IoError)
+        );
+        disk.set_inject_error(false);
+
+        // Fault Injection 2: Read-back mismatch / sector tamper detection
+        // Create an instrumented custom test device that writes a corrupted or old byte to disk
+        // despite returning Ok from write_sectors, simulating media bit-rot during commit
+        struct TamperingBlockDevice {
+            inner: MemBlockDevice<{ 256 * SECTOR_SIZE }>,
+            tamper_target_lba: u64,
+        }
+        impl BlockDevice for TamperingBlockDevice {
+            fn total_sectors(&self) -> u64 {
+                self.inner.total_sectors()
+            }
+            fn read_sectors(
+                &mut self,
+                start_lba: u64,
+                sectors: u32,
+                buf: &mut [u8],
+            ) -> StorageResult<()> {
+                self.inner.read_sectors(start_lba, sectors, buf)
+            }
+            fn write_sectors(
+                &mut self,
+                start_lba: u64,
+                sectors: u32,
+                buf: &[u8],
+            ) -> StorageResult<()> {
+                self.inner.write_sectors(start_lba, sectors, buf)?;
+                // Corrupt the target sector immediately to simulate write verification failure
+                if start_lba <= self.tamper_target_lba
+                    && (start_lba + sectors as u64) > self.tamper_target_lba
+                {
+                    let offset = (self.tamper_target_lba as usize) * SECTOR_SIZE;
+                    self.inner.storage[offset + 25] ^= 0xFF; // Invert a byte in generation field
+                }
+                Ok(())
+            }
+            fn flush(&mut self) -> StorageResult<()> {
+                self.inner.flush()
+            }
+        }
+
+        let mut tamper_dev = TamperingBlockDevice {
+            inner: MemBlockDevice::<{ 256 * SECTOR_SIZE }>::new(),
+            tamper_target_lba: res.absolute_metadata_lba().unwrap(),
+        };
+
+        // Initialize onto tamper_dev (tampering disabled during init by pointing target out of range)
+        tamper_dev.tamper_target_lba = 999;
+        assert_eq!(
+            initial_sb.initialize_member(
+                &mut tamper_dev,
+                &res,
+                RaidInitializationPolicy::CreateNewArraySafe
+            ),
+            Ok(())
+        );
+
+        // Enable tampering at the metadata LBA
+        tamper_dev.tamper_target_lba = res.absolute_metadata_lba().unwrap();
+        let mut update_fail = initial_sb;
+        update_fail.generation = 12;
+
+        // update_operational_member MUST detect the read-back discrepancy and reject with CorruptedMetadata!
+        assert_eq!(
+            update_fail.update_operational_member(&mut tamper_dev, &res),
+            Err(StorageError::CorruptedMetadata)
+        );
+
+        // Fault Injection 3: Partial RAID 1 Member Update Simulation
+        // Member 0 succeeds update, Member 1 fails I/O.
+        // Verify that the error is propagated and no false global clean state is reported.
+        let mut member0_disk = MemBlockDevice::<{ 256 * SECTOR_SIZE }>::new();
+        let mut member1_disk = MemBlockDevice::<{ 256 * SECTOR_SIZE }>::new();
+        let res0 = DedicatedPartitionReservation::new(64, 100, 1, 8).unwrap();
+        let res1 = DedicatedPartitionReservation::new(64, 100, 1, 8).unwrap();
+
+        let mut sb0 = initial_sb;
+        sb0.member_index = 0;
+        let mut sb1 = initial_sb;
+        sb1.member_index = 1;
+        sb1.member_uuid = [0x55; 16];
+
+        assert_eq!(
+            sb0.initialize_member(
+                &mut member0_disk,
+                &res0,
+                RaidInitializationPolicy::CreateNewArraySafe
+            ),
+            Ok(())
+        );
+        assert_eq!(
+            sb1.initialize_member(
+                &mut member1_disk,
+                &res1,
+                RaidInitializationPolicy::CreateNewArraySafe
+            ),
+            Ok(())
+        );
+
+        // Inject error only on member 1
+        member1_disk.set_inject_error(true);
+
+        let mut next_gen_sb0 = sb0;
+        next_gen_sb0.generation = 11;
+        let mut next_gen_sb1 = sb1;
+        next_gen_sb1.generation = 11;
+
+        let res_update0 = next_gen_sb0.update_operational_member(&mut member0_disk, &res0);
+        let res_update1 = next_gen_sb1.update_operational_member(&mut member1_disk, &res1);
+
+        assert_eq!(res_update0, Ok(()));
+        assert_eq!(res_update1, Err(StorageError::IoError));
+
+        // Proves: Member 0 updated to generation 11, but Member 1 remains at generation 10.
+        // A multi-disk coordinator must NOT declare the array universally clean when one member failed.
+        let m0_current = RaidSuperblock::read_from_device(&mut member0_disk, &res0).unwrap();
+        member1_disk.set_inject_error(false);
+        let m1_current = RaidSuperblock::read_from_device(&mut member1_disk, &res1).unwrap();
+
+        assert_eq!(m0_current.generation, 11);
+        assert_eq!(m1_current.generation, 10);
+        assert_eq!(
+            RaidSuperblock::compare_generation(m0_current.generation, m1_current.generation),
+            GenerationOrder::Newer
+        );
+    }
+
+    #[test]
+    fn test_gpt_raw_entry_linux_raid_guid_positive_and_negative() {
+        let mut dev = MemBlockDevice::<{ 1024 * SECTOR_SIZE }>::new();
+
+        let mut gpt_hdr = [0u8; SECTOR_SIZE];
+        gpt_hdr[0..8].copy_from_slice(GPT_SIGNATURE);
+        gpt_hdr[12..16].copy_from_slice(&92u32.to_le_bytes()); // Header size 92
+        gpt_hdr[24..32].copy_from_slice(&1u64.to_le_bytes()); // My LBA 1
+        gpt_hdr[40..48].copy_from_slice(&34u64.to_le_bytes()); // First usable LBA 34
+        gpt_hdr[48..56].copy_from_slice(&1000u64.to_le_bytes()); // Last usable LBA 1000
+        gpt_hdr[72..80].copy_from_slice(&2u64.to_le_bytes()); // Partition entries LBA 2
+        gpt_hdr[80..84].copy_from_slice(&32u32.to_le_bytes()); // Num entries 32
+        gpt_hdr[84..88].copy_from_slice(&128u32.to_le_bytes()); // Entry size 128
+
+        // Compute and store valid CRC32
+        let computed = partition::crc32(&gpt_hdr[..92]);
+        gpt_hdr[16..20].copy_from_slice(&computed.to_le_bytes());
+
+        // Construct 2 partition entries at LBA 2:
+        // Entry 1 (0..128): Positive test with exact GPT_GUID_LINUX_RAID
+        // Entry 2 (128..256): Negative test with generic Linux native data GUID
+        let mut part_entries = [0u8; SECTOR_SIZE];
+
+        // Entry 1: Linux RAID partition GUID
+        part_entries[0..16].copy_from_slice(&GPT_GUID_LINUX_RAID);
+        part_entries[32..40].copy_from_slice(&100u64.to_le_bytes()); // First LBA 100
+        part_entries[40..48].copy_from_slice(&200u64.to_le_bytes()); // Last LBA 200
+
+        // Entry 2: Different GUID (e.g. Linux native filesystem: 0FC63DAF-8483-4772-8E79-3D69D8477DE4)
+        let linux_data_guid: [u8; 16] = [
+            0xAF, 0x3D, 0xC6, 0x0F, 0x83, 0x84, 0x72, 0x47, 0x8E, 0x79, 0x3D, 0x69, 0xD8, 0x47,
+            0x7D, 0xE4,
+        ];
+        part_entries[128..144].copy_from_slice(&linux_data_guid);
+        part_entries[160..168].copy_from_slice(&201u64.to_le_bytes()); // First LBA 201
+        part_entries[168..176].copy_from_slice(&300u64.to_le_bytes()); // Last LBA 300
+
+        dev.write_sectors(1, 1, &gpt_hdr).unwrap();
+        dev.write_sectors(2, 1, &part_entries).unwrap();
+
+        let table = PartitionTable::parse(&mut dev).unwrap();
+        assert_eq!(table.is_gpt, true);
+        assert_eq!(table.count, 2);
+
+        // Entry 1 MUST be recognized as PartitionType::RaidMember
+        assert_eq!(table.partitions[0].part_type, PartitionType::RaidMember);
+        assert_eq!(table.partitions[0].start_lba, 100);
+        assert_eq!(table.partitions[0].sector_count, 101);
+
+        // Entry 2 MUST be classified as generic data (NOT RaidMember)
+        assert_eq!(table.partitions[1].part_type, PartitionType::GptGenericData);
+        assert_eq!(table.partitions[1].start_lba, 201);
+        assert_eq!(table.partitions[1].sector_count, 100);
+
+        // Verify that from_verified_partition allows Entry 1 and rejects Entry 2
+        assert!(
+            DedicatedPartitionReservation::from_verified_partition(&table.partitions[0], 1, 4)
+                .is_ok()
+        );
+        assert_eq!(
+            DedicatedPartitionReservation::from_verified_partition(&table.partitions[1], 1, 4),
+            Err(StorageError::InvalidParameter)
         );
     }
 }

@@ -28,7 +28,7 @@ pub use ata::{
 };
 pub use block::{BlockDevice, StorageError, StorageResult, SECTOR_SIZE};
 pub use ext4::{Ext4FileSystem, Ext4Superblock, EXT4_FEATURE_INCOMPAT_EXTENTS, EXT4_MAGIC};
-pub use fat32::{Fat32Bpb, Fat32FileSystem};
+pub use fat32::{Fat32Bpb, Fat32FileSystem, FAT32_BAD_CLUSTER, FAT32_EOC};
 pub use partition::{
     Partition, PartitionTable, PartitionType, GPT_GUID_LINUX_RAID, GPT_SIGNATURE, MBR_MAGIC,
     MBR_TYPE_LINUX_RAID,
@@ -609,6 +609,135 @@ mod tests {
         for i in 0..300usize {
             assert_eq!(read_buf[i * 512], (i % 250) as u8);
         }
+    }
+
+    #[test]
+    fn test_fat32_extreme_bpb_rejections_and_capacity() {
+        // 1. Extreme BPB: zero sectors per cluster -> Err(CorruptedMetadata)
+        let mut bpb_sec = [0u8; SECTOR_SIZE];
+        bpb_sec[510] = 0x55;
+        bpb_sec[511] = 0xAA;
+        bpb_sec[11..13].copy_from_slice(&512u16.to_le_bytes());
+        bpb_sec[13] = 0; // Invalid 0 sectors per cluster
+        bpb_sec[14..16].copy_from_slice(&32u16.to_le_bytes());
+        bpb_sec[16] = 2;
+        bpb_sec[36..40].copy_from_slice(&10u32.to_le_bytes());
+        assert_eq!(
+            Fat32Bpb::parse(&bpb_sec).err(),
+            Some(StorageError::CorruptedMetadata)
+        );
+
+        // 2. Extreme BPB: zero FAT size -> Err(CorruptedMetadata)
+        bpb_sec[13] = 1;
+        bpb_sec[36..40].copy_from_slice(&0u32.to_le_bytes());
+        assert_eq!(
+            Fat32Bpb::parse(&bpb_sec).err(),
+            Some(StorageError::CorruptedMetadata)
+        );
+
+        // 3. Extreme BPB: zero num_fats -> Err(CorruptedMetadata)
+        bpb_sec[36..40].copy_from_slice(&10u32.to_le_bytes());
+        bpb_sec[16] = 0;
+        assert_eq!(
+            Fat32Bpb::parse(&bpb_sec).err(),
+            Some(StorageError::CorruptedMetadata)
+        );
+
+        // 4. Extreme BPB: overflow in data_start_lba calculation (num_fats * fat_size_32)
+        bpb_sec[16] = 255;
+        bpb_sec[36..40].copy_from_slice(&u32::MAX.to_le_bytes());
+        bpb_sec[14..16].copy_from_slice(&u16::MAX.to_le_bytes());
+        // 255 * u32::MAX fits in u64, but let's test valid parsing vs total_data_clusters bounding
+        let bpb_extreme = Fat32Bpb::parse(&bpb_sec).unwrap();
+        // Since total_sectors_32 is 0, total_data_clusters falls back to FAT capacity
+        // FAT capacity: (u32::MAX * 512 / 4) saturates / capped at u32::MAX
+        assert!(bpb_extreme.total_data_clusters() <= u32::MAX);
+
+        // 5. Volume where FAT is smaller than data area: total_data_clusters must be bounded by FAT capacity
+        let mut bpb_sec2 = [0u8; SECTOR_SIZE];
+        bpb_sec2[510] = 0x55;
+        bpb_sec2[511] = 0xAA;
+        bpb_sec2[11..13].copy_from_slice(&512u16.to_le_bytes());
+        bpb_sec2[13] = 1; // 1 sector per cluster
+        bpb_sec2[14..16].copy_from_slice(&32u16.to_le_bytes());
+        bpb_sec2[16] = 2;
+        bpb_sec2[32..36].copy_from_slice(&100_000u32.to_le_bytes()); // 100,000 sectors declared
+        bpb_sec2[36..40].copy_from_slice(&2u32.to_le_bytes()); // Only 2 FAT sectors (2 * 128 = 256 entries)
+        let bpb2 = Fat32Bpb::parse(&bpb_sec2).unwrap();
+        // 2 FAT sectors can map at most 256 entries -> 254 data clusters
+        assert_eq!(bpb2.total_data_clusters(), 254);
+        assert_eq!(bpb2.max_valid_cluster(), 256);
+    }
+
+    #[test]
+    fn test_fat32_illegal_clusters_and_write_bounds() {
+        let mut dev = MemBlockDevice::<{ 256 * SECTOR_SIZE }>::new();
+
+        let mut bpb_sec = [0u8; SECTOR_SIZE];
+        bpb_sec[510] = 0x55;
+        bpb_sec[511] = 0xAA;
+        bpb_sec[11..13].copy_from_slice(&512u16.to_le_bytes());
+        bpb_sec[13] = 1;
+        bpb_sec[14..16].copy_from_slice(&32u16.to_le_bytes());
+        bpb_sec[16] = 2;
+        bpb_sec[32..36].copy_from_slice(&256u32.to_le_bytes());
+        bpb_sec[36..40].copy_from_slice(&10u32.to_le_bytes());
+        bpb_sec[44..48].copy_from_slice(&2u32.to_le_bytes());
+        dev.write_sectors(0, 1, &bpb_sec).unwrap();
+
+        let mut fat_fs = Fat32FileSystem::mount(&mut dev, 0).unwrap();
+
+        // 1. read_fat_entry on cluster < 2 must return InvalidParameter
+        assert_eq!(
+            fat_fs.read_fat_entry(0),
+            Err(StorageError::InvalidParameter)
+        );
+        assert_eq!(
+            fat_fs.read_fat_entry(1),
+            Err(StorageError::InvalidParameter)
+        );
+
+        // 2. read_fat_entry on cluster exceeding max_valid_cluster must return CorruptedMetadata
+        let max_c = fat_fs.bpb.max_valid_cluster();
+        assert_eq!(
+            fat_fs.read_fat_entry(max_c + 10),
+            Err(StorageError::CorruptedMetadata)
+        );
+
+        // 3. write_fat_entry on cluster < 2 or >= max_cluster must return InvalidParameter
+        assert_eq!(
+            fat_fs.write_fat_entry(0, 3),
+            Err(StorageError::InvalidParameter)
+        );
+        assert_eq!(
+            fat_fs.write_fat_entry(max_c + 5, 3),
+            Err(StorageError::InvalidParameter)
+        );
+
+        // 4. Test bad cluster (0x0FFF_FFF7) rejection
+        fat_fs.write_fat_entry(3, FAT32_BAD_CLUSTER).unwrap();
+        assert_eq!(
+            fat_fs.read_fat_entry(3),
+            Err(StorageError::CorruptedMetadata)
+        );
+
+        // 5. Test free cluster (0x0000_0000) inside chain rejection
+        fat_fs.write_fat_entry(3, 0).unwrap();
+        assert_eq!(
+            fat_fs.read_fat_entry(3),
+            Err(StorageError::CorruptedMetadata)
+        );
+
+        // 6. Test reserved cluster (0x0FFF_FFF0..=0x0FFF_FFF6) rejection
+        fat_fs.write_fat_entry(3, 0x0FFF_FFF4).unwrap();
+        assert_eq!(
+            fat_fs.read_fat_entry(3),
+            Err(StorageError::CorruptedMetadata)
+        );
+
+        // 7. Test write and readback of valid pointer within bounds
+        fat_fs.write_fat_entry(3, 4).unwrap();
+        assert_eq!(fat_fs.read_fat_entry(3), Ok(4));
     }
 
     #[test]

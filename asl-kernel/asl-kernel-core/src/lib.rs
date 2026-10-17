@@ -641,10 +641,12 @@ pub unsafe extern "C" fn _asl_kernel_entry(handover_ptr: *const AslBootHandover)
                     let fb_cfg = &handover.framebuffer;
                     if fb_cfg.base_physical_addr != 0 {
                         let fb = core::ptr::addr_of_mut!(FB_CONSOLE);
-                        let pitch_bytes =
-                            (fb_cfg.pixels_per_scan_line as usize) * (fb_cfg.bytes_per_pixel as usize);
+                        let pitch_bytes = (fb_cfg.pixels_per_scan_line as usize)
+                            * (fb_cfg.bytes_per_pixel as usize);
+                        // Map physical framebuffer address into Higher Half Direct Map (HHDM) virtual address space
+                        let virt_addr = HHDM_OFFSET + (fb_cfg.base_physical_addr as usize);
                         (*fb).init(
-                            fb_cfg.base_physical_addr as usize,
+                            virt_addr,
                             fb_cfg.width as usize,
                             fb_cfg.height as usize,
                             pitch_bytes,

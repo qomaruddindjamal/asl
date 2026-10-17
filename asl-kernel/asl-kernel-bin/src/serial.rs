@@ -59,7 +59,9 @@ impl SerialPort {
 
     pub fn is_transmit_empty(&self) -> bool {
         #[cfg(target_arch = "x86_64")]
-        unsafe { (inb(COM1_PORT + 5) & 0x20) != 0 }
+        unsafe {
+            (inb(COM1_PORT + 5) & 0x20) != 0
+        }
 
         #[cfg(target_arch = "aarch64")]
         unsafe {

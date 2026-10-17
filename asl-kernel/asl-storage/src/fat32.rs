@@ -69,7 +69,12 @@ impl Fat32Bpb {
         }
 
         let fat_start_lba = reserved_sectors as u64;
-        let data_start_lba = fat_start_lba + (num_fats as u64 * fat_size_32 as u64);
+        let total_fat_sectors = (num_fats as u64)
+            .checked_mul(fat_size_32 as u64)
+            .ok_or(StorageError::CorruptedMetadata)?;
+        let data_start_lba = fat_start_lba
+            .checked_add(total_fat_sectors)
+            .ok_or(StorageError::CorruptedMetadata)?;
 
         Ok(Self {
             bytes_per_sector,
@@ -91,15 +96,22 @@ impl Fat32Bpb {
         if self.sectors_per_cluster == 0 {
             return 0;
         }
+        // Maximum entries the FAT table itself can address
+        let fat_entries = ((self.fat_size_32 as u64) * 512) / 4;
+        let fat_capacity_clusters = fat_entries.saturating_sub(2);
+
         let total_sec = self.total_sectors_32 as u64;
         if total_sec <= self.data_start_lba {
             // Fallback for disk images where total_sectors_32 was not populated in the boot sector:
             // bound by the addressable capacity of the FAT table itself
-            let fat_entries = (self.fat_size_32 as u64 * 512) / 4;
-            return fat_entries.saturating_sub(2) as u32;
+            return core::cmp::min(fat_capacity_clusters, u32::MAX as u64) as u32;
         }
         let data_sectors = total_sec - self.data_start_lba;
-        (data_sectors / self.sectors_per_cluster as u64) as u32
+        let volume_clusters = data_sectors / (self.sectors_per_cluster as u64);
+
+        // A valid volume cannot have more usable clusters than its FAT can map
+        let bounded_clusters = core::cmp::min(volume_clusters, fat_capacity_clusters);
+        core::cmp::min(bounded_clusters, u32::MAX as u64) as u32
     }
 
     /// Upper bound for cluster index (first data cluster is 2, last is 2 + total_data_clusters)
@@ -205,8 +217,22 @@ impl<'a, B: BlockDevice> Fat32FileSystem<'a, B> {
 
     /// Write FAT entry into FAT table (for allocating and extending files)
     pub fn write_fat_entry(&mut self, cluster: u32, next_cluster: u32) -> StorageResult<()> {
-        let fat_offset = (cluster as u64) * 4;
-        let fat_sector = self.partition_start_lba + self.bpb.fat_start_lba + (fat_offset / 512);
+        if cluster < 2 {
+            return Err(StorageError::InvalidParameter);
+        }
+        let max_cluster = self.bpb.max_valid_cluster();
+        if max_cluster > 2 && cluster >= max_cluster {
+            return Err(StorageError::InvalidParameter);
+        }
+
+        let fat_offset = (cluster as u64)
+            .checked_mul(4)
+            .ok_or(StorageError::InvalidLba)?;
+        let fat_sector = self
+            .partition_start_lba
+            .checked_add(self.bpb.fat_start_lba)
+            .and_then(|lba| lba.checked_add(fat_offset / 512))
+            .ok_or(StorageError::InvalidLba)?;
         let entry_offset = (fat_offset % 512) as usize;
 
         let mut sector_buf = [0u8; SECTOR_SIZE];
@@ -225,7 +251,9 @@ impl<'a, B: BlockDevice> Fat32FileSystem<'a, B> {
 
         // Update all FAT copies
         for f in 0..self.bpb.num_fats {
-            let cur_fat_sector = fat_sector + (f as u64 * self.bpb.fat_size_32 as u64);
+            let cur_fat_sector = fat_sector
+                .checked_add((f as u64) * (self.bpb.fat_size_32 as u64))
+                .ok_or(StorageError::InvalidLba)?;
             self.device.write_sectors(cur_fat_sector, 1, &sector_buf)?;
         }
         Ok(())

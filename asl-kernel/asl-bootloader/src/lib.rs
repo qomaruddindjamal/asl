@@ -181,7 +181,17 @@ impl AslBootHandover {
         // Validasi Framebuffer Config jika diaktifkan (base_physical_addr != 0)
         let fb = &self.framebuffer;
         if fb.base_physical_addr != 0 {
-            if fb.width == 0 || fb.height == 0 || fb.pixels_per_scan_line == 0 || fb.bytes_per_pixel == 0 {
+            if fb.base_physical_addr < 0x1000 {
+                return Err("ERR_FRAMEBUFFER_BASE_BELOW_MINIMUM");
+            }
+            if fb.base_physical_addr % 4 != 0 {
+                return Err("ERR_FRAMEBUFFER_BASE_UNALIGNED");
+            }
+            if fb.width == 0
+                || fb.height == 0
+                || fb.pixels_per_scan_line == 0
+                || fb.bytes_per_pixel == 0
+            {
                 return Err("ERR_INVALID_FRAMEBUFFER_DIMENSIONS");
             }
             if fb.bytes_per_pixel != 2 && fb.bytes_per_pixel != 3 && fb.bytes_per_pixel != 4 {
@@ -190,10 +200,11 @@ impl AslBootHandover {
             if fb.pixels_per_scan_line < fb.width {
                 return Err("ERR_FRAMEBUFFER_STRIDE_LESS_THAN_WIDTH");
             }
-            let pitch = match (fb.pixels_per_scan_line as u64).checked_mul(fb.bytes_per_pixel as u64) {
-                Some(p) => p,
-                None => return Err("ERR_FRAMEBUFFER_PITCH_OVERFLOW"),
-            };
+            let pitch =
+                match (fb.pixels_per_scan_line as u64).checked_mul(fb.bytes_per_pixel as u64) {
+                    Some(p) => p,
+                    None => return Err("ERR_FRAMEBUFFER_PITCH_OVERFLOW"),
+                };
             let required_bytes = match pitch.checked_mul(fb.height as u64) {
                 Some(bytes) => bytes,
                 None => return Err("ERR_FRAMEBUFFER_SIZE_OVERFLOW"),
@@ -204,6 +215,13 @@ impl AslBootHandover {
             };
             if fb_end > MAX_PHYSICAL_ADDRESS_LIMIT {
                 return Err("ERR_FRAMEBUFFER_EXCEEDS_PHYSICAL_LIMIT");
+            }
+
+            // Mencegah collision/overlap antara framebuffer memory range dan kernel physical image
+            let k_start = self.kernel_physical_base;
+            let k_end = kernel_phys_end;
+            if !(fb_end <= k_start || fb.base_physical_addr >= k_end) {
+                return Err("ERR_FRAMEBUFFER_OVERLAPS_KERNEL_MEMORY");
             }
         }
 
@@ -360,7 +378,10 @@ mod tests {
         // Negative: Zero width
         let mut h_zero_w = h.clone();
         h_zero_w.framebuffer.width = 0;
-        assert_eq!(h_zero_w.validate(), Err("ERR_INVALID_FRAMEBUFFER_DIMENSIONS"));
+        assert_eq!(
+            h_zero_w.validate(),
+            Err("ERR_INVALID_FRAMEBUFFER_DIMENSIONS")
+        );
 
         // Negative: Unsupported BPP (e.g. 1 byte per pixel)
         let mut h_bad_bpp = h.clone();
@@ -370,16 +391,46 @@ mod tests {
         // Negative: Stride less than width
         let mut h_bad_stride = h.clone();
         h_bad_stride.framebuffer.pixels_per_scan_line = 800; // < 1024 width
-        assert_eq!(h_bad_stride.validate(), Err("ERR_FRAMEBUFFER_STRIDE_LESS_THAN_WIDTH"));
+        assert_eq!(
+            h_bad_stride.validate(),
+            Err("ERR_FRAMEBUFFER_STRIDE_LESS_THAN_WIDTH")
+        );
 
         // Negative: Framebuffer physical address overflow
         let mut h_overflow = h.clone();
-        h_overflow.framebuffer.base_physical_addr = u64::MAX - 100;
-        assert_eq!(h_overflow.validate(), Err("ERR_FRAMEBUFFER_PHYSICAL_RANGE_OVERFLOW"));
+        h_overflow.framebuffer.base_physical_addr = u64::MAX - 3; // 4-byte aligned (ends in 0x...FFFC)
+        assert_eq!(
+            h_overflow.validate(),
+            Err("ERR_FRAMEBUFFER_PHYSICAL_RANGE_OVERFLOW")
+        );
 
         // Negative: Exceeds 52-bit physical limit
         let mut h_limit = h.clone();
         h_limit.framebuffer.base_physical_addr = 0x0010_0000_0000_0000;
-        assert_eq!(h_limit.validate(), Err("ERR_FRAMEBUFFER_EXCEEDS_PHYSICAL_LIMIT"));
+        assert_eq!(
+            h_limit.validate(),
+            Err("ERR_FRAMEBUFFER_EXCEEDS_PHYSICAL_LIMIT")
+        );
+
+        // Negative: Address below 0x1000 minimum
+        let mut h_low = h.clone();
+        h_low.framebuffer.base_physical_addr = 0x800;
+        assert_eq!(h_low.validate(), Err("ERR_FRAMEBUFFER_BASE_BELOW_MINIMUM"));
+
+        // Negative: Unaligned base address (not 4-byte aligned)
+        let mut h_unaligned = h.clone();
+        h_unaligned.framebuffer.base_physical_addr = 0xE000_0003;
+        assert_eq!(
+            h_unaligned.validate(),
+            Err("ERR_FRAMEBUFFER_BASE_UNALIGNED")
+        );
+
+        // Negative: Overlaps kernel image memory
+        let mut h_overlap = h.clone();
+        h_overlap.framebuffer.base_physical_addr = h_overlap.kernel_physical_base;
+        assert_eq!(
+            h_overlap.validate(),
+            Err("ERR_FRAMEBUFFER_OVERLAPS_KERNEL_MEMORY")
+        );
     }
 }

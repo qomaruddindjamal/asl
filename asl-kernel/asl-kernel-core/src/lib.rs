@@ -222,9 +222,7 @@ impl FbConsole {
                         }
                         for col in 0..8 {
                             let is_fg = (bits & (0x80 >> col)) != 0;
-                            let is_bold_fg = self.bold && col > 0 && ((bits & (0x80 >> (col - 1))) != 0);
-                            let active = is_fg || is_bold_fg;
-                            let color = if active { self.fg_color } else { self.bg_color };
+                            let color = if is_fg { self.fg_color } else { self.bg_color };
 
                             for sx in 0..self.scale {
                                 let px = self.cursor_x + col * self.scale + sx;
@@ -423,10 +421,9 @@ pub unsafe extern "C" fn _asl_kernel_entry(handover_ptr: *const AslBootHandover)
                     pitch_bytes,
                     (fb_cfg.bytes_per_pixel as usize) * 8,
                 );
-                (*fb).set_scale(2); // 2x Scaling: 16x32px per glyph for crisp readability on 1024x768
-                (*fb).set_bold(true); // Enhanced font weight
+                (*fb).set_scale(1); // Native 1:1 Pixel-Perfect 8x16 font rendering (ultra-sharp & clean)
                 (*fb).clear();
-                (*fb).cursor_y = 24; // Elegant top margin
+                (*fb).cursor_y = 16;
             }
         }
     }

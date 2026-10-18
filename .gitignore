@@ -152,3 +152,9 @@ vgcore.*
 /tools/
 **/tools/
 
+# Test runs and logs
+/logs/
+**/logs/
+/Python/
+**/Python/
+

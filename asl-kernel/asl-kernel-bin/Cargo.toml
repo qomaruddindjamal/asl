@@ -14,3 +14,7 @@ name = "asl-kernel"
 path = "src/main.rs"
 test = false
 bench = false
+
+[features]
+default = []
+test-gate3d = ["asl-kernel-core/test-gate3d"]

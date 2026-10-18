@@ -21,6 +21,12 @@ pub use dma_space::{
     IommuTranslationSpace, MpuFirewallDmaSpace,
 };
 
+pub mod x86_fault;
+pub use x86_fault::*;
+
+pub mod apic;
+pub use apic::*;
+
 use asl_bootloader::TargetArch;
 
 /// Trait pengontrol interupsi CPU (APIC/PIC di x86, GIC di ARM, PLIC di RISC-V, dsb.)

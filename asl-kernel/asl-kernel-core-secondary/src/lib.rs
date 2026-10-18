@@ -172,6 +172,17 @@ impl SecondaryCoreEngine {
     ) -> Result<RecoveryState, &'static str> {
         self.trigger_fault_recovery(FaultReason::SimulatedInjectedFault, 10_000, handover_ptr)
     }
+
+    /// Menerima notifikasi kegagalan/fault fatal dari primary kernel tanpa melakukan takeover (Failover Hook)
+    pub fn notify_fault(&mut self, reason: FaultReason, timestamp_ticks: u64) -> RecoveryState {
+        self.diagnostics.fault_reason = reason;
+        self.diagnostics.fault_timestamp_ticks = timestamp_ticks;
+        // Transisi ke FaultDetected untuk merekam anomali fatal tanpa mengambil alih kontrol
+        self.transition_to(RecoveryState::FaultDetected).ok();
+        self.diagnostics
+            .set_log("Fatal fault notification received from primary kernel. Standby armed, no takeover.");
+        self.state
+    }
 }
 
 #[cfg(test)]
@@ -280,5 +291,20 @@ mod tests {
         // Setelah primary kernel pulih atau reboot disiapkan, secondary core dapat di-rearm ke Standby
         assert_eq!(engine.transition_to(RecoveryState::Standby), Ok(()));
         assert_eq!(engine.state, RecoveryState::Standby);
+    }
+
+    #[test]
+    fn test_secondary_notify_fault_no_takeover() {
+        let mut engine = SecondaryCoreEngine::new();
+        assert_eq!(engine.state, RecoveryState::Standby);
+
+        let st = engine.notify_fault(FaultReason::IllegalHardwareTrap, 42_000);
+        assert_eq!(st, RecoveryState::FaultDetected);
+        assert_eq!(engine.state, RecoveryState::FaultDetected);
+        assert_eq!(engine.diagnostics.fault_reason, FaultReason::IllegalHardwareTrap);
+        assert_eq!(engine.diagnostics.fault_timestamp_ticks, 42_000);
+        // Memastikan secondary engine TIDAK mengambil alih (tidak Operational)
+        assert_ne!(engine.state, RecoveryState::Operational);
+        assert!(engine.diagnostics.message_str().contains("no takeover"));
     }
 }

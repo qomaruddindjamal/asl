@@ -36,6 +36,15 @@
             "result": "PASS",
             "evidence": ["asl-kernel/target/x86_64-unknown-none/release/asl-kernel = 211.672 bytes (2026-10-20)"],
             "notes": "README par.6 '~70 KB' adalah pengukuran v1.0.1 minimal-launcher; kini disinkronkan ke 211.672 B dengan penjelasan basis pengukuran. Register ALIGN-01 (CLOSED) juga disinkronkan ke README par.4 dan CANONICAL_MASTER Conflict 3."
+        },
+        {
+            "date": "2026-10-20T00:26:00Z",
+            "actor": "QODER (governance reconciliation agent)",
+            "type": "AGENT_SELF_INCIDENT",
+            "gate_id": "QODER-EXECUTION-LOG-INTEGRITY",
+            "result": "PASS",
+            "evidence": ["Analysis/reports/QODER_EXECUTION_LOG.md ADDENDUM entry (repaired)"],
+            "notes": "Addendum pertama QODER_EXECUTION_LOG.md rusak: string double-quoted shell menyebabkan backtick dieksekusi sebagai command substitution dan output git show tertanam ke file. Diperbaiki dengan memotong hanya entri addendum milik agen sendiri (entri sah EXECUTION PLAN + PHASE-1 REPORT tidak disentuh) lalu menuliskan ulang addendum bersih. Angka klaim user '340 test' tetap tidak terbukti; runner aktual 128."
         }
     ]
 }

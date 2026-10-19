@@ -1,6 +1,6 @@
-[build]
-target = "x86_64-unknown-none"
-
+# Catatan: tidak ada default [build] target — build bare-metal SELALU memakai
+# --target eksplisit (skrip/Makefile), sehingga `cargo test --workspace --lib`
+# berjalan di host target secara default.
 [target.x86_64-unknown-none]
 rustflags = [
     "-C", "link-arg=-Tlinker.ld",

@@ -196,12 +196,13 @@ asl-kernel/
 
 ## 5. REKOMENDASI TOOLCHAIN & TEKNOLOGI PENDUKUNG
 
+> **Rebaseline 2026-10-20 (ADR-001):** Rust adalah bahasa utama (primary) — 31 crate `#![no_std]` telah dibuktikan boot & lulus 128 test host. C/assembly turun status menjadi *jembatan FFI/vendor-toolchain per-arsitektur*, bukan bahasa utama kernel.
+
 | Domain | Teknologi yang Direkomendasikan | Alasan & Justifikasi |
 | :--- | :--- | :--- |
-| **Bahasa Pemrograman Utama** | **C23 / Modern C & Assembly Murni** | Portabilitas maksimum ke seluruh compiler (GCC, SDCC, Watcom, TI Code Composer, Tasking). |
-| **Komponen Aman (Safety-Critical)** | **Rust (Bare-metal `#![no_std]`)** | Digunakan pada core scheduler, IPC, dan memory safety layer untuk target Tier-1 (x86_64, ARM64, RISC-V). |
-| **Compiler Suite** | **LLVM / Clang 18+ & GNU GCC Multi-target** | Mendukung backend kompilasi ke sebagian besar arsitektur modern dan menengah. |
-| **Compiler Embedded / Retro** | **vbcc, ACK (Amsterdam Compiler Kit), SDCC** | Digunakan khusus saat mengompilasi sub-komponen untuk arsitektur 8-bit/16-bit kuno (6502, Z80, 68k). |
+| **Bahasa Pemrograman Utama** | **Rust (Bare-metal `#![no_std]`)** | Status AKTUAL: seluruh kernel, HAL, vault, scheduler, storage, driver ditulis Rust; memory safety + determinisme ARINC 653; 128 unit tests host lolos (lihat `docs/CANONICAL/ADR-001_LANGUAGE_STRATEGY.md`). |
+| **Jembatan Arsitektur Non-Rust** | **C23 / Assembly vendor (GCC, SDCC, vbcc, TI CCS, Tasking, HighTec)** | Hanya untuk target tanpa backend Rust (IA-64, TriCore, retro 8/16-bit, DSP vendor) melalui FFI/`extern "C"` di belakang trait `asl-hal`; tidak menambah dependency ke core. |
+| **Compiler Suite** | **rustc 1.80+ (LLVM) + rustup target add** | Target aktif: `x86_64-unknown-none` (runnable), `aarch64-unknown-none-softfloat` (build), host `x86_64-pc-windows-msvc` (test). |
 | **Automated Testing & Emulasi** | **QEMU Multi-Arch, Spike (RISC-V), Renode (IoT Multi-Node)** | Memungkinkan pengujian otomatis kernel terhadap puluhan arsitektur board secara simultan dalam pipeline CI/CD tanpa memerlukan rak hardware fisik. |
 
 ---

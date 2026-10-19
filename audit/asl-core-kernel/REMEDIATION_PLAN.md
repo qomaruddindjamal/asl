@@ -39,3 +39,21 @@
 1. Eksekusi pengujian simulasi Gem5 untuk memvalidasi zero-stale read pada `CacheMaintenanceOps` (penutupan penuh `DMA-CACHE-01`).
 2. Implementasi pembatasan `IdentityDmaSpace` compile-time error dan penegakan IOMMU translation space (`DMA-ADDR-01`).
 3. Pengukuran siklus WCET pada TSIM3 / board hardware GR712RC untuk menutup `ATOMIC-SPARC-01`.
+
+---
+
+## 4. PEMETAAN 10 RISIKO DEEP AUDIT (DA-01..DA-10) — ditambah 2026-10-20
+Sumber: `Analysis/reports/DEEP_AUDIT_REPORT.md` §6. Owner agen eksekusi: QODER (fase remediasi 1–3); jalur hardware tetap owner lead auditor.
+
+| ID | Severity | Lokasi / File Terdampak | Mitigasi | Status | Owner |
+| :--- | :---: | :--- | :--- | :---: | :--- |
+| **DA-01** | RENDAH | `asl-kernel/.cargo/config.toml` | Hapus default `[build] target`; host test jalan tanpa flag; konfigurasi terdokumentasi di `DEVELOPER_ONBOARDING.md` (Workspace Cargo Configuration Map) | **CLOSED (FIX-1, 2026-10-20; 128/128 PASS)** | QODER |
+| **DA-02** | KRITIS | `asl-pmd/src/lib.rs` (`transmit_burst`), `asl-hal/src/dma_space.rs` | Integrasi `DmaAddressSpace` + kontrak `IovaLease` (RND_08), backend bounce + VT-d | **IN-PROGRESS (FASE-3)** | QODER / lead auditor (hardware) |
+| **DA-03** | TINGGI | `asl-kernel-core/src/lib.rs:610` (`GLOBAL_SECONDARY_ENGINE`) | State machine atomik AtomicU8 + carve-out region engine di launcher; aman dari konteks fault/panic | **IN-PROGRESS (FASE-2)** | QODER |
+| **DA-04** | SEDANG | `asl-kernel-core/src/lib.rs` (panic_handler) | Halt aman + jalur reset/watchdog terdokumentasi; output diagnostik COM1 sebelum berhenti | **IN-PROGRESS (FASE-2 scope: halt aman + diagnostik; hardware reset line menunggu BSP)** | QODER |
+| **DA-05** | SEDANG | seluruh situs `read_volatile` MMIO (`asl-hal/mmio.rs`, driver) | Audit sequencing + `core::sync::atomic::fence` / serialization di jalur kritis | **PLANNED (FASE-3 follow-up)** | Lead auditor |
+| **DA-06** | TINGGI | `asl-kernel-core/src/lib.rs:731` (mapping HHDM FB) | Validasi range `base_physical_addr + size` terhadap memmap sebelum mapping; gagal → error serial + halt, tidak menulis FB | **IN-PROGRESS (FASE-2.4)** | QODER |
+| **DA-07** | TINGGI | `asl-kernel-bin/src/main.rs` (stack 512 KB), scheduler task stack | Guard page non-present di bawah stack; double-fault IST1 mencetak `STACK OVERFLOW` via COM1 lalu halt aman | **IN-PROGRESS (FASE-2.3)** | QODER |
+| **DA-08** | RENDAH | `asl_avionics_kernel_blueprint.md` §3, `asl_kernel_audit_roadmap.md` §5 | ADR-001 Rust-primary + rebase kedua dokumen | **CLOSED (FASE-1, 2026-10-20)** | QODER |
+| **DA-09** | SEDANG | `asl-driver-pci/src/lib.rs` | Whitelist vendor/device DAL-A + penolakan device tak dikenal sebelum attach | **PLANNED (FASE-3 follow-up; butuh keputusan policy DAL-A)** | Lead auditor |
+| **DA-10** | TINGGI | `asl-kernel-core-secondary`, panic/fault notifier | Selain atomisasi DA-03: kunci per-core / single-writer protocol untuk skenario AMP/SMP saat AP core aktif | **PLANNED (FASE-3 follow-up; butuh BSP multi-core)** | Lead auditor |

@@ -60,7 +60,7 @@ To prevent ambiguity, each domain of knowledge has exactly one authoritative mas
   - `DMA-ADDR-01` (IOMMU translation vs raw physical addresses in DMA burst)
   - `ALIGN-01` (descriptor alignment enforcement)
 * **Resolution:**
-  - All four findings remain formally **OPEN** in the project risk register until dedicated BSP drivers with hardware testbeds are deployed.
+  - ~~All four findings remain formally **OPEN**~~ **Corrected 2026-10-20:** `ALIGN-01` is **CLOSED** (evidence: `asl-pmd/src/lib.rs:35` `#[repr(C, align(64))]` + static asserts + runtime `init_pool` check + 4 unit tests; register `SECURITY_FINDINGS.md` row ALIGN-01). The remaining three findings (`ATOMIC-SPARC-01`, `DMA-CACHE-01`, `DMA-ADDR-01`) plus `VT-D-DRV-01` (PLANNED) stay formally **OPEN** until dedicated BSP drivers with hardware testbeds are deployed.
 
 ---
 

@@ -22,14 +22,14 @@ All status claims in this repository follow strict evidence-first classification
 
 | Milestone / Component | Claimed Scope | Verified Status | Concrete Evidence / Artifact |
 | :--- | :--- | :---: | :--- |
-| **Workspace Unit Tests** | 17 Workspace Crates | **TEST VERIFIED** | 45 unit tests passed, 0 failed (`cargo test --workspace --target x86_64-pc-windows-msvc --lib`) |
+| **Workspace Unit Tests** | 31 Workspace Crates (30 lib + 1 bin launcher) | **TEST VERIFIED (2026-10-20)** | 128 unit tests passed, 0 failed on host target `x86_64-pc-windows-msvc` via `cargo test --workspace --lib` (no `--target` flag required; bare-metal builds must pass an explicit `--target`) |
 | **Bare-Metal Compiler Target** | `x86_64-unknown-none` | **BUILD VERIFIED** | ELF64 executable compiled cleanly at `asl-kernel/target/x86_64-unknown-none/release/asl-kernel` |
 | **Higher-Half Launcher** | Limine Base Protocol v2 | **IMPLEMENTED** | `asl-kernel-bin/src/main.rs`, dedicated 512 KB static stack, page-aligned PT_LOAD (`p_align=0x1000`), FLAGS(6) |
 | **Avionics Bootable ISO** | El Torito BIOS + UEFI Hybrid | **BUILD VERIFIED** | `asl-kernel/target/asl-core-kernel.iso` (3.917.824 bytes) via `xorriso` v1.5.2 + `limine bios-install` |
 | **Hypervisor Execution** | VirtualBox VM `ASL` | **RUNTIME VERIFIED** | Headless boot verified; VM boots to completion and executes deterministic ARINC 653 idle loop |
 | **Linear Framebuffer Display** | VBE / GOP 1024x768x32-bpp | **RUNTIME VERIFIED** | Direct screen render verified in `Analysis/reports/asl_vm_screen.png`: ASL ASCII Art banner & `[ OK ]` status |
 | **Serial Telemetry M1..M6** | COM1 UART Port (`0x3F8`) | **RUNTIME VERIFIED** | Captured in `Analysis/reports/asl_vm_serial_release.log`: M1 (Entry), M2 (Handover), M3 (Transfer), M4 (Buddy), M5 (ARINC 653), M6 (Idle) |
-| **Governance Gates** | Phase 1 to Phase 6 Gates (25 total) | **LOCKED & VERIFIED** | 25/25 checklist gates confirmed `PASS & LOCKED` in `docs/ROADMAP/CHECKLIST_STATE.json` |
+| **Governance Gates** | Phase 1–6 Gates (24 total) + Milestone_03 Storage (25 gates) | **LOCKED (Phase 1–6) / PARTIAL (Milestone_03)** | `docs/ROADMAP/CHECKLIST_STATE.json`: 24/24 Phase 1–6 gates `PASS & LOCKED`; `Milestone_03` = **PARTIAL, unlocked** — 21 PASS, Gate 3.6 PARTIAL (AHCI DMA), Gate 3.9 PASS_READONLY (ext4), Gate 3.19 PASS with Boot-Assembly GAP, Gate 3.20 GAP_IDENTIFIED (RAID rebuild), Gate 3.25 NOT TESTED (physical HW). Reconciliation evidence: `Analysis/reports/DEEP_AUDIT_REPORT.md` §1 + QODER_EXECUTION_LOG (2026-10-20). |
 | **150 Hardware Architecture Deployment** | Physical Board Silicon Deployment | **PLANNED / STAGED** | Formal specification complete in `asl_core.md`; physical board BSPs scheduled across 36-month roadmap |
 
 ---
@@ -57,12 +57,14 @@ To eliminate discrepancies between drafts and active implementations, the follow
 
 ## 4. OPEN AUDIT FINDINGS & TECHNICAL LIMITATIONS
 
-In compliance with the project's strict accountability charter, the following four technical findings from Stage C.1 remain formally **OPEN** in the project risk register until dedicated target hardware testbeds are deployed:
+In compliance with the project's strict accountability charter, the following technical findings remain formally **OPEN** in the project risk register (`audit/asl-core-kernel/SECURITY_FINDINGS.md`, 16 entries: 12 CLOSED / 3 OPEN / 1 PLANNED) until dedicated target hardware testbeds are deployed:
 
 1. **`ATOMIC-SPARC-01` (OPEN):** Generic bare-metal SPARC target (`sparc-unknown-none-elf`) lacks compiler 64-bit atomic support (`target_has_atomic="64"`). Crate dependencies requiring `AtomicU64` require target-specific CAS emulations.
 2. **`DMA-CACHE-01` (OPEN):** Physical DMA driver ring buffers require explicit hardware cache invalidation and clean barriers (`dma_cache_clean_inval`) across non-coherent CPU architectures.
 3. **`DMA-ADDR-01` (OPEN):** The `transmit_burst()` interface currently takes raw physical memory addresses; integration with IOMMU translation layers is required for multi-tenant partition safety.
-4. **`ALIGN-01` (OPEN):** DMA packet ring descriptors must enforce 64-byte hardware cache line boundary alignments.
+4. **`VT-D-DRV-01` (PLANNED):** Minimal VT-d / AMD-Vi root/context table driver is a prerequisite for hardware fault-path verification (mapped to roadmap Fase 3).
+
+> **Correction (2026-10-20):** `ALIGN-01` was previously listed here as OPEN. It is **CLOSED** in the register and in code (`asl-pmd/src/lib.rs:35` `#[repr(C, align(64))]` + static asserts + runtime `init_pool` check + 4 unit tests). This section now matches the register exactly.
 
 ---
 
@@ -99,8 +101,8 @@ Execute workspace regression tests and run `tools/Gemini_Assist.py --audit` befo
 
 ## 6. PREREQUISITES & DEVELOPMENT COMMANDS
 
-### Hardware & Runtime Requirements (Verified v1.0.1)
-- **Minimum Target RAM:** **4 MB RAM** (Kernel binary footprint is only ~70 KB; verified running stably with zero crash).
+### Hardware & Runtime Requirements (Verified v1.0.1; footprint updated 2026-10-20)
+- **Minimum Target RAM:** **4 MB RAM** (bare-metal release kernel ELF measured **211.672 bytes** ≈ 207 KB on 2026-10-20, `target/x86_64-unknown-none/release/asl-kernel`; the historical "~70 KB" figure measured the v1.0.1 minimal launcher before storage/driver/shell integration. Verified running stably with zero crash on 64 MB).
 - **Recommended Target RAM:** **64 MB RAM** or higher.
 - **CPU Architecture:** x86_64 (Long Mode + PAE supported).
 - **Firmware:** BIOS (El Torito CD boot) or UEFI 64-bit with GOP / VBE framebuffer.
@@ -116,8 +118,9 @@ Execute workspace regression tests and run `tools/Gemini_Assist.py --audit` befo
 ### Essential Build & Verification Commands
 
 ```powershell
-# 1. Run full host workspace regression tests (All 17 crates)
-cargo test --workspace --target x86_64-pc-windows-msvc
+# 1. Run full host workspace regression tests (All 31 crates, official command)
+cd C:\asl\asl-kernel
+cargo test --workspace --lib
 
 # 2. Build the bare-metal higher-half launcher binary
 cd C:\asl\asl-kernel

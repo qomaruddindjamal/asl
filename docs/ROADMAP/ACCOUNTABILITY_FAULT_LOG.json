@@ -9,5 +9,33 @@
         "rule_4": "Kompensasi recovery instan zero-token loss bagi pengguna"
     },
     "violations_recorded": 0,
-    "fault_history": []
+    "fault_history": [
+        {
+            "date": "2026-10-20T00:20:00Z",
+            "actor": "QODER (governance reconciliation agent)",
+            "type": "GOVERNANCE_RECONCILIATION",
+            "gate_id": "README-SECTION2-GATES-CLAIM",
+            "result": "PASS",
+            "evidence": ["docs/ROADMAP/CHECKLIST_STATE.json (parsed: Phase_01..06 = 24 gates PASSED locked:true; Milestone_03 = 25 gates status PARTIAL locked:false, incl. Gate_3.6 PARTIAL, Gate_3.9 PASS_READONLY, Gate_3.19 PASS+BootAssembly GAP_IDENTIFIED, Gate_3.20 GAP_IDENTIFIED, Gate_3.25 NOT TESTED)", "Analysis/reports/DEEP_AUDIT_REPORT.md sec.1"],
+            "notes": "CHECKLIST_STATE.json TIDAK diubah (isinya sudah faktual - aturan G2 dipatuhi). Yang dikoreksi: README par.2 yang mengklaim '25/25 gates PASS & LOCKED' menjadi 24 Phase gates locked + Milestone_03 PARTIAL. Tidak ada status gate yang berubah."
+        },
+        {
+            "date": "2026-10-20T00:20:00Z",
+            "actor": "QODER (governance reconciliation agent)",
+            "type": "NUMERIC_RECONCILIATION",
+            "gate_id": "WORKSPACE-CRATE-COUNT",
+            "result": "PASS",
+            "evidence": ["cargo metadata --no-deps --format-version 1 => 31 workspace_members (30 lib + 1 bin asl-kernel-bin)", "cargo test --workspace --lib => 30 suite, 128 tests PASS (2026-10-20)"],
+            "notes": "Selisih angka: 17 = snapshot baseline 2026-10-13 sebelum 14 crate v1.0.2 (storage/cockpit/pci/ps2/secondary) masuk; 31 = angka kanonik cargo metadata hari ini; 30 = jumlah suite lib terpasang (bin test=false tidak menambah suite). Angka '33' yang beredar tidak memiliki sumber kebenaran dan TIDAK dipakai. Dokumen disinkronkan ke 31: README par.2/par.6, DEVELOPER_ONBOARDING par.2, FILE_INVENTORY header."
+        },
+        {
+            "date": "2026-10-20T00:20:00Z",
+            "actor": "QODER (governance reconciliation agent)",
+            "type": "NUMERIC_RECONCILIATION",
+            "gate_id": "KERNEL-FOOTPRINT-CLAIM",
+            "result": "PASS",
+            "evidence": ["asl-kernel/target/x86_64-unknown-none/release/asl-kernel = 211.672 bytes (2026-10-20)"],
+            "notes": "README par.6 '~70 KB' adalah pengukuran v1.0.1 minimal-launcher; kini disinkronkan ke 211.672 B dengan penjelasan basis pengukuran. Register ALIGN-01 (CLOSED) juga disinkronkan ke README par.4 dan CANONICAL_MASTER Conflict 3."
+        }
+    ]
 }

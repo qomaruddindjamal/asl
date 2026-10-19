@@ -91,13 +91,24 @@ impl VideoDmaPipelineEngine {
         }
     }
 
-    /// Daftarkan buffer fisik untuk channel kamera tertentu
+    /// Daftarkan buffer frame untuk channel kamera tertentu
+    ///
+    /// # Kontrak RND_08 (DMA-ADDR-01 remediation) — BREAKING:
+    /// Plane Y dan UV WAJIB berupa `IovaLease` tervalidasi dari backend
+    /// `DmaAddressSpace` milik partisi pemilik channel. Alamat fisik mentah
+    /// tidak lagi dapat diterima. Validasi antesional (semua dicek SEBELUM
+    /// state apa pun diubah — kegagalan tidak pernah memasang frame parsial):
+    /// - channel & slot in-range
+    /// - kedua lease milik partisi yang sama
+    /// - kedua alamat bus selaras 64-byte (guard-page / cache-line rule)
+    /// - panjang lease mencukupi kebutuhan plane untuk resolusi+format
+    ///   (dengan checked arithmetic — overflow wajib ditolak)
     pub fn setup_channel_buffer(
         &mut self,
         channel: u8,
         slot: usize,
-        phys_y: u64,
-        phys_uv: u64,
+        lease_y: &asl_hal::IovaLease,
+        lease_uv: &asl_hal::IovaLease,
         width: u32,
         height: u32,
     ) -> Result<(), &'static str> {
@@ -105,12 +116,29 @@ impl VideoDmaPipelineEngine {
         if ch >= MAX_VIDEO_CHANNELS || slot >= FRAMES_PER_CHANNEL_RING {
             return Err("ERR_INVALID_VIDEO_CHANNEL_OR_SLOT");
         }
+        if lease_y.partition_id() != lease_uv.partition_id() {
+            return Err("ERR_LEASE_PARTITION_MISMATCH");
+        }
+        if !lease_y.is_bus_aligned() || !lease_uv.is_bus_aligned() {
+            return Err("ERR_LEASE_NOT_64B_ALIGNED");
+        }
+        if width == 0 || height == 0 {
+            return Err("ERR_FRAME_DIMENSIONS");
+        }
+        let w = width as u64;
+        let h = height as u64;
+        let luma = w.checked_mul(h).ok_or("ERR_FRAME_SIZE_OVERFLOW")?;
+        // NV12: UV plane = w*h/2
+        let chroma = luma.checked_div(2).ok_or("ERR_FRAME_SIZE_OVERFLOW")?;
+        if lease_y.len() < luma || lease_uv.len() < chroma {
+            return Err("ERR_LEASE_TOO_SMALL_FOR_FORMAT");
+        }
 
         self.channels[ch][slot] = VideoFrameBuffer {
             frame_id: 0,
             channel_id: channel,
-            physical_address_y: phys_y,
-            physical_address_uv: phys_uv,
+            physical_address_y: lease_y.iova(),
+            physical_address_uv: lease_uv.iova(),
             width,
             height,
             stride_bytes: width,
@@ -135,11 +163,54 @@ impl VideoDmaPipelineEngine {
 
         Some(completed_frame)
     }
+
+    /// Validasi anti-TOCTOU pra-doorbell (RND_08 §B): kedua lease masih
+    /// otoritatif di backend DAN konsisten dengan mapping frame terpasang.
+    pub fn validate_frame_leases<S: asl_hal::DmaAddressSpace>(
+        &self,
+        space: &S,
+        channel: u8,
+        slot: usize,
+        lease_y: &asl_hal::IovaLease,
+        lease_uv: &asl_hal::IovaLease,
+    ) -> Result<(), &'static str> {
+        let ch = channel as usize;
+        if ch >= MAX_VIDEO_CHANNELS || slot >= FRAMES_PER_CHANNEL_RING {
+            return Err("ERR_INVALID_VIDEO_CHANNEL_OR_SLOT");
+        }
+        space
+            .validate_pin(lease_y)
+            .map_err(|_| "ERR_STALE_DMA_LEASE")?;
+        space
+            .validate_pin(lease_uv)
+            .map_err(|_| "ERR_STALE_DMA_LEASE")?;
+        let frame = &self.channels[ch][slot];
+        if frame.physical_address_y != lease_y.iova() || frame.physical_address_uv != lease_uv.iova()
+        {
+            return Err("ERR_LEASE_FRAME_MISMATCH");
+        }
+        Ok(())
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use asl_hal::{BounceAddressSpace, DmaAddressSpace, DmaError};
+
+    fn video_space() -> BounceAddressSpace {
+        let mut space = BounceAddressSpace::new(0x4000_0000);
+        // Partisi kamera 7 -> window buffer frame; partisi 9 -> window terpisah;
+        // partisi 5 -> window reclaim (menguasai kembali buffer UV setelah unpin)
+        space.register_region(7, 0x1000_0000, 0x1008_0000).unwrap();
+        space.register_region(5, 0x1008_0000, 0x1018_0000).unwrap();
+        space.register_region(7, 0x1018_0000, 0x1080_0000).unwrap();
+        space.register_region(9, 0x2000_0000, 0x2040_0000).unwrap();
+        space
+    }
+
+    const LUMA_480P: u64 = 640 * 480;
+    const CHROMA_480P: u64 = LUMA_480P / 2;
 
     #[test]
     fn test_cctv_vpu_lock_volatile_semantics() {
@@ -158,12 +229,18 @@ mod tests {
 
     #[test]
     fn test_cctv_dma_pipeline_channel_setup_and_frame_cycle() {
+        let mut space = video_space();
+        let ly0 = space.pin(7, 0x1000_0000, LUMA_480P).unwrap();
+        let lu0 = space.pin(7, 0x1018_0000, CHROMA_480P).unwrap();
+        let ly1 = space.pin(7, 0x1020_0000, LUMA_480P).unwrap();
+        let lu1 = space.pin(7, 0x102A_0000, CHROMA_480P).unwrap();
+
         let mut engine = VideoDmaPipelineEngine::new();
         assert!(engine
-            .setup_channel_buffer(0, 0, 0x1000_0000, 0x1008_0000, 1920, 1080)
+            .setup_channel_buffer(0, 0, &ly0, &lu0, 640, 480)
             .is_ok());
         assert!(engine
-            .setup_channel_buffer(0, 1, 0x1010_0000, 0x1018_0000, 1920, 1080)
+            .setup_channel_buffer(0, 1, &ly1, &lu1, 640, 480)
             .is_ok());
 
         // Notifikasi frame complete
@@ -172,5 +249,82 @@ mod tests {
         assert_eq!(f0.unwrap().physical_address_y, 0x1000_0000);
         assert_eq!(engine.total_frames_captured, 1);
         assert_eq!(engine.active_write_index[0], 1);
+    }
+
+    #[test]
+    fn tm_cctv_setup_rejects_before_any_state_change() {
+        let mut space = video_space();
+        let ly = space.pin(7, 0x1000_0000, LUMA_480P).unwrap();
+        let lu = space.pin(7, 0x1018_0000, CHROMA_480P).unwrap();
+        let mut engine = VideoDmaPipelineEngine::new();
+
+        // Partition mismatch -> ditolak atomik
+        let foreign = space.pin(9, 0x2000_0000, CHROMA_480P).unwrap();
+        assert_eq!(
+            engine.setup_channel_buffer(3, 0, &ly, &foreign, 640, 480),
+            Err("ERR_LEASE_PARTITION_MISMATCH")
+        );
+        // Lease UV terlalu kecil untuk format -> ditolak
+        let tiny_uv = space.pin(9, 0x2010_0000, 0x1000).unwrap();
+        let tiny_y = space.pin(9, 0x2020_0000, 0x1000).unwrap();
+        assert_eq!(
+            engine.setup_channel_buffer(3, 0, &tiny_y, &tiny_uv, 640, 480),
+            Err("ERR_LEASE_TOO_SMALL_FOR_FORMAT")
+        );
+        // Dimensi overflow / nol -> ditolak
+        assert_eq!(
+            engine.setup_channel_buffer(3, 0, &ly, &lu, 0, 480),
+            Err("ERR_FRAME_DIMENSIONS")
+        );
+        assert_eq!(
+            engine.setup_channel_buffer(3, 0, &ly, &lu, u32::MAX, u32::MAX),
+            Err("ERR_LEASE_TOO_SMALL_FOR_FORMAT")
+        );
+        // channel invalid -> ditolak
+        assert_eq!(
+            engine.setup_channel_buffer(16, 0, &ly, &lu, 640, 480),
+            Err("ERR_INVALID_VIDEO_CHANNEL_OR_SLOT")
+        );
+
+        // TIDAK ADA state yang berubah dari seluruh kegagalan di atas
+        assert_eq!(engine.total_frames_captured, 0);
+        let untouched = &engine.channels[3][0];
+        assert_eq!(untouched.physical_address_y, 0);
+        assert_eq!(untouched.physical_address_uv, 0);
+        assert_eq!(untouched.width, 0);
+        assert_eq!(untouched.height, 0);
+        assert_eq!(untouched.frame_id, 0);
+        assert_eq!(engine.active_write_index[3], 0);
+    }
+
+    #[test]
+    fn tm08_cctv_stale_uv_lease_rejected_pre_doorbell() {
+        let mut space = video_space();
+        let ly = space.pin(7, 0x1000_0000, LUMA_480P).unwrap();
+        let lu = space.pin(7, 0x1018_0000, CHROMA_480P).unwrap();
+
+        // Setup sah saat kedua lease masih otoritatif
+        let mut engine = VideoDmaPipelineEngine::new();
+        assert!(engine
+            .setup_channel_buffer(5, 0, &ly, &lu, 640, 480)
+            .is_ok());
+
+        // TOCTOU: buffer UV dibebaskan (reclaim) setelah setup — partisi 5
+        // mengambil alih slot yang sama; lease lama jadi stale selamanya.
+        space.unpin(&lu).unwrap();
+        let _lu5 = space.pin(5, 0x1008_0000, CHROMA_480P).unwrap();
+        assert_eq!(space.validate_lease(&lu), Err(DmaError::GenerationMismatch));
+
+        // Validasi pre-doorbell engine WAJIB gagal -> frame tidak pernah
+        // disubmit ke VPU dengan mapping stale/lintas-partisi
+        assert_eq!(
+            engine.validate_frame_leases(&space, 5, 0, &ly, &lu),
+            Err("ERR_STALE_DMA_LEASE")
+        );
+
+        // Device-side pun: write atas nama partisi 7 ke iova UV yang kini
+        // milik partisi 5 -> CrossPartitionViolation (bukan diam-diam lolos)
+        let res = space.translate_and_check(7, 0x1008_0000, CHROMA_480P as usize, true);
+        assert_eq!(res, Err(asl_hal::DmaAddressFault::CrossPartitionViolation));
     }
 }

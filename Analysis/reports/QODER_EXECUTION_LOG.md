@@ -166,3 +166,64 @@ Urutan implementasi: A -> B -> C -> D -> E -> gates -> report -> commit.
 - Penyimpangan: (1) Fix race SIMULATED_RAM di luar plan tapi diperlukan agar gerbang (a) deterministik — masuk kategori perbaikan test lama, tanpa mengubah semantik assertions. (2) extern crate std ditambahkan di cfg(test) saja untuk thread-scope test latch (no_std produksi tidak berubah, G1 aman: nol dependency eksternal). (3) .gitignore: negasi untuk evidence .log (diizinkan plan 1.3). (4) Runtime "STACK OVERFLOW" print belum diinjeksi via fault nyata di QEMU (butuh trigger overflow); terverifikasi oleh unit test classifier + jalur koding; ditandai RUNTIME-PENDING untuk gate ISO berikutnya.
 - Bloker: none.
 - Commit: commit [PHASE-2] pada branch security/asl-v1.0.2-audit (hash tercatat di git log; mengikuti satu-commit-per-fase G6, tidak ada addendum hash terpisah untuk menghindari insiden shell seperti PHASE-1).
+
+---
+
+# [PHASE-3] REPORT — DMA/IOMMU Isolasi Multi-Tenant (RND_08)
+**Status:** DONE
+**Waktu:** 2026-10-20 (setelah PHASE-2 commit 4f55c87)
+**Branch:** security/asl-v1.0.2-audit
+
+## File yang berubah (9 file pada snapshot diff-stat; + log ini + laporan final)
+| File | Perubahan |
+|------|-----------|
+| `docs/RND/RND_08_IOMMU_DMA_ISOLATION.md` | BARU — threat model T1–T5 (+HAZ-DMA-1/2/3), kontrak lease, tier backend, exit criteria, test matrix TM-01..08+QM-01, self-review 10 poin PASS, §G hasil implementasi |
+| `asl-kernel/asl-hal/src/dma_space.rs` | perluasan trait: `pin/unpin/iova_alloc/iova_dealloc/validate_pin` (default `Err(NotPinned)`); `DmaError`; `IovaLease` (field privat, konstruktor `pub(crate)` — tak-termalsukan); backend `BounceAddressSpace` (whitelist region per partisi, slot pool + `stage()` koheren, generation anti-TOCTOU, `pin_ro`); +8 test TM |
+| `asl-kernel/asl-hal/src/lib.rs` | re-export `BounceAddressSpace, DmaError, IovaLease, BOUNCE_SLOT_*` |
+| `asl-kernel/asl-pmd/src/lib.rs` | **BREAKING:** `transmit_burst(lease: &IovaLease, len: u16, vlan: u16)` — raw `u64` tak bisa lagi lolos kompilator; guard runtime 64B-align + `0 < len <= lease.len()` (menggantikan `debug_assert` yang tereliminasi di release); test lama dimigrasi + 1 test guard baru |
+| `asl-kernel/asl-cctv-dma/src/lib.rs` | **BREAKING:** `setup_channel_buffer(channel, slot, &lease_y, &lease_uv, w, h)` — validasi antesional atomik (partisi identik, 64B align, NV12 `w*h` + `w*h/2` checked vs `lease.len()`); `validate_frame_leases()` pra-doorbell via `validate_pin`; 2 test lama dimigrasi + 2 test TM-08/atomic-reject baru |
+| `audit/asl-core-kernel/SECURITY_FINDINGS.md` | DMA-ADDR-01 → **MITIGATED (CODE) / VERIFIED-ON-HARDWARE PENDING**; DMA-CACHE-01 → **PARTIAL-MITIGATED (CODE)**; rekap §2: 12 CLOSED / 1 MITIGATED / 1 PARTIAL / 2 OPEN-PLANNED |
+| `README.md` §4 | koreksi + correction note FASE-3 (doku tidak lagi mendeskripsikan API pra-remediasi sebagai kondisi kini) |
+| `audit/asl-core-kernel/REMEDIATION_PLAN.md` | baris DA-02 → CODE-COMPLETE; DA-03/DA-06/DA-07 → DONE (FASE-2, bukti commit 4f55c87); DA-04 tetap IN-PROGRESS (reset line HW); rekap §1 disinkron |
+| `Analysis/reports/2026-10-20_phase3_grep_proof.txt` | transcript grep 3.4 (di bawah) |
+
+## Verifikasi gerbang (G4)
+* (a) `cargo test --workspace --lib` → **160 passed / 0 failed** pada 30 suite (baseline 149, +11: 8 hal TM-01..08, 1 pmd guard, 2 cctv). Verifikasi aritmetika: 149+11=160, dan jumlah per-suite = 160 (python).
+* (b) `cargo build --package asl-kernel-bin --target x86_64-unknown-none --release` → **0 error, 0 warning**.
+* (sanitasi) `aarch64-unknown-none-softfloat --release` → 0 error (hanya warning pre-existing tak terkait DMA).
+* Perbaikan flake selama fase: tidak ada (test lama tetap lulus tanpa perubahan).
+
+## Diff stat (snapshot sebelum append log/laporan final)
+```
+ 9 files changed, 963 insertions(+), 36 deletions(-)
+```
+
+## Kriteria fase (RND_08 §D) — penilaian jujur
+1. Tipe menegakkan larangan alamat mentah → **PASS** (kompilator; grep-proof di bawah).
+2. Lease tak-termalsukan → **PASS** (field privat; hanya backend yang membuat).
+3. Penolakan lintas-partisi + read-only → **PASS host** (TM-06/07).
+4. TOCTOU generation → **PASS host** (TM-04/05 + `validate_frame_leases`).
+5. Bounce menutup DMA-CACHE-01 secara desain → **PASS parsial** (barrier HW riil pending).
+6. Status register jujur MITIGATED vs VERIFIED-ON-HARDWARE → **PASS** (SECURITY_FINDINGS/README/REMEDIATION_PLAN).
+7. QM-01 QEMU VT-d smoke → **TIDAK DIEKSEKUSI** — butuh driver programming VT-D-DRV-01 (PLANNED); inilah alasan status tetap VERIFIED-ON-HARDWARE PENDING, bukan CLOSED.
+
+## Penyimpangan
+* Trait mendapat method kelima `validate_pin` (di luar 4 method misi 3.1) — diperlukan agar gerbang pra-doorbell dapat ditegakkan lewat trait secara universal; backend non-pin gagal aman (`Err(NotPinned)`). Disinkronkan ke RND_08 §B/§G.
+* Matriks §E awalnya menulis `lease.is_live()`; implementasi riil memakai `validate_pin`/`validate_lease` — dokumen dikoreksi ke nama riil (no phantom API).
+* Nomor fungsi test `tm04..` per-krataan tidak 1:1 dengan nomor TM matriks; pemetaan eksplisit di RND_08 §G.
+
+## Bloker
+Tidak ada.
+
+## Grep-proof 3.4 (transcript lengkap: Analysis/reports/2026-10-20_phase3_grep_proof.txt)
+```
+$ grep -rnE 'transmit_burst\(0x|transmit_burst\(phys|transmit_burst\([a-z_]*addr' asl-kernel --include=*.rs
+exit=1 (0 kecocokan)
+$ grep -rnE 'setup_channel_buffer\([^,]+, *[0-9]+, *0x' asl-kernel --include=*.rs
+exit=1 (0 kecocokan)
+Semua pemanggil transmit_burst/setup_channel_buffer memakai &IovaLease (&lease/&ly/&lu dkk).
+debug_assert tidak tersisa sebagai satu-satunya penjaga di asl-pmd (hanya di komentar).
+```
+
+## Commit
+* `[PHASE-3] ...` — satu commit, dibuat HANYA setelah gerbang hijau di atas; diff-stat tercantum di bagian Verifikasi.

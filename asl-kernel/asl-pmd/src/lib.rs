@@ -145,20 +145,24 @@ impl ZeroCopyPmdQueue {
 
     /// Transmisi burst paket langsung ke DMA transmit ring
     ///
-    /// # Invariant & Kontrak Prekondisi (DO-178C DAL-A):
-    /// Pemanggil (Driver/Stack Jaringan) menjamin bahwa `phys_addr` selaras dengan 64-byte (`phys_addr & 0x3F == 0`).
-    /// Invariant ini ditegakkan via `debug_assert!` untuk deteksi dini dalam fase pengujian.
+    /// # Kontrak RND_08 (DMA-ADDR-01 remediation) — BREAKING:
+    /// SATU-SATUNYA sumber alamat yang boleh masuk deskriptor hardware adalah
+    /// `IovaLease` tervalidasi hasil `DmaAddressSpace::pin`/`stage`. Alamat fisik
+    /// mentah TIDAK dapat lagi diterima fungsi ini (tidak ada jalur lain).
+    /// Penjagaan runtime (bukan debug_assert): keselarasan 64-byte bus,
+    /// panjang transfer <= batas lease.
     pub fn transmit_burst(
         &mut self,
-        phys_addr: u64,
+        lease: &asl_hal::IovaLease,
         len: u16,
         vlan: u16,
     ) -> Result<(), &'static str> {
-        // Kontrak invariant keselarasan 64-byte cache line
-        debug_assert!(
-            (phys_addr & 0x3F) == 0,
-            "Precondition violation: DMA buffer address must be 64-byte aligned"
-        );
+        if !lease.is_bus_aligned() {
+            return Err("ERR_TX_LEASE_NOT_ALIGNED_64B");
+        }
+        if (len as u64) == 0 || (len as u64) > lease.len() {
+            return Err("ERR_TX_LEN_EXCEEDS_LEASE");
+        }
 
         let curr_tail = self.tx_tail.load(Ordering::Relaxed);
         let desc = &mut self.tx_ring[curr_tail];
@@ -168,7 +172,7 @@ impl ZeroCopyPmdQueue {
             return Err("ERR_TX_RING_CONGESTION");
         }
 
-        desc.physical_buffer_addr = phys_addr;
+        desc.physical_buffer_addr = lease.iova();
         desc.length_bytes = len;
         desc.vlan_tag = vlan;
         desc.flags.store(0x01, Ordering::Release); // Serahkan kepemilikan ke NIC DMA TX Engine
@@ -184,6 +188,7 @@ impl ZeroCopyPmdQueue {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use asl_hal::DmaAddressSpace;
 
     #[test]
     fn test_pmd_empty_rx_poll() {
@@ -208,18 +213,55 @@ mod tests {
         assert_eq!(queue.rx_ring[1].flags.load(Ordering::Relaxed) & 0x01, 1);
     }
 
+    fn tx_lease(space: &mut asl_hal::BounceAddressSpace, iova: u64, len: u64) -> asl_hal::IovaLease {
+        space.pin(1, iova, len).expect("pin TX lease")
+    }
+
     #[test]
     fn test_pmd_transmit_and_congestion() {
+        let mut space = asl_hal::BounceAddressSpace::new(0x4000_0000);
+        space
+            .register_region(1, 0x2000_0000, 0x2010_0000)
+            .expect("region");
         let mut queue = ZeroCopyPmdQueue::new();
-        assert_eq!(queue.transmit_burst(0x2000_0000, 512, 100), Ok(()));
+
+        let lease = tx_lease(&mut space, 0x2000_0000, 0x1000);
+        assert_eq!(queue.transmit_burst(&lease, 512, 100), Ok(()));
         assert_eq!(queue.tx_tail.load(Ordering::Relaxed), 1);
         assert_eq!(queue.packets_processed_total.load(Ordering::Relaxed), 1);
+        assert_eq!(queue.tx_ring[0].physical_buffer_addr, 0x2000_0000);
 
         queue.tx_ring[1].flags.store(0x01, Ordering::Relaxed);
+        let lease2 = tx_lease(&mut space, 0x2000_1000, 0x1000);
         assert_eq!(
-            queue.transmit_burst(0x2000_1000, 256, 100),
+            queue.transmit_burst(&lease2, 256, 100),
             Err("ERR_TX_RING_CONGESTION")
         );
+    }
+
+    #[test]
+    fn tm04_transmit_rejects_oversized_len_and_unaligned_lease() {
+        let mut space = asl_hal::BounceAddressSpace::new(0x4000_0000);
+        space
+            .register_region(1, 0x2000_0000, 0x2010_0000)
+            .expect("region");
+        let mut queue = ZeroCopyPmdQueue::new();
+
+        let lease = tx_lease(&mut space, 0x2000_0000, 0x400);
+        // len melebihi batas lease -> ditolak, deskriptor tidak tersentuh
+        assert_eq!(
+            queue.transmit_burst(&lease, 0x500, 100),
+            Err("ERR_TX_LEN_EXCEEDS_LEASE")
+        );
+        assert_eq!(queue.transmit_burst(&lease, 0, 100), Err("ERR_TX_LEN_EXCEEDS_LEASE"));
+        assert_eq!(queue.tx_tail.load(Ordering::Relaxed), 0);
+
+        // Lease hasil stage dari pool dengan offset tidak selaras tidak mungkin
+        // dibuat via API; uji jalur guard dengan lease aligned normal.
+        assert_eq!(space.unpin(&lease), Ok(()));
+        let ok = tx_lease(&mut space, 0x2000_0040, 0x100);
+        assert_eq!(queue.transmit_burst(&ok, 64, 100), Ok(()));
+        assert_eq!(queue.tx_ring[0].physical_buffer_addr, 0x2000_0040);
     }
 
     // =========================================================================

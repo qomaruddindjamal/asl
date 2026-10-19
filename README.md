@@ -57,14 +57,16 @@ To eliminate discrepancies between drafts and active implementations, the follow
 
 ## 4. OPEN AUDIT FINDINGS & TECHNICAL LIMITATIONS
 
-In compliance with the project's strict accountability charter, the following technical findings remain formally **OPEN** in the project risk register (`audit/asl-core-kernel/SECURITY_FINDINGS.md`, 16 entries: 12 CLOSED / 3 OPEN / 1 PLANNED) until dedicated target hardware testbeds are deployed:
+In compliance with the project's strict accountability charter, the following technical findings remain formally unresolved in the project risk register (`audit/asl-core-kernel/SECURITY_FINDINGS.md`, 16 entries: 12 CLOSED / 1 MITIGATED-CODE / 1 PARTIAL-MITIGATED-CODE / 1 OPEN / 1 PLANNED) until dedicated target hardware testbeds are deployed:
 
 1. **`ATOMIC-SPARC-01` (OPEN):** Generic bare-metal SPARC target (`sparc-unknown-none-elf`) lacks compiler 64-bit atomic support (`target_has_atomic="64"`). Crate dependencies requiring `AtomicU64` require target-specific CAS emulations.
-2. **`DMA-CACHE-01` (OPEN):** Physical DMA driver ring buffers require explicit hardware cache invalidation and clean barriers (`dma_cache_clean_inval`) across non-coherent CPU architectures.
-3. **`DMA-ADDR-01` (OPEN):** The `transmit_burst()` interface currently takes raw physical memory addresses; integration with IOMMU translation layers is required for multi-tenant partition safety.
+2. **`DMA-CACHE-01` (PARTIAL-MITIGATED, CODE):** Bounce staging via `asl-hal::dma_space::BounceAddressSpace::stage()` removes DMA-on-stale-caller-buffer by construction (hardware only touches the coherent staging pool). Explicit hardware cache invalidation/clean barriers (`dma_cache_clean_inval`) across non-coherent CPU architectures remain pending a real BSP/testbed.
+3. **`DMA-ADDR-01` (MITIGATED, CODE — VERIFIED-ON-HARDWARE PENDING):** Since RND_08 (FASE-3, 2026-10-20) the DMA surface is lease-typed: `transmit_burst()` and `setup_channel_buffer()` accept only an unfakeable `&IovaLease` produced by `DmaAddressSpace::pin/stage` — raw physical addresses are rejected by the compiler. Hardware fault-path confirmation waits on `VT-D-DRV-01`.
 4. **`VT-D-DRV-01` (PLANNED):** Minimal VT-d / AMD-Vi root/context table driver is a prerequisite for hardware fault-path verification (mapped to roadmap Fase 3).
 
 > **Correction (2026-10-20):** `ALIGN-01` was previously listed here as OPEN. It is **CLOSED** in the register and in code (`asl-pmd/src/lib.rs:35` `#[repr(C, align(64))]` + static asserts + runtime `init_pool` check + 4 unit tests). This section now matches the register exactly.
+
+> **Correction (2026-10-20, FASE-3):** Items 2–3 above previously read "interface currently takes raw physical memory addresses / requires explicit cache barriers, OPEN". That described the pre-RND_08 state and is superseded: the lease-typed API is implemented and host-verified (+11 new/updated DMA tests in FASE-3 across `asl-hal` TM-01..TM-08, `asl-pmd`, `asl-cctv-dma`; workspace total 160/160); only hardware verification remains. Full design, threat model, and test matrix: `docs/RND/RND_08_IOMMU_DMA_ISOLATION.md`.
 
 ---
 

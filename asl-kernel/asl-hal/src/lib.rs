@@ -17,8 +17,9 @@ pub use mmio::MmioRegister;
 
 pub mod dma_space;
 pub use dma_space::{
-    DmaAddressFault, DmaAddressSpace, DmaDeviceAddress, DmaFaultRecord, IdentityDmaSpace,
-    IommuTranslationSpace, MpuFirewallDmaSpace,
+    BOUNCE_SLOT_COUNT, BOUNCE_SLOT_SIZE, BounceAddressSpace, DmaAddressFault, DmaAddressSpace,
+    DmaDeviceAddress, DmaError, DmaFaultRecord, IdentityDmaSpace, IommuTranslationSpace,
+    IovaLease, MpuFirewallDmaSpace,
 };
 
 pub mod x86_fault;

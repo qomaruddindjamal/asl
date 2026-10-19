@@ -16,6 +16,7 @@ pub const FAT32_ENTRY_FREE: u8 = 0xE5;
 pub const FAT32_ENTRY_LAST: u8 = 0x00;
 
 pub const FAT32_EOC: u32 = 0x0FFF_FFF8; // End of cluster chain
+pub const FAT32_BAD_CLUSTER: u32 = 0x0FFF_FFF7; // Bad cluster marker
 
 #[derive(Debug, Copy, Clone)]
 pub struct Fat32Bpb {
@@ -68,7 +69,12 @@ impl Fat32Bpb {
         }
 
         let fat_start_lba = reserved_sectors as u64;
-        let data_start_lba = fat_start_lba + (num_fats as u64 * fat_size_32 as u64);
+        let total_fat_sectors = (num_fats as u64)
+            .checked_mul(fat_size_32 as u64)
+            .ok_or(StorageError::CorruptedMetadata)?;
+        let data_start_lba = fat_start_lba
+            .checked_add(total_fat_sectors)
+            .ok_or(StorageError::CorruptedMetadata)?;
 
         Ok(Self {
             bytes_per_sector,
@@ -83,6 +89,34 @@ impl Fat32Bpb {
             fat_start_lba,
             data_start_lba,
         })
+    }
+
+    /// Calculate the total number of data clusters available on the volume
+    pub fn total_data_clusters(&self) -> u32 {
+        if self.sectors_per_cluster == 0 {
+            return 0;
+        }
+        // Maximum entries the FAT table itself can address
+        let fat_entries = ((self.fat_size_32 as u64) * 512) / 4;
+        let fat_capacity_clusters = fat_entries.saturating_sub(2);
+
+        let total_sec = self.total_sectors_32 as u64;
+        if total_sec <= self.data_start_lba {
+            // Fallback for disk images where total_sectors_32 was not populated in the boot sector:
+            // bound by the addressable capacity of the FAT table itself
+            return core::cmp::min(fat_capacity_clusters, u32::MAX as u64) as u32;
+        }
+        let data_sectors = total_sec - self.data_start_lba;
+        let volume_clusters = data_sectors / (self.sectors_per_cluster as u64);
+
+        // A valid volume cannot have more usable clusters than its FAT can map
+        let bounded_clusters = core::cmp::min(volume_clusters, fat_capacity_clusters);
+        core::cmp::min(bounded_clusters, u32::MAX as u64) as u32
+    }
+
+    /// Upper bound for cluster index (first data cluster is 2, last is 2 + total_data_clusters)
+    pub fn max_valid_cluster(&self) -> u32 {
+        2u32.saturating_add(self.total_data_clusters())
     }
 
     /// Calculate the first LBA sector for a given cluster number
@@ -118,10 +152,22 @@ impl<'a, B: BlockDevice> Fat32FileSystem<'a, B> {
         })
     }
 
+    /// Maximum steps allowed when traversing a cluster chain to prevent DoS via cycles
+    pub fn max_cluster_traversal(&self) -> usize {
+        let total = self.bpb.total_data_clusters();
+        // At least allow 1 step, capped at total volume data clusters
+        core::cmp::max(1, total as usize)
+    }
+
     /// Read next cluster in chain from FAT table
     pub fn read_fat_entry(&mut self, cluster: u32) -> StorageResult<u32> {
         if cluster < 2 {
             return Err(StorageError::InvalidParameter);
+        }
+
+        let max_cluster = self.bpb.max_valid_cluster();
+        if max_cluster > 2 && cluster >= max_cluster {
+            return Err(StorageError::CorruptedMetadata);
         }
 
         let fat_offset = (cluster as u64)
@@ -144,9 +190,26 @@ impl<'a, B: BlockDevice> Fat32FileSystem<'a, B> {
             sector_buf[entry_offset + 3],
         ]) & 0x0FFF_FFFF;
 
-        // Check for BAD CLUSTER (0x0FFF_FFF7)
-        if next == 0x0FFF_FFF7 {
+        // Reject bad cluster (0x0FFF_FFF7)
+        if next == FAT32_BAD_CLUSTER {
             return Err(StorageError::CorruptedMetadata);
+        }
+
+        // Reject free cluster (0x0000_0000) inside an active traversal chain
+        if next == 0 {
+            return Err(StorageError::CorruptedMetadata);
+        }
+
+        // Reject reserved cluster entries (0x0FFF_FFF0..=0x0FFF_FFF6)
+        if (0x0FFF_FFF0..=0x0FFF_FFF6).contains(&next) {
+            return Err(StorageError::CorruptedMetadata);
+        }
+
+        // If not EOC (>= 0x0FFF_FFF8), validate that next cluster is within volume cluster bounds
+        if next < FAT32_EOC {
+            if next < 2 || (max_cluster > 2 && next >= max_cluster) {
+                return Err(StorageError::CorruptedMetadata);
+            }
         }
 
         Ok(next)
@@ -154,8 +217,22 @@ impl<'a, B: BlockDevice> Fat32FileSystem<'a, B> {
 
     /// Write FAT entry into FAT table (for allocating and extending files)
     pub fn write_fat_entry(&mut self, cluster: u32, next_cluster: u32) -> StorageResult<()> {
-        let fat_offset = (cluster as u64) * 4;
-        let fat_sector = self.partition_start_lba + self.bpb.fat_start_lba + (fat_offset / 512);
+        if cluster < 2 {
+            return Err(StorageError::InvalidParameter);
+        }
+        let max_cluster = self.bpb.max_valid_cluster();
+        if max_cluster > 2 && cluster >= max_cluster {
+            return Err(StorageError::InvalidParameter);
+        }
+
+        let fat_offset = (cluster as u64)
+            .checked_mul(4)
+            .ok_or(StorageError::InvalidLba)?;
+        let fat_sector = self
+            .partition_start_lba
+            .checked_add(self.bpb.fat_start_lba)
+            .and_then(|lba| lba.checked_add(fat_offset / 512))
+            .ok_or(StorageError::InvalidLba)?;
         let entry_offset = (fat_offset % 512) as usize;
 
         let mut sector_buf = [0u8; SECTOR_SIZE];
@@ -174,7 +251,9 @@ impl<'a, B: BlockDevice> Fat32FileSystem<'a, B> {
 
         // Update all FAT copies
         for f in 0..self.bpb.num_fats {
-            let cur_fat_sector = fat_sector + (f as u64 * self.bpb.fat_size_32 as u64);
+            let cur_fat_sector = fat_sector
+                .checked_add((f as u64) * (self.bpb.fat_size_32 as u64))
+                .ok_or(StorageError::InvalidLba)?;
             self.device.write_sectors(cur_fat_sector, 1, &sector_buf)?;
         }
         Ok(())
@@ -200,8 +279,15 @@ impl<'a, B: BlockDevice> FileSystem for Fat32FileSystem<'a, B> {
         let target_name = trimmed.trim_start_matches('/');
         let mut cur_cluster = self.bpb.root_cluster;
         let mut sector_buf = [0u8; SECTOR_SIZE];
+        let mut steps = 0;
 
+        let max_steps = self.max_cluster_traversal();
         while cur_cluster < 0x0FFF_FFF8 && cur_cluster >= 2 {
+            steps += 1;
+            if steps > max_steps {
+                return Err(VfsError::Storage(StorageError::CorruptedMetadata));
+            }
+
             let lba_base = match self.bpb.cluster_to_lba(cur_cluster) {
                 Ok(lba) => self.partition_start_lba + lba,
                 Err(e) => return Err(e.into()),
@@ -288,8 +374,15 @@ impl<'a, B: BlockDevice> FileSystem for Fat32FileSystem<'a, B> {
         let mut cur_file_offset: usize = 0;
         let mut read_bytes: usize = 0;
         let mut sector_buf = [0u8; SECTOR_SIZE];
+        let mut steps = 0;
 
+        let max_steps = self.max_cluster_traversal();
         while cur_cluster < 0x0FFF_FFF8 && cur_cluster >= 2 && read_bytes < bytes_to_read {
+            steps += 1;
+            if steps > max_steps {
+                return Err(VfsError::Storage(StorageError::CorruptedMetadata));
+            }
+
             let lba_base = match self.bpb.cluster_to_lba(cur_cluster) {
                 Ok(lba) => self.partition_start_lba + lba,
                 Err(e) => return Err(e.into()),
@@ -343,8 +436,15 @@ impl<'a, B: BlockDevice> FileSystem for Fat32FileSystem<'a, B> {
         let mut cur_file_offset: usize = 0;
         let mut written_bytes: usize = 0;
         let mut sector_buf = [0u8; SECTOR_SIZE];
+        let mut steps = 0;
 
+        let max_steps = self.max_cluster_traversal();
         while cur_cluster < 0x0FFF_FFF8 && cur_cluster >= 2 && written_bytes < buf.len() {
+            steps += 1;
+            if steps > max_steps {
+                return Err(VfsError::Storage(StorageError::CorruptedMetadata));
+            }
+
             let lba_base = match self.bpb.cluster_to_lba(cur_cluster) {
                 Ok(lba) => self.partition_start_lba + lba,
                 Err(e) => return Err(e.into()),
@@ -402,8 +502,15 @@ impl<'a, B: BlockDevice> FileSystem for Fat32FileSystem<'a, B> {
         let mut cur_cluster = node.inode as u32;
         let mut count = 0;
         let mut sector_buf = [0u8; SECTOR_SIZE];
+        let mut steps = 0;
 
+        let max_steps = self.max_cluster_traversal();
         while cur_cluster < 0x0FFF_FFF8 && cur_cluster >= 2 && count < entries.len() {
+            steps += 1;
+            if steps > max_steps {
+                return Err(VfsError::Storage(StorageError::CorruptedMetadata));
+            }
+
             let lba_base = match self.bpb.cluster_to_lba(cur_cluster) {
                 Ok(lba) => self.partition_start_lba + lba,
                 Err(e) => return Err(e.into()),

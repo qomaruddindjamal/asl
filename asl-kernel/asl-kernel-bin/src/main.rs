@@ -301,7 +301,8 @@ pub extern "C" fn asl_launcher_aarch64() -> ! {
         };
     }
 
-    SERIAL.write_str("[ASL-LAUNCHER-AARCH64] Handover populated. Jumping to _asl_kernel_entry...\n");
+    SERIAL
+        .write_str("[ASL-LAUNCHER-AARCH64] Handover populated. Jumping to _asl_kernel_entry...\n");
 
     let handover_ptr = core::ptr::addr_of!(ASL_HANDOVER_STORAGE);
     unsafe {
@@ -495,9 +496,22 @@ pub extern "C" fn asl_launcher_main() -> ! {
                 };
                 let total_size = fb.pitch * fb.height;
 
+                let hhdm = if !hhdm_resp.is_null() {
+                    unsafe { (*hhdm_resp).offset }
+                } else {
+                    0xFFFF_8000_0000_0000
+                };
+                let raw_addr = fb.address as u64;
+                // Limine returns virtual address in higher-half direct map (HHDM)
+                let phys_addr = if raw_addr >= hhdm {
+                    raw_addr - hhdm
+                } else {
+                    raw_addr
+                };
+
                 unsafe {
                     ASL_HANDOVER_STORAGE.framebuffer = FramebufferConfig {
-                        base_physical_addr: fb.address as u64,
+                        base_physical_addr: phys_addr,
                         size_bytes: total_size,
                         width: fb.width as u32,
                         height: fb.height as u32,

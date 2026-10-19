@@ -1,51 +1,76 @@
-# QODER FINAL REPORT — MISI REMEDIASI 4-FASE ASL CORE KERNEL
-**Tanggal:** 2026-10-20 | **Branch:** `security/asl-v1.0.2-audit` | **Aturan:** G1–G7, R1–R4 (+AMENDMENT-1, +AMENDMENT-2/PHASE-4) | **Status proses:** DO-178C-aligned, ladder DAL-C→A (ADR-002)
+# QODER FINAL REPORT — MISI REMEDIASI 5-FASE ASL CORE KERNEL (PHASE-1..5 + GERBANG AKHIR)
+**Tanggal:** 2026-10-20 | **Branch:** `security/asl-v1.0.2-audit` (belum di-push) | **Aturan:** G1–G8, R1–R4 (+AMENDMENT-1, +AMENDMENT-2/PHASE-4) | **Status proses:** DO-178C-aligned, tangga DAL-C→A (ADR-002)
 
-## 1. Ringkasan empat fase
-| Fase | Scope | Commit | Gerbang |
-|------|-------|--------|---------|
-| 1 | Rekonsiliasi governance & dokumen (register temuan, roadmap, CANONICAL, README §2) | `e07cfac` + fix `886425f` + hash `c12ce6f` | docs-only; lulus |
-| 2 | Hardening kernel: FSM failover AtomicU8 latch + validasi physical carve-out; stack guard page non-present + diagnostik `STACK OVERFLOW` COM1; validasi framebuffer-vs-memmap (kebijakan B1) | `4f55c87` (13 file, +1145/−96) | 149/149 test (=128+21); x86_64-none release 0/0; bukti serial QEMU |
-| 3 | DMA/IOMMU multi-tenant: RND_08 spec → kontrak `IovaLease` + `BounceAddressSpace` → migrasi breaking `transmit_burst` & `setup_channel_buffer` → sinkron register | `b17e572` (11 file, +1064/−36) | 160/160 test (+11); x86_64-none release 0/0; grep-proof 0 alamat mentah |
-| 4 | Closeout & reframing: paket bukti 4A, **ADR-002 certification ladder**, sinkron 15 header status, cleanup RND_08 (4C), §5 Hardware Verification Gate (4D) | `d25f283` — commit PHASE-4 (16 file .md, +192/−54, nol `.rs`) | 160/160 test tetap; build 0/0 tetap |
+Dokumen ini adalah regenerasi total dari `QODER_FINAL_REPORT.md` versi PHASE-4 dan **menggantikannya**. Versi sebelumnya hanya mencakup Fase 1–4 dan memakai label "VERIFIED-ON-HARDWARE" untuk bukti yang sebenarnya berasal dari **VM** — itu pelanggaran disiplin kategori yang sekarang dikoreksi (§2 di bawah). Koreksi dilakukan lewat file ini (entri baru), bukan dengan menulis-ulang riwayat commit (G8).
 
-## 2. Kategori verdict (definisi jujur yang dipakai konsisten)
-* **VERIFIED (host)** — terbukti oleh `cargo test --workspace --lib` 160/160 pada 30 suite (2026-10-20, aritmetika per-suite diverifikasi python: 149+11=160).
-* **CODE-COMPLETE / MITIGATED (CODE)** — mekanisme ada dan teruji host, tapi klaim penuh menuntut hardware gate (`REMEDIATION_PLAN.md §5` HV-1..HV-8).
-* **VERIFIED-ON-HARDWARE** — HANYA yang dibuktikan di VM/log boot riil: boot serial Fase-2 (latch ARMED, guard page enforced). Yang lain nol.
-* **PENDING** — terbuka, tercatat di gate §5 dengan prioritas & exit criteria.
+## 1. Ringkasan lima fase
+| Fase | Scope | Commit | Gerbang (G4) pada akhir fase |
+|------|-------|--------|------------------------------|
+| 1 | Rekonsiliasi governance & dokumen (register temuan, roadmap, CANONICAL, README §2) | `e07cfac` (14 file, +386/−40) + `c12ce6f` + `886425f` | docs-only; lulus |
+| 2 | Hardening kernel: FSM failover AtomicU8 latch + validasi physical carve-out; stack guard page non-present + diagnostik `STACK OVERFLOW` COM1; validasi framebuffer-vs-memmap (kebijakan B1) | `4f55c87` (13 file, **+1161/−96** — angka terukur; laporan lama menulis +1145, dikoreksi) | 149/149 test (=128+21); x86_64-none release 0/0; bukti serial QEMU |
+| 3 | DMA/IOMMU multi-tenant: RND_08 spec → kontrak `IovaLease` + `BounceAddressSpace` → migrasi breaking `transmit_burst` & `setup_channel_buffer` → sinkron register | `b17e572` (11 file, +1064/−36) | 160/160 test (+11); release 0/0; grep-proof 0 alamat mentah |
+| 4 | Closeout & reframing: paket bukti 4A, **ADR-002 certification ladder**, sinkron 15 header status, cleanup RND_08 (4C), §5 Hardware Verification Gate (4D) | `d25f283` (16 file `.md`, +192/−54, nol `.rs`) + koreksi `1c75e07`, `32ba946` (deviasi fast-amend, tercatat) | 160/160 tetap; build 0/0 tetap |
+| 5A | Higiene bukti: rekonsiliasi jumlah commit PHASE-4 (3 commit) + README footprint → format bukti terukur dengan `elf_footprint_history.txt` append-only | `591d3a4` (3 file, +61/−2, nol `.rs`) | docs-only; gerbang tak tersentuh |
+| 5B | **HV-1 / QM-01** VT-d smoke di QEMU q35 `intel-iommu`: parser DMAR/ACPI no_std, root+context+SL 3-level, GCMD `TE|SRTP|QIE`, QI DRAINED, deny+tx | `965c3e2` (13 file, **+1736/−11**; modul baru `asl-hal/src/vtd.rs`, `asl-kernel-core/src/vtd_boot.rs`, harness `scripts/test_qm01_vtd_qemu.ps1`) | 171/171; release 0/0, ELF 243.384 B; exit criteria QM-01 **3/3 di serial log VM** |
+| 5C | **HV-2** injeksi stack-overflow deliberate di cold-boot VM; `#PF` dipindah ke **IST1** agar overflow murni tidak tersamar jadi `#DF` | `2b6193a` (14 file, **+397/−11**) | 172/172 (+1 test signature latch); release 0/0, ELF **243.568 B**; build **ber-fitur maupun default** hijau; boot nominal regresi-check capai M6 + shell |
+| 5D | CI minimal per push/PR: runner lokal fail-closed 4 langkah + workflow hosted (langkah 1–2) + kebijakan merge | `6353c77` (6 file, +348/−2, nol `.rs`) | Pipeline **HIJAU 4/4** pada tree fase: 172/172 · 0 error/0 warning · M6 + shell · ringkasan ASCII ter-commit |
 
-## 3. Status temuan DMA final (4 temuan terkait)
-| Temuan | Status akhir | Bukti / sisa |
-|--------|--------------|--------------|
-| **DMA-ADDR-01** | **MITIGATED (CODE)** — VERIFIED-ON-HARDWARE PENDING | API lease-typed ditegakkan kompilator; `IovaLease` tak-termalsukan; whitelist region + generation anti-TOCTOU; +11 test host. Sisa: HV-1/QM-01 (VT-d smoke). |
-| **DMA-CACHE-01** | **PARTIAL-MITIGATED (CODE)** | `BounceAddressSpace::stage()` — hardware hanya menyentuh pool staging. Sisa: HV-3 barrier cache HW riil + zero-stale-read Gem5/Zynq. |
+**Gerbang akhir (GERBANG AKHIR, setelah 5D):** `cargo test --workspace --lib` = **172 passed / 0 failed** (syarat ≥160 terpenuhi); `cargo build --package asl-kernel-bin --target x86_64-unknown-none --release` = **0 error / 0 warning**, ELF **243.568 B**; langkah [3] QEMU q35 cold-boot mencapai `M6: Kernel Cold Boot Complete` + prompt `ASL-OS>` (serial 55 baris, stderr QEMU 0 baris). Artefak: `Analysis/reports/ci_2026-10-20.log` (stamp `6353c77+dirty`) + `Analysis/reports/qemu_ci_smoke_serial.log`.
+
+## 2. Kategori verdict — definisi jujur, dipakai konsisten, dan koreksi label lama
+* **VERIFIED (host)** — terbukti oleh `cargo test --workspace --lib` pada host `x86_64-pc-windows-msvc`. Angka terkini **172/172, 31 crates / 30 suite lib + 1 bin** (sumber: `ci_2026-10-20.log` `[1/4]`). Ini *functional testing*, **bukan** MC/DC coverage.
+* **VERIFIED-ON-VM** — dibuktikan pada **mesin virtual** (QEMU q35 cold-boot headless, log serial COM1 nyata; kadang VirtualBox). **Kategori ini secara eksplisit BUKAN VERIFIED-ON-HARDWARE.** Yang naik ke kategori ini dalam misi: `VT-D-DRV-01` dan `DMA-ADDR-01` (PHASE-5B), jalur remediasi `DA-07`/HV-2 stack-overflow (PHASE-5C).
+* **RUNTIME VERIFIED (istilah lama)** — dipakai README §2 sebelum tangga ADR-002 untuk bukti boot VM. Maknanya sama dengan **VERIFIED-ON-VM**; label dipertahankan di baris historis README tetapi tidak boleh dibaca sebagai bukti hardware.
+* **CODE-COMPLETE / MITIGATED (CODE)** — mekanisme ada dan teruji host, klaim penuh menuntut hardware gate (`REMEDIATION_PLAN.md` §5, HV-1..HV-8). Contoh kini: `.github/workflows/asl-ci-minimal.yml` (config ditulis, **belum pernah dijalankan di runner GitHub** — lihat §7).
+* **VERIFIED-ON-HARDWARE** — **JUMLAH = 0.** Tidak ada satu pun item dalam misi ini yang dibuktikan pada board fisis. Setiap baris status yang menyebut hardware memakai kata "pending/terbuka".
+* **PENDING / OPEN** — tercatat di `REMEDIATION_PLAN.md` §5 dengan prioritas dan exit criteria; 1 temuan OPEN di register (`ATOMIC-SPARC-01`).
+
+**Disiplin tambahan:** setiap angka kunci di dokumen ini berasal dari artefak terukur (`ci_2026-10-20.log`, `elf_footprint_history.txt`, serial log VM, `git show --stat`), bukan ingatan atau asumsi (G7).
+
+## 3. Status temuan DMA / IOMMU / fault-handling final
+| Temuan | Status akhir | Bukti / sisa pekerjaan |
+|--------|--------------|------------------------|
+| **DMA-ADDR-01** | **VERIFIED-ON-VM** (PHASE-5B QM-01) — VERIFIED-ON-HARDWARE **PENDING** | Kontrak `IovaLease` tak-termalsukan ditegakkan kompilator (whitelist region + generation anti-TOCTOU, +11 test host FASE-3). On-VM: domain SL 3-level per partisi "Domain installed", IOVA unmapped `0x10080000` **DITOLAK** dengan fault record terencode ("DENY-DIAG"), transmit via lease "TX-SMOKE OK", QI invalidate+wait **DRAINED**. Bukti: `Analysis/reports/qm01_vtd_serial_2026-10-20.log`. Sisa: board fisis (timing + fault riil). |
+| **VT-D-DRV-01** | **VERIFIED-ON-VM** (PHASE-5B) — konfirmasi silicon riil terbuka | `asl-hal/src/vtd.rs` (parser DMAR/ACPI, encoder tabel, backend) + `asl-kernel-core/src/vtd_boot.rs` (probe fail-soft + 2 halaman SL baru + queue QI 4 KiB). RTADDR + GCMD(`TE|SRTP|QIE`) → GSSTS TES/RTPS/QIES=1 pada model `intel-iommu`. Catatan koreksi: baris tabel register sebelumnya masih "PLANNED" padahal rekap §2 sudah VERIFIED-ON-VM — disinkronkan di GERBANG AKHIR. |
+| **DA-07 / HV-2** (stack guard page end-to-end) | **VERIFIED-ON-VM** (PHASE-5C) — VERIFIED-ON-HARDWARE terbuka | Injeksi deliberate **hanya** pada build ber-fitur `test-hv2-stack-overflow`: "Paging proof: guard → NOT MAPPED", tulis 8 byte ke halaman guard → `#PF` **vektor 14** dengan CR2 di guard, cetak verbatim **`STACK OVERFLOW (GUARD PAGE HIT)`**, DR FSM `pre_state=1 (Armed)` → reason=**3** (MemoryIntegrity) → state 3 (Recovery), `Controlled Halt Active` tanpa reboot VM. Perbaikan produksi yang diperlukan: **#PF dipindah ke IST1** (`asl-hal/src/x86_fault.rs`) karena dengan IST=0 overflow asli tersamar sebagai `#DF` (vector 8, reason 4, frame tak valid). Artefak default (tanpa fitur) diverifikasi ulang: boot tetap M6 + shell. **Screenshot TIDAK tersedia** — VM headless `-display none`, tidak ada tooling tangkap layar; bukti yang diklaim hanyalah log serial. |
+| **DMA-CACHE-01** | **PARTIAL-MITIGATED (CODE)** | `BounceAddressSpace::stage()` — hardware hanya menyentuh pool staging koheren. Sisa: barrier cache HW riil (`dma_cache_clean_inval`) + zero-stale-read di Gem5/Zynq-7000 (HV-3). |
 | **ALIGN-01** | **CLOSED** | `#[repr(C, align(64))]` + static assert + runtime `init_pool` + 4 test. |
-| **VT-D-DRV-01** | **PLANNED** (prasyarat naik status dua temuan atas) | Pemrograman root/context table VT-d; HV-1 punya jalur QEMU tanpa hardware fisik. |
+| **ATOMIC-SPARC-01** | **OPEN** (di luar scope misi 5 fase) | Tahap 1 selesai (AtomicU32 downscale + AtomicU64Split pass); WCET bounded via TSIM3/GRMON3 = REQUIRES EXECUTION (HV-4). |
+
+Rekap register 16 temuan kini: **12 CLOSED / 2 VERIFIED-ON-VM / 1 PARTIAL-MITIGATED-CODE / 1 OPEN** (README §4 dan `SECURITY_FINDINGS.md` §2 sudah sinkron dengan angka ini).
 
 ## 4. Semua file yang berubah sepanjang misi
-* Fase 1: dokumen governance/register (rinci di `QODER_EXECUTION_LOG.md` PHASE-1 REPORT).
-* Fase 2 (`4f55c87`): `asl-kernel-core-secondary/src/lib.rs`, `asl-memory/src/paging.rs`, `linker.ld`, `aarch64_virt.ld`, `asl-kernel-bin/src/main.rs`, `asl-kernel-core/src/lib.rs`, `.gitignore`, README, GATE_REGRESSION_POLICY, ACCOUNTABILITY_FAULT_LOG + artefak bukti (log QEMU, gate parse evidence).
-* Fase 3 (`b17e572`): `docs/RND/RND_08_IOMMU_DMA_ISOLATION.md` (baru), `asl-hal/src/dma_space.rs`, `asl-hal/src/lib.rs`, `asl-pmd/src/lib.rs`, `asl-cctv-dma/src/lib.rs`, SECURITY_FINDINGS, REMEDIATION_PLAN, README, grep-proof (baru), log + final report.
-* Fase 4 (commit ini, semuanya `.md`): **ADR-002 (baru)**; sinkron header di README, CANONICAL_MASTER, DEVELOPER_ONBOARDING, RND_05, RND_07, RND_08, LAPORAN_AUDIT_ULANG, SECURITY_FINDINGS, REMEDIATION_PLAN, ASL-V1.0.2-IMPLEMENTATION-REPORT/RECOVERY/TEST-MATRIX, docs/RND/README; RND_08 4C (wording §F, paragraf Concurrency model §B, label trace table §G); REMEDIATION_PLAN §5 Hardware Verification Gate (baru); log (plan+report PHASE-4); laporan ini diregenerasi.
+* **Fase 1** (`e07cfac`+`c12ce6f`+`886425f`): dokumen governance/register (rinci di `QODER_EXECUTION_LOG.md` PHASE-1 REPORT).
+* **Fase 2** (`4f55c87`): `asl-kernel-core-secondary/src/lib.rs`, `asl-memory/src/paging.rs`, `linker.ld`, `aarch64_virt.ld`, `asl-kernel-bin/src/main.rs`, `asl-kernel-core/src/lib.rs`, `.gitignore`, README, GATE_REGRESSION_POLICY, ACCOUNTABILITY_FAULT_LOG + artefak bukti (log QEMU, gate parse evidence).
+* **Fase 3** (`b17e572`): `docs/RND/RND_08_IOMMU_DMA_ISOLATION.md` (baru), `asl-hal/src/dma_space.rs`, `asl-hal/src/lib.rs`, `asl-pmd/src/lib.rs`, `asl-cctv-dma/src/lib.rs`, SECURITY_FINDINGS, REMEDIATION_PLAN, README, grep-proof (baru), log + final report.
+* **Fase 4** (`d25f283`+`1c75e07`+`32ba946`, semuanya `.md`): ADR-002 (baru); sinkron header 15 dokumen status; RND_08 cleanup; REMEDIATION_PLAN §5 Hardware Verification Gate (baru); log + laporan ini.
+* **Fase 5A** (`591d3a4`): `README.md` §6 (format bukti footprint), `Analysis/reports/elf_footprint_history.txt` (baru, append-only), log.
+* **Fase 5B** (`965c3e2`, 13 file terukur): `asl-hal/src/vtd.rs` (baru), `asl-kernel-core/src/vtd_boot.rs` (baru), `asl-hal/src/lib.rs`, `asl-kernel-core/src/lib.rs`, harness `scripts/test_qm01_vtd_qemu.ps1` (baru), bukti `qm01_vtd_serial_2026-10-20.log` (65 baris) + `qm01_vtd_qemu_stderr_2026-10-20.log`, `audit/REMEDIATION_PLAN.md`, `audit/SECURITY_FINDINGS.md`, `docs/CANONICAL/ADR-002_CERTIFICATION_LADDER.md` (kategori VERIFIED-ON-VM ditambahkan), `README.md`, `elf_footprint_history.txt`, log.
+* **Fase 5C** (`2b6193a`, 14 file terukur): `asl-kernel-core/src/lib.rs` (notifier cetak bukti FSM + probe injeksi ber-fitur, +125), `asl-hal/src/x86_fault.rs` (**#PF → IST1**, 7 baris), `asl-kernel-core-secondary/src/lib.rs` (`latch_reason()` + test signature), `asl-kernel-core/Cargo.toml` + `asl-kernel-bin/Cargo.toml` (fitur `test-hv2-stack-overflow`), harness `scripts/test_hv2_stack_overflow_qemu.ps1` (baru), bukti (`hv2_stack_overflow_serial_2026-10-20.log` 47 baris, `hv2_qemu_stderr_2026-10-20.log` 0 byte, `nominal_regression_serial_2026-10-20.log` 55 baris), `REMEDIATION_PLAN.md`, `SECURITY_FINDINGS.md`, `README.md` §6, `elf_footprint_history.txt`, log. **Tidak** menyentuh `asl-kernel-bin/src/main.rs` maupun ACCOUNTABILITY_FAULT_LOG saat itu (entri fault log baru ditambahkan di GERBANG AKHIR — lihat §6).
+* **Fase 5D** (`6353c77`): `scripts/ci_local.ps1` (baru), `.github/workflows/asl-ci-minimal.yml` (baru), `Analysis/reports/ci_2026-10-20.log` (baru), `Analysis/reports/qemu_ci_smoke_serial.log` (baru), `README.md` §6+§7, log.
+* **GERBANG AKHIR** (commit ini): laporan ini diregenerasi; README §2 (angka test & ukuran ISO + baris bukti VM/CI), README §4 (status DMA-ADDR-01/VT-D-DRV-01), `SECURITY_FINDINGS.md` (baris tabel VT-D-DRV-01 disinkronkan), artefak CI hasil run gerbang akhir, log.
 
-## 5. Keputusan AMENDMENT (A1/A2/B1–B3 & PHASE-4)
-* **A1:** klaim "340 tests / 5 file / 1992 insertions" tanpa sumber branch/stash/worktree/history → `FALSE_CLAIM_INSTRUCTION / REJECTED` di fault log; tidak ada merge; angka kanonik selalu terukur (128 → 149 → 160).
-* **A2:** parse deterministik tersimpan di `Analysis/reports/2026-10-20_gate_parse_evidence.txt`; verdict: **24 gate Phase_01..06 PASS-locked**, Milestone_03 25 gate PARTIAL-unlocked, total 49.
-* **B1/B2/B3:** kebijakan FB reserve + test UsableRam-tanpa-reserve FAIL; kegagalan guard page tercatat ke DR FSM (`REASON_STACK_GUARD_DEGRADED=6` via `notify_fault_safe`, lib.rs:956); path linker aarch64 divergent — dikoreksi di plan.
-* **PHASE-4 (ADR-002):** klaim proses diturunkan ke "DO-178C-aligned" dengan tangga DAL-C(x86_64, v1.1)→B→A; DO-330 tool qualification Gemini_Assist/Sub_Assist adalah **prasyarat** sebelum output agen boleh menjadi bukti verifikasi — aturan yang mengikat masa depan agen itu sendiri.
+## 5. Keputusan AMENDMENT (A1/A2/B1–B3, PHASE-4, PHASE-5)
+* **A1:** klaim "340 tests / 5 file / 1992 insertions" tanpa sumber branch/stash/worktree/history → `FALSE_CLAIM_INSTRUCTION / REJECTED` di fault log; tidak ada merge; angka kanonik selalu terukur (128 → 149 → 160 → 171 → **172**).
+* **A2:** parse deterministik tersimpan di `Analysis/reports/2026-10-20_gate_parse_evidence.txt`; verdict: **24 gate Phase_01..06 PASS-locked**, Milestone_03 25 gate PARTIAL-unlocked, total 49. `CHECKLIST_STATE.json` tidak pernah diubah (G2).
+* **B1/B2/B3:** kebijakan FB reserve + test UsableRam-tanpa-reserve FAIL; kegagalan guard page tercatat ke DR FSM (`REASON_STACK_GUARD_DEGRADED=6` via `notify_fault_safe`); path linker aarch64 divergent — dikoreksi di plan. Tidak pernah menulis framebuffer tanpa validasi (G3).
+* **PHASE-4 (ADR-002):** klaim proses diturunkan ke "DO-178C-aligned" dengan tangga DAL-C(x86_64, v1.1)→B→A; DO-330 tool qualification Gemini_Assist/Sub_Assist adalah **prasyarat** sebelum output agen boleh menjadi bukti verifikasi.
+* **PHASE-5C (keputusan teknik yang perlu dicatat):** memindah `#PF` ke IST1 adalah perubahan infrastruktur exception yang **di luar** teks misi 5C ("injeksi saja"), diambil karena tanpa itu overflow asli tidak pernah terklasifikasi. Dijustifikasi di log + diverifikasi regresi (boot nominal tanpa fitur tetap M6 + shell, 172/172, 0/0).
+* **PHASE-5D (kejujuran cakupan):** workflow hosted tidak bisa dan tidak mengklaim langkah [3]–[4]; env `RUSTFLAGS` sengaja tidak disetel karena akan **menggantikan** rustflags wajib di `asl-kernel/.cargo/config.toml` dan merusak linking.
 
-## 6. Status gerbang governance
-* `CHECKLIST_STATE.json` tidak pernah diubah (G2); tidak ada perubahan MajorFrameSchedule / tulis framebuffer tanpa validasi (G3); tidak ada dependency eksternal baru (G1).
-* Fault log: JSON valid; entri terbaru termasuk FALSE_CLAIM_INSTRUCTION (A1) dan insiden self-recorded backtick Fase-1.
-* Angka kunci (G7): 160/160 host tests, 30 suite, 31 workspace members, 24 locked gates, ELF x86_64 release 224.944 B (pasca-Fase-3).
+## 6. Status gerbang governance & angka kunci (G7)
+* `CHECKLIST_STATE.json` tidak pernah diubah (G2); tidak ada perubahan MajorFrameSchedule / tulis framebuffer tanpa validasi (G3); **tidak ada dependency eksternal baru** sepanjang 5 fase (G1) — 5B/5C hanya menambah modul internal + feature flag.
+* Fault log `docs/ROADMAP/ACCOUNTABILITY_FAULT_LOG.json`: **JSON valid** (divalidasi parser python pasca-edit; `fault_history` = 7 entri, `violations_recorded` tetap 0 karena entri baru adalah deviasi-berjustifikasi dan koreksi drift, bukan pelanggaran). Memuat FALSE_CLAIM_INSTRUCTION (A1, REJECTED), insiden backtick Fase-1, deviasi fast-amend PHASE-4, **entri PHASE-5C `SCOPE_DEVIATION_PRODUCTION_CODE`** (perubahan `#PF`→IST1 dengan justifikasi tertulis + bukti anti-regresi), dan **entri GERBANG AKHIR `DOCUMENTATION_DRIFT_CORRECTED`**.
+* **Angka kunci (terukur, dengan sumber):** 172/172 host test (`ci_2026-10-20.log`), release x86_64-unknown-none 0 error 0 warning, **ELF 243.568 B** (`elf_footprint_history.txt`; riwayat 211.672 → 224.944 → 243.384 → 243.568), ISO **4.118.528 B** (ukuran stabil, **SHA256 berubah tiap rebuild** — build ISO tidak byte-reproducible karena timestamp volume xorriso), 31 workspace crates, 49 gerbang governance (24 locked), 16 temuan register.
+* Commit misi (branch `security/asl-v1.0.2-audit`, **belum di-push**): `e07cfac`/`c12ce6f`/`886425f` (P1), `4f55c87` (P2), `b17e572` (P3), `d25f283`+`1c75e07`+`32ba946` (P4), `591d3a4` (P5A), `965c3e2` (P5B), `2b6193a` (P5C), `6353c77` (P5D), commit GERBANG AKHIR ini (hashnya dicatat pada entri log berikutnya sesuai G8, tidak di dalam commitnya sendiri).
 
-## 7. Sisa pekerjaan (tercatat di REMEDIATION_PLAN §5, bukan klaim selesai)
-1. **HV-1 [P1]** QM-01 VT-d smoke — exit criteria dapat dicapai via QEMU q35 tanpa hardware fisik.
-2. **HV-2 [P1]** injeksi runtime STACK-OVERFLOW end-to-end di VM.
-3. **HV-3 [P2]** barrier cache HW riil → penutupan penuh DMA-CACHE-01.
-4. **HV-4 [P3]** ATOMIC-SPARC-01 WCET via TSIM3.
-5. **HV-5..8** DA-04 reset line, DA-05 MMIO fencing, DA-09 PCI whitelist, DA-10 kunci per-core AMP/SMP.
-6. Anak tangga DAL-C selain hardware gate: MC/DC coverage, tim verifikasi independen, DO-330 TQL, keterlibatan otoritas.
+## 7. Sisa pekerjaan (tercatat, bukan klaim selesai)
+1. **Konfirmasi hardware fisis** untuk `DMA-ADDR-01`, `VT-D-DRV-01`, `DA-07` (HV-1/HV-2 sudah LULUS **ON-VM**; status hardware masih PENDING) — mutlak butuh board.
+2. **HV-3 [P2]** barrier cache HW riil + zero-stale-read (Gem5/Zynq) → menutup penuh `DMA-CACHE-01`.
+3. **HV-4 [P3]** `ATOMIC-SPARC-01` WCET via TSIM3/GRMON3.
+4. **HV-5..8** DA-04 reset line, DA-05 MMIO fencing, DA-09 PCI whitelist, DA-10 kunci per-core AMP/SMP.
+5. **CI hosted:** `.github/workflows/asl-ci-minimal.yml` berstatus **CODE-COMPLETE** — belum pernah dieksekusi di runner GitHub karena branch belum di-push; validasi yang ada = pembacaan struktur manual (parser YAML machine tidak tersedia di host). Langkah [3]–[4] tetap hanya bisa via `scripts/ci_local.ps1`.
+6. **Tangga DAL-C di luar hardware gate:** MC/DC coverage, tim verifikasi independen, DO-330 TQL, keterlibatan otoritas.
+7. **Bukti visual:** tidak ada screenshot untuk HV-1/HV-2 (VM headless). Bila bukti visual diperlukan untuk sertifikasi, perlu jalur tangkap layar terpisah — sampai saat ini klaim hanya bersandar pada log serial.
 
-**Verdict misi:** empat fase selesai sesuai kriteria; setiap pernyataan status menyebut kategorinya (VERIFIED / CODE-COMPLETE / VERIFIED-ON-HARDWARE / PENDING) sesuai ADR-002 §5; tidak ada klaim sertifikasi yang melampaui bukti.
+**Verdict misi:** lima fase + gerbang akhir selesai sesuai kriteria exit masing-masing; **160+ test PASS (172)**, build release **0/0**, smoke QEMU mencapai **M6**, CI minimal hijau 4/4 dan terdokumentasi dengan kebijakan "pipeline MERAH = tidak boleh merge". Setiap pernyataan status menyebut kategorinya; **VERIFIED-ON-VM dinyatakan eksplisit bukan VERIFIED-ON-HARDWARE**, dan **jumlah item VERIFIED-ON-HARDWARE = 0**. Tidak ada klaim sertifikasi yang melampaui bukti; keterbatasan (workflow hosted belum berjalan, tidak ada screenshot, ISO tidak reproducible) dinyatakan, bukan disembunyikan.

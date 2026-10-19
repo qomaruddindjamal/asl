@@ -25,7 +25,7 @@
 | **ATOMIC-SPARC-01** | SPARC V8 64-bit Atomic CAS Emulation Requirement | **SEDANG** | CONFIRMED | **OPEN** | Tahap 1 selesai: AtomicU32 downscale (wraparound pass) + AtomicU64Split (pass). Bounded WCET via TSIM3/GRMON3 = REQUIRES EXECUTION. |
 | **AG-01** | Missing Volatile Semantics on Memory-Mapped I/O and Ring Polling | **SEDANG** | CONFIRMED | **CLOSED** | Wrapper `MmioRegister<u32>` di `asl-hal` & refactor `asl-cctv-dma` selesai (2 unit tests pass). Volatile hanya MMIO; inter-core atomic aman. |
 | **AG-04** | Critical Section Berpotensi Reachable dari Interrupt Service Routine (ISR) | **SEDANG** | CONFIRMED | **CLOSED** | Draf kebijakan P-ISR-1..4 diamendemen (W-10 SPARC WRPSR 3 NOP delay, W-11 WCET budget table) & diratifikasi RATIFIED v1.0 final di `CANONICAL_MASTER.md`. Matriks 7/0 compliant. |
-| **VT-D-DRV-01** | VT-d / AMD-Vi Hardware Driver & Fault-Path Programming | **SEDANG** | CONFIRMED | **PLANNED** | Driver minimal VT-d (root/context table programming) sebagai prasyarat fault-path QEMU q35 / target hardware, dipetakan ke milestone Fase 3. |
+| **VT-D-DRV-01** | VT-d / AMD-Vi Hardware Driver & Fault-Path Programming | **SEDANG** | CONFIRMED | **VERIFIED-ON-VM (PHASE-5B, 2026-10-20) → VERIFIED-ON-HARDWARE masih PENDING** | Driver minimal VT-d (root/context table programming) terpenuhi di QEMU q35 `intel-iommu`: GCMD `TE|SRTP|QIE` diterima hardware model (GSSTS TES/RTPS/QIES=1), SL 3-level per domain, QI invalidate+wait DRAINED, fault unmapped-IOVA tercatat. **Kategori VERIFIED-ON-VM bukan VERIFIED-ON-HARDWARE** (ADR-002 §5). Koreksi: baris ini sebelumnya masih tertulis "PLANNED" padahal rekapitulasi §2 sudah VERIFIED-ON-VM — sinkron di GERBANG AKHIR. |
 
 ---
 

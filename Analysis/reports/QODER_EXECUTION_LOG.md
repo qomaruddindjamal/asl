@@ -505,3 +505,49 @@ Tidak ada. Tidak ada kegagalan beruntun (G5 tidak terpicu) pada fase ini.
 
 ### Commit
 `[PHASE-5D] <ringkasan>` — staging eksplisit per file (6 path: workflow hosted, `scripts/ci_local.ps1`, `Analysis/reports/ci_2026-10-20.log`, `Analysis/reports/qemu_ci_smoke_serial.log`, `README.md`, dan entri log ini sendiri). Hash commit fase ini dicatat pada entri GERBANG AKHIR berikutnya (G8).
+
+## GERBANG AKHIR (FINAL GATE) — REPORT (2026-10-20)
+
+Kontrak: "160+ tests PASS, build 0/0, regenerasi QODER_FINAL_REPORT.md yang mencakup PHASE-1..5 dengan kategori VERIFIED-ON-VM dinyatakan eksplisit BUKAN VERIFIED-ON-HARDWARE."
+
+### G8 — pemenuhan kewajiban hash PHASE-5D
+**Hash commit `[PHASE-5D]` = `6353c77`** — "CI minimal per push/PR: scripts/ci_local.ps1 fail-closed 4-langkah ..." (diverifikasi `git show --stat 6353c77`: 6 file, +348/−2). Tidak ada amend/rebase/reset; entri ini adalah commit/entri berikutnya yang mencatat hash fase sebelumnya, sesuai G8.
+
+### Gerbang final — hasil TERUKUR (bukan disalin dari entri lama)
+`scripts/ci_local.ps1` dijalankan penuh pada tree final (setelah README/register/laporan diedit), **4/4 PASS**:
+- `[1/4]` **172 host tests passed / 0 failed** — syarat "160+ tests PASS" terpenuhi (margin +12).
+- `[2/4]` build `--target x86_64-unknown-none --release` **0 error / 0 warning**, ELF **243.568 B**.
+- `[3/4]` QEMU q35 cold-boot smoke: **M6 tercapai + prompt `ASL-OS>`** (serial 55 baris, stderr QEMU 0 baris), ISO 4.118.528 B SHA256 `BB97F25ED3E5DBEE44C53FD179586B0A6BE0230C1E1AC85E8E5111C723ACC959`.
+- `[4/4]` ringkasan `KEPUTUSAN: Pipeline HIJAU`, stamp commit `6353c77+dirty`.
+Artefak yang ter-commit: `Analysis/reports/ci_2026-10-20.log` (run gerbang akhir). Serial `qemu_ci_smoke_serial.log` dihasilkan ulang oleh runner dan **identik byte** dengan yang sudah ter-commit, sehingga tidak menjadi delta — bukti boot deterministik.
+
+### Catatan hash ISO (koreksi append-only terhadap entri [PHASE-5D] di atas)
+Entri `[PHASE-5D]` mengutip SHA256 `6DDF4E6C…` dari run pertama. Artefak `ci_2026-10-20.log` yang kini ter-commit berisi run terakhir dengan SHA256 `BB97F25E…`, **ukuran byte identik 4.118.528**. Keduanya benar untuk run-nya masing-masing: build ISO tidak byte-reproducible (xorriso menanam volume timestamp). Entri lama tidak ditulis-ulang (R1); koreksi berupa entri baru yang menyebut nilai lama, sesuai G8. Hash ISO yang sah dikutip hanyalah yang ada di artefak ter-commit.
+
+### File berubah di gerbang akhir (nol `.rs`, nol CHANGE terhadap CHECKLIST_STATE.json)
+| Path | Perubahan | Alasan |
+|---|---|---|
+| `Analysis/reports/QODER_FINAL_REPORT.md` | diregenerasi total (PHASE-1..5 + gerbang akhir) | exit criteria misi; versi lama hanya sampai PHASE-4 dan SALAH LABEL: mendefinisikan "VERIFIED-ON-HARDWARE" sebagai bukti VM |
+| `README.md` §2 | angka test 128 → **172/172** (dengan riwayat terukur 128→149→160→171→172); ukuran ISO 3.917.824 → **4.118.528 B** + catatan non-reproducibility; **+3 baris status baru** (IOMMU/VT-d VERIFIED-ON-VM, stack-overflow VERIFIED-ON-VM, CI minimal) | G7 — angka wajib dari sumber kebenaran; entri FALSE_CLAIM lama mensyaratkan "patok 128 sampai terukur ulang", syaratnya kini terpenuhi |
+| `README.md` §4 | rekap register jadi 12 CLOSED / 2 VERIFIED-ON-VM / 1 PARTIAL-MITIGATED-CODE / 1 OPEN; item `DMA-ADDR-01` dan `VT-D-DRV-01` tidak lagi tertulis MITIGATED-CODE/PLANNED | sinkron dengan `SECURITY_FINDINGS.md` §1–§2 pasca-5B |
+| `audit/asl-core-kernel/SECURITY_FINDINGS.md` | baris tabel `VT-D-DRV-01` **PLANNED → VERIFIED-ON-VM (PHASE-5B)** dengan catatan koreksi eksplisit di selnya | drift internal register: rekap §2 sudah VERIFIED-ON-VM, baris tabel belum |
+| `docs/ROADMAP/ACCOUNTABILITY_FAULT_LOG.json` | **+2 entri** `fault_history` (PHASE-5C `SCOPE_DEVIATION_PRODUCTION_CODE` untuk #PF→IST1; GERBANG AKHIR `DOCUMENTATION_DRIFT_CORRECTED`); JSON tervalidasi parser, `violations_recorded` tetap 0 | akuntabilitas charter: deviasi produksi dan koreksi drift wajib tercatat tertulis |
+| `Analysis/reports/ci_2026-10-20.log` | di-refresh dari run gerbang akhir (stamp `6353c77+dirty`, ISO SHA256 `BB97F25E…`) | bukti harus sesuai tree yang di-commit |
+| `Analysis/reports/qemu_ci_smoke_serial.log` | dijalankan ulang oleh runner, **isi identik** dengan versi ter-commit PHASE-5C/5D sehingga tidak muncul sebagai delta (`git status` bersih untuk path ini) | bukti boot deterministik — tidak ada perubahan serial antar-run |
+| koreksi laporan lama | `4f55c87` diffstat ditulis **+1161/−96** (terukur `git show --stat`), laporan lama menulis +1145 | G7 |
+
+### Batas klaim yang dijaga (disiplin kategori)
+* **VERIFIED-ON-HARDWARE = 0 item.** Semua bukti 5B/5C berhenti di **VERIFIED-ON-VM**; setiap baris status menyebut sisa pekerjaan hardware secara eksplisit.
+* Workflow hosted `.github/workflows/asl-ci-minimal.yml` berstatus **CODE-COMPLETE**, bukan VERIFIED: branch belum di-push dan tidak ada access runner GitHub Actions dari lingkungan ini; parser YAML machine (pyyaml) tidak terpasang dan tidak dipasang — validasi yang dilakukan = pembacaan struktur manual.
+* **Tidak ada screenshot** untuk HV-1/HV-2 (QEMU headless `-display none`, tidak ada tooling tangkap layar). Klaim bersandar pada log serial saja; ini dinyatakan di laporan akhir, bukan ditutup-tutupi.
+* Baris register yang menulis "171/171 host test" (PHASE-5B) adalah angka **as-of run saat itu** dan sengaja tidak ditulis-ulang; total terkini 172/172 tercatat di README §2, laporan akhir, dan artefak CI.
+* Transcript per-langkah CI (`ci_*.log.step*.log`) dan log harness aktor lain/run sebelumnya (`qemu_serial*`, `qemu_qm01_vtd_*`, `qemu_hv2_*`, `asl_vm_serial*`, `vbox_check.log`) tidak di-stage.
+
+### Deviasi
+Tidak ada pelanggaran G1–G8. Deviasi yang ada (perubahan produksi #PF→IST1 di 5C, workflow hosted yang tak bisa menutup langkah 3–4, absennya screenshot) seluruhnya sudah tercatat tertulis di fault log dan/atau entri log fase masing-masing. Tidak ada kegagalan beruntun, jadi G5 tidak terpicu.
+
+### Bloker
+Tidak ada.
+
+### Commit
+`[PHASE-5] GERBANG AKHIR …` — staging eksplisit per file (6 path berubah: laporan akhir, log ini, artefak CI, README §2+§4, SECURITY_FINDINGS, ACCOUNTABILITY_FAULT_LOG). Hash commit ini TIDAK ditulis di dalam commitnya (G8); entri berikutnya (jika ada) atau ringkasan akhir yang mencatatkannya.

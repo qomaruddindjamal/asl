@@ -1,0 +1,11 @@
+# ELF FOOTPRINT HISTORY — asl-kernel (x86_64-unknown-none, release)
+# APPEND-ONLY. Sumber kebenaran ukuran biner bare-metal yang dikutip README.md §6.
+# Format baris: <ukuran_baity> B | diukur pada <tanggal> | commit <hash> | metode | catatan
+
+211.672 B | diukur pada 2026-10-20 | commit 4fead01+FIX-1 (working tree pra-Fase-2; tercatat di README via [PHASE-1] 886425f) | ls -la target/x86_64-unknown-none/release/asl-kernel | Pengukuran pertama yang mengganti klaim historis "~70 KB" (v1.0.1 minimal launcher, bukan biner saat ini).
+
+224.944 B | diukur pada 2026-10-20 | commit b17e572 ([PHASE-3] build gerbang fase; artefak tetap sah karena [PHASE-4] dan seterusnya docs-only) | ls -la target/x86_64-unknown-none/release/asl-kernel (+27.727 B / +13,1% vs pra-Fase-2) | Pasca-Fase-3: += guard page split + fault latch + validasi FB (Fase-2) dan kontrak IovaLease + bounce backend + lease-only transmit (Fase-3).
+
+# Cara mengukur ulang (repo root, dari C:\asl):
+#   ls -la asl-kernel/target/x86_64-unknown-none/release/asl-kernel
+#   (jika artefak tidak ada: cargo build --package asl-kernel-bin --target x86_64-unknown-none --release)

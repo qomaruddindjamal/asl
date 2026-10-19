@@ -103,8 +103,8 @@ Execute workspace regression tests and run `tools/Gemini_Assist.py --audit` befo
 
 ## 6. PREREQUISITES & DEVELOPMENT COMMANDS
 
-### Hardware & Runtime Requirements (Verified v1.0.1; footprint updated 2026-10-20)
-- **Minimum Target RAM:** **4 MB RAM** (bare-metal release kernel ELF measured **211.672 bytes** ≈ 207 KB on 2026-10-20, `target/x86_64-unknown-none/release/asl-kernel`; the historical "~70 KB" figure measured the v1.0.1 minimal launcher before storage/driver/shell integration. Verified running stably with zero crash on 64 MB).
+### Hardware & Runtime Requirements (Verified v1.0.1; footprint updated 2026-10-20, measurement-evidence format per PHASE-5A)
+- **Minimum Target RAM:** **4 MB RAM** (bare-metal release kernel ELF currently **224.944 bytes** ≈ 220 KB, measured on 2026-10-20 at commit `b17e572` — see append-only evidence file `Analysis/reports/elf_footprint_history.txt`; do NOT quote a footprint number here without adding a matching line to that file first. The historical "~70 KB" figure measured the v1.0.1 minimal launcher, not the current binary. Verified running stably with zero crash on 64 MB).
 - **Recommended Target RAM:** **64 MB RAM** or higher.
 - **CPU Architecture:** x86_64 (Long Mode + PAE supported).
 - **Firmware:** BIOS (El Torito CD boot) or UEFI 64-bit with GOP / VBE framebuffer.

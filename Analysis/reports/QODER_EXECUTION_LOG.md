@@ -304,3 +304,51 @@ Tunggal `[PHASE-4] closeout & certification reframing`, staging per-file eksplis
 ## Addendum commit PHASE-4 (catatan deviasi transparan, 2026-10-20)
 * Commit utama `[PHASE-4]` = `d25f283` (16 file .md, +192/−54; nol `.rs`) — merupakan hasil fast-aut amend yang diizinkan rencana commit di atas (hash awal `3211de4`; amend dilakukan sebelum apa pun dipublikasikan, isi berubah satu baris referensi hash saja).
 * Amend mengganti hash sehingga referensi di QODER_FINAL_REPORT menjadi salah; dikoreksi via commit susulan kecil `[PHASE-4][doc-fix]` = `1c75e07` (satu baris). Konsekuensi: fase ini menjadi 2 commit — Penyimpangan dari G6 (satu commit per fase) direkam resmi di sini; alasan: menghindari amend berulang yang tak pernah bisa menuliskan hash dirinya sendiri (self-reference), dan memperbaiki dokumen lewat commit auditabel lebih dipilih daripada force/mendiamkan angka salah. Isi teknis tidak berubah.
+
+---
+
+# [PHASE-5] Hardware Gate P1 + Infrastruktur Verifikasi — EXECUTION PLAN
+**Diterima:** 2026-10-20 (misi PHASE-5) | **Aturan:** G1–G7 + R1–R4 + **G8 baru** (tanpa rewrite riwayat: nol amend/rebase/reset; hash commit tidak pernah ditulis di dalam commitnya sendiri — dicatat di entri/commit berikutnya; koreksi = commit baru yang menyebut hash terkoreksi)
+
+| Sub-fase | Isi | Gerbang keluar | Commit |
+|---|---|---|---|
+| 5A Higiene bukti | Verifikasi jumlah commit PHASE-4 via `git log --oneline -6` + status `32ba946`; README §6 footprint -> format terukur + `Analysis/reports/elf_footprint_history.txt` (211.672 B @ pre-Fase-2; 224.944 B @ pasca-Fase-3) | log & README cocok dengan `ls`/git | `[PHASE-5A]` |
+| 5B HV-1 QM-01 | Jalur VT-d minimum di `asl-hal`: parser DMAR/ACPI (no_std, tanpa dependency baru — G1), root table + context entry + second-level page table per domain, pin=install leaf, QI invalidate, fault fault-record; host tests logika tabel; wiring runtime bila handover memuat ACPI; QEMU q35 `-device intel-iommu` smoke; exit criteria (1) boot serial VT-d terdeteksi+domain terpasang, (2) DMA IOVA unmapped DITOLAK ber-log, (3) transmit via IovaLease sukses | test + build 0/0 + serial log (hasil apa adanya, termasuk bila prasyarat VM kurang — tidak ada klaim melebihi bukti) | `[PHASE-5B]` |
+| 5C HV-2 | Injeksi stack-overflow runtime end-to-end via jalur test khusus (bukan jalur produksi): cold-boot VM, overflow menembus bawah stack 512KB -> serial `STACK OVERFLOW (GUARD PAGE HIT)` + DR FSM Recording reason benar + halt aman; bukti serial | serial log teramati | `[PHASE-5C]` |
+| 5D CI minimal | Pipeline: test 160+; build x86_64-none release 0/0; QEMU boot smoke sampai M6; summary; gagal = PR terblokir. Konfigurasi CI + skrip runner lokal output `Analysis/reports/ci_<tanggal>.log` | runner lokal lulus 3 stage | `[PHASE-5D]` |
+| Akhir | Regenerasi QODER_FINAL_REPORT.md (PHASE-1..5); ADR-002 §5: tambahkan kategori **VERIFIED-ON-VM** (perbedaannya dengan VERIFIED-ON-HARDWARE dinyatakan eksplisit) | tanpa klaim melampaui kategori | (masuk sub-fase terkait) |
+
+---
+
+## [PHASE-5A] HIGIENE BUKTI — REPORT
+**Status:** SELESAI — gerbang hijau, commit tunggal (hash dicatat pasca-commit per G8, lihat adendum di bawah entri ini pada commit berikutnya).
+**Waktu:** 2026-10-20
+
+### File berubah (docs/evidence-only; nol perubahan .rs)
+| File | Perubahan |
+|---|---|
+| `README.md` | §6 footprint: angka hardcoded lama `211.672 B` ( basi pra-Fase-2 ) diganti format bukti-terukur: `224.944 B ≈ 220 KB, diukur 2026-10-20 di commit b17e572, lihat Analysis/reports/elf_footprint_history.txt` + aturan anti-regresi ("jangan kutip angka footprint tanpa baris bukti di file tsb"). |
+| `Analysis/reports/elf_footprint_history.txt` | BARU, append-only: 211.672 B @ pra-Fase-2 (commit `4fead01`+FIX-1, tercatat via `[PHASE-1] 886425f`) dan 224.944 B @ pasca-Fase-3 (`b17e572`; artefak tetap sah karena Fase-4 dst docs-only) + metode pengukuran ulang. |
+| `Analysis/reports/QODER_EXECUTION_LOG.md` | Entri ini (plan PHASE-5 sudah appended sebelumnya pada sesi ini). |
+
+### Verifikasi (bukan asumsi)
+- `git log --oneline -6` (dijalankan 2026-10-20): PHASE-4 = **3 commit** — `d25f283` [PHASE-4] utama, `1c75e07` [PHASE-4][doc-fix] koreksi referensi hash, `32ba946` [PHASE-4][doc-fix] adendum penyimpangan aturan satu-commit. **Resolusi konflik R3 vs REPORT:** R3 ("3") BENAR; narasi PHASE-4 REPORT yang mengimplikasikan 2 commit adalah keliru — `32ba946` statusnya = commit koreksi menyimpang yang secara eksplisit MENCATAT penyimpangan amend-insiden (bukan bagian dari commit utama). Sesuai G8, koreksi ini dibiarkan sebagai catatan baru, tidak menulis-ulang apa pun.
+- Ukuran ELF aktual: `ls -la asl-kernel/target/x86_64-unknown-none/release/asl-kernel` → **224944 B** (build gerbang 2026-10-20 01:17, era `b17e572`; tidak berubah oleh docs-only Fase-4). Cocok dengan angka di user brief.
+- Sumber historis 211.672 B: grep konfirmasi di log baris 14 (plan Fase-1, HEAD `4fead01`) + `ACCOUNTABILITY_FAULT_LOG.json` entri FIX-1.
+
+### Gerbang (G4)
+- `cargo test --workspace --lib`: **160 passed / 0 failed** (30 suite; hasil grep terverifikasi, tidak ada baris "N failed" dengan N>0).
+- `cargo build --package asl-kernel-bin --target x86_64-unknown-none --release`: **0 error, 0 warning** (grep count baris error|warning = 0).
+
+### Kriteria fase 5A
+(a) Jumlah commit PHASE-4 terverifikasi + status `32ba946` teridentifikasi dan tercatat di log — PASS. (b) README §6 pakai format terukur + rujukan file bukti — PASS. (c) `elf_footprint_history.txt` dibuat dengan 2 baris history — PASS.
+
+### Penyimpangan
+- Tidak ada. Tidak ada amend/rebase/reset (G8 dipatuhi; hash commit 5A sengaja TIDAK ditulis di dalam commit/entri 5A-nya sendiri).
+
+### Bloker
+- Tidak ada.
+
+### Commit
+- `[PHASE-5A] ...` — staging eksplisit per file: `README.md`, `Analysis/reports/elf_footprint_history.txt`, `Analysis/reports/QODER_EXECUTION_LOG.md`. Log serial untracked milik aktor lain (asl_vm_serial*.log, qemu_serial*.log, vbox_check.log) TIDAK distage. Hash commit akan dicatat di adendum log ini pada commit `[PHASE-5B]` (G8).
+

@@ -25,3 +25,4 @@
 - Temuan: README §2 lama mengklaim "25/25 gates PASS & LOCKED".
 - Fakta `CHECKLIST_STATE.json` (parsed): 24 gate Phase 1–6 PASS & LOCKED; `Milestone_03` 25 gate berstatus PARTIAL/unlocked.
 - Aksi: README §2 dikoreksi ke angka faktual di atas; `CHECKLIST_STATE.json` TIDAK diubah (isinya sudah benar); justifikasi dicatat di `ACCOUNTABILITY_FAULT_LOG.json` (entri `GOVERNANCE_RECONCILIATION`).
+- Bukti parse deterministik (24 gate Phase 1–6 PASS/locked; Milestone_03 = 25 gate: 20 PASS murni + 1 PASS-kualifed-3.19 + 1 PASS_READONLY + 1 PARTIAL + 1 GAP_IDENTIFIED + 1 NOT TESTED; total 49 gate): `Analysis/reports/2026-10-20_gate_parse_evidence.txt`. Verdict final: **24** (bukan 25) untuk gate terkunci.

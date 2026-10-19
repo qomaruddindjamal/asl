@@ -606,9 +606,133 @@ impl AslAvionicsKernel {
     }
 }
 
-/// Global instance Secondary Core Engine untuk notifikasi failover hook
-pub static mut GLOBAL_SECONDARY_ENGINE: asl_kernel_core_secondary::SecondaryCoreEngine =
-    asl_kernel_core_secondary::SecondaryCoreEngine::new();
+// -----------------------------------------------------------------------------
+// LINKER-PROVIDED MEMORY LAYOUT SYMBOLS (bare-metal x86_64 only)
+// -----------------------------------------------------------------------------
+
+#[cfg(all(target_arch = "x86_64", target_os = "none"))]
+extern "C" {
+    static __asl_secondary_start: u8;
+    static __asl_secondary_end: u8;
+    static _asl_guard_page: u8;
+    static _asl_stack_bottom: u8;
+    static _asl_stack_top: u8;
+}
+
+/// Halt terkendali: non-busying safe state sesuai pola DO-178C fail-safe
+fn controlled_halt() -> ! {
+    loop {
+        #[cfg(all(target_arch = "x86_64", target_os = "none"))]
+        unsafe {
+            core::arch::asm!("cli; hlt", options(nomem, nostack, preserves_flags));
+        }
+        #[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
+        core::hint::spin_loop();
+    }
+}
+
+/// Validasi region carve-out Secondary engine: ter-alignment 4K, termuat penuh di
+/// dalam kernel image, dan tidak tumpang tindih dengan stack kernel. Fail-closed.
+pub fn validate_secondary_carveout(
+    sec_start: u64,
+    sec_end: u64,
+    stack_bottom: u64,
+    stack_top: u64,
+    kernel_virt: u64,
+    kernel_size: u64,
+) -> bool {
+    if sec_end <= sec_start || stack_top <= stack_bottom {
+        return false;
+    }
+    if sec_start & 0xFFF != 0 {
+        return false;
+    }
+    let k_end = match kernel_virt.checked_add(kernel_size) {
+        Some(e) => e,
+        None => return false,
+    };
+    if kernel_size == 0 {
+        return false;
+    }
+    // Containment dalam kernel image
+    if sec_start < kernel_virt || sec_end > k_end {
+        return false;
+    }
+    if stack_bottom < kernel_virt || stack_top > k_end {
+        return false;
+    }
+    // Non-overlap carve-out vs stack
+    !(sec_start < stack_top && sec_end > stack_bottom)
+}
+
+/// Klasifikasi fault sebagai stack overflow terhadap guard page tepat di bawah stack
+pub fn classify_stack_overflow(cr2: u64, rsp: u64, stack_bottom: u64) -> bool {
+    if rsp < stack_bottom {
+        return true;
+    }
+    match stack_bottom.checked_sub(4096) {
+        Some(guard_lo) => cr2 >= guard_lo && cr2 < stack_bottom,
+        None => false,
+    }
+}
+
+/// Validasi rentang fisik framebuffer terhadap memory map bootloader + reserve eksplisit.
+/// - VALID tanpa syarat bila tercakup satu region FrameBuffer/Reserved.
+/// - UsableRam/BootloaderReclaimable hanya valid bila range FB juga tercakup dalam
+///   reserve [reserve_start, reserve_start+reserve_len) yang dikecualikan dari buddy.
+/// - FAIL bila tumpang tindih BadMemory/KernelImage/PageTables atau aritmatik overflow.
+pub fn validate_framebuffer_memmap(
+    map: &[asl_bootloader::MemoryDescriptor],
+    fb_base: u64,
+    fb_size: u64,
+    reserve_start: u64,
+    reserve_len: u64,
+) -> bool {
+    use asl_bootloader::MemoryRegionType as Mrt;
+    if fb_size == 0 {
+        return false;
+    }
+    let fb_end = match fb_base.checked_add(fb_size) {
+        Some(e) => e,
+        None => return false,
+    };
+    let reserve_end = match reserve_start.checked_add(reserve_len) {
+        Some(e) => e,
+        None => return false,
+    };
+
+    let mut contained = false;
+    for r in map {
+        let r_end = match r.base_physical_addr.checked_add(r.length_bytes) {
+            Some(e) => e,
+            None => return false,
+        };
+        let overlaps = r.base_physical_addr < fb_end && fb_base < r_end;
+        match r.region_type {
+            Mrt::BadMemory | Mrt::KernelImage | Mrt::PageTables => {
+                if overlaps {
+                    return false;
+                }
+            }
+            Mrt::FrameBuffer | Mrt::Reserved => {
+                if r.base_physical_addr <= fb_base && fb_end <= r_end {
+                    contained = true;
+                }
+            }
+            Mrt::UsableRam | Mrt::BootloaderReclaimable => {
+                if r.base_physical_addr <= fb_base
+                    && fb_end <= r_end
+                    && reserve_start <= fb_base
+                    && fb_end <= reserve_end
+                {
+                    contained = true;
+                }
+            }
+            _ => {}
+        }
+    }
+    contained
+}
 
 /// Exception Notifier & Serial Diagnostic Dump Callback
 #[cfg(target_arch = "x86_64")]
@@ -654,15 +778,22 @@ pub fn asl_fault_notifier(ctx: &asl_hal::x86_fault::ExceptionContext) {
     early_serial_write_str("\n");
     early_serial_write_str("===============================================================\n");
 
-    // Kirim notifikasi hook ke secondary kernel tanpa melakukan takeover
-    let reason = match ctx.vector {
-        14 => asl_kernel_core_secondary::FaultReason::MemoryIntegrityCorruption,
-        _ => asl_kernel_core_secondary::FaultReason::IllegalHardwareTrap,
-    };
-    unsafe {
-        let sec = core::ptr::addr_of_mut!(GLOBAL_SECONDARY_ENGINE);
-        (*sec).notify_fault(reason, ctx.vector);
+    // Deteksi stack overflow terhadap guard page (tepat di bawah stack 512KB)
+    #[cfg(all(target_arch = "x86_64", target_os = "none"))]
+    {
+        let s_bottom = core::ptr::addr_of!(_asl_stack_bottom) as *const u8 as u64;
+        if classify_stack_overflow(ctx.cr2, ctx.rsp, s_bottom) {
+            early_serial_write_str("STACK OVERFLOW (GUARD PAGE HIT)\n");
+        }
     }
+
+    // Kirim notifikasi hook ke secondary kernel via latch atomik crash-safe
+    let reason_code = if ctx.vector == 14 {
+        asl_kernel_core_secondary::safe::REASON_MEMORY_INTEGRITY
+    } else {
+        asl_kernel_core_secondary::safe::REASON_ILLEGAL_TRAP
+    };
+    asl_kernel_core_secondary::safe::notify_fault_safe(reason_code, ctx.vector as u64);
     early_serial_write_str("[ASL-CORE] Secondary kernel notified. Controlled Halt Active.\n");
 }
 
@@ -671,10 +802,10 @@ pub fn asl_fault_notifier(ctx: &asl_hal::x86_fault::ExceptionContext) {
 #[panic_handler]
 fn panic(_info: &PanicInfo) -> ! {
     early_serial_write_str("\n[ASL-CORE-PANIC] Fail-Safe Trap Invoked. Spinning in safe loop.\n");
-    unsafe {
-        let sec = core::ptr::addr_of_mut!(GLOBAL_SECONDARY_ENGINE);
-        (*sec).notify_fault(asl_kernel_core_secondary::FaultReason::KernelPanic, 1);
-    }
+    asl_kernel_core_secondary::safe::notify_fault_safe(
+        asl_kernel_core_secondary::safe::REASON_KERNEL_PANIC,
+        1,
+    );
     // Memasuki Safe Fallback Loop tanpa restart liar
     loop {
         core::hint::spin_loop();
@@ -694,6 +825,33 @@ pub unsafe extern "C" fn _asl_kernel_entry(handover_ptr: *const AslBootHandover)
         asl_hal::x86_fault::init_x86_64_fault_infrastructure();
         asl_hal::x86_fault::set_fault_notifier(asl_fault_notifier);
         early_serial_write_str("[ASL-CORE] M0: x86_64 Minimal Fault Infrastructure (IDT/TSS/IST1) Initialized.\n");
+
+        #[cfg(target_os = "none")]
+        {
+            let sec_start = core::ptr::addr_of!(__asl_secondary_start) as *const u8 as u64;
+            let sec_end = core::ptr::addr_of!(__asl_secondary_end) as *const u8 as u64;
+            let s_bottom = core::ptr::addr_of!(_asl_stack_bottom) as *const u8 as u64;
+            let s_top = core::ptr::addr_of!(_asl_stack_top) as *const u8 as u64;
+            if !handover_ptr.is_null() {
+                let hv = &*handover_ptr;
+                if validate_secondary_carveout(
+                    sec_start,
+                    sec_end,
+                    s_bottom,
+                    s_top,
+                    hv.kernel_virtual_base,
+                    hv.kernel_size_bytes,
+                ) && asl_kernel_core_secondary::safe::arm_engine()
+                {
+                    early_serial_write_str("[ASL-CORE] M0+: Secondary carve-out validated (aligned, in-image, disjoint from stack). Failover latch ARMED.\n");
+                } else {
+                    early_serial_write_str("[ASL-CORE] FATAL: Secondary carve-out invalid or latch re-arm attempt. Controlled halt, no takeover.\n");
+                    controlled_halt();
+                }
+            } else {
+                early_serial_write_str("[ASL-CORE] M0+: carve-out validation skipped (null handover); latch remains Uninit (record-only).\n");
+            }
+        }
     }
 
     #[cfg(target_arch = "x86_64")]
@@ -725,16 +883,37 @@ pub unsafe extern "C" fn _asl_kernel_entry(handover_ptr: *const AslBootHandover)
                     if fb_cfg.base_physical_addr != 0 {
                         let fb = core::ptr::addr_of_mut!(FB_CONSOLE);
                         let pitch_bytes = (fb_cfg.pixels_per_scan_line as usize)
-                            * (fb_cfg.bytes_per_pixel as usize);
+                            .checked_mul(fb_cfg.bytes_per_pixel as usize);
+                        let fb_total_bytes = pitch_bytes
+                            .and_then(|p| p.checked_mul(fb_cfg.height as usize));
+                        let map_len = core::cmp::min(
+                            handover.memory_map_count,
+                            handover.memory_map.len(),
+                        );
+                        let fb_ok = match fb_total_bytes {
+                            Some(total) => validate_framebuffer_memmap(
+                                &handover.memory_map[..map_len],
+                                fb_cfg.base_physical_addr,
+                                total as u64,
+                                0,
+                                0,
+                            ),
+                            None => false,
+                        };
+                        if !fb_ok {
+                            early_serial_write_str("[ASL-CORE] FATAL: Framebuffer physical range FAILS memmap validation (unbacked, reserved-type conflict, or arithmetic overflow). Refusing to touch framebuffer. Controlled halt.\n");
+                            controlled_halt();
+                        }
                         // Map physical framebuffer address into Higher Half Direct Map (HHDM) virtual address space
-                        if let Some(virt_addr) =
-                            HHDM_OFFSET.checked_add(fb_cfg.base_physical_addr as usize)
-                        {
+                        if let (Some(virt_addr), Some(pitch)) = (
+                            HHDM_OFFSET.checked_add(fb_cfg.base_physical_addr as usize),
+                            pitch_bytes,
+                        ) {
                             (*fb).init(
                                 virt_addr,
                                 fb_cfg.width as usize,
                                 fb_cfg.height as usize,
-                                pitch_bytes,
+                                pitch,
                                 (fb_cfg.bytes_per_pixel as usize) * 8,
                             );
                             (*fb).set_scale(1); // Native 1:1 Pixel-Perfect 8x16 font rendering (ultra-sharp & clean)
@@ -751,6 +930,36 @@ pub unsafe extern "C" fn _asl_kernel_entry(handover_ptr: *const AslBootHandover)
                     early_serial_write_str(
                         "[ASL-CORE] M4: Buddy Allocator & Heap Memory Subsystem Initialized.\n",
                     );
+
+                    // Guard page non-present tepat di bawah stack 512KB (setelah allocator siap)
+                    #[cfg(all(target_arch = "x86_64", target_os = "none"))]
+                    {
+                        let guard_virt =
+                            core::ptr::addr_of!(_asl_guard_page) as *const u8 as u64;
+                        let mut space = asl_memory::AddressSpace::from_pml4_phys(
+                            unsafe { asl_memory::read_cr3() } & asl_memory::PHYSICAL_ADDRESS_MASK,
+                            HHDM_OFFSET as u64,
+                        );
+                        let guard_res = unsafe {
+                            space.enforce_stack_guard_page(guard_virt, || {
+                                kernel.memory_allocator.allocate_pages(0)
+                            })
+                        };
+                        match guard_res {
+                            Ok(()) => early_serial_write_str(
+                                "[ASL-CORE] M4+: Kernel stack guard page enforced (non-present below 512KB stack).\n",
+                            ),
+                            Err(_) => {
+                                early_serial_write_str(
+                                    "[ASL-CORE] M4+: WARNING - stack guard page enforcement FAILED; degraded protection, boot continues.\n",
+                                );
+                                asl_kernel_core_secondary::safe::notify_fault_safe(
+                                    asl_kernel_core_secondary::safe::REASON_STACK_GUARD_DEGRADED,
+                                    4,
+                                );
+                            }
+                        }
+                    }
                 } else {
                     early_serial_write_str(
                         "[ASL-CORE] M4: WARNING - Allocator initialized with 0 available pages.\n",
@@ -2220,5 +2429,141 @@ pub fn execute_gate3d_suite() {
         (*mgr).tasks[0].state = asl_sched::TaskState::Running;
         (*mgr).preemptive_enabled = false;
         early_serial_write_str("[GATE-3D-TEST] TEST 15: Cockpit Shell Responsiveness & Scheduler State Reset -> PASS\n");
+    }
+}
+
+#[cfg(test)]
+mod hardening_tests {
+    use super::*;
+    use asl_bootloader::{MemoryDescriptor, MemoryRegionType};
+
+    fn desc(base: u64, len: u64, t: MemoryRegionType) -> MemoryDescriptor {
+        MemoryDescriptor {
+            base_physical_addr: base,
+            length_bytes: len,
+            region_type: t,
+            flags: 0,
+        }
+    }
+
+    // ---------------- validate_secondary_carveout ----------------
+
+    #[test]
+    fn test_carveout_valid_layout() {
+        // kernel image [0, 2MB), carve-out [1MB, 1MB+4K), stack [1MB+4K, 1MB+4K+512K+pad]
+        assert!(validate_secondary_carveout(
+            0x10_0000,
+            0x10_1000,
+            0x10_1000,
+            0x18_1000,
+            0,
+            0x20_0000
+        ));
+    }
+
+    #[test]
+    fn test_carveout_rejects_misaligned_unordered_and_zero() {
+        assert!(!validate_secondary_carveout(0x10_0001, 0x10_1000, 0x10_1000, 0x18_1000, 0, 0x20_0000));
+        assert!(!validate_secondary_carveout(0x10_1000, 0x10_1000, 0x10_1000, 0x18_1000, 0, 0x20_0000));
+        assert!(!validate_secondary_carveout(0x10_0000, 0x10_1000, 0x18_1000, 0x10_1000, 0, 0x20_0000));
+        assert!(!validate_secondary_carveout(0x10_0000, 0x10_1000, 0x10_1000, 0x18_1000, 0, 0));
+    }
+
+    #[test]
+    fn test_carveout_rejects_outside_kernel_image() {
+        // carve-out di atas kernel image
+        assert!(!validate_secondary_carveout(0x30_0000, 0x30_1000, 0x10_1000, 0x18_1000, 0, 0x20_0000));
+        // stack menembus batas akhir image
+        assert!(!validate_secondary_carveout(0x10_0000, 0x10_1000, 0x18_1000, 0x20_1000, 0, 0x20_0000));
+    }
+
+    #[test]
+    fn test_carveout_rejects_stack_overlap() {
+        // carve-out menindih stack
+        assert!(!validate_secondary_carveout(0x12_0000, 0x13_0000, 0x10_1000, 0x18_1000, 0, 0x20_0000));
+    }
+
+    #[test]
+    fn test_carveout_rejects_virtual_overflow() {
+        assert!(!validate_secondary_carveout(
+            0x10_0000,
+            0x10_1000,
+            0x10_1000,
+            0x18_1000,
+            u64::MAX - 0xFFF,
+            0x20_0000
+        ));
+    }
+
+    // ---------------- classify_stack_overflow ----------------
+
+    #[test]
+    fn test_classify_stack_overflow_guard_hit_and_sp_below() {
+        let bottom = 0x10_1000u64;
+        // CR2 mengenai guard page [bottom-4096, bottom)
+        assert!(classify_stack_overflow(bottom - 4096, bottom + 0x8000, bottom));
+        assert!(classify_stack_overflow(bottom - 1, bottom + 0x8000, bottom));
+        // RSP sudah di bawah bottom (sudah melewati guard)
+        assert!(classify_stack_overflow(0, bottom - 0x2000, bottom));
+        // Akses normal: bukan overflow
+        assert!(!classify_stack_overflow(bottom + 0x1000, bottom + 0x8000, bottom));
+        // CR2 tepat di bawah guard page region (jauh) dan SP sehat -> bukan stack overflow
+        assert!(!classify_stack_overflow(0x0, bottom + 0x8000, bottom));
+    }
+
+    // ---------------- validate_framebuffer_memmap ----------------
+
+    #[test]
+    fn test_fb_in_framebuffer_or_reserved_region_passes() {
+        let map = [
+            desc(0x0, 0x800_0000, MemoryRegionType::UsableRam),
+            desc(0x800_0000, 0x20_0000, MemoryRegionType::FrameBuffer),
+        ];
+        assert!(validate_framebuffer_memmap(&map, 0x800_0000, 0x1D_4C00, 0, 0));
+        let map2 = [desc(0xC000_0000, 0x10_0000, MemoryRegionType::Reserved)];
+        assert!(validate_framebuffer_memmap(&map2, 0xC001_0000, 0x8_0000, 0, 0));
+    }
+
+    #[test]
+    fn test_fb_in_usable_ram_requires_full_reserve_coverage() {
+        let map = [desc(0x100_0000, 0x400_0000, MemoryRegionType::UsableRam)];
+        // tanpa reserve -> FAIL (AMENDMENT-1 B1)
+        assert!(!validate_framebuffer_memmap(&map, 0x200_0000, 0x10_0000, 0, 0));
+        // reserve mencakup penuh frame -> PASS
+        assert!(validate_framebuffer_memmap(&map, 0x200_0000, 0x10_0000, 0x200_0000, 0x10_0000));
+        // reserve hanya sebagian (frame lolos ujung) -> FAIL
+        assert!(!validate_framebuffer_memmap(&map, 0x200_0000, 0x10_0000, 0x200_0000, 0x8_0000));
+    }
+
+    #[test]
+    fn test_fb_overlap_poisoned_or_crossing_region_fails() {
+        // tumpang tindih BadMemory
+        let map = [
+            desc(0x800_0000, 0x20_0000, MemoryRegionType::FrameBuffer),
+            desc(0x81_D_0000, 0x4_0000, MemoryRegionType::BadMemory),
+        ];
+        assert!(!validate_framebuffer_memmap(&map, 0x800_0000, 0x1D_4C00, 0, 0));
+        // crossing: frame melintasi dua region, tak termuat penuh di satu region
+        let map2 = [
+            desc(0x800_0000, 0x10_0000, MemoryRegionType::FrameBuffer),
+            desc(0x810_0000, 0x10_0000, MemoryRegionType::Reserved),
+        ];
+        assert!(!validate_framebuffer_memmap(&map2, 0x80F_0000, 0x2_0000, 0, 0));
+        // tumpang tindih KernelImage
+        let map3 = [
+            desc(0x10_0000, 0x20_0000, MemoryRegionType::KernelImage),
+            desc(0x20_0000, 0x20_0000, MemoryRegionType::FrameBuffer),
+        ];
+        assert!(!validate_framebuffer_memmap(&map3, 0x1_0000, 0x40_0000, 0, 0));
+    }
+
+    #[test]
+    fn test_fb_arithmetic_edge_cases_fail_closed() {
+        let map = [desc(0x800_0000, 0x20_0000, MemoryRegionType::FrameBuffer)];
+        assert!(!validate_framebuffer_memmap(&map, 0x800_0000, 0, 0, 0));
+        assert!(!validate_framebuffer_memmap(&map, u64::MAX - 0x100, 0x1_0000, 0, 0));
+        // region descriptor malformed (overflow base+len) -> fail closed
+        let bad_map = [desc(u64::MAX - 0xFF, 0x1_0000, MemoryRegionType::FrameBuffer)];
+        assert!(!validate_framebuffer_memmap(&bad_map, 0x800_0000, 0x1000, 0, 0));
     }
 }

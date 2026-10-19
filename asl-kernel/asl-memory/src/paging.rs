@@ -384,6 +384,96 @@ impl AddressSpace {
         Ok(phys)
     }
 
+    /// Tegakkan guard page non-present di `guard_virt` (tepat di bawah stack kernel).
+    /// Jika level PD masih memetakan 2MiB huge page (praktik umum Limine), entry
+    /// di-split menjadi 512 leaf 4KiB terlebih dahulu, lalu leaf guard di-clear.
+    /// Full TLB flush dilakukan dua kali (sebelum & sesudah install tabel baru)
+    /// karena perubahan entry PD yang meng-cover 2MiB tidak tercakup satu `invlpg`.
+    pub unsafe fn enforce_stack_guard_page<F>(
+        &mut self,
+        guard_virt: u64,
+        mut alloc_frame: F,
+    ) -> Result<(), PagingError>
+    where
+        F: FnMut() -> Option<u64>,
+    {
+        if (guard_virt & 0xFFF) != 0 {
+            return Err(PagingError::AddressNotAligned);
+        }
+        if !is_canonical_address(guard_virt) {
+            return Err(PagingError::NonCanonicalAddress);
+        }
+
+        let pml4 = self.table_at_phys(self.pml4_phys);
+        let pml4_idx = pml4_index(guard_virt);
+        if !pml4.entries[pml4_idx].is_present() {
+            return Err(PagingError::NotMapped);
+        }
+        let pdpt = self.table_at_phys(pml4.entries[pml4_idx].physical_address());
+        let pdpt_idx = pdpt_index(guard_virt);
+        if !pdpt.entries[pdpt_idx].is_present() {
+            return Err(PagingError::NotMapped);
+        }
+        let pd = self.table_at_phys(pdpt.entries[pdpt_idx].physical_address());
+        let pd_idx = pd_index(guard_virt);
+
+        let pd_entry = pd.entries[pd_idx];
+        if !pd_entry.is_present() {
+            // Region 2MiB belum dipetakan: buat PT kosong agar leaf guard tetap
+            // non-present secara eksplisit (bukan sekadar kebetulan tak terpetakan).
+            let new_frame = alloc_frame().ok_or(PagingError::AllocationFailed)?;
+            let new_table = self.table_at_phys(new_frame);
+            new_table.zero();
+            pd.entries[pd_idx].set(
+                new_frame,
+                PageTableFlags::PRESENT.union(PageTableFlags::WRITABLE),
+            );
+            invalidate_page_tlb(guard_virt);
+            return Ok(());
+        }
+
+        if pd_entry.flags().contains(PageTableFlags::HUGE_PAGE) {
+            let base_phys = pd_entry.physical_address() & !0x1F_FFFFu64;
+            let leaf_flags = PageTableFlags(pd_entry.flags().0 & !PageTableFlags::HUGE_PAGE.0);
+
+            let pt_frame = alloc_frame().ok_or(PagingError::AllocationFailed)?;
+            let new_pt = self.table_at_phys(pt_frame);
+            new_pt.zero();
+            for i in 0..ENTRY_COUNT {
+                new_pt.entries[i].set(base_phys + (i as u64) * 4096, leaf_flags);
+            }
+
+            // Putuskan pemetaan huge dahulu (region sempat non-present), flush penuh,
+            // baru install tabel 4KiB - menghindari dua interpretasi paralel atas fisik sama.
+            pd.entries[pd_idx].clear();
+            load_cr3(read_cr3());
+
+            let intermediate_flags = PageTableFlags::PRESENT
+                .union(PageTableFlags::WRITABLE)
+                .union(if pd_entry.is_user() {
+                    PageTableFlags::USER
+                } else {
+                    PageTableFlags::NONE
+                });
+            let pd = self.table_at_phys(pdpt.entries[pdpt_idx].physical_address());
+            pd.entries[pd_idx].set(pt_frame, intermediate_flags);
+        }
+
+        let pd = self.table_at_phys(pdpt.entries[pdpt_idx].physical_address());
+        let pt_phys = pd.entries[pd_idx].physical_address();
+        if pd.entries[pd_idx].flags().contains(PageTableFlags::HUGE_PAGE) {
+            return Err(PagingError::HugePageNotSupported);
+        }
+        let pt = self.table_at_phys(pt_phys);
+        let pt_idx = pt_index(guard_virt);
+        pt.entries[pt_idx].clear();
+
+        invalidate_page_tlb(guard_virt);
+        load_cr3(read_cr3());
+
+        Ok(())
+    }
+
     /// Menerjemahkan alamat virtual ke alamat fisik
     pub unsafe fn translate_virtual_address(&self, virt: u64) -> Result<u64, PagingError> {
         if !is_canonical_address(virt) {
@@ -554,28 +644,15 @@ mod tests {
         assert_eq!(entry.flags(), flags);
     }
 
-    // Mock simulated page table allocator untuk unit test
-    struct SyncCell<T>(core::cell::UnsafeCell<T>);
-    unsafe impl<T> Sync for SyncCell<T> {}
-
-    struct SimulatedRam {
-        tables: [PageTable; 16],
-    }
-    static SIMULATED_RAM: SyncCell<SimulatedRam> = SyncCell(core::cell::UnsafeCell::new(SimulatedRam {
-        tables: [PageTable::empty(); 16],
-    }));
+    // Simulasi RAM page-table memakai buffer LOCAL per-test (bukan static global):
+    // beberapa test berjalan paralel oleh harness; static bersama menimbulkan race.
 
     #[test]
     fn test_address_space_mapping_and_translation() {
-        let ram_ptr = SIMULATED_RAM.0.get();
-        unsafe {
-            for tbl in (*ram_ptr).tables.iter_mut() {
-                tbl.zero();
-            }
-        }
+        let mut ram = [PageTable::empty(); 16];
 
         let pml4_phys = 0;
-        let hhdm_offset = unsafe { (*ram_ptr).tables.as_ptr() as u64 };
+        let hhdm_offset = ram.as_mut_ptr() as u64;
 
         let mut space = AddressSpace::from_pml4_phys(pml4_phys, hhdm_offset);
 
@@ -623,16 +700,11 @@ mod tests {
 
     #[test]
     fn test_clone_kernel_space_isolation() {
-        let ram_ptr = SIMULATED_RAM.0.get();
-        unsafe {
-            for tbl in (*ram_ptr).tables.iter_mut() {
-                tbl.zero();
-            }
-        }
+        let mut ram = [PageTable::empty(); 16];
 
         let pml4_src_phys = 0;
         let pml4_dest_phys = core::mem::size_of::<PageTable>() as u64;
-        let hhdm_offset = unsafe { (*ram_ptr).tables.as_ptr() as u64 };
+        let hhdm_offset = ram.as_mut_ptr() as u64;
 
         let src_space = AddressSpace::from_pml4_phys(pml4_src_phys, hhdm_offset);
 
@@ -663,8 +735,8 @@ mod tests {
 
     #[test]
     fn test_paging_boundary_and_alignment_rejections() {
-        let ram_ptr = SIMULATED_RAM.0.get();
-        let hhdm_offset = unsafe { (*ram_ptr).tables.as_ptr() as u64 };
+        let ram = [PageTable::empty(); 16];
+        let hhdm_offset = ram.as_ptr() as u64;
         let mut space = AddressSpace::from_pml4_phys(0, hhdm_offset);
         let mut dummy_alloc = || Some(0x1000);
 
@@ -692,5 +764,145 @@ mod tests {
             )
         };
         assert_eq!(res2, Err(PagingError::NonCanonicalAddress));
+    }
+
+    // ---------------------------------------------------------------------
+    // Host regression: enforce_stack_guard_page (split 2MiB huge -> 4KiB leaf)
+    // ---------------------------------------------------------------------
+
+    const GUARD_VIRT: u64 = 0xFFFF_8000_0020_5000; // pd_idx=1, pt_idx=5
+    const HUGE_PHYS: u64 = 0x4000_0000;
+
+    fn make_sim_space(ram: &mut [PageTable; 8], map_huge: bool, map_pdpt_only: bool) -> AddressSpace {
+        for tbl in ram.iter_mut() {
+            tbl.zero();
+        }
+        let rw = PageTableFlags::PRESENT.union(PageTableFlags::WRITABLE);
+        ram[0].entries[pml4_index(GUARD_VIRT)].set(1 * 4096, rw);
+        if map_pdpt_only {
+            return AddressSpace::from_pml4_phys(0, ram.as_ptr() as u64);
+        }
+        ram[1].entries[pdpt_index(GUARD_VIRT)].set(2 * 4096, rw);
+        if map_huge {
+            ram[2].entries[pd_index(GUARD_VIRT)].set(
+                HUGE_PHYS,
+                rw.union(PageTableFlags::HUGE_PAGE),
+            );
+        }
+        AddressSpace::from_pml4_phys(0, ram.as_ptr() as u64)
+    }
+
+    #[test]
+    fn test_guard_page_splits_huge_page_and_clears_only_guard_leaf() {
+        let mut ram = [PageTable::empty(); 8];
+        let mut space = make_sim_space(&mut ram, true, false);
+        let rw = PageTableFlags::PRESENT.union(PageTableFlags::WRITABLE);
+        ram[2].entries[pd_index(GUARD_VIRT)].set(HUGE_PHYS, rw.union(PageTableFlags::HUGE_PAGE));
+
+        let mut next_idx = 3usize;
+        let mut alloc = || {
+            if next_idx < 8 {
+                let phys = (next_idx * 4096) as u64;
+                next_idx += 1;
+                Some(phys)
+            } else {
+                None
+            }
+        };
+
+        let res = unsafe { space.enforce_stack_guard_page(GUARD_VIRT, &mut alloc) };
+        assert_eq!(res, Ok(()));
+
+        // PD tidak lagi huge, menunjuk PT baru
+        assert!(ram[2].entries[pd_index(GUARD_VIRT)].is_present());
+        assert!(!ram[2]
+            .entries[pd_index(GUARD_VIRT)]
+            .flags()
+            .contains(PageTableFlags::HUGE_PAGE));
+        assert_eq!(
+            ram[2].entries[pd_index(GUARD_VIRT)].physical_address(),
+            3 * 4096
+        );
+
+        // 512 leaf hasil split valid; HANYA leaf guard (idx 5) yang non-present
+        let pt_idx = pt_index(GUARD_VIRT);
+        assert_eq!(pt_idx, 5);
+        for i in 0..ENTRY_COUNT {
+            if i == pt_idx {
+                assert!(!ram[3].entries[i].is_present(), "guard leaf harus non-present");
+            } else {
+                assert!(ram[3].entries[i].is_present(), "leaf hasil split harus present");
+                assert_eq!(ram[3].entries[i].physical_address(), HUGE_PHYS + (i as u64) * 4096);
+            }
+        }
+    }
+
+    #[test]
+    fn test_guard_page_on_unmapped_pd_installs_empty_pt() {
+        let mut ram = [PageTable::empty(); 8];
+        let mut space = make_sim_space(&mut ram, false, false);
+        // Hapus entry PD (region 2MiB unmapped)
+        ram[2].entries[pd_index(GUARD_VIRT)].clear();
+
+        let mut next_idx = 3usize;
+        let mut alloc = || {
+            if next_idx < 8 {
+                let phys = (next_idx * 4096) as u64;
+                next_idx += 1;
+                Some(phys)
+            } else {
+                None
+            }
+        };
+
+        let res = unsafe { space.enforce_stack_guard_page(GUARD_VIRT, &mut alloc) };
+        assert_eq!(res, Ok(()));
+        assert!(ram[2].entries[pd_index(GUARD_VIRT)].is_present());
+        assert!(!ram[2]
+            .entries[pd_index(GUARD_VIRT)]
+            .flags()
+            .contains(PageTableFlags::HUGE_PAGE));
+        for i in 0..ENTRY_COUNT {
+            assert!(!ram[3].entries[i].is_present());
+        }
+    }
+
+    #[test]
+    fn test_guard_page_rejects_invalid_addresses() {
+        let mut ram = [PageTable::empty(); 8];
+        let mut space = make_sim_space(&mut ram, true, false);
+        let mut alloc = || Some(3 * 4096);
+
+        let res = unsafe { space.enforce_stack_guard_page(GUARD_VIRT | 0x10, &mut alloc) };
+        assert_eq!(res, Err(PagingError::AddressNotAligned));
+
+        let res = unsafe { space.enforce_stack_guard_page(0x0000_8000_0020_0000, &mut alloc) };
+        assert_eq!(res, Err(PagingError::NonCanonicalAddress));
+    }
+
+    #[test]
+    fn test_guard_page_not_mapped_without_pml4() {
+        let mut ram = [PageTable::empty(); 8];
+        for tbl in ram.iter_mut() {
+            tbl.zero();
+        }
+        let mut space = AddressSpace::from_pml4_phys(0, ram.as_ptr() as u64);
+        let mut alloc = || Some(3 * 4096);
+        let res = unsafe { space.enforce_stack_guard_page(GUARD_VIRT, &mut alloc) };
+        assert_eq!(res, Err(PagingError::NotMapped));
+    }
+
+    #[test]
+    fn test_guard_page_allocation_failure_keeps_huge_mapping_intact() {
+        let mut ram = [PageTable::empty(); 8];
+        let mut space = make_sim_space(&mut ram, true, false);
+        let mut alloc = || None; // frame allocator habis
+        let res = unsafe { space.enforce_stack_guard_page(GUARD_VIRT, &mut alloc) };
+        assert_eq!(res, Err(PagingError::AllocationFailed));
+        // Split belum sempat memutus pemetaan: entry PD tetap huge seperti semula
+        assert!(ram[2]
+            .entries[pd_index(GUARD_VIRT)]
+            .flags()
+            .contains(PageTableFlags::HUGE_PAGE));
     }
 }

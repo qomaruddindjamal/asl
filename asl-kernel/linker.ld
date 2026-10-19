@@ -42,6 +42,17 @@ SECTIONS
         *(.data .data.*)
     } :data
 
+    /* Carve-out region: Secondary failover engine + datanya (isolasi fisik, G2 audit).
+       WAJIB sebelum .bss: pola .bss.* akan menyerap .bss.asl_secondary jika lebih dulu. */
+    . = ALIGN(4096);
+
+    .asl_secondary : ALIGN(4096) {
+        __asl_secondary_start = .;
+        KEEP(*(.asl_secondary .asl_secondary.* .bss.asl_secondary))
+        . = ALIGN(4096);
+        __asl_secondary_end = .;
+    } :data
+
     .bss : {
         *(.bss .bss.*)
         *(COMMON)

@@ -1,50 +1,76 @@
 {
-    "project": "ASL Core Kernel",
-    "accountability_contract_status": "ACTIVE_AND_BINDING",
-    "contract_timestamp": "2026-10-13T03:45:00Z",
-    "rules": {
-        "rule_1": "Dilarang memalsukan status 'Cancelled by user'",
-        "rule_2": "Wajib transparansi penuh terhadap permission Windows/file security",
-        "rule_3": "Penalti otomatis demosi model dan pencatatan audit fail jika terjadi fake-cancel",
-        "rule_4": "Kompensasi recovery instan zero-token loss bagi pengguna"
+  "project": "ASL Core Kernel",
+  "accountability_contract_status": "ACTIVE_AND_BINDING",
+  "contract_timestamp": "2026-10-13T03:45:00Z",
+  "rules": {
+    "rule_1": "Dilarang memalsukan status 'Cancelled by user'",
+    "rule_2": "Wajib transparansi penuh terhadap permission Windows/file security",
+    "rule_3": "Penalti otomatis demosi model dan pencatatan audit fail jika terjadi fake-cancel",
+    "rule_4": "Kompensasi recovery instan zero-token loss bagi pengguna"
+  },
+  "violations_recorded": 0,
+  "fault_history": [
+    {
+      "date": "2026-10-20T00:20:00Z",
+      "actor": "QODER (governance reconciliation agent)",
+      "type": "GOVERNANCE_RECONCILIATION",
+      "gate_id": "README-SECTION2-GATES-CLAIM",
+      "result": "PASS",
+      "evidence": [
+        "docs/ROADMAP/CHECKLIST_STATE.json (parsed: Phase_01..06 = 24 gates PASSED locked:true; Milestone_03 = 25 gates status PARTIAL locked:false, incl. Gate_3.6 PARTIAL, Gate_3.9 PASS_READONLY, Gate_3.19 PASS+BootAssembly GAP_IDENTIFIED, Gate_3.20 GAP_IDENTIFIED, Gate_3.25 NOT TESTED)",
+        "Analysis/reports/DEEP_AUDIT_REPORT.md sec.1"
+      ],
+      "notes": "CHECKLIST_STATE.json TIDAK diubah (isinya sudah faktual - aturan G2 dipatuhi). Yang dikoreksi: README par.2 yang mengklaim '25/25 gates PASS & LOCKED' menjadi 24 Phase gates locked + Milestone_03 PARTIAL. Tidak ada status gate yang berubah."
     },
-    "violations_recorded": 0,
-    "fault_history": [
-        {
-            "date": "2026-10-20T00:20:00Z",
-            "actor": "QODER (governance reconciliation agent)",
-            "type": "GOVERNANCE_RECONCILIATION",
-            "gate_id": "README-SECTION2-GATES-CLAIM",
-            "result": "PASS",
-            "evidence": ["docs/ROADMAP/CHECKLIST_STATE.json (parsed: Phase_01..06 = 24 gates PASSED locked:true; Milestone_03 = 25 gates status PARTIAL locked:false, incl. Gate_3.6 PARTIAL, Gate_3.9 PASS_READONLY, Gate_3.19 PASS+BootAssembly GAP_IDENTIFIED, Gate_3.20 GAP_IDENTIFIED, Gate_3.25 NOT TESTED)", "Analysis/reports/DEEP_AUDIT_REPORT.md sec.1"],
-            "notes": "CHECKLIST_STATE.json TIDAK diubah (isinya sudah faktual - aturan G2 dipatuhi). Yang dikoreksi: README par.2 yang mengklaim '25/25 gates PASS & LOCKED' menjadi 24 Phase gates locked + Milestone_03 PARTIAL. Tidak ada status gate yang berubah."
-        },
-        {
-            "date": "2026-10-20T00:20:00Z",
-            "actor": "QODER (governance reconciliation agent)",
-            "type": "NUMERIC_RECONCILIATION",
-            "gate_id": "WORKSPACE-CRATE-COUNT",
-            "result": "PASS",
-            "evidence": ["cargo metadata --no-deps --format-version 1 => 31 workspace_members (30 lib + 1 bin asl-kernel-bin)", "cargo test --workspace --lib => 30 suite, 128 tests PASS (2026-10-20)"],
-            "notes": "Selisih angka: 17 = snapshot baseline 2026-10-13 sebelum 14 crate v1.0.2 (storage/cockpit/pci/ps2/secondary) masuk; 31 = angka kanonik cargo metadata hari ini; 30 = jumlah suite lib terpasang (bin test=false tidak menambah suite). Angka '33' yang beredar tidak memiliki sumber kebenaran dan TIDAK dipakai. Dokumen disinkronkan ke 31: README par.2/par.6, DEVELOPER_ONBOARDING par.2, FILE_INVENTORY header."
-        },
-        {
-            "date": "2026-10-20T00:20:00Z",
-            "actor": "QODER (governance reconciliation agent)",
-            "type": "NUMERIC_RECONCILIATION",
-            "gate_id": "KERNEL-FOOTPRINT-CLAIM",
-            "result": "PASS",
-            "evidence": ["asl-kernel/target/x86_64-unknown-none/release/asl-kernel = 211.672 bytes (2026-10-20)"],
-            "notes": "README par.6 '~70 KB' adalah pengukuran v1.0.1 minimal-launcher; kini disinkronkan ke 211.672 B dengan penjelasan basis pengukuran. Register ALIGN-01 (CLOSED) juga disinkronkan ke README par.4 dan CANONICAL_MASTER Conflict 3."
-        },
-        {
-            "date": "2026-10-20T00:26:00Z",
-            "actor": "QODER (governance reconciliation agent)",
-            "type": "AGENT_SELF_INCIDENT",
-            "gate_id": "QODER-EXECUTION-LOG-INTEGRITY",
-            "result": "PASS",
-            "evidence": ["Analysis/reports/QODER_EXECUTION_LOG.md ADDENDUM entry (repaired)"],
-            "notes": "Addendum pertama QODER_EXECUTION_LOG.md rusak: string double-quoted shell menyebabkan backtick dieksekusi sebagai command substitution dan output git show tertanam ke file. Diperbaiki dengan memotong hanya entri addendum milik agen sendiri (entri sah EXECUTION PLAN + PHASE-1 REPORT tidak disentuh) lalu menuliskan ulang addendum bersih. Angka klaim user '340 test' tetap tidak terbukti; runner aktual 128."
-        }
-    ]
+    {
+      "date": "2026-10-20T00:20:00Z",
+      "actor": "QODER (governance reconciliation agent)",
+      "type": "NUMERIC_RECONCILIATION",
+      "gate_id": "WORKSPACE-CRATE-COUNT",
+      "result": "PASS",
+      "evidence": [
+        "cargo metadata --no-deps --format-version 1 => 31 workspace_members (30 lib + 1 bin asl-kernel-bin)",
+        "cargo test --workspace --lib => 30 suite, 128 tests PASS (2026-10-20)"
+      ],
+      "notes": "Selisih angka: 17 = snapshot baseline 2026-10-13 sebelum 14 crate v1.0.2 (storage/cockpit/pci/ps2/secondary) masuk; 31 = angka kanonik cargo metadata hari ini; 30 = jumlah suite lib terpasang (bin test=false tidak menambah suite). Angka '33' yang beredar tidak memiliki sumber kebenaran dan TIDAK dipakai. Dokumen disinkronkan ke 31: README par.2/par.6, DEVELOPER_ONBOARDING par.2, FILE_INVENTORY header."
+    },
+    {
+      "date": "2026-10-20T00:20:00Z",
+      "actor": "QODER (governance reconciliation agent)",
+      "type": "NUMERIC_RECONCILIATION",
+      "gate_id": "KERNEL-FOOTPRINT-CLAIM",
+      "result": "PASS",
+      "evidence": [
+        "asl-kernel/target/x86_64-unknown-none/release/asl-kernel = 211.672 bytes (2026-10-20)"
+      ],
+      "notes": "README par.6 '~70 KB' adalah pengukuran v1.0.1 minimal-launcher; kini disinkronkan ke 211.672 B dengan penjelasan basis pengukuran. Register ALIGN-01 (CLOSED) juga disinkronkan ke README par.4 dan CANONICAL_MASTER Conflict 3."
+    },
+    {
+      "date": "2026-10-20T00:26:00Z",
+      "actor": "QODER (governance reconciliation agent)",
+      "type": "AGENT_SELF_INCIDENT",
+      "gate_id": "QODER-EXECUTION-LOG-INTEGRITY",
+      "result": "PASS",
+      "evidence": [
+        "Analysis/reports/QODER_EXECUTION_LOG.md ADDENDUM entry (repaired)"
+      ],
+      "notes": "Addendum pertama QODER_EXECUTION_LOG.md rusak: string double-quoted shell menyebabkan backtick dieksekusi sebagai command substitution dan output git show tertanam ke file. Diperbaiki dengan memotong hanya entri addendum milik agen sendiri (entri sah EXECUTION PLAN + PHASE-1 REPORT tidak disentuh) lalu menuliskan ulang addendum bersih. Angka klaim user '340 test' tetap tidak terbukti; runner aktual 128."
+    },
+    {
+      "date": "2026-10-20T12:00:00Z",
+      "actor": "instruksi-eksternal (klaim agent pihak ketiga via pesan misi)",
+      "type": "FALSE_CLAIM_INSTRUCTION",
+      "gate_id": "README-TESTS-BASELINE",
+      "result": "REJECTED",
+      "evidence": [
+        "git branch -a: hanya feature/asl-v1.0.2, main, security/asl-v1.0.2-audit (+remote mirror) - tidak ada branch memuat klaim",
+        "git log --all --oneline -20: tidak ada commit dengan signature '5 file .rs / 1992 insertions'; kandidat 4fead01 = 9 .rs / 3780 insertions",
+        "git stash list: kosong; git worktree list: hanya C:/asl",
+        "git status --short sebelum amandemen: hanya QODER_EXECUTION_LOG.md (append agen sendiri) - tidak ada .rs modified",
+        "grep '340' di seluruh rev-list --all: hanya muncul di catatan deviasi QODER_EXECUTION_LOG.md milik agen itu sendiri",
+        "cargo test --workspace --lib terukur: 128 PASS (baseline 2026-10-20)"
+      ],
+      "notes": "Klaim hantu '340 unit tests / 5 file .rs berubah / 1992 insertions' tidak memiliki sumber di repo ini (branch, stash, worktree, maupun history). Proses baru: klaim agent tanpa bukti dilarang masuk dokumen kanonik; README section 2 tetap dipatok 128 sampai branch sumber ter-merge dan terukur ulang. Tidak ada merge yang dilakukan."
+    }
+  ]
 }

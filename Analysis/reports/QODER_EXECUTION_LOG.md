@@ -95,3 +95,74 @@ Kenyataan terukur: perubahan besar terakhir adalah commit 4fead01 (12 file, +378
 sebelum fase ini); working tree tidak memuat .rs termodifikasi; runner host pasca-commit menghasilkan
 128 test. README §2 dipatok ke angka terukur (G7). Entri ini menggantikan addendum pertama yang
 rusak karena backtick terevaluasi shell (insiden tercatat di ACCOUNTABILITY_FAULT_LOG.json).
+
+## [PHASE-2] Implementation Plan (SEBELUM coding — misi item 2.1)
+
+Tanggal: 2026-10-20. Branch: security/asl-v1.0.2-audit. Baseline: 886425f, 128 host tests, 0 warning bare-metal.
+
+### Item A — Secondary engine: atomic state machine (crash-safe dari konteks exception/panic)
+- File: `asl-kernel/asl-kernel-core-secondary/src/lib.rs` (mod baru `pub mod safe`).
+- `FaultLatch` dengan `AtomicU8` state (0=Uninit, 1=Armed, 2=Recording, 3=Recovery) + `AtomicU64` (fault counter, last reason, last ticks). CAS re-entrancy guard: hanya transition Armed->Recording yang boleh menyentuh engine.
+- Engine di belakang `UnsafeCell` + `unsafe impl Sync`; statik global `GLOBAL_SECONDARY_LATCH` diberi `#[cfg(not(test))] #[link_section = ".asl_secondary"] #[used]`.
+- API: `arm_engine()` (CAS Uninit->Armed), `notify_fault_safe(reason_code, ticks) -> u8` — perilaku pre-init benar: state Uninit -> record atomik saja, TIDAK pernah deref pointer, tanpa crash/UB; Armed -> CAS ke Recording, panggil `engine.notify_fault`, pulihkan Armed; Recording (re-entrant) -> hanya counter++.
+- Host tests: satu test per transition (Uninit record; arm; armed->recording->armed; re-entrant; recovery-indempotent) memakai instance `FaultLatch` privat agar test host tidak saling interfere lewat statik shared.
+
+### Item B — Physical isolation: carve-out region engine
+- Files: `asl-kernel/linker.ld`, `asl-kernel/asl-kernel-bin/linker/aarch64_virt.ld` (section `.asl_secondary : ALIGN(4096) { __asl_secondary_start=.; KEEP(*(.asl_secondary .asl_secondary.*)) __asl_secondary_end=.; } :data` — pola sama dengan kernel region).
+- `asl-kernel-bin/src/main.rs`: `.global _asl_stack_bottom` / `.global _asl_stack_top` (x86 + aarch64) agar terlihat linker/C.
+- `asl-kernel-core/src/lib.rs`: fungsi murni `validate_secondary_carveout(start, end, stack_bottom, stack_top, kvirt, ksize)` — alignment 4K, containment dalam kernel image, non-overlap dengan stack, checked arithmetic. Diuji dengan mock ranges (bagian dari test logika carve-out memmap).
+
+### Item C — Stack guard page non-present di bawah stack 512KB
+- File: `asl-memory/src/paging.rs`: `enforce_stack_guard_page<F>(guard_virt, hhdm, alloc_frame)` — walk tabel live CR3; jika PD entry HUGE_PAGE (Limine memetakan 2MiB), split ke 512 x 4KiB (frame baru dari closure; flags = entry.flags & !HUGE_PAGE; phys = base + i*4096); lalu `clear()` leaf + `invalidate_page_tlb`.
+- Integrasi entry: setelah M4 allocator siap -> panggil dengan `|| kernel.memory_allocator.allocate_pages(0)`; gagal -> error serial, boot lanjut dengan degraded protection terdokumentasi (tidak halt: allocator failure bukan kondisi keselamatan untuk boot non-safety).
+- File: `asl-kernel-core/src/lib.rs`: classifier murni `classify_stack_overflow(cr2, rsp, stack_bottom) -> bool` (cr2 dalam [bottom-4096, bottom) ATAU rsp < bottom).
+- `asl_fault_notifier`: vector 8/14 -> jika classifier true, cetak "STACK OVERFLOW (GUARD PAGE HIT)" via COM1 SEBELUM dispatcher melanjutkan ke halt aman `cli; hlt` (dispatcher sudah loop halt setelah notifier — tidak perlu ubah asl-hal).
+
+### Item D — Validasi FB HHDM bounds vs memmap sebelum mapping
+- File: `asl-kernel-core/src/lib.rs`: `validate_framebuffer_memmap(regions, region_count, fb_base, fb_size) -> bool` — rentang fisik FB harus termuat dalam satu region bertipe FrameBuffer/Reserved/BootloaderReclaimable/UsableRam; DILARANG tumpang tindih BadMemory/KernelImage/PageTables; `fb_size` dari `checked_mul(pitch, bpp, height)`.
+- Entry: FB init hanya bila validasi PASS; gagal -> error serial + halt aman, TIDAK menulis framebuffer (G3 terpenuhi).
+- Host tests: kasus pass/fail (contained, crossing region, BadMemory overlap, overflow aritmatik).
+
+### Item E — Rewiring
+- Ganti akses langsung `GLOBAL_SECONDARY_ENGINE` (mutable) di `asl_fault_notifier` + panic handler dengan `safe::notify_fault_safe`.
+
+### Item F — Gerbang & commit
+- (a) `cargo test --workspace --lib`: 128 lama + baru PASS. (b) `cargo build --package asl-kernel-bin --target x86_64-unknown-none --release`: 0 error 0 warning.
+- Commit tunggal `[PHASE-2] ...`, staging eksplisit per file (shared worktree).
+
+Urutan implementasi: A -> B -> C -> D -> E -> gates -> report -> commit.
+
+## [AMENDMENT-1] Review PHASE-1 + Penyesuaian Plan PHASE-2 — REPORT
+- Status: ACKNOWLEDGED (dieksekusi berurutan A1 -> A2 -> B -> lanjut Phase 2 A-F)
+- Waktu: 2026-10-20
+- File berubah: QODER_EXECUTION_LOG.md (append), + forensik git read-only, + bukti parse gate, + revisi plan
+- Diff stat: (log append-only, dihitung saat commit Phase-2)
+- Verifikasi: perintah forensik A1 (git branch -a / log --all / stash list / worktree list) dijalankan read-only; hasil dilaporkan di section berikutnya.
+- Kriteria fase: plan PHASE-2 diamandemen (B1 tipe region FB + reserve, B2 degraded guard page tercatat di DR FSM, B3 koreksi path aarch64_virt.ld) SEBELUM coding.
+- Penyimpangan: plan asli Item B menulis path `asl-kernel-bin/linker/aarch64_virt.ld`; hasil verifikasi filesystem: file aktual berada di `C:\asl\asl-kernel\aarch64_virt.ld` (root workspace asl-kernel). Dikoreksi sebagai koreksi plan.
+- Bloker: none.
+- Commit: digabung ke commit [PHASE-2] (satu commit per fase, G6).
+
+### [PHASE-2] Implementation Plan — REVISI per AMENDMENT-1 (mengikat, menggantikan butir yang bertentangan)
+
+- B1 (Item D, FB memmap): VALID tanpa syarat = FrameBuffer, Reserved. BootloaderReclaimable / UsableRam valid HANYA jika seluruh range frame tercakup range reserve yang dijamin dikecualikan dari buddy allocator; fungsi divalidasi `validate_framebuffer_memmap(map, fb_base, fb_size, reserve_start, reserve_len)` dengan reserve eksplisit; di entry current-build reserve FB tidak dapat dijamin -> reserve_len=0 -> FB dalam UsableRam FAIL (fail-closed). Test baru: FB dalam UsableRam tanpa reserve -> FAIL; dengan reserve mencakup -> PASS; FB dalam Reserved/FrameBuffer -> PASS; overlap BadMemory/KernelImage/PageTables -> FAIL; overflow aritmatik -> FAIL.
+- B2 (Item C, degraded tercatat): jika `enforce_stack_guard_page` gagal -> error serial + `safe::notify_fault_safe(REASON_STACK_GUARD_DEGRADED=6, ...)` agar DR FSM mencatat proteksi menurun; kode reason 6 dipetakan ke FaultReason::MemoryIntegrityCorruption di latch; unit test latch: armed -> notify(6) dicatat engine (FaultDetected, counter=1, last_reason=6).
+- B3 (Item B, koreksi path): path linker aarch64 AKTUAL = `asl-kernel/aarch64_virt.ld` (bukan asl-kernel-bin/linker/). Diverifikasi via find/ls 2026-10-20. Edit dilakukan pada file tersebut.
+- A1 (forensik klaim 340): TIDAK ADA sumber (branch/stash/worktree/history bersih). Entri FALSE_CLAIM_INSTRUCTION dibuat di ACCOUNTABILITY_FAULT_LOG.json; README §2 tetap 128. Tidak ada merge.
+- A2 (verdict gate): parse deterministik -> Phase_01..06 = 24 gate PASS locked; Milestone_03 = 25 gate PARTIAL (20 PASS murni + 1 PASS-kualifed 3.19 + 1 PASS_READONLY 3.9 + 1 PARTIAL 3.6 + 1 GAP_IDENTIFIED 3.20 + 1 NOT TESTED 3.25); total 49. Bukti: Analysis/reports/2026-10-20_gate_parse_evidence.txt — direferensikan di README §2 dan GATE_REGRESSION_POLICY §4. README baris "25 Phase_01..06" dikoreksi -> 24.
+
+## [PHASE-2] Kernel Hardening (Secondary FSM atomik, guard page stack, validasi FB vs memmap) — REPORT
+- Status: DONE
+- Waktu: 2026-10-20 (baseline commit 886425f)
+- File berubah (13): asl-kernel-core-secondary/src/lib.rs (mod safe + 6 test), asl-kernel-core/src/lib.rs (validator murni, rewiring notifier/panic ke latch, integrasi entry M0+/M4+ carve-out+guard, 10 test hardening), asl-memory/src/paging.rs (enforce_stack_guard_page + split 2MiB->4KiB + 5 test; fix race SIMULATED_RAM pada 3 test lama), asl-kernel-bin/src/main.rs (guard pad 4KB + .global simbol stack x86/aarch64), linker.ld + aarch64_virt.ld (section .asl_secondary sebelum .bss, KEEP + simbol start/end), .gitignore (negasi bukti *.log Analysis/reports), README.md, GATE_REGRESSION_POLICY.md, ACCOUNTABILITY_FAULT_LOG.json (FALSE_CLAIM_INSTRUCTION), QODER_EXECUTION_LOG.md, bukti baru: 2026-10-20_gate_parse_evidence.txt, 2026-10-20_phase2_qemu_serial.log.
+- Diff stat: 13 files changed, 1145 insertions(+), 96 deletions(-)
+- Verifikasi:
+  (a) cargo test --workspace --lib: 149/149 PASS, dijalankan 3x berturut-turut deterministik (baseline 128 + 21 baru: 6 latch + 5 guard-paging + 10 hardening). Sebelumnya flaky akibat race static SIMULATED_RAM (cacat lama, difiksasi dengan buffer lokal per test).
+  (b) cargo build --package asl-kernel-bin --target x86_64-unknown-none --release: 0 error, 0 warning.
+  (+) aarch64-unknown-none-softfloat release: FINISHED (warning yang tersisa = pre-existing cfg-aarch64, bukan dari perubahan ini).
+  (+) ELF check: section .asl_secondary addr=ffffffff80131000 size=4096 di antara .data dan .bss; simbol __asl_secondary_start/end, _asl_guard_page, _asl_stack_bottom ada.
+  (+) RUNTIME QEMU ISO (bukti: Analysis/reports/2026-10-20_phase2_qemu_serial.log, SHA ISO 5D75024...): "M0+: Secondary carve-out validated ... Failover latch ARMED", "M4+: Kernel stack guard page enforced", 0 FATAL, boot penuh s/d M6.
+- Kriteria fase: 2.2 terpenuhi (AtomicU8 FSM Uninit/Armed/Recording/Recovery, panic/exception-safe, pre-init record-only tanpa deref; carve-out fisik divalidasi di _asl_kernel_entry, fail-closed halt). 2.3 terpenuhi (guard non-present tepat di bawah stack 512KB via split huge; printer "STACK OVERFLOW (GUARD PAGE HIT)" via COM1 di notifier sebelum halt dispatcher). 2.4 terpenuhi (bounds fisik FB vs memmap sebelum mapping; gagal -> serial error + controlled halt, tidak pernah menulis FB; reserve-gated per AMENDMENT-1 B1). 2.5 terpenuhi (test per transisi + logika carve-out/FB/classify + 5 test paging split). B2 AMENDMENT: degraded guard tercatat via REASON_STACK_GUARD_DEGRADED ke DR FSM + test.
+- Penyimpangan: (1) Fix race SIMULATED_RAM di luar plan tapi diperlukan agar gerbang (a) deterministik — masuk kategori perbaikan test lama, tanpa mengubah semantik assertions. (2) extern crate std ditambahkan di cfg(test) saja untuk thread-scope test latch (no_std produksi tidak berubah, G1 aman: nol dependency eksternal). (3) .gitignore: negasi untuk evidence .log (diizinkan plan 1.3). (4) Runtime "STACK OVERFLOW" print belum diinjeksi via fault nyata di QEMU (butuh trigger overflow); terverifikasi oleh unit test classifier + jalur koding; ditandai RUNTIME-PENDING untuk gate ISO berikutnya.
+- Bloker: none.
+- Commit: commit [PHASE-2] pada branch security/asl-v1.0.2-audit (hash tercatat di git log; mengikuti satu-commit-per-fase G6, tidak ada addendum hash terpisah untuk menghindari insiden shell seperti PHASE-1).

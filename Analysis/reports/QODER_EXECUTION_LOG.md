@@ -462,3 +462,46 @@ Tidak ada.
 
 ### Commit
 `[PHASE-5C] ...` — staging eksplisit per file (14 path: 6 sumber/build + 1 harness + 3 bukti + 3 register/README + log eksekusi ini). Hash commit ini dicatat pada entri [PHASE-5D] berikutnya (G8).
+
+## [PHASE-5D] CI MINIMAL PER PUSH/PR — REPORT (2026-10-20)
+
+Kontrak fase: pipeline minimal per push/PR berisi (1) `cargo test --workspace --lib`; (2) build `x86_64-unknown-none --release` **0 error / 0 warning** wajib; (3) QEMU cold-boot smoke **harus mencapai M6**; (4) ringkasan. Pipeline merah = tidak boleh merge. Konfigurasi masuk repo + runner lokal dengan keluaran `Analysis/reports/ci_<tanggal>.log`.
+
+### G8 — pemenuhan kewajiban hash PHASE-5C
+**Hash commit `[PHASE-5C]` = `2b6193a`** — "HV-2 VM cold-boot stack-overflow injection ... -> DA-07/HV-2 VERIFIED-ON-VM" (diverifikasi `git log --oneline`: `2b6193a` di atas `965c3e2` [PHASE-5B]). Hash ini ditulis di entri BERIKUTNYA, bukan di dalam commit 5C; tidak ada amend/rebase/reset di branch misi.
+
+### File berubah (docs + CI tooling; nol perubahan `.rs`, nol perubahan CHECKLIST_STATE.json)
+
+| Path | Status | Catatan |
+|---|---|---|
+| `scripts/ci_local.ps1` | baru | runner lokal fail-closed 4 langkah; keluaran ASCII ke `Analysis/reports/ci_<tanggal>.log`; transcript per langkah `…log.step{1,2,3_iso}.log` |
+| `.github/workflows/asl-ci-minimal.yml` | baru | workflow hosted untuk langkah [1]-[2] saja; komentar kepala menyatakan alasan langkah [3]-[4] tidak bisa hosted + larangan env `RUSTFLAGS` |
+| `Analysis/reports/ci_2026-10-20.log` | baru (bukti) | ringkasan pipeline HIJAU 4/4, stamp commit `2b6193a+dirty` |
+| `Analysis/reports/qemu_ci_smoke_serial.log` | baru (bukti) | serial 55 baris cold-boot q35 hasil langkah [3] — capai `M6: Kernel Cold Boot Complete` + prompt `ASL-OS>` |
+| `README.md` | ubah | §6: blok perintah CI + tabel cakupan hosted vs lokal + kebijakan "pipeline merah = tidak boleh merge" + catatan ISO tidak byte-reproducible; §7: koreksi nuansa `.gitignore` (`*.log` dikecualikan TETAPI `Analysis/reports/*.log` di-include-ulang) |
+
+### Gerbang (G4) — hasil terverifikasi, bukan asumsi
+- **(a) `cargo test --workspace --lib`** → **172 passed / 0 failed** (total naik dari 171 ke 172 karena test latch 5C; angka tercantum di `ci_2026-10-20.log` baris `[1/4]`).
+- **(b) `cargo build --package asl-kernel-bin --target x86_64-unknown-none --release`** → **0 error / 0 warning**, ELF **243.568 B** (identik dengan entri `elf_footprint_history.txt` [PHASE-5C]; fase ini tidak mengubah kode sehingga tidak ada baris footprint baru — aturan "kutip angka = ada baris sumber" tetap terpenuhi).
+- Runner lokal dieksekusi penuh sampai tree final fase ini: **4/4 PASS** (`KEPUTUSAN: Pipeline HIJAU`), stamp commit `2b6193a+dirty`. Langkah [3] memakai ISO 4.118.528 B SHA256 `6DDF4E6C98EDDB55AA1F6CEBF27842BD8AA034383B040C735F1514C68ECD94BF`. Run pertama (sebelum README §6/§7 diedit) mencatat SHA256 `2B055DC2…464F49` dengan ukuran byte yang sama — perbedaan hash ini adalah bukti langsung bahwa build ISO tidak byte-reproducible (xorriso menanam volume timestamp), sehingga hash yang sah dikutip hanyalah hash yang tercantum di artefak `ci_2026-10-20.log` yang di-commit.
+
+### Kriteria keluar misi 5D
+1. **Config CI masuk repo** → `PASS` (`.github/workflows/asl-ci-minimal.yml` ter-track; tidak ada dependensi eksternal baru, G1 tetap berlaku — hanya file YAML + skrip PowerShell yang sudah memakai toolchain yang ada).
+2. **Runner lokal dengan output `Analysis/reports/ci_<tanggal>.log`** → `PASS` (file ASCII/CRLF, bisa dibaca `file` sebagai "ASCII text"; hasil run nyata tertinggal di repo sebagai bukti).
+3. **Gerbang (1) test, (2) build 0/0, (3) QEMU smoke sampai M6, (4) ringkasan** → `PASS 4/4` dengan bukti serial.
+4. **"Pipeline merah = tidak boleh merge" dinyatakan di dokumen** → `PASS` (README §6 tabel + bullet kebijakan merge; §7 mengikat CI ke gerbang hygiene; `ci_local.ps1` mencetak kalimat yang sama dan exit code non-zero pada langkah gagal — fail-closed, bukan hanya teks).
+
+### Deviasi dan batas kejujuran
+- **Workflow hosted BELUM dieksekusi.** Branch `security/asl-v1.0.2-audit` belum di-push dan lingkungan ini tidak punya access runner GitHub Actions, jadi klaim untuk `.github/workflows/asl-ci-minimal.yml` adalah **CODE-COMPLETE (config authored, belum dijalankan di hosted runner)**, bukan VERIFIED. Langkah [1]-[2]-nya adalah terjemahan literal dari dua gerbang G4 yang sudah dibuktikan hijau lewat `ci_local.ps1` pada host yang sama.
+- Validasi YAML yang tersedia = pembacaan struktur manual; `pyyaml` tidak terpasang di host dan tidak dipasang (aturan: instalasi tool oleh user), sehingga parse machine-over belum dilakukan.
+- `ci_local.ps1` menjalankan test host dengan `--target x86_64-pc-windows-msvc` eksplisit; G4(a) menulis `cargo test --workspace --lib` tanpa `--target`. Keduanya ekuivalen di repo ini (config default target host), dan jalur yang dipakai workflow hosted adalah bentuk tanpa `--target` — angka 172 berasal dari run bertarget eksplisit.
+- Transcript per-langkah (`ci_2026-10-20.log.step1.log` dsb., ±23 KB) sengaja TIDAK di-stage: keluaran wajib misi adalah `ci_<tanggal>.log`, dan bukti runtime yang di-stage dibatasi pada serial QEMU (55 baris) agar repo tidak berisi dump toolchain.
+- Log harness milik aktor lain / run sebelumnya (`qemu_serial*.log`, `qemu_qm01_vtd_*`, `qemu_hv2_*`, `asl_vm_serial*`, `vbox_check.log`) tidak di-stage; hanya artefak yang fase ini hasilkan.
+- Ditemukan angka usang di **README §2** tabel status: "**128 unit tests passed**" dan ISO "**3.917.824 bytes**". Sumber kebenaran saat ini = 172 test dan 4.118.528 B (keduanya terbukti di `ci_2026-10-20.log`). Tidak dikoreksi di commit 5D agar fase tetap scoped ke CI; **dibawa ke GERBANG AKHIR** bersama regenerasi `QODER_FINAL_REPORT.md`. Dicatat di sini supaya tidak hilang.
+- Tidak ada perubahan `.rs` sehingga tidak ada risiko regresi; namun build+test+boot tetap dijalankan penuh (bukan disimpulkan dari "docs-only").
+
+### Bloker
+Tidak ada. Tidak ada kegagalan beruntun (G5 tidak terpicu) pada fase ini.
+
+### Commit
+`[PHASE-5D] <ringkasan>` — staging eksplisit per file (6 path: workflow hosted, `scripts/ci_local.ps1`, `Analysis/reports/ci_2026-10-20.log`, `Analysis/reports/qemu_ci_smoke_serial.log`, `README.md`, dan entri log ini sendiri). Hash commit fase ini dicatat pada entri GERBANG AKHIR berikutnya (G8).

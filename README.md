@@ -138,15 +138,36 @@ C:\asl\asl-kernel\target\limine_v8_binary\limine.exe bios-install C:\asl\asl-ker
 
 # 5. Verify local workspace hygiene (Must return 100% clean)
 python C:\asl\tools\Sub_Assist.py
+
+# 6. PHASE-5D minimal CI — local runner yang SAH (4 langkah, fail-closed)
+#    Output: Analysis\reports\ci_<tanggal>.log (ASCII) + transcript per langkah
+pwsh -File C:\asl\scripts\ci_local.ps1
 ```
+
+### Continuous Integration (CI) minimal — PHASE-5D
+
+Dua jalur, keduanya wajib hijau sebelum merge:
+
+| Langkah | `.github/workflows/asl-ci-minimal.yml` (hosted) | `scripts/ci_local.ps1` (lokal) |
+|---|---|---|
+| [1] `cargo test --workspace --lib` | ya | ya (parse `test result:` — 0 failed) |
+| [2] build `x86_64-unknown-none --release` | ya | ya + gerbang **0 error / 0 warning** (parse keluaran) |
+| [3] QEMU q35 cold-boot smoke sampai **M6** + prompt shell | **tidak** | ya |
+| [4] Ringkasan + bukti footprint + keputusan pipeline | **tidak** | ya |
+
+- **Kebijakan merge: pipeline MERAH = TIDAK BOLEH merge.** Gerbang fase G4 (test semua lulus + build release 0 error 0 warning) adalah gerbang yang sama yang ditegakkan runner ini.
+- Workflow hosted **tidak dapat** menjalankan langkah [3]: ia butuh hypervisor QEMU, ISO hasil xorriso (build cygwin), Limine bios-install, dan path lokal. Karena itu workflow hanya menegakkan [1]–[2]; langkah [3]–[4] wajib dijalankan lewat `scripts/ci_local.ps1` sebelum commit fase.
+- Workflow sengaja **tidak** menyetel env `RUSTFLAGS`: `asl-kernel/.cargo/config.toml` memuat rustflags wajib per-target (`-T linker.ld`, `max-page-size=0x1000`, `relocation-model=static`, `code-model=kernel`), dan env `RUSTFLAGS` akan **menggantikan** (bukan menambah) nilai itu sehingga linking gagal. Gerbang "0 warning" ditegakkan oleh parsing `ci_local.ps1`, bukan `-D warnings`.
+- Catatan kebenaran artefak: build ISO **tidak byte-reproducible** (xorriso menanam volume timestamp), jadi ukuran ISO tetap 4.118.528 B tetapi SHA256 berubah tiap rebuild — SHA256 di log CI hanya sah untuk run tersebut.
 
 ---
 
 ## 7. REPOSITORY INTEGRITY & LOCAL-ONLY GOVERNANCE
 
 To protect local research environments and prevent intellectual property or governance leaks:
-- The governance scripts (`tools/`), project directives (`AGENT.md`, `GEMINI.md`), and raw serial logs (`*.log`) are strictly excluded from remote tracking via [`.gitignore`](file:///c:/asl/.gitignore).
-- All changes must pass `python tools/Sub_Assist.py --hygiene` prior to commit.
+- The governance scripts (`tools/`), project directives (`AGENT.md`, `GEMINI.md`), and raw serial logs (`*.log`) are excluded from remote tracking via [`.gitignore`](file:///c:/asl/.gitignore).
+- **Koreksi nuansa (PHASE-5D):** `.gitignore` mengecualikan `*.log` **tetapi** meng-include-ulang `Analysis/reports/*.log`, karena CM_PLAN §3 mewajibkan artefak bukti RUNTIME VERIFIED ter-track. Jadi pernyataan "raw serial logs strictly excluded" hanya berlaku untuk log di luar `Analysis/reports/` (mis. `logs/`, transcript sementara harness) serta artefak selangkah CI `ci_*.log.step*.log` yang sengaja tidak di-stage. Bukti yang ter-track dipilih eksplisit per-file saat commit, bukan lewat `git add -A`.
+- Semua perubahan harus lolos `python tools/Sub_Assist.py --hygiene` sebelum commit, **dan** lolos pipeline CI minimal (§6) — pipeline merah = tidak boleh merge.
 - The 24 Phase_01..06 gates in [`docs/ROADMAP/CHECKLIST_STATE.json`](file:///c:/asl/docs/ROADMAP/CHECKLIST_STATE.json) are permanently **PASS & LOCKED** and must not be altered.
 
 ---

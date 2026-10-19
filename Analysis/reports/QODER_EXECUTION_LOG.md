@@ -300,3 +300,7 @@ Tidak ada.
 
 ## Commit
 Tunggal `[PHASE-4] closeout & certification reframing`, staging per-file eksplisit; QODER_FINAL_REPORT.md diregenerasi mencakup PHASE-1..4 dengan kategori VERIFIED / CODE-COMPLETE / PENDING + referensi ADR-002, ikut commit yang sama (di-fast-aut amend sebelum apa pun dipublikasikan; hash final dicatat pasca-commit).
+
+## Addendum commit PHASE-4 (catatan deviasi transparan, 2026-10-20)
+* Commit utama `[PHASE-4]` = `d25f283` (16 file .md, +192/−54; nol `.rs`) — merupakan hasil fast-aut amend yang diizinkan rencana commit di atas (hash awal `3211de4`; amend dilakukan sebelum apa pun dipublikasikan, isi berubah satu baris referensi hash saja).
+* Amend mengganti hash sehingga referensi di QODER_FINAL_REPORT menjadi salah; dikoreksi via commit susulan kecil `[PHASE-4][doc-fix]` = `1c75e07` (satu baris). Konsekuensi: fase ini menjadi 2 commit — Penyimpangan dari G6 (satu commit per fase) direkam resmi di sini; alasan: menghindari amend berulang yang tak pernah bisa menuliskan hash dirinya sendiri (self-reference), dan memperbaiki dokumen lewat commit auditabel lebih dipilih daripada force/mendiamkan angka salah. Isi teknis tidak berubah.

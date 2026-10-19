@@ -33,5 +33,6 @@
 * **Total Temuan Terdaftar:** 16 temuan (15 temuan awal + 1 finding terencana VT-D-DRV-01)
 * **CLOSED / RESOLVED (12):** `SEC-01`, `SEC-02`, `SEC-03`, `SEC-04`, `SEC-05`, `AG-01`, `AG-02`, `AG-03`, `AG-05`, `AG-06`, `ALIGN-01`, `AG-04`.
 * **VERIFIED-ON-VM (1):** `DMA-ADDR-01` (PHASE-5B QM-01, 2026-10-20 — tiga kriteria keluar tercapai di QEMU q35 `intel-iommu`; **kategori ini bukan VERIFIED-ON-HARDWARE**, lihat ADR-002 §5; konfirmasi board fisis tetap terbuka).
+* **VERIFIED-ON-VM (jalur remediasi DA-07 / HV-2, PHASE-5C 2026-10-20):** stack-overflow guard page dibuktikan end-to-end di QEMU q35 cold-boot — `#PF` vektor 14 pada halaman guard non-present, `STACK OVERFLOW (GUARD PAGE HIT)` tercetak verbatim, DR FSM latch Armed(1)->Recovery(3) dengan reason=3 (MemoryIntegrity), safe halt teramati tanpa reboot. Temuan `DA-07` tidak berdiri sendiri di register 16 temuan ini (ia baris rencana remediasi), sehingga entri temuan di atas tidak berubah; bukti tercatat di `REMEDIATION_PLAN.md` §2/§5 dan `Analysis/reports/hv2_stack_overflow_serial_2026-10-20.log`.
 * **PARTIAL-MITIGATED (CODE) (1):** `DMA-CACHE-01` (jalur bounce `BounceAddressSpace::stage`; barrier cache HW riil + zero-stale-read Gem5/Zynq masih pending).
 * **OPEN / IN-PROGRESS (1):** `ATOMIC-SPARC-01`. **VT-D-DRV-01 = VERIFIED-ON-VM (PHASE-5B, 2026-10-20)** — status hardware-fisis masih terbuka.

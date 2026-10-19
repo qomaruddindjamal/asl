@@ -495,8 +495,11 @@ pub unsafe fn init_x86_64_fault_infrastructure() {
     register_interrupt_handler(8, isr_wrapper_double_fault as *const () as usize, 1);
     // Register Vector 13 (#GP)
     register_interrupt_handler(13, isr_wrapper_general_protection as *const () as usize, 0);
-    // Register Vector 14 (#PF)
-    register_interrupt_handler(14, isr_wrapper_page_fault as *const () as usize, 0);
+    // Register Vector 14 (#PF) dengan IST 1: pada stack overflow murni, frame
+    // exception tidak bisa ditulis ke stack yang sedang rusak (akan berubah
+    // menjadi #DF dan menghapus vektor/CR2 penyebab). IST1 memaksa switch ke
+    // stack dedicated sehingga #PF asli terlaporkan dengan benar.
+    register_interrupt_handler(14, isr_wrapper_page_fault as *const () as usize, 1);
     // Register Vector 32 (APIC Timer IRQ)
     register_interrupt_handler(32, isr_wrapper_apic_timer as *const () as usize, 0);
 

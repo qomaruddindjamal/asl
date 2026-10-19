@@ -357,6 +357,11 @@ pub mod safe {
         GLOBAL_SECONDARY_LATCH.fault_count()
     }
 
+    /// Kode reason fault terakhir yang direkam latch (FW-01 diagnostics).
+    pub fn latch_reason() -> u64 {
+        GLOBAL_SECONDARY_LATCH.last_reason()
+    }
+
     #[cfg(test)]
     mod tests {
         use super::*;
@@ -413,6 +418,21 @@ pub mod safe {
             latch.notify_fault(REASON_STACK_GUARD_DEGRADED, 12);
             assert_eq!(latch.last_reason(), REASON_STACK_GUARD_DEGRADED);
             assert_eq!(latch.fault_count(), 1);
+            assert_eq!(latch.engine_state(), RecoveryState::FaultDetected);
+        }
+
+        /// HV-2 [PHASE-5C]: signature fault stack-overflow nyata (#PF v14 dengan
+        /// reason MemoryIntegrity) harus latch ke Recording->Recovery dengan
+        /// reason yang sama yang dicetak pada serial VM.
+        #[test]
+        fn test_latch_stack_overflow_pf_signature_recovers_with_memory_integrity() {
+            let latch = FaultLatch::new();
+            assert!(latch.arm());
+            let pre = latch.notify_fault(REASON_MEMORY_INTEGRITY, 14);
+            assert_eq!(pre, LATCH_ARMED);
+            assert_eq!(latch.state(), LATCH_RECOVERY);
+            assert_eq!(latch.last_reason(), REASON_MEMORY_INTEGRITY);
+            assert_eq!(latch.last_ticks(), 14);
             assert_eq!(latch.engine_state(), RecoveryState::FaultDetected);
         }
 

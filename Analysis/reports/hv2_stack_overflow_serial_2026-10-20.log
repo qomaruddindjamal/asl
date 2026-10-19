@@ -1,0 +1,47 @@
+
+[ASL-LAUNCHER] M1: Entered Limine Entry Stub (profile=release) via Assembly Trampoline.
+  [MEMMAP] base: 4096 len: 335872 typ: 5
+  [MEMMAP] base: 339968 len: 311296 typ: 0
+  [MEMMAP] base: 654336 len: 1024 typ: 1
+  [MEMMAP] base: 983040 len: 65536 typ: 1
+  [MEMMAP] base: 1048576 len: 265396224 typ: 0
+  [MEMMAP] base: 266444800 len: 20480 typ: 5
+  [MEMMAP] base: 266465280 len: 806912 typ: 6
+  [MEMMAP] base: 267272192 len: 270336 typ: 5
+  [MEMMAP] base: 267542528 len: 110592 typ: 0
+  [MEMMAP] base: 267653120 len: 647168 typ: 5
+  [MEMMAP] base: 268300288 len: 135168 typ: 1
+  [MEMMAP] base: 2952790016 len: 268435456 typ: 1
+  [MEMMAP] base: 4244635648 len: 3145728 typ: 7
+  [MEMMAP] base: 4275159040 len: 16384 typ: 1
+  [MEMMAP] base: 4294705152 len: 262144 typ: 1
+  [MEMMAP] base: 1086626725888 len: 12884901888 typ: 1
+[ASL-LAUNCHER] Inspecting Limine Requests:
+  -> Base Revision supported.
+  -> Memmap response received.
+  -> HHDM response received.
+  -> Framebuffer response received.
+  -> Framebuffer configured successfully.
+[ASL-LAUNCHER] M2: Handover Adapted & Memory Map Sanitized.
+[ASL-LAUNCHER] M3: Transferring Control to ASL Microkernel Core Entry.
+[ASL-CORE] M0: x86_64 Minimal Fault Infrastructure (IDT/TSS/IST1) Initialized.
+[ASL-CORE] M0+: Secondary carve-out validated (aligned, in-image, disjoint from stack). Failover latch ARMED.
+[ASL-CORE] M4: Buddy Allocator & Heap Memory Subsystem Initialized.
+[ASL-CORE] M4+: Kernel stack guard page enforced (non-present below 512KB stack).
+[ASL-HV2] Injection ARMED: deliberate write into the enforced guard page of the 512KiB kernel stack.
+[ASL-HV2] Latch pra-injeksi: state=1 count=0
+[ASL-HV2] rsp=0xFFFFFFFF8019A040 stack_bottom=0xFFFFFFFF80137000 guard_label=0xFFFFFFFF80136000
+[ASL-HV2] Paging proof: guard 0xFFFFFFFF80136000 -> NOT MAPPED (guard non-present - benar)
+[ASL-HV2] Paging proof: stack 0xFFFFFFFF80138000 -> PRESENT phys=0x000000000FE57000
+[ASL-HV2] Fase-1 descent selesai: 
+======================= [ASL EXCEPTION] =======================
+VECTOR: 0x000E (#PF - Page Fault)
+ERROR:  0x0000000000000002
+CR2:    0xFFFFFFFF801360F8
+RIP:    0xFFFFFFFF80108BB9 | CS: 0x0028
+RSP:    0xFFFFFFFF80136100 | SS: 0x0030
+RFLAGS: 0x0000000000010046 | RBP: 0x0000000000000000
+===============================================================
+STACK OVERFLOW (GUARD PAGE HIT)
+[ASL-HV2] DR FSM latch: pre_state=1 post_state=3 reason=3 (2=Recording,3=Recovery; 3=MemoryIntegrity) - Verbatim
+[ASL-CORE] Secondary kernel notified. Controlled Halt Active.

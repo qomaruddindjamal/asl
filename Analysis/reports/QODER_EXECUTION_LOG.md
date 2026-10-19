@@ -407,3 +407,58 @@ Tidak ada.
 
 ### Commit
 `[PHASE-5B] ...` — staging eksplisit per file (13 path di tabel di atas). Hash commit ini dicatat pada entri [PHASE-5C] berikutnya (G8).
+
+## [PHASE-5C] HV-2 VM COLD-BOOT STACK-OVERFLOW INJECTION — REPORT
+**Status:** SELESAI — ketiga kriteria keluar (serial verbatim + DR FSM Recording dengan reason benar + safe halt) TERAMATI pada QEMU q35 cold-boot dengan artefak identik produksi; gerbang hijau; commit tunggal (hash commit ini TIDAK ditulis di dalam commit-nya sendiri per G8 — dicatat pada entri [PHASE-5D] berikutnya).
+**Waktu:** 2026-10-20
+**Kategori kenaikan (ADR-002 §5):** **DA-07/HV-2 → VERIFIED-ON-VM** (deteksi + jalur halt dibuktikan on-VM; VERIFIED-ON-HARDWARE tetap terbuka).
+
+### G8 — pemenuhan kewajiban hash PHASE-5B
+Hash commit `[PHASE-5B]` = **`965c3e2`** (`git log --oneline -3` 2026-10-20: `965c3e2 [PHASE-5B] HV-1 QM-01 VT-d smoke ...` = HEAD sebelum working tree PHASE-5C). Kewajiban ini dijanjikan pada entri 5B ("Hash commit ini dicatat pada entri [PHASE-5C] berikutnya").
+
+### File berubah
+| File | Perubahan |
+|---|---|
+| `asl-kernel/asl-kernel-core/src/lib.rs` | (a) NOTIFIKASI PRODUKSI: crash record stack-overflow kini mencetak bukti FSM — `pre_state/post_state/reason` latch segera setelah `notify_fault_safe`, memakai nilai return latch yang selama ini diabaikan; (b) BARU `hv2_stack_overflow_injection_probe()` + descent, seluruhnya digerbang `#[cfg(feature = "test-hv2-stack-overflow")]` sehingga TIDAK ADA di artefak release nominal; dipanggil SETELAH `enforce_stack_guard_page` (jalur identik kondisi produksi). |
+| `asl-kernel/asl-hal/src/x86_fault.rs` | #PF (vektor 14) dipindah ke **IST1** (sebelumnya IST=0). Akar masalah fungsional: saat RSP sudah di bawah dasar stack, CPU tidak bisa menulis frame exception ke stack yang rusak sehingga #PF berubah menjadi #DF dan vektor/CR2 penyebab HILANG. |
+| `asl-kernel/asl-kernel-core-secondary/src/lib.rs` | `safe::latch_reason()` (accessor reason terakhir yang terekam) + 1 host test signature fault HV-2 (#PF v14 -> reason MemoryIntegrity -> Recovery). |
+| `asl-kernel/asl-kernel-core/Cargo.toml`, `asl-kernel/asl-kernel-bin/Cargo.toml` | fitur `test-hv2-stack-overflow` (pola sama dengan `test-gate3d`; default tetap kosong). |
+| `scripts/test_hv2_stack_overflow_qemu.ps1` | BARU: harness build-ber-fitur + master ISO HV-2 + cold-boot QEMU q35 headless + poll marker `GUARD PAGE HIT`; menghapus log run sebelumnya agar stderr selalu segar. |
+| `Analysis/reports/hv2_stack_overflow_serial_2026-10-20.log` | BARU: bukti serial cold-boot 47 baris (exit criteria 1-3). |
+| `Analysis/reports/hv2_qemu_stderr_2026-10-20.log` | BARU: stderr QEMU = 0 byte (tidak ada galat perangkat). |
+| `Analysis/reports/nominal_regression_serial_2026-10-20.log` | BARU: bukti anti-regresi — ISO release nominal (tanpa fitur) tetap capai M6 + prompt `ASL-OS>` tanpa exception palsu setelah perubahan IST1. |
+| `audit/asl-core-kernel/REMEDIATION_PLAN.md` | §2 DA-07 -> VERIFIED-ON-VM; §5 HV-2 -> LULUS ON-VM dengan bukti + catatan jujur soal screenshot; ringkasan §1 +1 baris. |
+| `audit/asl-core-kernel/SECURITY_FINDINGS.md` | Distribusi status: baris VERIFIED-ON-VM untuk jalur DA-07/HV-2 (register 16 temuan tidak berubah — DA-07 adalah baris rencana remediasi). |
+| `Analysis/reports/elf_footprint_history.txt` | +1 baris 243.568 B (tree PHASE-5C build DEFAULT, +184 B / +0,08% vs 965c3e2). |
+| `README.md` | §6 footprint -> 243.568 B ≈ 238 KB (tree PHASE-5C). |
+
+### Iterasi debugging berbasis bukti (transparan)
+1. **Marker serial sudah benar, jadi teksnya tidak diubah.** Temuan: `early_serial_write_str("STACK OVERFLOW (GUARD PAGE HIT)\n")` sudah ada sejak Phase-2 (lib.rs:790) dan terverifikasi ada di HEAD `965c3e2` — kriteria 1 terpenuhi tanpa perubahan string.
+2. **Rekursi frame 64 KiB TIDAK menembus stack.** Bukti (diagnostik sementara): `rsp` identik 0xFFFFFFFF8019B050 pada depth 0..512, jadi LLVM melipat frame lokal besar (satu-satunya akses byte terlipat ke register) dan RSP tak pernah bergerak; keluaran `UNEXPECTED: recursion returned`. Ganti bentuk: penurunan RSP eksplisit lewat `asm` (`sub rsp, reg`) yang tidak bisa dilipat.
+3. **Warning `unconditional_recursion` pada build fitur** -> diberikan syarat berhenti yang secara aritmetika tak terjangkau (guard selalu menembus lebih dulu); rekursi menjadi kondisional dan build fitur kembali 0 warning.
+4. **Overflow dilaporkan sebagai #DF, bukan #PF (vektor 8, reason=4).** Akar: #PF terdaftar dengan IST=0, sehingga saat RSP sudah di bawah stack frame exception tidak dapat ditulis. Koreksi: #PF -> IST1. Setelah itu fault asli terlaporkan: `VECTOR: 0x000E`, `ERROR: 0x2` (supervisor write, not-present), `CR2` di halaman guard, reason=3.
+5. **Satu kali injeksi lolos tanpa fault (`pushfq` LOLOS).** Pada varian sementara RSP mendarat di halaman yang TERPETAKAN; dilaporkan apa adanya, TIDAK diklaim sebagai gap proteksi. Varian final menentukan target secara deterministik dan mencetaknya SEBELUM injeksi: guard label == stack_bottom-4096 dengan `Paging proof: guard -> NOT MAPPED`, lalu store 8 byte ke `rsp-64` yang pasti di dalam halaman guard. Run final: #PF pada 0xFFFFFFFF801360F8. Observasi tambahan: guard label bergeser 1 halaman antar build ber-fitur (.bss tumbuh karena kode fitur) — karena itu alamat tidak pernah diasumsikan, selalu dibaca dari label + bukti terjemahan halaman.
+6. **Screenshot tidak tersedia (dinyatakan jujur).** Harness memakai `-display none` (headless; tidak ada tooling tangkap layar di lingkungan ini), sehingga bukti yang dipakai adalah log serial COM1, bukan citakan layar. Tidak ada klaim screenshot palsu.
+
+### Gerbang (G4) — hasil terverifikasi
+- `cargo test --workspace --lib`: **172 passed / 0 failed** (naik 171 -> 172 via test signature latch HV-2; tidak ada regresi).
+- `cargo build --package asl-kernel-bin --target x86_64-unknown-none --release` (DEFAULT, tanpa fitur): **0 error, 0 warning**. Build ber-fitur `test-hv2-stack-overflow` juga 0 error / 0 warning.
+- ISO release nominal diregenerasi: 4.118.528 B, SHA256 `330C953E70B1E356904E42D1BD6B09CF91B95EAE80DCC1DEDF60C9C9F40E5C1C`. Artefak HV-2 terpisah: `target/hv2-stack-overflow.iso` 4.118.528 B, SHA256 `8f6fcd1635769d7d54f582c11b1c52a3eb2526b60feb9de3f0e88a70da2f7792` (tidak distage — artefak build).
+- Anti-regresi: ISO nominal cold-boot tetap M0 -> M6 -> `ASL-OS>` tanpa exception (log bukti di tabel atas).
+
+### Kriteria keluar HV-2 (exit criteria misi 5C) — dari `hv2_stack_overflow_serial_2026-10-20.log`
+1. **Serial mencetak persis `STACK OVERFLOW (GUARD PAGE HIT)`** -> baris verbatim hadir setelah banner exception `VECTOR: 0x000E (#PF - Page Fault)`, `CR2: 0xFFFFFFFF801360F8` (di dalam guard), `RSP: 0xFFFFFFFF80136100 < stack_bottom 0xFFFFFFFF80137000` — **PASS**.
+2. **DR FSM ber-status Recording dengan reason benar** -> `[ASL-HV2] DR FSM latch: pre_state=1 post_state=3 reason=3 (2=Recording,3=Recovery; 3=MemoryIntegrity)`. pre_state=1 (Armed) adalah state SESABELUM notify; transisi nyata ARMED -> Recording -> Recovery, reason=3 = REASON_MEMORY_INTEGRITY untuk #PF; pra-injeksi tercatat `state=1 count=0` dan `Paging proof: guard NOT MAPPED` — **PASS** (catatan formulasi: latch MELEWATI Recording lalu terminal di Recovery, jadi serial menampilkan bukti keduanya, bukan status Recording yang tahan-lama).
+3. **Safe halt teramati** -> `[ASL-CORE] Secondary kernel notified. Controlled Halt Active.` adalah baris TERAKHIR log; dispatcher `cli; hlt` dan QEMU `-no-reboot -no-shutdown` tidak menghasilkan episode boot kedua (log memuat tepat satu sekuens M0 -> crash) — **PASS**.
+
+### Deviasi
+- Tidak ada dependency eksternal baru (G1); tidak ada perubahan MajorFrameSchedule; tidak ada tulis framebuffer tanpa validasi (G3). Tidak ada amend/rebase/reset --hard; koreksi selalu commit baru (G8).
+- **Perubahan kode produksi di luar teks marker:** penempatan #PF pada IST1. Diizinkan karena misi 5C eksplisit mengizinkan perubahan kode jalur stack-overflow pada fase ini, dan tanpanya kriteria 1-2 tidak dapat tercapai (overflow murni selalu terdistorsi menjadi #DF). Dampaknya meluas ke semua #PF kernel — dibuktikan tidak menimbulkan regresi boot nominal.
+- Log serial actor lain (asl_vm_serial*, qemu_serial*, qemu_qm01_vtd_* dan qemu_hv2_* kanonik hasil regenerasi harness, vbox_check.log) TIDAK distage; bukti yang di-commit adalah SALINAN bertanggal.
+- Satu run perantara melaporkan "store ke guard LOLOS tanpa #PF"; tidak dijadikan temuan proteksi karena penyebabnya target injeksi yang salah (halaman terpetakan), dan varian final membuktikan fault.
+
+### Bloker
+Tidak ada.
+
+### Commit
+`[PHASE-5C] ...` — staging eksplisit per file (14 path: 6 sumber/build + 1 harness + 3 bukti + 3 register/README + log eksekusi ini). Hash commit ini dicatat pada entri [PHASE-5D] berikutnya (G8).

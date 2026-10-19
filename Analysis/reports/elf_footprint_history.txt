@@ -8,6 +8,8 @@
 
 243.384 B | diukur pada 2026-10-20 | tree [PHASE-5B] working (hash commit dicatat pada entri log QODER_EXECUTION_LOG berikutnya pasca-commit, G8) | ls -la target/x86_64-unknown-none/release/asl-kernel (+18.440 B / +8,2% vs b17e572) | Pasca-PHASE-5B: += modul asl-hal/vtd.rs (parser DMAR/ACPI + encoder tabel + backend VT-d + 11 host test), asl-kernel-core/vtd_boot.rs (probe runtime fail-soft + 2 halaman tabel SL baru PDP/PD + queue QI 4KiB).
 
+243.568 B | diukur pada 2026-10-20 | tree [PHASE-5C] working (hash commit dicatat pada entri log QODER_EXECUTION_LOG berikutnya pasca-commit, G8) | ls -la target/x86_64-unknown-none/release/asl-kernel (+184 B / +0,08% vs 965c3e2 PHASE-5B) | Pasca-PHASE-5C (build release DEFAULT, fitur test-hv2-stack-overflow TIDAK ikut terhitung): += crash record stack-overflow di asl_fault_notifier (cetak state/reason latch) + accessor safe::latch_reason() + #PF dipasang pada IST1 di asl-hal/x86_fault.rs.
+
 # Cara mengukur ulang (repo root, dari C:\asl):
 #   ls -la asl-kernel/target/x86_64-unknown-none/release/asl-kernel
 #   (jika artefak tidak ada: cargo build --package asl-kernel-bin --target x86_64-unknown-none --release)

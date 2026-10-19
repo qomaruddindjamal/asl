@@ -680,6 +680,101 @@ pub fn classify_stack_overflow(cr2: u64, rsp: u64, stack_bottom: u64) -> bool {
     }
 }
 
+/// HV-2 [PHASE-5C]: injeksi stack-overflow DELIBERATE — hanya build dengan fitur
+/// cargo `test-hv2-stack-overflow`; tidak pernah ada di artefak release nominal.
+/// Penurunan RSP eksplisit kelipatan 4 KiB (bentuk prologue yang tidak bisa
+/// dilipat LLVM — frame lokal 64 KiB terbukti di-elide sehingga RSP tak pernah
+/// bergerak) sampai ke dalam halaman guard, lalu satu store 8 byte ke halaman
+/// guard non-present => #PF v14 dengan rsp < stack_bottom, yaitu jalur
+/// klasifikasi produksi. Fungsi tidak pernah kembali (safe halt terkontrol).
+#[cfg(all(
+    feature = "test-hv2-stack-overflow",
+    target_arch = "x86_64",
+    target_os = "none"
+))]
+#[inline(never)]
+unsafe fn hv2_stack_overflow_injection_probe() -> ! {
+    // Layout global_asm (asl-kernel-bin): `_asl_guard_page` -> 4 KiB ->
+    // `_asl_stack_bottom`; guard label == stack_bottom-4096 dan halaman itulah
+    // yang ditegakkan non-present oleh M4+ (dibuktikan oleh Paging proof below).
+    let bottom = core::ptr::addr_of!(_asl_stack_bottom) as *const u8 as u64;
+    let guard_label = core::ptr::addr_of!(_asl_guard_page) as *const u8 as u64;
+    let mut rsp0: u64;
+    core::arch::asm!("mov {}, rsp", out(reg) rsp0, options(nomem, preserves_flags));
+    early_serial_write_str("[ASL-HV2] Injection ARMED: deliberate write into the enforced guard page of the 512KiB kernel stack.\n");
+    early_serial_write_str("[ASL-HV2] Latch pra-injeksi: state=");
+    early_serial_write_u64(asl_kernel_core_secondary::safe::latch_state() as u64);
+    early_serial_write_str(" count=");
+    early_serial_write_u64(asl_kernel_core_secondary::safe::fault_count());
+    early_serial_write_str("\n");
+    early_serial_write_str("[ASL-HV2] rsp=0x");
+    early_serial_write_hex64(rsp0);
+    early_serial_write_str(" stack_bottom=0x");
+    early_serial_write_hex64(bottom);
+    early_serial_write_str(" guard_label=0x");
+    early_serial_write_hex64(guard_label);
+    early_serial_write_str("\n");
+
+    // Bukti paging sebelum injeksi: guard page harus NON-PRESENT, stack present.
+    let cr3: u64;
+    core::arch::asm!("mov {}, cr3", out(reg) cr3, options(nomem, preserves_flags));
+    let space = asl_memory::AddressSpace::from_pml4_phys(
+        cr3 & asl_memory::PHYSICAL_ADDRESS_MASK,
+        HHDM_OFFSET as u64,
+    );
+    early_serial_write_str("[ASL-HV2] Paging proof: guard 0x");
+    early_serial_write_hex64(guard_label);
+    early_serial_write_str(" -> ");
+    match space.translate_virtual_address(guard_label) {
+        Ok(p) => {
+            early_serial_write_str("PRESENT phys=0x");
+            early_serial_write_hex64(p);
+            early_serial_write_str(" (BUG: guard masih terpetakan!)\n");
+        }
+        Err(_) => early_serial_write_str("NOT MAPPED (guard non-present - benar)\n"),
+    }
+    early_serial_write_str("[ASL-HV2] Paging proof: stack 0x");
+    early_serial_write_hex64(bottom + 4096);
+    early_serial_write_str(" -> ");
+    match space.translate_virtual_address(bottom + 4096) {
+        Ok(p) => {
+            early_serial_write_str("PRESENT phys=0x");
+            early_serial_write_hex64(p);
+            early_serial_write_str("\n");
+        }
+        Err(_) => early_serial_write_str("NOT MAPPED (tak terduga)\n"),
+    }
+
+    // Fase 1: turunkan RSP kelipatan 4 KiB sampai ke 256 byte pertama halaman
+    // guard, tanpa menulis memori sama sekali.
+    let mut moves: u64 = 0;
+    while rsp0 > guard_label + 256 {
+        let delta = rsp0 - (guard_label + 256);
+        let step = if delta >= 4096 { 4096 } else { delta };
+        core::arch::asm!("sub rsp, {}", in(reg) step, options(preserves_flags));
+        moves += 1;
+        core::arch::asm!("mov {}, rsp", out(reg) rsp0, options(nomem, preserves_flags));
+    }
+    early_serial_write_str("[ASL-HV2] Fase-1 descent selesai: ");
+    early_serial_write_u64(moves);
+    early_serial_write_str(" langkah, rsp=0x");
+    early_serial_write_hex64(rsp0);
+    early_serial_write_str(" (rsp < stack_bottom=0x");
+    early_serial_write_hex64(bottom);
+    early_serial_write_str(" -> jalur klasifikasi produksi).\n");
+
+    // Fase 2: STORE eksplisit 8 byte ke [rsp-64] -> tetap di dalam halaman guard
+    // non-present (karena rsp sudah di bawah stack_bottom) => #PF v14 dengan
+    // CR2 di guard dan rsp < stack_bottom, yaitu jalur klasifikasi produksi.
+    let write_target = rsp0 - 64;
+    early_serial_write_str("[ASL-HV2] Store 0xDEADBEEFCAFEB000 -> 0x");
+    early_serial_write_hex64(write_target);
+    early_serial_write_str(" (di dalam guard; expected #PF + STACK OVERFLOW).\n");
+    core::ptr::write_volatile(write_target as *mut u64, 0xDEAD_BEEF_CAFE_B000);
+    early_serial_write_str("[ASL-HV2] UNEXPECTED: store ke guard page LOLOS (tanpa #PF) - protection gap nyata.\n");
+    controlled_halt();
+}
+
 /// Validasi rentang fisik framebuffer terhadap memory map bootloader + reserve eksplisit.
 /// - VALID tanpa syarat bila tercakup satu region FrameBuffer/Reserved.
 /// - UsableRam/BootloaderReclaimable hanya valid bila range FB juga tercakup dalam
@@ -783,12 +878,15 @@ pub fn asl_fault_notifier(ctx: &asl_hal::x86_fault::ExceptionContext) {
     early_serial_write_str("===============================================================\n");
 
     // Deteksi stack overflow terhadap guard page (tepat di bawah stack 512KB)
+    // dan klasifikasi fault untuk notifikasi secondary engine.
     #[cfg(all(target_arch = "x86_64", target_os = "none"))]
-    {
-        let s_bottom = core::ptr::addr_of!(_asl_stack_bottom) as *const u8 as u64;
-        if classify_stack_overflow(ctx.cr2, ctx.rsp, s_bottom) {
-            early_serial_write_str("STACK OVERFLOW (GUARD PAGE HIT)\n");
-        }
+    let s_bottom = core::ptr::addr_of!(_asl_stack_bottom) as *const u8 as u64;
+    #[cfg(all(target_arch = "x86_64", target_os = "none"))]
+    let stack_overflow_hit = classify_stack_overflow(ctx.cr2, ctx.rsp, s_bottom);
+    #[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
+    let stack_overflow_hit = false;
+    if stack_overflow_hit {
+        early_serial_write_str("STACK OVERFLOW (GUARD PAGE HIT)\n");
     }
 
     // Kirim notifikasi hook ke secondary kernel via latch atomik crash-safe
@@ -797,7 +895,18 @@ pub fn asl_fault_notifier(ctx: &asl_hal::x86_fault::ExceptionContext) {
     } else {
         asl_kernel_core_secondary::safe::REASON_ILLEGAL_TRAP
     };
-    asl_kernel_core_secondary::safe::notify_fault_safe(reason_code, ctx.vector as u64);
+    let pre_state = asl_kernel_core_secondary::safe::notify_fault_safe(reason_code, ctx.vector as u64);
+    if stack_overflow_hit {
+        // HV-2: bukti FSM Recording atas fault nyata; latch terminal transition
+        // ARMED->Recording terjadi di jalur ini (pre_state = state sebelum notify).
+        early_serial_write_str("[ASL-HV2] DR FSM latch: pre_state=");
+        early_serial_write_u64(pre_state as u64);
+        early_serial_write_str(" post_state=");
+        early_serial_write_u64(asl_kernel_core_secondary::safe::latch_state() as u64);
+        early_serial_write_str(" reason=");
+        early_serial_write_u64(asl_kernel_core_secondary::safe::latch_reason());
+        early_serial_write_str(" (2=Recording,3=Recovery; 3=MemoryIntegrity) - Verbatim\n");
+    }
     early_serial_write_str("[ASL-CORE] Secondary kernel notified. Controlled Halt Active.\n");
 }
 
@@ -963,6 +1072,10 @@ pub unsafe extern "C" fn _asl_kernel_entry(handover_ptr: *const AslBootHandover)
                                 );
                             }
                         }
+                        // HV-2 [PHASE-5C]: injeksi deliberate, hanya build ber-fitur.
+                        // Fungsi ini tidak pernah kembali (#PF -> safe halt terkontrol).
+                        #[cfg(feature = "test-hv2-stack-overflow")]
+                        hv2_stack_overflow_injection_probe();
                     }
                 } else {
                     early_serial_write_str(

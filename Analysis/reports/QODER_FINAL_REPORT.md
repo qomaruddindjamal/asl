@@ -7,7 +7,7 @@
 | 1 | Rekonsiliasi governance & dokumen (register temuan, roadmap, CANONICAL, README §2) | `e07cfac` + fix `886425f` + hash `c12ce6f` | docs-only; lulus |
 | 2 | Hardening kernel: FSM failover AtomicU8 latch + validasi physical carve-out; stack guard page non-present + diagnostik `STACK OVERFLOW` COM1; validasi framebuffer-vs-memmap (kebijakan B1) | `4f55c87` (13 file, +1145/−96) | 149/149 test (=128+21); x86_64-none release 0/0; bukti serial QEMU |
 | 3 | DMA/IOMMU multi-tenant: RND_08 spec → kontrak `IovaLease` + `BounceAddressSpace` → migrasi breaking `transmit_burst` & `setup_channel_buffer` → sinkron register | `b17e572` (11 file, +1064/−36) | 160/160 test (+11); x86_64-none release 0/0; grep-proof 0 alamat mentah |
-| 4 | Closeout & reframing: paket bukti 4A, **ADR-002 certification ladder**, sinkron 15 header status, cleanup RND_08 (4C), §5 Hardware Verification Gate (4D) | `3211de4` (16 file .md, +192/−54, nol `.rs`) | 160/160 test tetap; build 0/0 tetap |
+| 4 | Closeout & reframing: paket bukti 4A, **ADR-002 certification ladder**, sinkron 15 header status, cleanup RND_08 (4C), §5 Hardware Verification Gate (4D) | `d25f283` — commit PHASE-4 (16 file .md, +192/−54, nol `.rs`) | 160/160 test tetap; build 0/0 tetap |
 
 ## 2. Kategori verdict (definisi jujur yang dipakai konsisten)
 * **VERIFIED (host)** — terbukti oleh `cargo test --workspace --lib` 160/160 pada 30 suite (2026-10-20, aritmetika per-suite diverifikasi python: 149+11=160).

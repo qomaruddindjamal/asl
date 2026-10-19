@@ -2,7 +2,7 @@
 **Lead Security Auditor:** ANTI-GRAVITY (Independent Lead Auditor & R&D Systems Engineer)  
 **Date:** 2026-10-13  
 **Review Scope:** Full Workspace (17 Workspace Crates + Bare-metal Entry + Documentation Map)  
-**Governing Standard:** DO-178C DAL-A / ARINC 653 Part 1  
+**Governing Standard:** DO-178C-aligned, ladder DAL-C->A (lihat ADR-002) / ARINC 653 Part 1  
 
 ---
 

@@ -2,7 +2,7 @@
 
 **Dokumen:** RND_08 | **Status:** RATIFIED-FOR-IMPLEMENTATION (self-review 10 poin PASS, lihat §F)
 **Tanggal:** 2026-10-20 | **Branch:** security/asl-v1.0.2-audit | **Phase:** FASE-3 (audit DMA-ADDR-01 / DMA-CACHE-01)
-**Standar:** DO-178C DAL-A, ARINC 653 spatial partitioning; menindaklanjuti `audit/asl-core-kernel/SECURITY_FINDINGS.md` DMA-ADDR-01 (SECURITY/CRITICAL) dan DMA-CACHE-01.
+**Standar:** DO-178C-aligned, ladder DAL-C->A (lihat ADR-002), ARINC 653 spatial partitioning; menindaklanjuti `audit/asl-core-kernel/SECURITY_FINDINGS.md` DMA-ADDR-01 (SECURITY/CRITICAL) dan DMA-CACHE-01.
 
 ---
 
@@ -66,7 +66,9 @@ pub trait DmaAddressSpace {
 - `VideoDmaPipelineEngine::validate_frame_leases(space, channel, slot, &lease_y, &lease_uv)` — gerbang pra-doorbell via `DmaAddressSpace::validate_pin` + konsistensi mapping frame terpasang (TM-08).
 - `poll_rx_burst` dikembalikan ke caller sebagai `RxFrame{ lease: IovaLease, .. }` pada backend yang mendukung; untuk perangkat keras direct-mapped, lease RX dibuat oleh RX-fill path, bukan dari konten deskriptor yang bisa dispoof NIC.
 
-**Alasan breaking:** API lama tidak dapat dibuat "aman dengan validasi" karena alamat mentah tidak membawa identitas partisi/generation; satu-satunya perbaikan deterministik adalah mengubah tipe parameter (ditegakkan kompilator, bukan runtime — DAL-A preferred).
+**Alasan breaking:** API lama tidak dapat dibuat "aman dengan validasi" karena alamat mentah tidak membawa identitas partisi/generation; satu-satunya perbaikan deterministik adalah mengubah tipe parameter (ditegakkan kompilator, bukan runtime — praktik terkuat yang dipilih proyek, lihat ADR-002).
+
+**Concurrency model (limitasi resmi, PHASE-4):** setiap backend `DmaAddressSpace` adalah **single-owner** — serialisasi akses SMP menjadi tanggung jawab pemilik backend, ditegakkan oleh kontrak `&mut self` pada `pin/unpin/iova_alloc/iova_dealloc/unmap_iova` (hanya satu pemegang referensi mutable pada satu waktu). `translate_and_check`/`validate_pin` adalah jalur `&self` read-only yang aman terhadap satu owner. Limitasi ini **dievaluasi ulang saat jalur SMP diaktifkan** (pecahan terkait: DA-10 kunci per-core AMP/SMP di `REMEDIATION_PLAN.md` §4); belum ada penegakan lock/lock-free lintas-core di dalam backend.
 
 **Daftar pemanggil yang dimigrasi:**
 | # | Lokasi | Lama | Baru |
@@ -117,7 +119,7 @@ Implementasi bounce saat ini: alokasi slot + permission window + generation coun
 | 1 | Apakah ancaman T1 (raw phys addr) tidak-bisa-lagi terjadi di level tipe? | PASS — parameter bertipe `&IovaLease`, bukan integer |
 | 2 | Apakah T2 (TOCTOU) dimitigasi? | PASS — generation counter; lease stale ditolak runtime |
 | 3 | Apakah T3 (spoofing IOVA) dimitigasi pada backend software? | PASS — IOVA adalah indeks window whitelist milik partisi peminta saja; translate() menolak domain lain |
-| 4 | Apakah T4 (non-coherent, DMA-CACHE-01) dimitigasi? | PASS parsial-ke-cokelat: bounce path menghilangkan DMA pada buffer caller non-koheren; cache-maintenance HW masuk gate hardware — dinyatakan jujur di §C/D-7 |
+| 4 | Apakah T4 (non-coherent, DMA-CACHE-01) dimitigasi? | PASS (parsial — bounce path menutup DMA ke buffer non-koheren caller; cache-maintenance HW diverifikasi di gate hardware terpisah) |
 | 5 | Apakah T5 (length overshoot) dimitigasi? | PASS — `len <= lease.len` ditegakkan di transmit path |
 | 6 | Apakah ARINC 653 partition_id terbawa di setiap objek DMA? | PASS — IovaLease.partition_id + permission map backend |
 | 7 | Apakah no_std dan tanpa dependency eksternal baru (G1)? | PASS — modul di asl-hal/asl-pmd, core-only |
@@ -129,10 +131,10 @@ Implementasi bounce saat ini: alokasi slot + permission window + generation coun
 
 ---
 
-## G. Hasil Implementasi (2026-10-20, FASE-3)
+## G. Hasil Implementasi (2026-10-20, FASE-3) — KANONIKAL TRACE TABLE TM<->test
 
 * Trait diperluas dengan method default kelima: `validate_pin(&self, &IovaLease)` — gerbang pra-doorbell universal; backend tanpa tabel pin mengembalikan `Err(NotPinned)` (stale-by-default, bukan lolos diam-diam).
 * `BounceAddressSpace` + `IovaLease` + `DmaError` di `asl-hal/src/dma_space.rs`; `transmit_burst` (`asl-pmd`) dan `setup_channel_buffer` + `validate_frame_leases` (`asl-cctv-dma`) kini hanya menerima `&IovaLease`.
 * Pemetaan test matrix -> fungsi uji riil: TM-01 `tm01_pin_within_registered_region_succeeds`; TM-02 (out-of-region, misalign, len=0, overshoot) `tm02_pin_outside_region_and_misaligned_rejected`; TM-03 `tm03_double_claim_same_range_rejected` + `tm04_slot_exhaustion_returns_out_of_slots` (slot habis + release); TM-04 (TOCTOU) `tm05_stale_lease_rejected_after_unpin_toctou`; TM-05 `tm06_bounce_stage_translate_and_cross_partition_denied` + `tm07_read_only_pin_blocks_device_write`; TM-08 (cctv atomic-reject + stale UV pra-doorbell) `tm_cctv_setup_rejects_before_any_state_change` + `tm08_cctv_stale_uv_lease_rejected_pre_doorbell`; tambahan `tm08_iova_alloc_dealloc_and_default_trait_backends_reject_pin` + `tm04_transmit_rejects_oversized_len_and_unaligned_lease` (pmd).
-* Catatan penamaan: nomor test `tm04..tm08` mengikuti urutan kasus di atas (TM-03..TM-08 matriks); `QM-01` tetap post-fase (VT-D-DRV-01).
+* Catatan penamaan: nomor test `tm04..tm08` mengikuti urutan kasus di atas (TM-03..TM-08 matriks); `QM-01` tetap post-fase (VT-D-DRV-01). Rename fungsi test agar nomornya identik dengan ID matriks: **DITUNDA (opsional, low-priority, PHASE-4)** — tabel ini di atas adalah kanonik trace-nya.
 * Gerbang: `cargo test --workspace --lib` = 160/160 PASS (30 suite; +11 dari baseline 149); `cargo build --package asl-kernel-bin --target x86_64-unknown-none --release` = 0 error 0 warning; build aarch64-unknown-none-softfloat = 0 error (warning pre-existing).

@@ -1,7 +1,7 @@
 # ASL DEVELOPER ONBOARDING & STANDARD OPERATING PROCEDURES
 =============================================================
 **Target Audience:** Core Kernel Developers, Verification Engineers, Systems Auditors  
-**Standard:** DO-178C DAL-A / ARINC 653 IMA  
+**Standard:** DO-178C-aligned, ladder DAL-C->A (lihat ADR-002) / ARINC 653 IMA  
 
 ---
 

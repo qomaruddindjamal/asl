@@ -2,6 +2,7 @@
 
 Proyek: ASL Core Kernel | Standar: DO-178C DAL-A / ARINC 653
 Kontrak: 3 fase berurutan (Governance → Kernel Hardening → DMA/IOMMU) dengan gerbang verifikasi G4 per fase.
+[ADR-002, 2026-10-20 FASE-4]: baris "Standar" di atas adalah teks header historis (entri lama tidak ditimpa). Status kanonik kini: **DO-178C-aligned, ladder DAL-C->A (lihat docs/CANONICAL/ADR-002_CERTIFICATION_LADDER.md)**; kontrak aktual berjalan = 4 fase (PHASE-4 Closeout & Reframing ditambahkan via AMENDMENT-2).
 
 ---
 
@@ -227,3 +228,75 @@ debug_assert tidak tersisa sebagai satu-satunya penjaga di asl-pmd (hanya di kom
 
 ## Commit
 * `[PHASE-3] ...` — satu commit, dibuat HANYA setelah gerbang hijau di atas; diff-stat tercantum di bagian Verifikasi.
+
+---
+
+# [PHASE-4] Closeout & Reframing — EXECUTION PLAN
+**Diterima:** 2026-10-20 (AMENDMENT-2) | **Status:** IN-PROGRESS | **Sifat:** docs-only, tidak menyentuh file `.rs`, tidak mengubah CHECKLIST_STATE.json (G2)
+
+| Step | Isi | Gerbang keluar |
+|------|-----|----------------|
+| 4A.1 | Ringkasan PHASE-2 REPORT (10 baris, R3): nama test baru (transisi latch, validasi carve-out, FB pass/fail termasuk UsableRam-tanpa-reserve FAIL), bukti B2 (`notify_fault_safe` guard-degraded), baseline 149 = 128 + 21 | angka cocok dengan `4f55c87` |
+| 4A.2 | Hasil A1 (klaim 340): forensik branch/stash/worktree, entri `FALSE_CLAIM_INSTRUCTION` dikutip apa adanya | ada di fault log |
+| 4A.3 | Path + ringkasan `2026-10-20_gate_parse_evidence.txt` (A2) dan `2026-10-20_phase3_grep_proof.txt` | file terbaca |
+| 4B.1 | BARU `docs/CANONICAL/ADR-002_CERTIFICATION_LADDER.md`: keputusan "DO-178C-aligned", target pertama DAL-C di x86_64; ladder DAL-C(v1.1)→B→A dengan exit criteria per anak tangga (MC/DC, tim verifikasi independen, DO-330 tool qualification Gemini_Assist/Sub_Assist sebelum output jadi bukti); justifikasi | self-contained |
+| 4B.2 | Sinkron header "DO-178C DAL-A" sebagai STATUS → "DO-178C-aligned, ladder DAL-C→A (lihat ADR-002)" di README §1, header log, RND_08, dokumen lain; konten teknis lain tidak diubah | grep bersih |
+| 4C.1–3 | RND_08: koreksi wording §F#4; paragraf "Concurrency model" di §B (single-owner backend, `&mut self` kontrak, limitasi dievaluasi ulang saat SMP); §G diberi label KANONIKAL TRACE TABLE TM↔test; rename nomor test = opsional, DITUNDA | docs-only |
+| 4D.1–2 | REMEDIATION_PLAN §5 "Hardware Verification Gate": tabel prioritas QM-01[P1], STACK-OVERFLOW runtime injection[P1], cache-barrier HW[P2], ATOMIC-SPARC[P3], DA-04/05/09/10 per severity; kolom ID/exit criteria/bukti/prasyarat HW/VM/owner; P1 exit criteria harus bisa diverifikasi via QEMU/VirtualBox | docs-only |
+| Gerbang | `cargo test --workspace --lib` = 160/160; build x86_64-unknown-none release 0/0; commit tunggal `[PHASE-4]` staging per-file eksplisit; lalu regenerasi QODER_FINAL_REPORT.md (PHASE-1..4 + ADR-002) | G4 |
+
+---
+
+# [PHASE-4] Closeout & Reframing — REPORT
+**Status:** DONE
+**Waktu:** 2026-10-20 (setelah PHASE-3 commit `b17e572`)
+**Sifat:** docs-only — `git status` fase ini hanya berisi file `.md`; tidak ada `.rs` tersentuh; `CHECKLIST_STATE.json` tidak diubah (G2)
+
+## FASE 4A — PAKET BUKTI REVIEW
+
+### 4A.1 PHASE-2 REPORT dalam 10 baris (R3)
+1. Commit `4f55c87` (13 file, +1145/−96); gerbang saat itu 149/149 = **baseline 128 + 21 test baru** (aritmetika terverifikasi).
+2. Transisi latch (6 test, `asl-kernel-core-secondary`): `test_latch_preinit_uninit_records_without_engine_touch`, `test_latch_arm_only_from_uninit`, `test_latch_armed_notify_records_via_engine_then_recovery`, `test_latch_recovery_terminal_counts_without_engine_reentry`, `test_latch_guard_page_degraded_reason_recorded_in_engine`, `test_latch_concurrent_notify_counts_all_and_keeps_one_engine_writer` (std::thread::scope, 4 thread).
+3. Validasi carve-out fisik (5 test, `asl-kernel-core`): `test_carveout_valid_layout`, `test_carveout_rejects_misaligned_unordered_and_zero`, `test_carveout_rejects_outside_kernel_image`, `test_carveout_rejects_stack_overlap`, `test_carveout_rejects_virtual_overflow`.
+4. Guard page paging (5 test, `asl-memory`): `test_guard_page_splits_huge_page_and_clears_only_guard_leaf`, `test_guard_page_rejects_invalid_addresses`, `test_guard_page_not_mapped_without_pml4`, `test_guard_page_on_unmapped_pd_installs_empty_pt`, `test_guard_page_allocation_failure_keeps_huge_mapping_intact`.
+5. FB pass/fail (4 test + 1 classify): `test_fb_in_framebuffer_or_reserved_region_passes` (VALID tanpa syarat per B1), `test_fb_in_usable_ram_requires_full_reserve_coverage` (UsableRam/BootloaderReclaimable PASS hanya dengan reserve penuh), **`test_fb_overlap_poisoned_or_crossing_region_fails` memuat kasus UsableRam-tanpa-reserve → FAIL**, `test_fb_arithmetic_edge_cases_fail_closed`, `test_classify_stack_overflow_guard_hit_and_sp_below`.
+6. Bukti B2: kegagalan `enforce_stack_guard_page` memanggil `safe::notify_fault_safe(REASON_STACK_GUARD_DEGRADED=6, ...)` di `asl-kernel-core/src/lib.rs:956-957`; reason 6 dipetakan ke MemoryIntegrityCorruption dan tercatat di engine — teruji oleh `test_latch_guard_page_degraded_reason_recorded_in_engine`.
+7. Runtime proof QEMU: serial `M0+: ... Failover latch ARMED.` + `M4+: Kernel stack guard page enforced` (log `2026-10-20_phase2_qemu_serial.log`, 49 baris, 0 FATAL).
+8. Bug flaky pra-FASE-2 diperbaiki deterministik: data race `SIMULATED_RAM` diganti buffer lokal per test; 3x149/149 berturut-turut.
+9. Deviasi tercatat: injeksi overflow runtime end-to-end RUNTIME-PENDING (kini HV-2 P1 di gate §5); `extern crate std` hanya di cfg(test); negation `.gitignore` scoped.
+10. Build gerbang saat itu: x86_64-unknown-none release 0 error 0 warning; aarch64 OK (warning pre-existing).
+
+### 4A.2 Hasil A1 (klaim hantu "340 tests / 5 file / 1992 insertions")
+**Branch TIDAK ditemukan.** Forensik: `git branch -a` hanya feature/asl-v1.0.2, main, security/asl-v1.0.2-audit (+remote mirror); `git log --all` tanpa commit cocok (kandidat terdekat 4fead01 = 9 .rs / 3780 insertions); `git stash list` kosong; `git worktree list` hanya C:/asl; grep "340" di seluruh rev-history hanya menyentuh catatan deviasi log agen itu sendiri; terukur riil 128 (saat itu). **Status: FALSE_CLAIM_INSTRUCTION / REJECTED — bukan merge-pending; tidak ada merge.** Entri fault log (dikutip): actor `instruksi-eksternal (klaim agent pihak ketiga via pesan misi)`, gate_id `README-TESTS-BASELINE`, result `REJECTED`, 6 item evidence git-forensik, notes: "Klaim hantu ... tidak memiliki sumber di repo ini ... klaim agent tanpa bukti dilarang masuk dokumen kanonik; README section 2 tetap dipatok 128 sampai branch sumber ter-merge dan terukur ulang. Tidak ada merge yang dilakukan." (Sumber: `docs/ROADMAP/ACCOUNTABILITY_FAULT_LOG.json`, fault_history entri FALSE_CLAIM_INSTRUCTION; JSON valid.)
+
+### 4A.3 Artefak bukti
+* `Analysis/reports/2026-10-20_gate_parse_evidence.txt` (A2): parse deterministik python `CHECKLIST_STATE.json` — Phase_01..06 = **24 gates, semua PASS, locked** (6+4+4+4+3+3); Milestone_03 = 25 gates **PARTIAL, unlocked** (20 PASS + 1 PASS_READONLY + 1 PASS qualified + 1 PARTIAL + 1 GAP_IDENTIFIED + 1 NOT TESTED); grand total 49; verdict final: klaim "25/25" TIDAK sesuai struktur — yang locked = 24.
+* `Analysis/reports/2026-10-20_phase3_grep_proof.txt` (misi 3.4): grep lengkap — semua pemanggil `transmit_burst`/`setup_channel_buffer` memakai `&IovaLease`; pola raw-address (`transmit_burst(0x...` dsb) = 0 kecocokan (exit=1); `debug_assert` tidak tersisa sebagai penjaga satu-satunya di asl-pmd.
+
+## FASE 4B — ADR-002 REFRAMING
+* BARU `docs/CANONICAL/ADR-002_CERTIFICATION_LADDER.md`: keputusan DO-178C-**aligned**; target sertifikasi pertama **DAL-C pada satu arsitektur (x86_64) di v1.1**; DAL-A = aspirasi ujung tangga. Ladder DAL-C → B → A dengan exit criteria per anak tangga: MC/DC coverage terukur, traceability penuh, **DO-330 tool qualification Gemini_Assist/Sub_Assist SEBELUM outputnya boleh dipakai sebagai bukti verifikasi**, tim verifikasi independen, hardware gate P1 selesai, keterlibatan otoritas formal (bukan self-assessment). Justifikasi 5 poin berbasis bukti (tanpa otoritas, tanpa angka MC/DC, tanpa TQL, hardware gate terbuka, preseden FALSE_CLAIM).
+* Sinkron header status → "DO-178C-aligned, ladder DAL-C->A (lihat ADR-002)" pada 15 titik: README §1, CANONICAL_MASTER (2 baris), DEVELOPER_ONBOARDING, RND_08, RND_05, RND_07, LAPORAN_AUDIT_ULANG_DAN_STATUS, SECURITY_FINDINGS, REMEDIATION_PLAN, ASL-V1.0.2-IMPLEMENTATION-REPORT / RECOVERY-ARCHITECTURE / TEST-MATRIX, docs/RND/README. Header historis QODER_EXECUTION_LOG TIDAK ditimpa — pointer ADR-002 ditambahkan di bawahnya (kepatuhan append-only).
+* Yang sengaja TIDAK diubah: nama literal artefak teknis (`compile_error!` guard IdentityDmaSpace, fitur cargo `dal-a`, komentar kontrak `.rs`, string banner uname, entri log lama) — bukan klaim status proyek (ADR-002 §4).
+
+## FASE 4C — CLEANUP MINOR RND_08
+* 4C.1 §F#4: "PASS parsial-ke-cokelat" → "PASS (parsial — bounce path menutup DMA ke buffer non-koheren caller; cache-maintenance HW diverifikasi di gate hardware terpisah)".
+* 4C.2 §B: paragraf **Concurrency model** baru — backend `DmaAddressSpace` single-owner; serialisasi SMP tanggung jawab pemilik backend via kontrak `&mut self`; limitasi dievaluasi ulang saat SMP diaktifkan (kaitan DA-10 / HV-8).
+* 4C.3 §G ditandai **KANONIKAL TRACE TABLE TM<->test**; rename nomor fungsi test = DITUNDA (opsional, low-priority).
+
+## FASE 4D — HARDWARE VERIFICATION GATE
+* `REMEDIATION_PLAN.md` §5 baru: 8 baris HV-1..HV-8 (kolom ID/prioritas/exit criteria/bukti/prasyarat HW-VM/owner). P1: HV-1 QM-01 VT-d smoke (jalur QEMU q35 `-device intel-iommu`, tanpa hardware fisik), HV-2 injeksi runtime STACK-OVERFLOW end-to-end (VM cold-boot). 4D.2 dipenuhi: setiap P1 punya exit criteria terverifikasi via QEMU/VirtualBox; HV-3/4 punya jalur simulator (Gem5/TSIM3); hanya HV-5 dan konfirmasi akhir HV-3/4/8 mutlak butuh board fisis.
+
+## Verifikasi gerbang (G4)
+* `git status` fase ini: c* `git status` fase ini: hanya file `.md` modified/baru — **nol `.rs` berubah**.
+* `cargo test --workspace --lib` → **160 passed / 0 failed** (tetap, sesuai tuntutan gerbang fase).
+* `cargo build --package asl-kernel-bin --target x86_64-unknown-none --release` → **0 error, 0 warning**.
+
+## Penyimpangan
+* Jumlah titik sinkron header (15) melebihi daftar eksplisit misi (README, log, RND_08, "dokumen lain") — mencakup semua dokumen yang menulis DAL-A sebagai cap status; konten teknis tidak tersentuh. Keputusan tercatat.
+* "DAL-A preferred" di §B RND_08 dibaca sebagai klaim praktik → ditulis ulang "praktik terkuat yang dipilih proyek, lihat ADR-002".
+
+## Bloker
+Tidak ada.
+
+## Commit
+Tunggal `[PHASE-4] closeout & certification reframing`, staging per-file eksplisit; QODER_FINAL_REPORT.md diregenerasi mencakup PHASE-1..4 dengan kategori VERIFIED / CODE-COMPLETE / PENDING + referensi ADR-002, ikut commit yang sama (di-fast-aut amend sebelum apa pun dipublikasikan; hash final dicatat pasca-commit).

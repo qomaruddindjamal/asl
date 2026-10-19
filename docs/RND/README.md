@@ -32,7 +32,7 @@ Repositori dokumen di dalam folder `docs/RND/` adalah fondasi ilmiah, arsitektur
 4. [**`RND_04_TESTING_AND_FORMAL_VERIFICATION.md`**](file:///c:/asl/docs/RND/RND_04_TESTING_AND_FORMAL_VERIFICATION.md)
    * **Judul:** Protokol R&D, Pengujian Otomatis & Verifikasi Formal.
    * **Topik Utama:**
-     * Piramida verifikasi kode kernel setara standar aviasi DO-178C DAL-A & EAL7+.
+     * Piramida verifikasi kode kernel mengarah standar aviasi DO-178C (ladder DAL-C->A, ADR-002) & EAL7+.
      * Pembuktian matematika logika bebas panic menggunakan Kani Rust Model Checker dan Miri UB Detector.
      * Kerangka kerja simulator virtual lintas 150 arsitektur (*QEMU Multi-System, Renode IoT, Spike Vector, GPGPU-Sim, Mininet P4*).
      * 5 Gerbang kelayakan (*Gate Criteria*) sebelum melangkah ke Fase Roadmap Implementasi.

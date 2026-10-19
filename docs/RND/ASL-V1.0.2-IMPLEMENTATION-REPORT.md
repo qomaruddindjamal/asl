@@ -4,7 +4,7 @@
 **Target Architecture:** `x86_64-unknown-none`  
 **Host Environment:** Windows 10/11 x86_64, rustc nightly/stable, GNU Make, PowerShell  
 **Baseline Release:** `v1.0.1` (Preserved and immutable)  
-**Standard Compliance:** DO-178C DAL-A, ARINC 653, Zero Dummy Data Policy  
+**Standard Compliance:** DO-178C-aligned, ladder DAL-C->A (lihat ADR-002), ARINC 653, Zero Dummy Data Policy  
 **Git Branch:** `feature/asl-v1.0.2`
 
 ---

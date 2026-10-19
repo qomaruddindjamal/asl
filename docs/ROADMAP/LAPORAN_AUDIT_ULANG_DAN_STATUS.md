@@ -1,7 +1,7 @@
 # LAPORAN AUDIT ULANG MENYELURUH & STATUS R&D ASL CORE KERNEL
 **Tanggal Audit:** 13 Oktober 2026 | **Siklus:** Audit Ulang Komprehensif & R&D Stage C.2  
 **Auditor Independen & R&D Lead:** ANTI-GRAVITY  
-**Governing Standard:** DO-178C DAL-A / ARINC 653 Part 1 / ARINC 664  
+**Governing Standard:** DO-178C-aligned, ladder DAL-C->A (lihat ADR-002) / ARINC 653 Part 1 / ARINC 664  
 **Workspace:** `C:\asl` | **Crates Workspace:** 17 Crates (`C:\asl\asl-kernel`)  
 
 ---

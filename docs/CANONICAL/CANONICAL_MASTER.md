@@ -5,7 +5,7 @@
 **Project:** ASL Core Kernel  
 **Repository Root:** `C:\asl`  
 **Git Remote:** `https://github.com/qomaruddindjamal/asl.git`  
-**Governing Standard:** DO-178C DAL-A / ARINC 653 IMA  
+**Governing Standard:** DO-178C-aligned, ladder DAL-C->A (lihat ADR-002) / ARINC 653 IMA  
 
 ---
 
@@ -75,7 +75,7 @@ To prevent ambiguity, each domain of knowledge has exactly one authoritative mas
 
 ## 5. INTERRUPT SERVICE ROUTINE (ISR) LOCKING POLICIES & AUDIT INVENTORY (AG-04)
 **Status:** RATIFIED v1.0 (Final - Amended W-10 & W-11)  
-**Governing Safety Standard:** DO-178C DAL-A / ARINC 653 Part 1
+**Governing Safety Standard:** DO-178C-aligned, ladder DAL-C->A (lihat ADR-002) / ARINC 653 Part 1
 
 ### 5.1 Formal Safety Policies (P-ISR-1 to P-ISR-4)
 * **P-ISR-1 (No Dynamic Allocation & Zero Panic):** Kode yang dieksekusi di dalam konteks Interrupt Service Routine (ISR) **DILARANG KERAS** melakukan alokasi dinamis pada heap, memanggil panic liar, atau operasi tanpa batas waktu. Seluruh operasi wajib bounded Worst-Case Execution Time (WCET).

@@ -1,7 +1,7 @@
 # REMEDIATION PLAN: ASL CORE KERNEL (REVISED SIKLUS 60-HARI)
 **Date:** 2026-10-13  
 **Auditor Lead:** ANTI-GRAVITY (Independent Lead Auditor & R&D Systems Engineer)  
-**Governing Standard:** DO-178C DAL-A / ARINC 653 Part 1  
+**Governing Standard:** DO-178C-aligned, ladder DAL-C->A (lihat ADR-002) / ARINC 653 Part 1  
 
 ---
 
@@ -59,3 +59,21 @@ Sumber: `Analysis/reports/DEEP_AUDIT_REPORT.md` §6. Owner agen eksekusi: QODER 
 | **DA-08** | RENDAH | `asl_avionics_kernel_blueprint.md` §3, `asl_kernel_audit_roadmap.md` §5 | ADR-001 Rust-primary + rebase kedua dokumen | **CLOSED (FASE-1, 2026-10-20)** | QODER |
 | **DA-09** | SEDANG | `asl-driver-pci/src/lib.rs` | Whitelist vendor/device DAL-A + penolakan device tak dikenal sebelum attach | **PLANNED (FASE-3 follow-up; butuh keputusan policy DAL-A)** | Lead auditor |
 | **DA-10** | TINGGI | `asl-kernel-core-secondary`, panic/fault notifier | Selain atomisasi DA-03: kunci per-core / single-writer protocol untuk skenario AMP/SMP saat AP core aktif | **PLANNED (FASE-3 follow-up; butuh BSP multi-core)** | Lead auditor |
+
+---
+
+## 5. HARDWARE VERIFICATION GATE (register pekerjaan tertunda, PHASE-4 2026-10-20 — docs-only)
+Pecahan terbuka yang memblokir kenaikan status dari CODE-COMPLETE/MITIGATED-CODE ke VERIFIED-ON-HARDWARE. Prioritas P1 = prasyarat anak tangga DAL-C (ADR-002 §2a-d).
+
+| ID | Prioritas | Exit criteria (harus terbukti) | Bukti yang dibutuhkan | Prasyarat hardware/VM | Owner |
+| :--- | :---: | :--- | :--- | :--- | :--- |
+| **HV-1 / QM-01** (VT-D-DRV-01, DMA-ADDR-01) | **P1** | Domain VT-d terprogram; DMA pada IOVA tak terpetakan menghasilkan fault tercatat + transfer DITOLAK; smoke lulus berulang deterministik | Log serial QEMU q35 + DMAR/IRTL snapshot + test host pemrograman root/context table | **QEMU q35 with `-device intel-iommu` cukup untuk smoke awal** (tanpa hardware fisik); hardware riil hanya untuk timing | QODER (kode) / lead auditor (sign-off) |
+| **HV-2 / STACK-OVERFLOW runtime** (DA-07, fase-2 RUNTIME-PENDING) | **P1** | Injeksi overflow end-to-end di VM: guard page non-present terdeteksi, `STACK OVERFLOW` tercetak di COM1, DR FSM mencatat reason, halt aman TERAMATI (bukan hanya kode) | Serial log ISO + screenshot/rekaman + entry fault; test latch sudah host-verified | **QEMU/VirtualBox VM cold-boot — bisa tanpa hardware fisik** | QODER |
+| **HV-3 / Cache-barrier HW riil** (DMA-CACHE-01 penuh) | **P2** | Zero stale DMA read pada target non-koheren riil; `dma_cache_clean_inval` dibuktikan on-silicon | Gem5 (model non-koheren) atau Gem5/Zynq-7000; log before/after checksum | Gem5 boleh tanpa fisik; Zynq/ARM SoC untuk konfirmasi akhir; QEMU TCG TIDAK SAH untuk kriteria ini | Lead auditor |
+| **HV-4 / ATOMIC-SPARC-01 WCET** | **P3** | Waktu siklus CAS emulation terukur di bawah anggaran TSIM3/GRMON3 | Output TSIM3/GRMON3 pada sparckit/GR712RC | TSIM3 simulator (tanpa fisik) + board GR712RC (opsional) | Lead auditor |
+| **HV-5 / DA-04 jalur reset HW** (SEDANG) | P2* | Panic handler menggerakkan garis reset/watchdog fisis dan sistem pulih teramati | Log + osiloskop/telemetri board | Board avionik riil (tidak dapat direplikasi QEMU) | Lead auditor |
+| **HV-6 / DA-05 MMIO fencing** (SEDANG) | P2* | Audit sequencing + fence di semua situs `read_volatile` lolos review + race test | Review record + host stress test | Sebagian **dapat di-host-kan**; konfirmasi ordering di hardware riil | Lead auditor |
+| **HV-7 / DA-09 PCI device whitelist** (SEDANG) | P3* | Daftar vendor/device yang diizinkan + penolakan device tak dikenal teruji | Host unit test + log QEMU dengan device asing | **QEMU dapat dipakai untuk uji penolakan** | QODER (usulan) / lead auditor (keputusan policy) |
+| **HV-8 / DA-10 kunci per-core AMP/SMP** (TINGGI) | P2* | Protokol single-writer per-core terbukti di 2+ core aktif | BSP multi-core + stress harness; sebagian **bisa di-host** dengan model | Hardware/AP boot riil untuk klaim penuh | Lead auditor |
+
+Catatan prioritas: `Pn*` = prioritas mengikuti severity temuan asalnya di register §2 (DA-04 SEDANG→P2, DA-05 SEDANG→P2, DA-09 SEDANG→P3 (under-prioritized, keputusan lead auditor), DA-10 TINGGI→P2); naikkan hanya bila memblokir exit criteria DAL-C di ADR-002. Aturan PHASE-4 4D.2 terpenuhi: HV-1, HV-2, HV-7 (dan sebagian HV-6/HV-8) punya jalur verifikasi QEMU/VirtualBox tanpa hardware fisik; HV-3/HV-4 punya jalur simulator (Gem5/TSIM3); hanya HV-5 dan konfirmasi akhir HV-3/HV-4/HV-8 mutlak butuh board fisis.

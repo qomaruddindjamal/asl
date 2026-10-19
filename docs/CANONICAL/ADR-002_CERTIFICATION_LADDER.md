@@ -31,4 +31,5 @@
 ## 5. Aturan penulisan status (menurunkan ADR ini jadi kebijakan dokumen)
 - Header dokumen: `Governing Standard: DO-178C-aligned, ladder DAL-C→A (ADR-002)`.
 - Dilarang menulis "certified", "compliant", atau "DAL-A" sebagai *cap status*; DAL-A hanya boleh muncul sebagai *target tangga* dengan referensi ADR-002.
-- Setiap klaim verifikasi wajib menyebut kategori: **VERIFIED (host)** / **CODE-COMPLETE** / **VERIFIED-ON-HARDWARE** / **PENDING**.
+- Setiap klaim verifikasi wajib menyebut kategori: **VERIFIED (host)** / **CODE-COMPLETE** / **VERIFIED-ON-VM** / **VERIFIED-ON-HARDWARE** / **PENDING**.
+- **VERIFIED-ON-VM** (ditambahkan 2026-10-20, PHASE-5B): bukti teramati pada mesin emulator dengan device model perangkat keras nyata (QEMU q35 `-device intel-iommu`) memakai artefak build bare-metal yang sama (bukan binary host); contoh bukti: log serial cold-boot + respons register device model. Kategori ini **TIDAK setara dan TIDAK mengimplikasikan VERIFIED-ON-HARDWARE** — konfirmasi board fisis tetap wajib untuk klaim hardware-final (per ADR-002 anak tangga; QEMU memodelkan semantik perangkat, bukan waktu-nyata/timing silikon).

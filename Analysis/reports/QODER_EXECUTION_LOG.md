@@ -352,3 +352,58 @@ Tunggal `[PHASE-4] closeout & certification reframing`, staging per-file eksplis
 ### Commit
 - `[PHASE-5A] ...` — staging eksplisit per file: `README.md`, `Analysis/reports/elf_footprint_history.txt`, `Analysis/reports/QODER_EXECUTION_LOG.md`. Log serial untracked milik aktor lain (asl_vm_serial*.log, qemu_serial*.log, vbox_check.log) TIDAK distage. Hash commit akan dicatat di adendum log ini pada commit `[PHASE-5B]` (G8).
 
+
+---
+
+## [PHASE-5B] HV-1 QEMU VT-d SMOKE (QM-01, VT-D-DRV-01) — REPORT
+**Status:** SELESAI — ketiga kriteria keluar tercapai pada QEMU q35 `-device intel-iommu`; gerbang hijau; commit tunggal (hash commit ini TIDAK ditulis di dalam commit-nya sendiri per G8 — dicatat pada entri [PHASE-5C] berikutnya).
+**Waktu:** 2026-10-20
+**Kategori kenaikan (ADR-002 §5):** **DMA-ADDR-01 → VERIFIED-ON-VM** (bukan lagi sekadar MITIGATED/CODE). Kategori VERIFIED-ON-VM ditambahkan EKSPLISIT ke ADR-002 §5 pada commit ini karena belum ada sebelumnya.
+
+### G8 — pemenuhan kewajiban hash PHASE-5A
+Hash commit `[PHASE-5A]` = **`591d3a4`** (verifikasi: `git log --oneline -3` 2026-10-20: `591d3a4 [PHASE-5A] ...` adalah HEAD sebelum working tree PHASE-5B). Ini mencatat hash 5A yang dijanjikan pada laporan 5A ("Hash commit akan dicatat ... pada commit [PHASE-5B]").
+
+### File berubah
+| File | Perubahan |
+|---|---|
+| `asl-kernel/asl-hal/src/vtd.rs` | BARU (~900 baris, no_std): parser ACPI RSDP→XSDT/RSDT→DMAR (toleran layout u8-length legacy & u16-length QEMU), encoder root/context/second-level 3-level, QI descriptor, fault record FRCD, walk murni `sl_walk` (model host) + `sl_walk_hw` (mirror indeks >>30/>>21/>>12 QEMU), backend `VtdAddressSpace` (kontrak lease RND_08). 11 host test qp01..qp11. |
+| `asl-kernel/asl-hal/src/lib.rs` | `pub mod vtd;` + re-export register map & tipe. |
+| `asl-kernel/asl-kernel-core/src/vtd_boot.rs` | BARU: probe runtime fail-soft — scan RSDP (EBDA+window 0xE0000), parse DMAR→DRHD reg_base, baca VER/CAP/ECAP per-dword, bangun root+context(256 pass-through + devfn 0x08 SL 3-level)+SL PDP/PD/PT di .bss, program RTADDR→IQA→GCMD(TE\|SRTP\|QIE), verifikasi GSSTS, push QI invalidate+wait, preflight walk tabel nyata (mapped lolos + unmapped DITOLAK), TX-smoke lease. |
+| `asl-kernel/asl-kernel-core/src/lib.rs` | wiring `vtd_boot::qm01_vtd_boot_probe(kernel_virt_base, kernel_phys_base)` setelah PCI Discovery. |
+| `scripts/test_qm01_vtd_qemu.ps1` | BARU: harness QEMU q35 `-device intel-iommu,intremap=off,caching-mode=on` → serial COM1 + stderr QEMU ke Analysis/reports. |
+| `Analysis/reports/qm01_vtd_serial_2026-10-20.log` | BARU: bukti serial cold-boot (ketiga kriteria). |
+| `Analysis/reports/qm01_vtd_qemu_stderr_2026-10-20.log` | BARU: stderr QEMU — bukti residual benign (lihat Deviasi). |
+| `docs/CANONICAL/ADR-002_CERTIFICATION_LADDER.md` | §5 tambah kategori VERIFIED-ON-VM + pernyataan eksplisit "≠ VERIFIED-ON-HARDWARE". |
+| `audit/asl-core-kernel/REMEDIATION_PLAN.md` | §2 DMA-ADDR-01→VERIFIED-ON-VM, VT-D-DRV-01→VERIFIED-ON-VM, DA-02→VERIFIED-ON-VM; §5 HV-1→LULUS ON-VM; ringkasan OPEN→1. |
+| `audit/asl-core-kernel/SECURITY_FINDINGS.md` | DMA-ADDR-01→VERIFIED-ON-VM; distribusi status diperbarui. |
+| `Analysis/reports/elf_footprint_history.txt` | +1 baris 243.384 B (PHASE-5B tree, +18.440 B / +8,2% vs b17e572). |
+| `README.md` | §6 footprint → 243.384 B ≈ 238 KB (PHASE-5B tree). |
+
+### Iterasi debugging berbasis bukti (transparan, bukan klaim melebihi bukti)
+Run pertama QM-01 (sebelum sesi ini) mencapai DMAR-parse/TE/DENY/TX tapi **CAP/ECAP=0** dan **QI NOT drained**. Akar masalah ditemukan empiris, bukan asumsi:
+1. **Register map SALAH.** Ground truth = `intel_iommu_internal.h` QEMU upstream (di-grab via curl, bukan tebakan): RTADDR=0x20 (bukan 0x08), CAP=0x08, ECAP=0x10, GCMD=0x18, GSTS=0x1c, IQH=0x80, IQT=0x88, IQA=0x90. Setelah koreksi → **CAP=0x80D2008C222F06C6 ECAP=0xF02** (nyata, non-zero). Ini memperbaiki item yang sama (register map) — hit G5: attempt ke-2 pada register map berhasil, tidak perlu STOP.
+2. **QI perlu GCMD.SRTP + GCMD.QIE, bukan hanya TE.** `vtd_handle_gcmd_write` QEMU: SRTP(bit30) me-latch root pointer, QIE(bit26) mengaktifkan QI. Tanpa keduanya, qi_enabled=false dan queue tak diproses. Setelah GCMD=TE\|SRTP\|QIE → **GSSTS.TES=1, RTPS=1, QIES=1**.
+3. **Deskriptor IOTLB butuh granularitas GLOBAL (bit4).** stderr QEMU: "iotlb inv desc lo=0x2 (type mismatch: 0x0)" — `switch(lo & VTD_INV_DESC_IOTLB_G)` jatuh ke default tanpa bit 1<<4. Koreksi lo=0x12.
+4. **Deskriptor WAIT butuh salah satu SW/IF/FN.** stderr QEMU: "wait desc lo=5 (unknown type)" — `vtd_process_wait_desc` menolak SW=0/IF=0/FN=0. Koreksi lo=0x45 (FN=1, no-op valid per VT-d 7.10). Setelah keduanya → **QI DRAINED (IQH==tail)**.
+5. **Context entry layout SALAH untuk QEMU 10.2.** stderr run insial: "invalid context entry lo=7 (level 2 not supported)". Ground truth: TT ada di **lo[3:2]** (bukan lo[2:1]); SSPTPTR = second-level ROOT pointer di **lo[63:12]**; AGAW di **hi[2:0]**; CAP.SAGAW QEMU hanya iklankan level 3/4 → **level 2 DITOLAK hardware**. Solusi: rantai SL **3-level** (PDP→PD→PT), AGAW=39-bit. Setelah koreksi, walk `sl_walk_hw` mirror indeks hardware dan lolos di atas memori tabel nyata.
+
+### Gerbang (G4) — hasil terverifikasi
+- `cargo test --workspace --lib`: **171 passed / 0 failed** (asl-hal naik 30→31 via qp11 walk 3-level; tidak ada regresi).
+- `cargo build --package asl-kernel-bin --target x86_64-unknown-none --release`: **0 error, 0 warning**.
+- ISO direbuild: 4.118.528 B.
+
+### Kriteria keluar QM-01 (exit criteria misi 5B) — pada serial log cold-boot
+1. **VT-d terdeteksi & domain per partisi terpasang** → `[ASL-VTD] DMAR OK: DRHD count=1 reg_base=0xFED90000`; `Domain installed: partition=7 BDF=00:08.0 TT=SL(3-level) root_phys=0xFEDB000 sl_pdp=0xFED7000 sl_pd=0xFEDD000 sl_pt=0xFEDA000`; `Global TE ... ENABLED (GSSTS.TES=1); RootPtr latched (RTPS)=1; QI enabled (QIES)=1` — **PASS**.
+2. **DMA ke IOVA unmapped DITOLAK (bukti log fault)** → `[ASL-VTD] DENY-DIAG: unmapped IOVA 0x10080000 REJECTED by SL walk; fault record bytes0=0x10080000` — **PASS** (walk 3-level di atas tabel yang benar-benar ditulis).
+3. **Transmit via IovaLease melalui jalur VT-d sukses** → `[ASL-VTD] TX-SMOKE OK: IovaLease iova=0x10000000 -> dma phys 0xFE4A000 via SL domain; validate_pin OK` — **PASS**.
+
+### Deviasi
+- Tidak ada perubahan MajorFrameSchedule, tidak ada tulis framebuffer tanpa validasi (G3 aman). Tidak ada dependency eksternal baru (G1 aman — parser ACPI/VT-d ditulis manual no_std). Tidak ada amend/rebase/reset (G8).
+- Log serial actor lain (asl_vm_serial*.log, qemu_serial*.log, vbox_check.log) TIDAK distage.
+- **stderr QEMU residual benign:** satu baris `vtd_root_entry_rsvd_bits_check: invalid root entry: hi=0xf000ff53...` muncul SEBELUM GCMD.SRTP me-latch root pointer yang benar (probe ACPI awal membaca entry mentah/0xFF saat RTADDR belum valid). Setelah SRTP + tulis tabel, entry jadi valid (dibuktikan TES/RTPS/QIES=1 dan DRAINED). Dicatat apa adanya; tidak diklaim nol-stderr.
+
+### Bloker
+Tidak ada.
+
+### Commit
+`[PHASE-5B] ...` — staging eksplisit per file (13 path di tabel di atas). Hash commit ini dicatat pada entri [PHASE-5C] berikutnya (G8).

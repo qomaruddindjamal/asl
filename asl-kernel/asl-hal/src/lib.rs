@@ -22,6 +22,14 @@ pub use dma_space::{
     IovaLease, MpuFirewallDmaSpace,
 };
 
+pub mod vtd;
+pub use vtd::{
+    DmarInfo, QiDesc, VtdAddressSpace, VtdFaultRecord, VTD_DOMAIN_COUNT, VTD_FAULT_RING,
+    VTD_GCMD_TE, VTD_GSTS_TE, VTD_IOVA_BASE, VTD_QI_RING, VTD_REG_CAP, VTD_REG_ECAP,
+    VTD_REG_GCMD, VTD_REG_GSTS, VTD_REG_IQA, VTD_REG_IQH, VTD_REG_IQT, VTD_REG_RTADDR,
+    VTD_REG_VER, VTD_SLOT_COUNT,
+};
+
 pub mod x86_fault;
 pub use x86_fault::*;
 

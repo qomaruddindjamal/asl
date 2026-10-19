@@ -103,6 +103,10 @@ fn early_serial_write_str(s: &str) {
 }
 
 pub mod font;
+
+/// HV-1 / QM-01: jalur VT-d minimum (ACPI DMAR probe + tabel + preflight).
+#[cfg(target_arch = "x86_64")]
+pub mod vtd_boot;
 pub use font::{ASL_FONT_REGULAR_8X16, BUILTIN_FONT_8X16};
 
 // -----------------------------------------------------------------------------
@@ -1197,6 +1201,13 @@ pub unsafe extern "C" fn _asl_kernel_entry(handover_ptr: *const AslBootHandover)
     early_serial_write_str("[ASL-CORE] PCI Discovery: Found ");
     early_serial_write_u64(pci_count as u64);
     early_serial_write_str(" devices on Bus 0.\n");
+
+    // [HV-1 / QM-01] VT-d smoke probe — fail-soft: tidak ada DMAR => lanjut boot.
+    #[cfg(target_arch = "x86_64")]
+    {
+        let hv = unsafe { &*handover_ptr };
+        vtd_boot::qm01_vtd_boot_probe(hv.kernel_virtual_base, hv.kernel_physical_base);
+    }
 
     #[cfg(target_arch = "x86_64")]
     {

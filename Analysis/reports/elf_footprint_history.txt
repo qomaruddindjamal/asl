@@ -6,6 +6,8 @@
 
 224.944 B | diukur pada 2026-10-20 | commit b17e572 ([PHASE-3] build gerbang fase; artefak tetap sah karena [PHASE-4] dan seterusnya docs-only) | ls -la target/x86_64-unknown-none/release/asl-kernel (+27.727 B / +13,1% vs pra-Fase-2) | Pasca-Fase-3: += guard page split + fault latch + validasi FB (Fase-2) dan kontrak IovaLease + bounce backend + lease-only transmit (Fase-3).
 
+243.384 B | diukur pada 2026-10-20 | tree [PHASE-5B] working (hash commit dicatat pada entri log QODER_EXECUTION_LOG berikutnya pasca-commit, G8) | ls -la target/x86_64-unknown-none/release/asl-kernel (+18.440 B / +8,2% vs b17e572) | Pasca-PHASE-5B: += modul asl-hal/vtd.rs (parser DMAR/ACPI + encoder tabel + backend VT-d + 11 host test), asl-kernel-core/vtd_boot.rs (probe runtime fail-soft + 2 halaman tabel SL baru PDP/PD + queue QI 4KiB).
+
 # Cara mengukur ulang (repo root, dari C:\asl):
 #   ls -la asl-kernel/target/x86_64-unknown-none/release/asl-kernel
 #   (jika artefak tidak ada: cargo build --package asl-kernel-bin --target x86_64-unknown-none --release)

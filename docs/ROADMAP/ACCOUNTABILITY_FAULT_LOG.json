@@ -130,6 +130,21 @@
         "Koreksi drift kategori di `RELEASE_NOTES.md` §3 era v1.0.1 yang menulis 'Fully resolved' untuk `DMA-CACHE-01`, `DMA-ADDR-01`, `ATOMIC-SPARC-01`: ditambahkan §3.1 dengan status kanonik terukur (PARTIAL-MITIGATED (CODE) / VERIFIED-ON-VM bukan HARDWARE / OPEN) dan pernyataan **jumlah item VERIFIED-ON-HARDWARE = 0**. Teks historis v1.0.1 tidak dihapus."
       ],
       "notes": "JUSTIFIKASI G2: field `version` pada CHECKLIST_STATE.json bukan status gerbang, namun berkasnya tunduk pada CM_PLAN §3 dan aturan append-only, jadi perubahan ini disertai bukti terukur + entri ini. Yang TIDAK diubah: `phases.*.gates.*.status`, `MajorFrameSchedule` (G3), daftar dependency (G1 — nol dependency baru), `last_audit`. Nilai `active_phase`/`active_gate`/`current_status`/`next_immediate_step`/`current_task` pada HANDOFF_STATE.json dibiarkan apa adanya karena mendeskripsikan state era v1.0.1 (Phase_06/Gate_6.3) yang tidak diuji ulang pada misi PHASE-1..6B; label 'DAL-A' di bagian riwayat v1.0.1 ditandai eksplisit sebagai teks historis dan status proses kanonik kini DO-178C-aligned tangga DAL-C (ADR-002)."
+    },
+    {
+      "date": "2026-10-20T13:55:00Z",
+      "actor": "QODER (agen) - PHASE-6B-CLOSEOUT T3",
+      "type": "EVIDENCE_TIME_SENSITIVITY_CLAIM_CORRECTION",
+      "gate_id": "G9 (VISIBLE-VERIFICATION) / R1 (bukti ter-commit harus cocok dengan artefak) - commit e78b186",
+      "result": "ACCEPTED_WITH_WRITTEN_JUSTIFICATION",
+      "evidence": [
+        "Commit [PHASE-6B-C2] e78b186 menulis 'stderr QEMU 0 baris' dan meng-commit Analysis/reports/g9_acceptance_qemu_stderr_2026-10-20.log sebagai berkas 0 byte. Angka itu benar pada saat harness mengukur (poller selesai 20:48:29; berkas 0 byte).",
+        "Karena jendela QEMU SENGAJA dibiarkan TERBUKA sesuai aturan G9 agar disaksikan pemilik repo, proses tetap hidup setelah PASS. Pada 20:51:46 (+0700) berkas stderr bertambah 1 baris: \"qemu: Gdk: gdk_seat_default_remove_tool: assertion 'tool != NULL' failed\" (74 byte) - assertion backend tampilan GTK QEMU waktu pointer user berinteraksi dengan jendela, bukan keluaran kernel, dan tidak memuat ASL EXCEPTION / ASL-CORE-PANIC / FATAL.",
+        "Serial log tidak berubah setelah 20:48:29: `M6: Kernel Cold Boot Complete` tetap baris 32 dan `ASL-OS>` tetap baris 55, jadi kesimpulan PASS G9 tidak berubah. Tidak ada klaim verifikasi yang di-upgrade: VERIFIED-ON-HARDWARE tetap 0 item, VERIFIED-ON-CI tetap langkah [1]-[2].",
+        "Bentuk koreksi = commit baru yang menyebut hash e78b186 (nol amend/rebase/reset/force-push, sesuai G8): berkas stderr sekarang ter-commit berisi 1 baris aslinya, RELEASE_NOTES sec.0.1 dan sec.0.5 ditambah catatan presisi waktu, README sec.2 baris G9 ikut disinkronkan.",
+        "Nol perubahan .rs. Bukti hosted atas commit koreksi ini dicatat di commit/entri berikutnya (G8)."
+      ],
+      "notes": "Akar masalah: bukti dari run interaktif bersifat time-sensitive - mengukur '0 baris' pada satu titik waktu lalu mempublikasikannya tanpa menyebut titik waktunya. Pencegahan ke depan (diterapkan sejak commit ini): setiap klaim jumlah baris log wajib menyebut waktu pengukuran, dan artefak bukti yang masih bisa ditulis oleh proses hidup wajib di-hash/di-snapshot saat commit. T5 higiene 9 .log root bergeser menjadi entri ke-11."
     }
   ]
 }

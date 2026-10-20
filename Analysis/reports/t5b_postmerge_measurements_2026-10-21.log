@@ -1,0 +1,97 @@
+BUKTI T5b: TIGA DEKLARASI UTANG [PHASE-7-5] DIUKUR SETELAH MERGE PR #4
+Tree acuan commit ini = tip main c35d09a (merge commit dua-parent). Kelas bukti ditandai per bagian.
+Alat: `gh run list/view`, `git diff`, GET /repos/qomaruddindjamal/asl/branches/main/protection.
+Dibuat 2026-10-20T23:40Z (UTC) oleh langkah closeout pasca-merge misi v1.0.2 bagian P0-sisa.
+
+=== [1] RANTAI HOSTED asl-ci-minimal (terukur lewat `gh run list --limit 100`) ===
+  baris = 38 | success = 38 | bukan-success = 0
+  branch feature/phase7               = 23 run
+  branch main                         = 10 run
+  branch security/asl-v1.0.2-audit    = 5 run
+  berkas ekstrak TER-COMMIT (git ls-files) = 28 | ditulis working tree dan di-commit oleh commit yang sama = 3 | total sesudah commit = 31
+  backlog tanpa ekstrak sesudah commit ini = 7 run:
+    39400212750 @ 5a180f6 (security/asl-v1.0.2-audit, push)
+    39417162899 @ cc3fe28 (security/asl-v1.0.2-audit, push)
+    39417504070 @ cc3fe28 (security/asl-v1.0.2-audit, pull_request)
+    39418646354 @ 45a33c7 (main, push)
+    39422495702 @ 5829e28 (main, push)
+    39423423307 @ bb4a9df (main, push)
+    39436250243 @ 08f706a (main, push)
+  Catatan kejujuran: angka ekstrak TIDAK sama dengan jumlah run; backlog di atas adalah run docs/evidence-only
+  PHASE-6B yang tree .rs-nya tidak bergerak dan diekstrak pada commit zamannya masing-masing.
+
+=== [2] Blok 13 baris tabel llvm-cov: stabil lintas SEMUA ekstrak ter-commit + tiga run baru ===
+  Konvensi hash (dinyatakan terang): blok = 13 baris tabel digabung LF TANPA newline penutup.
+  Pada isi byte yang sama, konvensi dengan satu newline penutup menghasilkan 3aafc96112cd3d2f1cd54f24bfff12e9472f8b71ecb27614eabfd78487e86c51.
+  39498246825  (sudah ter-commit) 13db7b350e6f215847a8e284cf2cdc35dca64fd7a7090218597a2abe83174aa0
+  39498253429  (sudah ter-commit) 13db7b350e6f215847a8e284cf2cdc35dca64fd7a7090218597a2abe83174aa0
+  39499814356  (sudah ter-commit) 13db7b350e6f215847a8e284cf2cdc35dca64fd7a7090218597a2abe83174aa0
+  39499821544  (sudah ter-commit) 13db7b350e6f215847a8e284cf2cdc35dca64fd7a7090218597a2abe83174aa0
+  39506682088  (sudah ter-commit) 13db7b350e6f215847a8e284cf2cdc35dca64fd7a7090218597a2abe83174aa0
+  39506688219  (sudah ter-commit) 13db7b350e6f215847a8e284cf2cdc35dca64fd7a7090218597a2abe83174aa0
+  39508817039  (sudah ter-commit) 13db7b350e6f215847a8e284cf2cdc35dca64fd7a7090218597a2abe83174aa0
+  39508823480  (sudah ter-commit) 13db7b350e6f215847a8e284cf2cdc35dca64fd7a7090218597a2abe83174aa0
+  39511692285  (sudah ter-commit) 13db7b350e6f215847a8e284cf2cdc35dca64fd7a7090218597a2abe83174aa0
+  39511696696  (sudah ter-commit) 13db7b350e6f215847a8e284cf2cdc35dca64fd7a7090218597a2abe83174aa0
+  39515248386  (baru: ditulis commit ini, belum ter-commit saat hitungan) 13db7b350e6f215847a8e284cf2cdc35dca64fd7a7090218597a2abe83174aa0
+  39515252055  (baru: ditulis commit ini, belum ter-commit saat hitungan) 13db7b350e6f215847a8e284cf2cdc35dca64fd7a7090218597a2abe83174aa0
+  39515542430  (baru: ditulis commit ini, belum ter-commit saat hitungan) 13db7b350e6f215847a8e284cf2cdc35dca64fd7a7090218597a2abe83174aa0
+  39515248386  (log mentah runner)  13db7b350e6f215847a8e284cf2cdc35dca64fd7a7090218597a2abe83174aa0
+  39515252055  (log mentah runner)  13db7b350e6f215847a8e284cf2cdc35dca64fd7a7090218597a2abe83174aa0
+  39515542430  (log mentah runner)  13db7b350e6f215847a8e284cf2cdc35dca64fd7a7090218597a2abe83174aa0
+  jumlah blok 13 baris yang dihitung = 16 | hash UNIK = 1 -> ['13db7b350e6f215847a8e284cf2cdc35dca64fd7a7090218597a2abe83174aa0']
+  TOTAL baris: regions 6027/740 = 87,72% | functions 225/43 = 80,89% | lines 3718/490 = 86,82%
+
+=== [3] Delta tree yang diuji ketiga run (dihitung dengan git, bukan dibaca mata) ===
+  [a] d2f63b7 -> 2906e41 atas *.rs/Cargo.toml/Cargo.lock:
+      KELUAR KOSONG = tree biner closeout T5 identik dengan tree [PHASE-7-4]
+  [b] 6623dd8 -> 2906e41 atas *.rs/Cargo.toml/Cargo.lock (delta yang dibawa PR #4 ke main):
+      1	1	asl-kernel/asl-bootloader/src/lib.rs
+      1	1	asl-kernel/asl-kernel-core-secondary/src/lib.rs
+      5	5	asl-kernel/asl-kernel-core/src/lib.rs
+      6	6	asl-kernel/asl-storage/src/lib.rs
+      jumlah baris tambah = 13 (= jumlah baris kurang) pada 4 berkas
+  [c] 2906e41 -> c35d09a (`git diff --stat`):
+      KELUAR KOSONG = merge commit tidak menambah perubahan di atas tip branch
+  [d] `git log --format=%H %P -1 c35d09a` = c35d09adcfe757f64a4c0016cc9f2d25cc16afff 6623dd83aa72c2d59f82f54f406bcf1e24aea285 2906e414b193fa03dcb91f3fb09a652ef7b143e9
+      dua orang tua = 6623dd8 (main sebelum) + 2906e41 (tip branch) => merge commit dua-parent, bukan squash, bukan fast-forward.
+
+=== [4] Proteksi branch main: GET sebelum merge vs SETELAH merge ===
+  endpoint = /repos/qomaruddindjamal/asl/branches/main/protection | kunci respons = 12 (sebelum) / 12 (sesudah)
+  required_status_checks           sama = True
+  required_pull_request_reviews    sama = True
+  enforce_admins                   sama = True
+  allow_force_pushes               sama = True
+  allow_deletions                  sama = True
+  required_linear_history          sama = True
+  efektif sesudah merge: strict=True contexts=['test-and-build'] | approving=0 | enforce_admins=True force_pushes=False deletions=False
+  Konsekuensi yang dijalankan: bukti closeout T5 TIDAK bisa di-push langsung ke main; kedua utang masuk repo lewat PR branch feature/v1.0.2-shell.
+
+=== [5] Angka tiga run baru (dihitung dari log mentah runner, bukan dari salinan) ===
+  39515248386 @ 2906e41 (feature/phase7/push): baris-mentah=1369 suite=30 passed=172 failed=0 roster-ok=172 Compiling=13 warning-langkah-2=0 error=0
+      ELF Linux: -rwxr-xr-x 2 runner runner 243568 Oct 20 23:28 target/x86_64-unknown-none/release/asl-kernel
+  39515252055 @ 2906e41 (feature/phase7/pull_request): baris-mentah=1401 suite=30 passed=172 failed=0 roster-ok=172 Compiling=13 warning-langkah-2=0 error=0
+      ELF Linux: -rwxr-xr-x 2 runner runner 243568 Oct 20 23:28 target/x86_64-unknown-none/release/asl-kernel
+  39515542430 @ c35d09a (main/push): baris-mentah=1374 suite=30 passed=172 failed=0 roster-ok=172 Compiling=13 warning-langkah-2=0 error=0
+      ELF Linux: -rwxr-xr-x 2 runner runner 243568 Oct 20 23:31 target/x86_64-unknown-none/release/asl-kernel
+
+=== [6] ANTI-DRIFT MISI v1.0.2: angka dasar yang WAJIB diukur ulang (di tree c35d09a) ===
+  occurrence "ASL-OS" di seluruh *.rs = 6:
+    asl-kernel/asl-cockpit-shell/src/lib.rs:5
+    asl-kernel/asl-cockpit-shell/src/lib.rs:19
+    asl-kernel/asl-kernel-core/src/lib.rs:1342
+    asl-kernel/asl-kernel-core/src/lib.rs:1346
+    asl-kernel/asl-kernel-core/src/lib.rs:1868
+    asl-kernel/asl-kernel-core/src/lib.rs:1871
+  occurrence "v1.1.0" di seluruh *.rs = 5:
+    asl-kernel/asl-kernel-core/src/lib.rs:1126
+    asl-kernel/asl-kernel-core/src/lib.rs:1145
+    asl-kernel/asl-kernel-core/src/lib.rs:1150
+    asl-kernel/asl-kernel-core/src/lib.rs:1233
+    asl-kernel/asl-kernel-core/src/lib.rs:1822
+  PROMPT_STRING dirujuk oleh = 1 berkas (terukur grep --include=*.rs pada seluruh repo, termasuk deklarasi dirinya sendiri)
+  script ps1 yang menunggu "ASL-OS>" = 3 berkas (grep pada scripts/*.ps1)
+  jumlah baris (hitungan newline, konvensi `wc -l`) asl-kernel-core/src/lib.rs = 2693 | asl-cockpit-shell/src/lib.rs = 258
+
+Kelas bukti: bagian [1]-[2] VERIFIED-ON-CI (angka dari log runner Linux) + VERIFIED-ON-HOST (penghitungan berkas ekstrak);
+bagian [3]-[4] VERIFIED-ON-HOST (git) + VERIFIED-ON-CI-API (GET proteksi); bagian [5] VERIFIED-ON-CI; bagian [6] VERIFIED-ON-HOST.

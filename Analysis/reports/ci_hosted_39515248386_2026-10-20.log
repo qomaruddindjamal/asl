@@ -1,0 +1,105 @@
+HOSTED CI EVIDENCE - workflow asl-ci-minimal, run 39515248386 (push)
+Ekstrak ter-filter dari `gh run view 39515248386 --log` (1369 baris mentah; sekuens warna dibuang, kolom job/step diringkas; job = coverage (non-blocking, advisory) + test-and-build).
+Branch teruji: feature/phase7 | headSha: 2906e414b193fa03dcb91f3fb09a652ef7b143e9
+Metadata run: {"conclusion": "success", "createdAt": "2026-10-20T23:28:29Z", "databaseId": 39515248386, "event": "push", "headBranch": "feature/phase7", "headSha": "2906e414b193fa03dcb91f3fb09a652ef7b143e9", "updatedAt": "2026-10-20T23:29:47Z", "workflowName": "asl-ci-minimal"}
+Ekstraksi dilakukan 2026-10-21 06:38 +0700 (= 2026-10-20T23:38Z); penanggalan berkas mengikuti tanggal run UTC (2026-10-20).
+
+=== [1/2] cargo test --workspace --lib  (baris 'test result:' per suite) ===
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 31 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 14 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 17 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 36 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+--- TOTAL TERHITUNG DARI 30 SUITE: 172 passed, 0 failed ---
+--- baris `test <nama> ... ok` terhitung pada langkah ini: 172 (satu per test; roster individu) ---
+--- warning profil test terhitung pada langkah [1/2]: 21 baris (non-blocking; gerbang 0-warning misi berlaku untuk build RELEASE) ---
+
+=== [2/2] cargo build --package asl-kernel-bin --target x86_64-unknown-none --release ===
+Compiling asl-bootloader v0.1.0 (/home/runner/work/asl/asl/asl-kernel/asl-bootloader)
+Compiling asl-driver-pci v0.1.0 (/home/runner/work/asl/asl/asl-kernel/asl-driver-pci)
+Compiling asl-driver-ps2-keyboard v0.1.0 (/home/runner/work/asl/asl/asl-kernel/asl-driver-ps2-keyboard)
+Compiling asl-kernel-bin v0.1.0 (/home/runner/work/asl/asl/asl-kernel/asl-kernel-bin)
+Compiling asl-memory v0.1.0 (/home/runner/work/asl/asl/asl-kernel/asl-memory)
+Compiling asl-security-vault v0.1.0 (/home/runner/work/asl/asl/asl-kernel/asl-security-vault)
+Compiling asl-cockpit-shell v0.1.0 (/home/runner/work/asl/asl/asl-kernel/asl-cockpit-shell)
+Compiling asl-storage v0.1.0 (/home/runner/work/asl/asl/asl-kernel/asl-storage)
+Compiling asl-sched v0.1.0 (/home/runner/work/asl/asl/asl-kernel/asl-sched)
+Compiling asl-afdx-ipc v0.1.0 (/home/runner/work/asl/asl/asl-kernel/asl-afdx-ipc)
+Compiling asl-hal v0.1.0 (/home/runner/work/asl/asl/asl-kernel/asl-hal)
+Compiling asl-kernel-core-secondary v0.1.0 (/home/runner/work/asl/asl/asl-kernel/asl-kernel-core-secondary)
+Compiling asl-kernel-core v0.1.0 (/home/runner/work/asl/asl/asl-kernel/asl-kernel-core)
+Finished `release` profile [optimized] target(s) in 1.77s
+  (13 baris `Compiling` + 1 baris `Finished` = langkah benar-benar berjalan, bukan cache)
+  (terukur pada langkah ini: 0 baris `warning:`, 0 baris `error:`; 21 baris warning lainnya milik langkah [1/2] profil test)
+  (runner hosted sengaja TIDAK memasang env RUSTFLAGS: env menggantikan rustflags asl-kernel/.cargo/config.toml sehingga linking rusak.)
+
+=== langkah 'Bukti footprint ELF hasil build' ===
+-rwxr-xr-x 2 runner runner 243568 Oct 20 23:28 target/x86_64-unknown-none/release/asl-kernel
+
+=== job coverage (NON-BLOCKING sejak [PHASE-7-2]) - langkah yang hadir ===
+- coverage (non-blocking, advisory) :: Complete job
+- coverage (non-blocking, advisory) :: Post Run actions/checkout@v4
+- coverage (non-blocking, advisory) :: Run actions/checkout@v4
+- coverage (non-blocking, advisory) :: Run dtolnay/rust-toolchain@stable
+- coverage (non-blocking, advisory) :: Set up job
+- coverage (non-blocking, advisory) :: [1/2] cargo install cargo-llvm-cov --locked (tooling host, bukan dependency)
+- coverage (non-blocking, advisory) :: [2/2] cargo llvm-cov tiga crate --lib (ambang advisory lines >= 80)
+
+=== job coverage - langkah [2/2]: kompilasi terinstrumentasi yang TERUKUR di runner ===
+Compiling asl-driver-pci v0.1.0 (/home/runner/work/asl/asl/asl-kernel/asl-driver-pci)
+Compiling asl-bootloader v0.1.0 (/home/runner/work/asl/asl/asl-kernel/asl-bootloader)
+Compiling asl-kernel-core-secondary v0.1.0 (/home/runner/work/asl/asl/asl-kernel/asl-kernel-core-secondary)
+Compiling asl-storage v0.1.0 (/home/runner/work/asl/asl/asl-kernel/asl-storage)
+Finished `test` profile [unoptimized + debuginfo] target(s) in 0.94s
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 14 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 36 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+  (4 baris `Compiling` instrumen + 3 baris `test result:` + 59 baris `test ... ok` = job ini sungguh mengompilasi dan menjalankan ulang tiga crate lingkup T2 pada tree run ini, bukan memakai artefak cache)
+
+=== job coverage - baris tabel ringkasan yang dikeluarkan llvm-cov di runner Linux ===
+asl-bootloader/src/lib.rs                    315                26    91.75%          14                 1    92.86%         255                22    91.37%           0                 0         -
+asl-kernel-core-secondary/src/lib.rs         487                39    91.99%          40                 5    87.50%         329                24    92.71%           0                 0         -
+asl-storage/src/ahci.rs                       75                75     0.00%           5                 5     0.00%          72                72     0.00%           0                 0         -
+asl-storage/src/ata.rs                       274               262     4.38%          14                12    14.29%         174               160     8.05%           0                 0         -
+asl-storage/src/block.rs                      11                 5    54.55%           3                 2    33.33%           7                 4    42.86%           0                 0         -
+asl-storage/src/ext4.rs                      231                52    77.49%          12                 4    66.67%         139                34    75.54%           0                 0         -
+asl-storage/src/fat32.rs                     692                87    87.43%          20                 3    85.00%         445                61    86.29%           0                 0         -
+asl-storage/src/lib.rs                      2502                17    99.32%          48                 4    91.67%        1266                16    98.74%           0                 0         -
+asl-storage/src/partition.rs                 323                37    88.54%          10                 2    80.00%         269                26    90.33%           0                 0         -
+asl-storage/src/raid.rs                      883                78    91.17%          38                 2    94.74%         612                44    92.81%           0                 0         -
+asl-storage/src/ramdisk.rs                   100                 7    93.00%           8                 0   100.00%          76                 3    96.05%           0                 0         -
+asl-storage/src/vfs.rs                       134                55    58.96%          13                 3    76.92%          74                24    67.57%           0                 0         -
+TOTAL                                       6027               740    87.72%         225                43    80.89%        3718               490    86.82%           0                 0         -
+
+- Angka coverage pada run ini bukan baseline baru; baseline resmi tetap pengukuran host Windows di Analysis/reports/coverage_baseline_t2_2026-10-21.log.
+- Blok 13 baris tabel llvm-cov pada run ini memiliki SHA256 yang sama dengan blok pada SEMUA sepuluh ekstrak ter-commit (konvensi hash: tiga belas baris digabung LF tanpa newline penutup) = 13db7b350e6f215847a8e284cf2cdc35dca64fd7a7090218597a2abe83174aa0. Perhitungan daftar per berkas ada di Analysis/reports/t5b_postmerge_measurements_2026-10-21.log bagian [2]. Konvensi alternatif dengan satu newline penutup menghasilkan 3aafc96112cd3d2f1cd54f24bfff12e9472f8b71ecb27614eabfd78487e86c51 pada semua berkas yang sama; keduanya ditulis di sini supaya pembaca tidak menyangka ada dua blok berbeda.
+- Commit teruji 2906e41 = [PHASE-7-5] CLOSEOUT T5. Ekstrak ini bersama 39515252055 dan 39515542430 menutup utang bukti yang dinyatakan pada commit tersebut (pola G8: bukti run atas commit N masuk repo lewat commit N+1); ketiganya masuk repo lewat PR branch feature/v1.0.2-shell karena direct push ke main tertutup proteksi branch Opsi B.
+- ELF Linux pada run ini 243.568 B - sama persis dengan kedua run atas d2f63b7. Pasangan platform pada tree yang sama: ELF Windows host 243.568 B / SHA256 3c9c4ee9c09123398835ad0779620327dee901a0a6f5de724eceb91b207c4248 dan ISO Windows 4.118.528 B / SHA256 da5b91f95cd10ed4844c4b189717c5bfd6e71c6c225fb02a83f600f5a7abce56 (dua invokasi byte-identik, GUID GPT e181e879-31ec-3d41-a200-b4997a320a0d). Langkah ISO dan QEMU tidak berjalan hosted, jadi angka ISO berasal dari host.
+- BUKTI PERUBAHAN YANG DIUJI RUN INI (dihitung): `git diff --numstat d2f63b7 2906e41 -- *.rs Cargo.toml Cargo.lock` keluar KOSONG, sedangkan `git diff --name-only d2f63b7 2906e41` = 13 berkas dokumen/bukti. Artinya tree biner run ini identik dengan tree [PHASE-7-4]: angka agregat (30 suite / 172 passed / 0 failed / 13 Compiling / 0 warning / 0 error), roster 8 nama baru / 0 nama lama, ukuran ELF, dan blok coverage memang WAJIB diam - bukan kebetulan yang diamati.
+- 38 run asl-ci-minimal conclusion=success secara total (terukur lewat `gh run list --workflow asl-ci-minimal --limit 100 --json databaseId,headSha,conclusion,event,headBranch`, hasil: 38 baris, 38 success, 0 bukan-success) = 23 run branch fitur feature/phase7 + 10 run ber-headBranch=main + 5 run ber-headBranch=security/asl-v1.0.2-audit (lima-limanya atas commit yang kemudian masuk main, tercatat dengan nama branch audit karena push terjadi sebelum rename). Berkas ekstrak ter-commit di Analysis/reports/ = 31 sesudah commit ini (28 sebelum + 3 pada commit ini). Backlog yang NYATA masih tanpa ekstrak = 7 run (terukur sebagai selisih himpunan, bukan diingat): 39400212750 @ 5a180f6, 39417162899 @ cc3fe28, 39417504070 @ cc3fe28 (branch audit) dan 39418646354 @ 45a33c7, 39422495702 @ 5829e28, 39423423307 @ bb4a9df, 39436250243 @ 08f706a (rantai main) - semuanya run docs/evidence-only PHASE-6B yang tree .rs-nya tidak bergerak; angka 31 TIDAK berarti "semua run sudah diekstrak".
+  (roster T3 pada langkah [1/2] run ini, dihitung dengan pencocokan batas-identifier: 8 nama BARU hadir, 0 nama LAMA hadir)

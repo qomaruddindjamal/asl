@@ -50,7 +50,25 @@ Fakta API yang tercatat supaya tidak ditebak lagi di fase berikutnya: `PUT prote
 | `required_conversation_resolution.enabled` | `false` | `false` | cocok |
 | `restrictions` | tidak dikembalikan (null) | `null` | cocok |
 
-Kesimpulan: **direct push ke `main` masih ditolak GitHub** (PR tetap wajib + check tetap wajib), tetapi merge PR tidak lagi bergantung pada approval akun kedua.
+Kesimpulan (kalimat awal, ditulis pada commit `60f621c` dan **dipertahankan apa adanya untuk audit**): **direct push ke `main` masih ditolak GitHub** (PR tetap wajib + check tetap wajib), tetapi merge PR tidak lagi bergantung pada approval akun kedua. → **[KUALIFIKASI APPEND-ONLY, §3.1: kalimat itu adalah simpulan dari konfigurasi yang terukur, bukan hasil push uji.]**
+
+### 3.1 Kualifikasi append-only atas kalimat "Kesimpulan" di atas (ditulis pada commit `[PHASE-7-0d]`, bukan koreksi hasil)
+
+Yang **terukur** pada §3 adalah **konfigurasi**, lewat GET field-per-field: `required_status_checks` meminta konteks
+`test-and-build`, `required_pull_request_reviews.required_approving_review_count=0`, `enforce_admins.enabled=true`,
+`allow_force_pushes.enabled=false`, `allow_deletions.enabled=false`. Frasa "direct push ke `main` masih ditolak GitHub"
+pada kalimat kesimpulan di atas adalah **konsekuensi yang disimpulkan dari konfigurasi tersebut**, bukan hasil pengukuran:
+**tidak ada push uji ke `main` yang pernah dijalankan** (mencobanya akan menjadi aksi eksternal berisiko pada branch yang
+dilindungi, jadi sengaja tidak dilakukan). Bukti fungsional yang memang terukur justru jalur PR: commit
+`[PHASE-7-0]`/`[PHASE-7-0b]`/`[PHASE-7-0c]` hanya
+bisa masuk rantai bukti lewat `feature/phase7` + PR #4, dan pipeline itu menghasilkan run `39486017207`, `39486751618`
+(push) serta `39487122265` (pull_request) yang kedua check-nya SUCCESS. Dengan kata lain: **penolakan push langsung =
+dugaan berbasis konfigurasi; keharusan lewat PR = terukur secara struktural dan konsisten dengan alur yang dipakai.**
+
+Bunyi kesimpulan yang seharusnya (berlaku untuk §3 ini dan untuk rujukan balik dari README/RELEASE_NOTES/`QODER_FINAL_REPORT`):
+**konfigurasi proteksi terverifikasi field-per-field lewat GET — `enforce_admins=true`, required check `test-and-build` (strict),
+PR wajib, dan tanpa syarat approval akun kedua; penolakan direct push adalah konsekuensi yang diharapkan dari konfigurasi itu,
+bukan sesuatu yang diuji dengan push sungguhan.**
 
 ## 4. Uji pipeline baru (PR pertama fase ini = PR #4)
 
@@ -93,7 +111,7 @@ Angka yang dihitung ulang dari teks log pada tier 1 dan tier 2 identik: 30 suite
 
 ## 6. Ekstrak CI baru yang masuk repo lewat PR ini
 
-`Analysis/reports/ci_hosted_39444157361_2026-10-20.log` (67 baris ASCII) — run `push` atas commit `6623dd8` (tip `main` pasca-CLOSEOUT T6), `createdAt 2026-10-20T14:58:41Z`, `updatedAt 14:59:05Z`, job `test-and-build`. Berkas ini tadinya hanya bisa hidup di `logs/` (ter-ignore) karena direct push sudah tertutup; Opsi B + pipeline PR menutup celah penelusuran itu.
+`Analysis/reports/ci_hosted_39444157361_2026-10-20.log` (67 baris ASCII) — run `push` atas commit `6623dd8` (tip `main` pasca-CLOSEOUT T6), `createdAt 2026-10-20T14:58:41Z`, `updatedAt 14:59:05Z`, job `test-and-build`. Berkas ini tadinya hanya bisa hidup di `logs/` (ter-ignore) karena setelah proteksi dipasang tidak ada lagi jalur commit docs-only ke `main` yang dipakai; Opsi B + pipeline PR menutup celah penelusuran itu.
 
 **Susulan (bagian dari commit PHASE-7-0c):** `Analysis/reports/ci_hosted_39486017207_2026-10-20.log` (67 baris ASCII) = ekstrak log mentah run `39486017207` atas tip branch `7e2ac24`, diukur dari teks: 30 suite **172 passed / 0 failed**, 13 baris `Compiling` + `Finished release profile [optimized] target(s) in 2.45s`, **0 `warning:` / 0 `error:`** pada langkah release (21 baris warning milik profil test, non-blocking), ELF Linux **243.560 B**. Ini pola yang dinyatakan di §4: ekstrak run atas commit N masuk repo lewat commit N+1, bukan dengan amend commit N (G8); run atas tip terakhir PR akan diekstrak-ter-commit pada closeout T5.
 
@@ -115,3 +133,17 @@ Empat pernyataan yang kini **kedaluwarsa secara faktual** dikoreksi append-only 
 | `docs/ROADMAP/ACCOUNTABILITY_FAULT_LOG.json` | `fault_history` | 12 entri | 14 entri (+#13 governance Opsi B CLOSED, +#14 koreksi tingkat bukti ACCEPTED_WITH_WRITTEN_JUSTIFICATION); `violations_recorded` tetap **0** |
 
 `CHECKLIST_STATE.json` **tidak disentuh** (nol gerbang berubah status, G2 tidak terbentuk). `QODER_EXECUTION_LOG.md` tetap CLOSED untuk misi PHASE-1..6B — eksekusi PHASE-7 tercatat di laporan fase + fault log, bukan dengan membuka kembali log yang sudah ditutup resmi.
+
+## 8.1 Susulan commit `[PHASE-7-0d]` — hanya kualifikasi klaim, nol angka baru
+
+Commit ini **tidak** mengukur ulang apa pun dan **tidak** mengubah satu angka pun. Butir yang berubah:
+
+| berkas | butir | dari | menjadi |
+|---|---|---|---|
+| laporan ini §3 + §3.1 | kalimat kesimpulan proteksi | "direct push ke `main` masih ditolak GitHub" disajikan sebagai kesimpulan hasil kerja | teks lama **dipertahankan** + pointer inline, lalu §3.1 memisahkan apa yang terukur (field konfigurasi lewat GET) dari apa yang disimpulkan (penolakan push langsung); tidak ada push uji ke `main` yang pernah dijalankan |
+| `README.md` §7 (baris "Status PHASE-7 T0") | frasa yang sama | dinyatakan sebagai fakta penolakan | dinyatakan sebagai konsekuensi konfigurasi + rujukan ke §3.1 |
+| `QODER_FINAL_REPORT.md` §9 | tabel T0 | lima baris (T0-a..T0-e) | baris **T0-f** mencatat kualifikasi dan run yang benar-benar menjadi bukti fungsional jalur PR (`39486017207`, `39486751618`, `39487122265`) |
+| `docs/ROADMAP/ACCOUNTABILITY_FAULT_LOG.json` | `fault_history` | 14 entri | **15** entri (`CLAIM_PRECISION_QUALIFICATION_INFERENCE_STATED_AS_MEASURED`, `ACCEPTED_WITH_WRITTEN_JUSTIFICATION`); `violations_recorded` tetap **0** |
+| `docs/ROADMAP/HANDOFF_STATE.json` | `phase7_t0_state`, `timestamp` | tanpa butir (6) | butir (6) kualifikasi + rantai commit T0 `60f621c` → `7e2ac24` → `0a49ba7` → `[PHASE-7-0d]`; `timestamp` UTC dimutakhirkan |
+
+Dokumen historis PHASE-6B yang memakai frasa serupa (`Analysis/reports/branch_protection_main_2026-10-20.log`, RELEASE_NOTES §0.4, README entri CLOSEOUT, `QODER_FINAL_REPORT` §8 baris T6) **tidak ditulis-ulang**: frasa di sana adalah deskripsi konfigurasi pada saat pemasangan dan rantai commitnya sudah ter-push, jadi pembacaannya kini mengacu ke §3.1. Pola anti-regres tetap berlaku: run CI atas commit `[PHASE-7-0d]` ini dilaporkan lewat check PR, dan ekstrak log mentahnya masuk repo lewat commit docs-only berikutnya (nol amend, G8).

@@ -217,6 +217,23 @@
       "correction": "README §6, RELEASE_NOTES §0.1, `QODER_FINAL_REPORT` §2/§7 butir 5/§8 dan `HANDOFF_STATE.phase6b_closeout_status` disinkronkan ke tiga tingkat bukti + angka 14 run, dengan kalimat koreksi eksplisit yang menyebut hash `6623dd8`. Nol amend/rebase/reset (G8).",
       "prevented_by": "Aturan PHASE-7: ekstrak log mentah tiap run baru wajib masuk repo lewat PR, bukan hanya dilaporkan di chat.",
       "violations_recorded_delta": 0
+    },
+    {
+      "date": "2026-10-20T19:56:31Z",
+      "actor": "QODER (agen) - PHASE-7 T0",
+      "type": "CLAIM_PRECISION_QUALIFICATION_INFERENCE_STATED_AS_MEASURED",
+      "gate_id": "G7 (jangan mengarang) / disiplin kategori bukti (konfigurasi terukur != perilaku terukur)",
+      "result": "ACCEPTED_WITH_WRITTEN_JUSTIFICATION",
+      "evidence": [
+        "Laporan T0 §3 menutup tabel GET-vs-PUT dengan kalimat 'Kesimpulan: direct push ke `main` masih ditolak GitHub'. Frasa itu ditulis sebagai kesimpulan hasil kerja, padahal tidak pernah diuji: tidak ada `git push` percobaan ke `main`. Yang benar-benar terukur adalah **field konfigurasi** lewat GET balik (`required_status_checks` konteks `test-and-build` strict, `required_approving_review_count=0`, `dismiss_stale_reviews=false`, `enforce_admins=true`, `allow_force_pushes=false`, `allow_deletions=false`, `required_linear_history=false`, `restrictions=null`). Penolakan push langsung adalah **konsekuensi yang disimpulkan** dari konfigurasi tersebut.",
+        "Push uji sengaja TIDAK dilakukan. Mencoba push ke `main` untuk membuktikan penolakan berarti menulis kandidat commit ke branch terlindungi milik repo publik, yaitu aksi eksternal yang keras Undo dan tidak diperlukan: yang dibutuhkan misi hanyalah 'semua perubahan `main` lewat PR', dan itu sudah teruji secara struktural oleh alur yang benar-benar dipakai (commit `60f621c` -> `7e2ac24` -> `0a49ba7` hanya bisa masuk rantai bukti lewat `feature/phase7` + PR #4; run hosted `39486017207`, `39486751618` (push) dan `39487122265` (pull_request) semuanya hijau).",
+        "Frasa sejenis ada di dokumen historis PHASE-6B (`Analysis/reports/branch_protection_main_2026-10-20.log`, RELEASE_NOTES §0.4, README entri CLOSEOUT, `QODER_FINAL_REPORT` §8 baris T6). Keduanya ditulis sebagai **deskripsi konfigurasi pada saat pemasangan**, jadi tidak diubah/dihapus (append-only); pembacaan seluruh frasa itu kini mengacu pada kualifikasi baru di §3.1 laporan T0, dan README bullet PHASE-7 T0 serta `QODER_FINAL_REPORT` §9 (baris T0-f) menunjuk ke sana."
+      ],
+      "notes": "Tidak ada angka yang berubah: 172 passed / 0 failed pada 30 suite, release 0 warning / 0 error, ELF 243.560 B (Linux) dan 243.568 B (Windows) tetap. Yang dikoreksi hanyalah tingkat klaim satu kalimat: dari 'terukur' menjadi 'disimpulkan dari konfigurasi yang terukur'.",
+      "root_cause": "Kalimat penutup ditulis dari perspektif maksud aturan (proteksi dipasang supaya direct push tidak mungkin), bukan dari perspektif jenis bukti, sehingga inferensi dan pengukuran termuat dalam satu kalimat yang sama.",
+      "correction": "Kualifikasi append-only ditambahkan sebagai `Analysis/reports/phase7_t0_protection_2026-10-21.md` §3.1 lewat commit docs-only `[PHASE-7-0d]` di atas `0a49ba7` (nol amend/rebase/reset, G8), plus penyesuaian bullet PHASE-7 T0 di README §7 dan baris T0-f di `QODER_FINAL_REPORT` §9. Tidak ada klaim baru yang lebih kuat dari bukti.",
+      "prevented_by": "Aturan penulisan status: setiap kalimat yang menyimpulkan perilaku platform harus menyebut apakah perilakunya diukur atau disimpulkan dari konfigurasi.",
+      "violations_recorded_delta": 0
     }
   ]
 }

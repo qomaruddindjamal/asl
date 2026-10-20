@@ -604,3 +604,17 @@ Precondition 6A masih **belum tuntas** pada 3 item yang membutuhkan keputusan/ot
 
 ### Commit
 `[PHASE-6A] <ringkasan>` — staging eksplisit per file (5 path: README, laporan akhir, riwayat footprint, artefak bukti hosted CI baru, log eksekusi ini). Hash fase ini dicatat pada entri berikutnya bila ada (G8).
+
+### Addendum [PHASE-6A] (commit berikutnya, 2026-10-20) — dua run hosted hijau
+Push commit dokumentasi `[PHASE-6A]` memicu run hosted kedua; keduanya diverifikasi dari log, bukan dari badge:
+
+| Run id | headSha | event | conclusion | Bukti di log mentah |
+|---|---|---|---|---|
+| `39399083819` | `8b829d8` (GERBANG AKHIR) | push | **success** | 30 suite `test result: ok`, **172 passed / 0 failed**; `[2/2]` 14 baris Compiling/`Finished` tanpa warning; ELF `243560` |
+| `39400212750` | `5a180f6` (addendum docs 6A) | push | **success** | `gh run view --json` = conclusion success; semua step ✓ (`[1/2]`, `[2/2]`, footprint) |
+
+- **G8:** hash commit `[PHASE-6A]` = **`5a180f6`** — diungkapkan di entri ini (entri berikutnya), bukan di dalam commit-nya sendiri. Nol amend/rebase/reset/force-push sejak awal misi.
+- Konsekuensi: dua tip berurutan sama-sama hijau di hosted, sehingga klaim **VERIFIED-ON-CI** tidak bergantung pada satu run saja. Cakupan tetap langkah [1]–[2]; langkah [3]–[4] QEMU hanya lokal.
+- Annotation non-blocking yang sama muncul di kedua run (`actions/checkout@v4` masih menarget Node.js 20; `ubuntu-latest` bermigrasi ke Ubuntu 26 mulai 2026-10-19) — dicatat, tidak diubah di fase ini.
+- Status remote terverifikasi: `git ls-remote --heads origin security/asl-v1.0.2-audit` = `5a180f6…` = HEAD lokal; tree tracked bersih.
+- PHASE-7 **tetap STOP**: prasyarat 6A yang belum diotorisasi pemilik repo = PR + merge, penutupan execution log sebagai closeout, tag + rilis `v1.1.0`.

@@ -1,0 +1,76 @@
+BRANCH PROTECTION MAIN - PHASE-6B-CLOSEOUT T6 (2026-10-20)
+==========================================================
+Status file ini ditulis SEBELUM proteksi dipasang. Setelah proteksi aktif, direct push
+ke main ditolak GitHub bahkan untuk admin, sehingga bukti GET pasca-pasang TIDAK bisa
+di-commit lewat push biasa; bukti itu disampaikan di laporan chat R3/T7 dan (bila pemilik
+menginginkan jejak commit) masuk lewat PR.
+
+1. Keputusan pemilik repo (otorisasi eksplisit, ditanya lewat AskUserQuestion 2026-10-20)
+   Opsi terpilih: "PR + 1 approval".
+   Artinya: merge wajib lewat pull request dengan minimal 1 review approval, status check
+   `test-and-build` harus hijau, branch harus up-to-date dengan main, direct push ke main
+   ditolak, force-push dan penghapusan branch diblokir, aturan berlaku untuk admin.
+
+2. Keadaan awal (terukur sebelum perubahan)
+   GET /repos/qomaruddindjamal/asl/branches/main/protection -> HTTP 404
+   {"message":"Branch not protected","status":"404"}
+   Repo = PUBLIC. Akun pemilik = admin repo. Token `gh` punya scope: repo, workflow,
+   read:org, gist, codespace -> cukup untuk endpoint protection.
+
+3. Nama check kanonik untuk required_status_checks.contexts (terukur, bukan dugaan)
+   GET /repos/qomaruddindjamal/asl/commits/3c716d4.../check-runs ->
+   {"name":"test-and-build","app":"github-actions","conclusion":"success"}
+   Workflow: asl-ci-minimal (file .github/workflows/asl-ci-minimal.yml). Nama check yang
+   dipakai di proteksi = nama check-run "test-and-build", BUKAN nama workflow.
+
+4. Payload PUT yang dipakai (persis seperti dikirim ke
+   PUT /repos/qomaruddindjamal/asl/branches/main/protection)
+{
+  "required_status_checks": {
+    "strict": true,
+    "contexts": ["test-and-build"]
+  },
+  "required_pull_request_reviews": {
+    "dismiss_stale_reviews": true,
+    "require_codeowners_reviews": false,
+    "requires_approving_review_count": 1,
+    "restricts_reviews": false
+  },
+  "enforce_admins": true,
+  "allow_force_pushes": false,
+  "allow_deletions": false,
+  "required_linear_history": false,
+  "required_signatures": false,
+  "block_creations": false,
+  "required_conversation_resolution": false,
+  "restrict_push": null,
+  "admin_enforcement": true
+}
+
+5. Urutan eksekusi yang sengaja dipilih (append-only, nol write-ulang riwayat)
+   a. Commit docs/evidence-only TERAKHIR masuk main lewat direct push (commit ini).
+      Ini push langsung terakhir yang secara proses diizinkan; deviasi "T5 seharusnya
+      push docs-only terakhir" dicatat di fault log sebagai entri baru, bukan ditutupi.
+   b. Push -> tunggu run asl-ci-minimal -> verifikasi dari log mentah (G5: MERAH = STOP,
+      proteksi TIDAK dipasang bila pipeline merah).
+   c. Baru setelah hijau: pasang proteksi (payload di atas), lalu GET balik dan bandingkan
+      field satu per satu. Verifikasi struktural, bukan dari tampilan UI.
+
+6. Konsekuensi yang dinyatakan jujur (bukan kejutan bagi pemilik)
+   - Dengan enforce_admins=true + requires_approving_review_count=1 dan HANYA SATU akun
+     GitHub (qomaruddindjamal) di repo, penulis PR tidak bisa menyetujui PR sendiri.
+     Akibatnya: commit tambahan apa pun ke main (termasuk pekerjaan PHASE-7 / RND_09)
+     butuh salah satu dari: (i) akun reviewer kedua / organisasi, (ii) penurunan
+     requires_approving_review_count menjadi 0 sambil tetap menahan direct push, atau
+     (iii) pengecualian sementara oleh pemilik lewat Settings -> Branch -> "Edit rule".
+     Pilihan ini KEPUTUSAN PEMILIK; agen tidak akan melonggarkan proteksi sendiri.
+   - Direct push docs-only ke main, yang dipakai sepanjang PHASE-6/6B/6B-CLOSEOUT, menjadi
+     tidak mungkin lagi setelah proteksi aktif. Kebijakan "pipeline MERAH = tidak boleh
+     merge" (PHASE-5D) kini ditegakkan oleh GitHub, bukan hanya oleh teks dokumen.
+   - require_linear_history sengaja false agar merge commit seperti `c56c69a` (metode yang
+     diwajibkan misi PHASE-6B) tetap legal di masa depan.
+
+7. Batas cakupan bukti
+   File ini = pernyataan INTENSI + payload terukur sebelum pemasangan. Ia BUKAN bukti bahwa
+   proteksi terpasang. Bukti pemasangan = keluaran GET pasca-PUT yang dilaporkan di chat
+   T7 dan, bila pemilik minta jejak commit, dibawa masuk lewat PR setelah reviewer tersedia.

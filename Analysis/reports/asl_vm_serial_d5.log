@@ -1,0 +1,4 @@
+
+[ASL-LAUNCHER] M1: Entered Limine Entry Stub via Assembly Trampoline.
+[ASL-LAUNCHER] M2: Handover Adapted & Memory Map Sanitized.
+[ASL-LAUNCHER] M3: Transferring Control to ASL Microkernel Core Entry.

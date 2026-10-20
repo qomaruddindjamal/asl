@@ -180,6 +180,43 @@
       "correction": "Commit docs-only tambahan ini diizinkan dan dicatat sebagai entri fault log tersendiri (`PROCESS_DIRECT_PUSH_TO_MAIN_EXTRA_DOCS_COMMIT`) supaya jumlah direct push ke main terbaca jujur (bukan 'T5 terakhir'). Setelah commit ini, semua perubahan main wajib lewat PR dengan check `test-and-build` hijau - ditegakkan GitHub, bukan lagi hanya oleh teks dokumen.",
       "prevented_by": "PHASE-5D (pipeline MERAH = tidak boleh merge) + PHASE-6B-CLOSEOUT T6 (branch protection + required check + block force-push/deletion + enforce_admins).",
       "violations_recorded_delta": 0
+    },
+    {
+      "date": "2026-10-20T19:36:32Z",
+      "actor": "QODER (agen) - PHASE-7 T0",
+      "type": "GOVERNANCE_BRANCH_PROTECTION_APPROVAL_DEADLOCK",
+      "gate_id": "G6/G8 (satu commit per fase, nol write-ulang riwayat) / misi PHASE-7 'SEMUA perubahan main WAJIB lewat PR (proteksi aktif)' / keputusan pemilik Opsi B 2026-10-21",
+      "result": "CLOSED",
+      "evidence": [
+        "Deadlock ini bukan dibuat-buat untuk dibenarkan: setelah CLOSEOUT T6 memasang `required_approving_review_count=1` dengan `enforce_admins=true` di repo yang hanya punya satu akun GitHub (`qomaruddindjamal`, penulis sekaligus owner), tidak ada jalur sah untuk memasukkan commit apa pun ke `main` — penulis tidak dapat menyetujui PR sendiri dan jalur pintas admin tertutup. Konsekuensi itu dinyatakan SEBELUM pemasangan di `Analysis/reports/branch_protection_main_2026-10-20.log` §6 dan §7 butir 8 `QODER_FINAL_REPORT.md`, dan agen secara eksplisit menolak melonggarkan proteksi sendiri.",
+        "Pemilik repo menjawabnya dengan otorisasi terpisah (prompt misi PHASE-7): 'Owner menyetujui Opsi B -> eksekusi' dengan payload `required_approving_review_count=0`, `dismiss_stale_reviews=false`, `restrictions=null`, `allow_force_pushes=false`, `allow_deletions=false`, `required_linear_history=false`. Aksi eksternal diubah persis seperti yang diinstruksikan, tanpa menambah atau mengurangi field di luar yang disebut.",
+        "Keadaan pasca-PUT diverifikasi field per field lewat GET balik (15 baris tabel di `Analysis/reports/phase7_t0_protection_2026-10-21.md` §3): `required_status_checks.contexts=[\"test-and-build\"]` + `strict=true`, `required_approving_review_count=0`, `dismiss_stale_reviews=false`, `require_code_owner_reviews=false`, `enforce_admins.enabled=true`, `allow_force_pushes.enabled=false`, `allow_deletions.enabled=false`, `required_linear_history.enabled=false`, `required_signatures.enabled=false`, `block_creations.enabled=false`, `required_conversation_resolution.enabled=false`, `restrictions` tidak dikembalikan (null). Kesimpulan terukur: PR tetap wajib dan check wajib hijau; hanya syarat approval akun kedua yang dihapus.",
+        "Fakta API yang dicatat supaya tidak ditebak lagi: `PUT /branches/main/protection` menolak dengan HTTP 422 `\"restrictions\" wasn't supplied` bila field `restrictions` tidak dikirim (meski nilainya null); kunci karangan (`admin_enforcement`, `restrict_push`) diterima lalu diabaikan diam-diam; nama field PUT `require_codeowners_reviews` dinormalisasi menjadi `require_code_owner_reviews` di respons. Payload PUT, respons, dan GET disimpan di `logs/` (ter-ignore) dan disalin isinya ke laporan T0.",
+        "Nol perubahan `.rs`, nol dependency baru (G1), dan tidak ada gerbang governance yang di-lock/unlock — `CHECKLIST_STATE.json` tidak disentuh sama sekali, sehingga G2 tidak terbentuk. PHASE-6B-CLOSEOUT T6 tidak dihapus atau ditulis-ulang: konfigurasi 'PR + 1 approval' tetap terbaca sebagai keadaan historis, dengan koreksi eksplisit bahwa keadaan kini = Opsi B."
+      ],
+      "notes": "Bukan pelanggaran gerbang: Deadlock adalah akibat langsung dari konfigurasi yang dipilih pemilik, dan penyelesaiannya adalah keputusan pemilik, bukan inisiatif agen. Diatur sebagai entri supaya perubahan kebijakan proteksi punya jejak audit di dalam repo (sebelumnya hanya ada di chat + berkas `branch_protection_main_2026-10-20.log`).",
+      "root_cause": "Konfigurasi proteksi branch mengasumsikan minimal dua akun reviewer, sedangkan repo single-account; `enforce_admins=true` menutup pengecualian admin.",
+      "correction": "Pernyataan '1 approval' di README §7 butir CLOSEOUT, RELEASE_NOTES §0.4, `QODER_FINAL_REPORT` §4/§7/§8 dan `HANDOFF_STATE.branch_protection` dikoreksi append-only (teks lama dibiarkan terbaca sebagai yang dikoreksi, bukan dihapus diam-diam) dan disinkronkan ke Opsi B pada commit PHASE-7-0 ini.",
+      "prevented_by": "Disclosure-before-action di CLOSEOUT T6 (konsekuensi single-account ditulis di laporan sebelum proteksi dipasang) + otorisasi pemilik eksplisit untuk mengubah konfigurasi.",
+      "violations_recorded_delta": 0
+    },
+    {
+      "date": "2026-10-20T19:36:32Z",
+      "actor": "QODER (agen) - PHASE-7 T0",
+      "type": "EVIDENCE_TIER_CLASSIFICATION_CORRECTION",
+      "gate_id": "G7 (jangan mengarang angka) / disiplin kategori bukti (VERIFIED-ON-CI harus menyebut tingkat buktinya)",
+      "result": "ACCEPTED_WITH_WRITTEN_JUSTIFICATION",
+      "evidence": [
+        "Pesan commit `6623dd8` dan dokumen yang disinkronkannya (README §6, RELEASE_NOTES §0.1, `QODER_FINAL_REPORT` §2/§7/§8) menyatakan 13 run hijau dengan pembagian '6 diverifikasi dari log mentah + ekstrak ter-commit, 7 sisanya hanya dari metadata API'. Audit hari ini atas `logs/` menemukan lima run yang digolongkan 'hanya metadata' itu ternyata punya berkas log mentah hasil `gh run view --log` yang masih tersimpan: `39417162899`, `39417504070`, `39418646354`, `39422495702`, `39423423307`. Jadi pernyataan tersebut terlalu LEMAH untuk lima run itu; yang benar-benar tanpa penarikan log hanya `39400212750` dan `39436250243`.",
+        "Koreksi ini tidak dilakukan dengan menebak: tiap berkas dipetakan ke run secara struktural (kolom langkah + stempel waktu UTC di dalam berkas dibandingkan `createdAt` dari `gh run list`) lalu diukur ulang hari ini. Hasil semua berkas: 30 baris `test result:` = 172 passed / 0 failed, 13 baris `Compiling` pada langkah `[2/2]`, 0 `warning:` / 0 `error:` pada langkah release, ELF Linux 243560 B. SHA256 tiap berkas mentah dicatat di `Analysis/reports/phase7_t0_protection_2026-10-21.md` §5.1 sebagai anchor. Mtime `logs/raw_t0.log` (19:29 +0700) dan `logs/raw_c1.log` (19:36 +0700) berada 19 dan 60 detik setelah run-nya dibuat, membuktikan tarikan terjadi pada sesi yang sama dengan commit yang mengklaimnya.",
+        "Kelemahan yang diakui tetap ada dan tidak ditutup-tutupi: berkas mentah itu hidup di `logs/` yang di-ignore `.gitignore` (`**/logs/`), sehingga tier tersebut TIDAK dapat diaudit dari repo. Karena itu tingkat bukti dibagi tiga (ekstrak ter-commit / log mentah ditarik tanpa ekstrak ter-commit / hanya metadata API) dan run baru PHASE-7 wajib menghasilkan ekstrak ter-commit — `Analysis/reports/ci_hosted_39444157361_2026-10-20.log` adalah realisasi pertama aturan itu, masuk lewat PR karena direct push sudah tertutup.",
+        "Hitungan run juga direkonsiliasi ke SATU angka final: 14 `asl-ci-minimal` hijau pada rantai `8b829d8` -> `6623dd8`. Selisih 'enam/sebelas/tigabelas' sebelumnya bersumber dari (a) waktu pengukuran yang berbeda dan (b) ikut terhitungnya entri `39417510019` @ `cc3fe28` serta sembilan run 2026-10-17 ber-event `dynamic` yang bukan workflow `asl-ci-minimal`; keduanya dikecualikan dengan alasan eksplisit."
+      ],
+      "notes": "Yang berubah hanyalah penempatan run pada tingkat bukti. Angka test/build/footprint tidak berubah dan tetap identik di semua run yang teksnya terukur (172/0, release 0/0, ELF 243.560 B). Tidak ada klaim baru yang lebih kuat dari bukti; koreksi bergerak dua arah (melonggarkan golongan 'API-only' sekaligus menahan klaim 'ter-audit dari repo').",
+      "root_cause": "Status penarikan log mentah tidak pernah dicatat sebagai artefak ter-track; ketika dokumen kemudian direkonsiliasi, penggolongan dibuat dari daftar ekstrak ter-commit saja, bukan dari daftar berkas yang benar-benar pernah ditarik.",
+      "correction": "README §6, RELEASE_NOTES §0.1, `QODER_FINAL_REPORT` §2/§7 butir 5/§8 dan `HANDOFF_STATE.phase6b_closeout_status` disinkronkan ke tiga tingkat bukti + angka 14 run, dengan kalimat koreksi eksplisit yang menyebut hash `6623dd8`. Nol amend/rebase/reset (G8).",
+      "prevented_by": "Aturan PHASE-7: ekstrak log mentah tiap run baru wajib masuk repo lewat PR, bukan hanya dilaporkan di chat.",
+      "violations_recorded_delta": 0
     }
   ]
 }

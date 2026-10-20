@@ -1,0 +1,26 @@
+
+[ASL-LAUNCHER] M1: Entered Limine Entry Stub (profile=release) via Assembly Trampoline.
+[ASL-LAUNCHER] Inspecting Limine Requests:
+  -> Base Revision unsupported or unchanged.
+  -> Memmap response NULL.
+  -> HHDM response NULL.
+  -> Framebuffer response NULL.
+[ASL-LAUNCHER] M2: Handover Adapted & Memory Map Sanitized.
+[ASL-LAUNCHER] M3: Transferring Control to ASL Microkernel Core Entry.
+[ASL-CORE] M4: Buddy Allocator & Heap Memory Subsystem Initialized.
+[ASL-CORE] M5: ARINC 653 Partitions & Deterministic Scheduler Active.
+[ASL-CORE] M6: Kernel Cold Boot Complete. Entering Deterministic Idle Loop.
+       ___    ____  _
+      /   |  / __ \| |
+     / /| | / /_/ / |
+    / ___ |/ ____/| |
+   /_/  |_/_/     |_|
+
+   ASL Kernel v1.0.1
+   Selamat Datang Di ASL Kernel
+
+   [ OK ] Kernel initialized
+   [ OK ] Memory manager initialized
+   [ OK ] CPU architecture detected
+
+   ASL kernel booted successfully.

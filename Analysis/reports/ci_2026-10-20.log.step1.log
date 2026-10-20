@@ -1,0 +1,469 @@
+cargo.exe : warning: variant `O1_InitialState` should have an upper camel case name
+At C:\asl\scripts\ci_local.ps1:59 char:1
++ & cargo test --workspace --target $HostTarget --lib 2>&1 | Out-File - ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (warning: varian...camel case name:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+  --> asl-ont-gpon\src\lib.rs:15:5
+   |
+15 |     O1_InitialState,
+   |     ^^^^^^^^^^^^^^^ help: convert the identifier to upper camel case: `O1InitialState`
+   |
+   = note: `#[warn(non_camel_case_types)]` (part of `#[warn(nonstandard_style)]`) on by default
+
+warning: variant `O2_StandbyState` should have an upper camel case name
+  --> asl-ont-gpon\src\lib.rs:16:5
+   |
+16 |     O2_StandbyState,
+   |     ^^^^^^^^^^^^^^^ help: convert the identifier to upper camel case: `O2StandbyState`
+
+warning: variant `O3_SerialNumState` should have an upper camel case name
+  --> asl-ont-gpon\src\lib.rs:17:5
+   |
+17 |     O3_SerialNumState,
+   |     ^^^^^^^^^^^^^^^^^ help: convert the identifier to upper camel case: `O3SerialNumState`
+
+warning: variant `O4_RangingState` should have an upper camel case name
+  --> asl-ont-gpon\src\lib.rs:18:5
+   |
+18 |     O4_RangingState,
+   |     ^^^^^^^^^^^^^^^ help: convert the identifier to upper camel case: `O4RangingState`
+
+warning: variant `O5_OperationState` should have an upper camel case name
+  --> asl-ont-gpon\src\lib.rs:19:5
+   |
+19 |     O5_OperationState, // Terkoneksi stabil ke OLT, siap kirim data
+   |     ^^^^^^^^^^^^^^^^^ help: convert the identifier to upper camel case: `O5OperationState`
+
+warning: `asl-ont-gpon` (lib) generated 5 warnings
+warning: `asl-ont-gpon` (lib test) generated 5 warnings (5 duplicates)
+warning: unused import: `core::panic::PanicInfo`
+  --> asl-kernel-core\src\lib.rs:15:5
+   |
+15 | use core::panic::PanicInfo;
+   |     ^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: variant `DalA_Catastrophic` should have an upper camel case name
+  --> asl-do178c-cert\src\lib.rs:14:5
+   |
+14 |     DalA_Catastrophic, // Kegagalan sistem berakibat hilangnya pesawat / korban jiwa (Toleransi 0)
+   |     ^^^^^^^^^^^^^^^^^ help: convert the identifier to upper camel case: `DalACatastrophic`
+   |
+   = note: `#[warn(non_camel_case_types)]` (part of `#[warn(nonstandard_style)]`) on by default
+
+warning: variant `DalB_Hazardous` should have an upper camel case name
+  --> asl-do178c-cert\src\lib.rs:15:5
+   |
+15 |     DalB_Hazardous,
+   |     ^^^^^^^^^^^^^^ help: convert the identifier to upper camel case: `DalBHazardous`
+
+warning: variant `DalC_Major` should have an upper camel case name
+  --> asl-do178c-cert\src\lib.rs:16:5
+   |
+16 |     DalC_Major,
+   |     ^^^^^^^^^^ help: convert the identifier to upper camel case: `DalCMajor`
+
+warning: variant `DalD_Minor` should have an upper camel case name
+  --> asl-do178c-cert\src\lib.rs:17:5
+   |
+17 |     DalD_Minor,
+   |     ^^^^^^^^^^ help: convert the identifier to upper camel case: `DalDMinor`
+
+warning: variant `DalE_NoSafetyEffect` should have an upper camel case name
+  --> asl-do178c-cert\src\lib.rs:18:5
+   |
+18 |     DalE_NoSafetyEffect,
+   |     ^^^^^^^^^^^^^^^^^^^ help: convert the identifier to upper camel case: `DalENoSafetyEffect`
+
+warning: `asl-kernel-core` (lib test) generated 1 warning (run `cargo fix --lib -p asl-kernel-core --tests` to apply 1 
+suggestion)
+warning: `asl-do178c-cert` (lib test) generated 5 warnings
+warning: variant `X86_Legacy` should have an upper camel case name
+  --> asl-power10-loongson\src\lib.rs:12:5
+   |
+12 |     X86_Legacy,
+   |     ^^^^^^^^^^ help: convert the identifier to upper camel case: `X86Legacy`
+   |
+   = note: `#[warn(non_camel_case_types)]` (part of `#[warn(nonstandard_style)]`) on by default
+
+warning: variant `Arm_Legacy` should have an upper camel case name
+  --> asl-power10-loongson\src\lib.rs:13:5
+   |
+13 |     Arm_Legacy,
+   |     ^^^^^^^^^^ help: convert the identifier to upper camel case: `ArmLegacy`
+
+warning: variant `Mips_Legacy` should have an upper camel case name
+  --> asl-power10-loongson\src\lib.rs:14:5
+   |
+14 |     Mips_Legacy,
+   |     ^^^^^^^^^^^ help: convert the identifier to upper camel case: `MipsLegacy`
+
+warning: unused import: `asl_bootloader::TargetArch`
+ --> asl-fleet-regression\src\lib.rs:9:5
+  |
+9 | use asl_bootloader::TargetArch;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: `asl-power10-loongson` (lib test) generated 3 warnings
+warning: `asl-fleet-regression` (lib test) generated 1 warning (run `cargo fix --lib -p asl-fleet-regression --tests` 
+to apply 1 suggestion)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.06s
+     Running unittests src\lib.rs (target\x86_64-pc-windows-msvc\debug\deps\asl_afdx_ipc-03274f0d6016e9ca.exe)
+
+running 4 tests
+test tests::test_afdx_bag_rate_limiting ... ok
+test tests::test_afdx_send_and_receive_fifo ... ok
+test tests::test_afdx_ring_buffer_overflow_and_wraparound ... ok
+test tests::test_afdx_empty_receive ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src\lib.rs (target\x86_64-pc-windows-msvc\debug\deps\asl_automotive_asil-5547667eb7172746.exe)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src\lib.rs (target\x86_64-pc-windows-msvc\debug\deps\asl_bootloader-a2c3abb23ba9b43f.exe)
+
+running 9 tests
+test tests::test_build_profile_option_env_fallback ... ok
+test tests::test_invalid_magic_or_version ... ok
+test tests::test_framebuffer_config_validation_positive_and_negative ... ok
+test tests::test_empty_or_overflowing_memory_region ... ok
+     Running unittests src\lib.rs (target\x86_64-pc-windows-msvc\debug\deps\asl_cctv_dma-db33372408789810.exe)
+     Running unittests src\lib.rs (target\x86_64-pc-windows-msvc\debug\deps\asl_cockpit_shell-a9d3304ac0f7b8ea.exe)
+     Running unittests src\lib.rs (target\x86_64-pc-windows-msvc\debug\deps\asl_do178c_cert-6975b56b29b263eb.exe)
+     Running unittests src\lib.rs (target\x86_64-pc-windows-msvc\debug\deps\asl_driver_pci-5c512abe92212fa7.exe)
+     Running unittests src\lib.rs 
+(target\x86_64-pc-windows-msvc\debug\deps\asl_driver_ps2_keyboard-038562639108a42b.exe)
+     Running unittests src\lib.rs (target\x86_64-pc-windows-msvc\debug\deps\asl_dsp_rpc-0f5a9802df128fb7.exe)
+     Running unittests src\lib.rs (target\x86_64-pc-windows-msvc\debug\deps\asl_fleet_regression-1027dd80e053dc86.exe)
+     Running unittests src\lib.rs (target\x86_64-pc-windows-msvc\debug\deps\asl_gpu_uvm-b59d3e7e610e64ee.exe)
+     Running unittests src\lib.rs (target\x86_64-pc-windows-msvc\debug\deps\asl_hal-9f375261be5f938e.exe)
+test tests::test_kernel_physical_exceeds_platform_limit ... ok
+test tests::test_kernel_physical_overflow ... ok
+test tests::test_kernel_virtual_overflow ... ok
+test tests::test_valid_handover ... ok
+test tests::test_zero_kernel_size ... ok
+
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 4 tests
+test tests::test_cctv_dma_pipeline_channel_setup_and_frame_cycle ... ok
+test tests::tm08_cctv_stale_uv_lease_rejected_pre_doorbell ... ok
+test tests::test_cctv_vpu_lock_volatile_semantics ... ok
+test tests::tm_cctv_setup_rejects_before_any_state_change ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 4 tests
+test tests::test_all_shell_commands_and_unknown ... ok
+test tests::test_shell_backspace_and_empty ... ok
+test tests::test_shell_command_parsing ... ok
+test tests::test_shell_buffer_overflow_protection ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 4 tests
+test tests::test_absent_pci_device ... ok
+test tests::test_pci_hex_formatting_and_16bit_bounds ... ok
+test tests::test_valid_pci_device_and_bars ... ok
+test tests::test_ecam_out_of_bounds_bus_rejected ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 3 tests
+test tests::test_ps2_caps_lock_and_wraparound ... ok
+test tests::test_ps2_ring_buffer_fifo_and_overflow ... ok
+test tests::test_ps2_scancode_letters_and_modifiers ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 3 tests
+test tests::test_dsp_rpc_empty_poll ... ok
+test tests::test_dsp_rpc_invoke_and_poll_fifo ... ok
+test tests::test_dsp_rpc_capacity_and_wraparound ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 31 tests
+test apic::tests::test_apic_base_msr_constants_and_validation ... ok
+test apic::tests::test_apic_timer_tick_increment_and_heartbeat_hook ... ok
+test cache::tests::test_bounce_buffer_round_up_cache_line ... ok
+test apic::tests::test_apic_timer_constants_and_vectors ... ok
+test apic::tests::test_local_apic_init_and_periodic_timer_mock ... ok
+test cache::tests::test_bounce_buffer_policy_decisions ... ok
+test cache::tests::test_isolated_bounce_buffer_alignment_64 ... ok
+test dma_space::tests::test_iommu_cross_window_access_rejected_and_fault_recorded ... ok
+test dma_space::tests::tm02_pin_outside_region_and_misaligned_rejected ... ok
+test dma_space::tests::tm03_double_claim_same_range_rejected ... ok
+test dma_space::tests::tm01_pin_within_registered_region_succeeds ... ok
+test dma_space::tests::test_iommu_partition_b_memory_checksum_preserved_after_illegal_cross_partition_dma ... ok
+test dma_space::tests::test_iommu_static_map_within_window_success ... ok
+test dma_space::tests::tm04_slot_exhaustion_returns_out_of_slots ... ok
+test dma_space::tests::test_iommu_unmap_then_access_faults ... ok
+test dma_space::tests::tm07_read_only_pin_blocks_device_write ... ok
+test dma_space::tests::tm05_stale_lease_rejected_after_unpin_toctou ... ok
+test mmio::tests::test_mmio_register_read_write ... ok
+test dma_space::tests::tm08_iova_alloc_dealloc_and_default_trait_backends_reject_pin ... ok
+test dma_space::tests::tm06_bounce_stage_translate_and_cross_partition_denied ... ok
+test vtd::tests::qp02_root_table_walk_finds_dmar ... ok
+test vtd::tests::qp04_root_context_encoders ... ok
+test vtd::tests::qp03_dmar_drhd_parse ... ok
+test vtd::tests::qp01_rsdp_scan_and_checksum ... ok
+test vtd::tests::qp05_sl_walk_semantics ... ok
+test vtd::tests::qp06_backend_pin_translate_fault ... ok
+test vtd::tests::qp07_backend_alignment_bounds_slots ... ok
+test vtd::tests::qp08_ro_lease_and_dealloc_fails_closed ... ok
+test vtd::tests::qp09_iova_alloc_bump_and_repin ... ok
+test vtd::tests::qp10_unmapped_translate_walk_returns_notpresent ... ok
+test vtd::tests::qp11_sl_walk_hw_three_level_mirror ... ok
+
+test result: ok. 31 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src\lib.rs (target\x86_64-pc-windows-msvc\debug\deps\asl_kernel_core-b2a6d505c5b5012d.exe)
+
+running 10 tests
+test hardening_tests::test_carveout_rejects_outside_kernel_image ... ok
+test hardening_tests::test_carveout_rejects_misaligned_unordered_and_zero ... ok
+test hardening_tests::test_carveout_rejects_stack_overlap ... ok
+test hardening_tests::test_carveout_valid_layout ... ok
+test hardening_tests::test_carveout_rejects_virtual_overflow ... ok
+test hardening_tests::test_classify_stack_overflow_guard_hit_and_sp_below ... ok
+test hardening_tests::test_fb_arithmetic_edge_cases_fail_closed ... ok
+test hardening_tests::test_fb_in_framebuffer_or_reserved_region_passes ... ok
+test hardening_tests::test_fb_in_usable_ram_requires_full_reserve_coverage ... ok
+test hardening_tests::test_fb_overlap_poisoned_or_crossing_region_fails ... ok
+
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src\lib.rs 
+(target\x86_64-pc-windows-msvc\debug\deps\asl_kernel_core_secondary-e4439a405e487460.exe)
+
+running 14 tests
+test safe::tests::test_latch_armed_notify_records_via_engine_then_recovery ... ok
+test safe::tests::test_latch_guard_page_degraded_reason_recorded_in_engine ... ok
+test safe::tests::test_latch_arm_only_from_uninit ... ok
+test safe::tests::test_latch_recovery_terminal_counts_without_engine_reentry ... ok
+test safe::tests::test_latch_preinit_uninit_records_without_engine_touch ... ok
+test safe::tests::test_latch_concurrent_notify_counts_all_and_keeps_one_engine_writer ... ok
+test safe::tests::test_latch_stack_overflow_pf_signature_recovers_with_memory_integrity ... ok
+test tests::test_corrupted_handover_fails_to_recovery_failed ... ok
+test tests::test_diagnostic_log_bounding_and_truncation ... ok
+test tests::test_failover_state_machine_nominal_sequence ... ok
+test tests::test_failover_invalid_transition_fails_closed ... ok
+test tests::test_secondary_notify_fault_no_takeover ... ok
+test tests::test_operational_rearm_to_standby ... ok
+test tests::test_injected_fault_harness ... ok
+
+test result: ok. 14 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src\lib.rs (target\x86_64-pc-windows-msvc\debug\deps\asl_legacy_sandbox-660f2103c51fcade.exe)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src\lib.rs (target\x86_64-pc-windows-msvc\debug\deps\asl_memory-28968dd515bf7832.exe)
+
+running 17 tests
+test paging::tests::test_guard_page_not_mapped_without_pml4 ... ok
+test paging::tests::test_guard_page_on_unmapped_pd_installs_empty_pt ... ok
+test paging::tests::test_canonical_address_validation ... ok
+test paging::tests::test_address_space_mapping_and_translation ... ok
+test paging::tests::test_clone_kernel_space_isolation ... ok
+test paging::tests::test_guard_page_allocation_failure_keeps_huge_mapping_intact ... ok
+test paging::tests::test_guard_page_rejects_invalid_addresses ... ok
+test paging::tests::test_page_table_entry_flags_and_address ... ok
+test paging::tests::test_guard_page_splits_huge_page_and_clears_only_guard_leaf ... ok
+test paging::tests::test_paging_boundary_and_alignment_rejections ... ok
+test paging::tests::test_page_table_indices_decomposition ... ok
+test tests::test_buddy_allocator_64byte_alignment_for_dma_pool ... ok
+test tests::test_buddy_coalescing_full_cycle ... ok
+test tests::test_buddy_insufficient_memory ... ok
+test tests::test_buddy_allocator_init_and_allocate ... ok
+test tests::test_buddy_out_of_memory_graceful ... ok
+test tests::test_slab_cache_lifecycle ... ok
+
+test result: ok. 17 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src\lib.rs (target\x86_64-pc-windows-msvc\debug\deps\asl_mips_fastpath-87e5f0606b8c9d14.exe)
+
+running 2 tests
+test tests::test_mips_tlb_refill_fastpath ... ok
+test tests::test_mips_endianness_normalization_patterns ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src\lib.rs (target\x86_64-pc-windows-msvc\debug\deps\asl_mpu-39394701967de486.exe)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src\lib.rs (target\x86_64-pc-windows-msvc\debug\deps\asl_nano-ca8144f72d527edf.exe)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src\lib.rs (target\x86_64-pc-windows-msvc\debug\deps\asl_olt_carrier-72254e027a9a735d.exe)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src\lib.rs (target\x86_64-pc-windows-msvc\debug\deps\asl_ont_gpon-346b75011ad3c5fc.exe)
+
+running 2 tests
+test tests::test_gpon_optical_signal_states ... ok
+test tests::test_gpon_mock_hnat_behavior ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src\lib.rs (target\x86_64-pc-windows-msvc\debug\deps\asl_pmd-8e0d1612979e560f.exe)
+
+running 8 tests
+test tests::test_pmd_empty_rx_poll ... ok
+test tests::test_pmd_rx_poll_with_packets ... ok
+test tests::test_align01_descriptor_alignment_exact_64 ... ok
+test tests::test_align01_descriptor_size_exact_64 ... ok
+test tests::test_pmd_transmit_and_congestion ... ok
+test tests::test_align01_pool_aligned_accepted ... ok
+test tests::test_align01_pool_misaligned_rejected ... ok
+test tests::tm04_transmit_rejects_oversized_len_and_unaligned_lease ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src\lib.rs (target\x86_64-pc-windows-msvc\debug\deps\asl_power10_loongson-fc5df1a5c68885f4.exe)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src\lib.rs (target\x86_64-pc-windows-msvc\debug\deps\asl_s390x_mainframe-ab7a91c55caa9df4.exe)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src\lib.rs (target\x86_64-pc-windows-msvc\debug\deps\asl_sched-59e924b2315e4ad0.exe)
+
+running 12 tests
+test tests::test_gate3_cooperative_regression ... ok
+test tests::test_gate3b_test1_interrupt_context_layout_and_offsets ... ok
+test tests::test_gate3b_test7_stack_bounds_verification ... ok
+test tests::test_gate3b_test2_synthetic_initial_frame ... ok
+test tests::test_gate3b_test8_no_ready_task_path ... ok
+test tests::test_gate3b_test3_preemptive_tick_dispatch ... ok
+test tests::test_gate3c_faulted_task_exclusion ... ok
+test tests::test_gate3d_failure_injection_canary_corruption ... ok
+test tests::test_gate3c_three_task_fairness_telemetry ... ok
+test tests::test_gate3d_failure_injection_invalid_rsp ... ok
+test tests::test_gate3d_no_ready_task_fallback ... ok
+test tests::test_gate3d_failure_injection_non_canonical_rip ... ok
+
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src\lib.rs (target\x86_64-pc-windows-msvc\debug\deps\asl_security_vault-3b65dae280932d84.exe)
+
+running 5 tests
+test tests::test_memory_window_normal_range ... ok
+test tests::test_partition_verify_access_matrix ... ok
+test tests::test_memory_window_overflow_descriptor ... ok
+test tests::test_memory_window_overflow_request ... ok
+test tests::test_memory_window_zero_size ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src\lib.rs (target\x86_64-pc-windows-msvc\debug\deps\asl_space_tmr-817493c4f3d588ed.exe)
+
+running 4 tests
+test tests::test_sparc_atomic_u32_wraparound_defined ... ok
+test tests::test_sparc_atomic_u64_split_counter_interleaving_carry ... ok
+test tests::test_universal_atomic_u64_selection ... ok
+test tests::test_tmr_voting_and_scrubber ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src\lib.rs (target\x86_64-pc-windows-msvc\debug\deps\asl_storage-af6d236476256d97.exe)
+
+running 36 tests
+test tests::test_ata_timeout_and_error_handling ... ok
+test tests::test_ext4_superblock_parsing ... ok
+test tests::test_fat32_bpb_validation_and_cluster_math ... ok
+test tests::test_fat32_extreme_bpb_rejections_and_capacity ... ok
+test tests::test_fat32_fragmented_file_read_write_flush ... ok
+test tests::test_fat32_cyclic_cluster_chain_rejection ... ok
+test tests::test_fat32_full_read_write_directory_cycle ... ok
+test tests::test_fat32_illegal_clusters_and_write_bounds ... ok
+test tests::test_ext4_fail_closed_write_rejection ... ok
+test tests::test_fat32_large_file_exceeding_256_clusters ... ok
+test tests::test_gpt_crc_corruption_and_invalid_header_rejection ... ok
+test tests::test_gpt_crc32_and_bounds ... ok
+test tests::test_mbr_partition_parsing_and_boundary_validation ... ok
+test tests::test_raid0_member_failure_propagation ... ok
+test tests::test_gpt_raw_entry_linux_raid_guid_positive_and_negative ... ok
+test tests::test_raid0_striping_sector_mapping_across_boundaries ... ok
+test tests::test_raid1_degraded_mode_read_fallback_and_no_false_success ... ok
+test tests::test_raid0_creation_validation_and_rejections ... ok
+test tests::test_mbr_overlapping_partition_rejection ... ok
+test tests::test_raid1_flush_failure_propagation ... ok
+test tests::test_raid1_member0_failure_behavior_symmetric ... ok
+test tests::test_raid1_partial_write_failure_policy ... ok
+test tests::test_raid1_mirror_write_readback_and_consistency ... ok
+test tests::test_raid_metadata_crc32_known_answer_vector ... ok
+test tests::test_raid_boundary_heterogeneous_capacity_and_zero_sector_ops ... ok
+test tests::test_raid_metadata_generation_counter_wraparound ... ok
+test tests::test_raid_metadata_peer_compatibility ... ok
+test tests::test_raid_metadata_corruption_and_rejections ... ok
+test tests::test_raid_metadata_roundtrip_raid0_and_raid1 ... ok
+test tests::test_ramdisk_read_only_and_error_injection ... ok
+test tests::test_ramdisk_bounded_read_write ... ok
+test tests::test_vfs_directory_and_file_operations ... ok
+test tests::test_vfs_missing_device_and_unmounted_safety ... ok
+test tests::test_raid_metadata_operational_update_fault_injection_and_readback_tamper ... ok
+test tests::test_vfs_mounted_on_raid1_volume ... ok
+test tests::test_raid_metadata_reservation_and_lba0_protection ... ok
+
+test result: ok. 36 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running unittests src\lib.rs (target\x86_64-pc-windows-msvc\debug\deps\asl_tcam-f3e7642c1377be70.exe)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src\lib.rs (target\x86_64-pc-windows-msvc\debug\deps\asl_undi_npu-36073917dc72b77f.exe)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

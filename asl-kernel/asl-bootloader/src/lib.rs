@@ -291,7 +291,7 @@ mod tests {
     }
 
     #[test]
-    fn test_valid_handover() {
+    fn test_valid_handover_and_usable_memory_total() {
         let h = create_valid_handover();
         assert_eq!(h.validate(), Ok(()));
         assert_eq!(h.calculate_usable_memory(), 0x1000_0000);

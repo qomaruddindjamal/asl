@@ -1,0 +1,52 @@
+PHASE-7 T5 CLOSEOUT - PENGUKURAN ULANG GERBANG DI TIP (bukti mentah ter-filter)
+Dibuat oleh `logs/make_t5_evidence.py` (skrip scratch ter-ignore; berkas inilah bukti ter-commit-nya).
+Tip branch saat pengukuran: d2f63b72eb864596b3291ec5721555177fc6f439
+Status working tree (`git status --porcelain=v1`, baris terfilter, tanpa berkas ter-ignore):
+  ?? Analysis/reports/ci_hosted_39511692285_2026-10-20.log
+  ?? Analysis/reports/ci_hosted_39511696696_2026-10-20.log
+  ?? Analysis/reports/t5_closeout_measurements_2026-10-21.log
+
+=== [1] cargo test --workspace --lib (host Windows, logs/t5_gate_test.log) ===
+  exit code = 0 (tercatat pada saat eksekusi)
+  suite (baris "test result:") = 30 | passed = 172 | failed = 0
+  baris "test <nama> ... ok" (roster individu) = 172
+  baris "warning:" (profil test, non-blocking) = 21 | baris error = 0
+
+=== [2] cargo build --package asl-kernel-bin --target x86_64-unknown-none --release, DARI-NOL ===
+  (direktori target/x86_64-unknown-none/release dihapus lebih dulu; env RUSTFLAGS tidak dipasang)
+  exit code = 0 | baris "Compiling " = 13 | baris "warning:" = 0 | baris error = 0
+  Finished `release` profile [optimized] target(s) in 5.70s
+  ELF Windows tree ini = 243568 B | SHA256 3c9c4ee9c09123398835ad0779620327dee901a0a6f5de724eceb91b207c4248
+
+=== [3] ISO: dua invokasi `scripts/build_kernel.ps1 -Action iso` pada tree ini ===
+  Build A: 4118528 B | SHA256 da5b91f95cd10ed4844c4b189717c5bfd6e71c6c225fb02a83f600f5a7abce56
+  Build B: 4118528 B | SHA256 da5b91f95cd10ed4844c4b189717c5bfd6e71c6c225fb02a83f600f5a7abce56
+  byte-identik (A == B) = True | panjang A/B = 4118528 / 4118528
+  offset header GPT primer = 512 | Disk GUID = e181e879-31ec-3d41-a200-b4997a320a0d
+  ELF [2] ada di dalam ISO = True (kepala 128 B ELF muncul 1 kali)
+
+=== [4] Rantai hosted (`gh run list --workflow asl-ci-minimal --limit 100`) ===
+  baris = 35 | success = 35 | bukan-success = 0 | branch = feature/phase7 21, main 9, security/asl-v1.0.2-audit 5
+  berkas ekstrak ter-commit SEBELUM commit ini = 26 | yang ditambahkan commit ini = 2 (39511692285 push, 39511696696 pull_request @ d2f63b7) | sesudah commit ini = 28
+
+=== [5] Run atas commit T4: angka yang terekstrak (lihat dua berkas ci_hosted_* baru) ===
+  39511692285: suite=30 passed=172 failed=0 | ELF Linux = 243568 B | baris=107 byte=14891 non-ASCII=0 CRLF=0
+  39511696696: suite=30 passed=172 failed=0 | ELF Linux = 243568 B | baris=108 byte=14311 non-ASCII=0 CRLF=0
+
+=== [6] Stabilitas tabel coverage: 13 baris ringkasan pada ENAM ekstrak ter-commit ===
+  run 39508817039: 13 baris ringkasan diambil dari berkas TER-COMMIT ci_hosted_39508817039_2026-10-20.log | SHA256 blok = 13db7b350e6f215847a8e284cf2cdc35dca64fd7a7090218597a2abe83174aa0
+  run 39508823480: 13 baris ringkasan diambil dari berkas TER-COMMIT ci_hosted_39508823480_2026-10-20.log | SHA256 blok = 13db7b350e6f215847a8e284cf2cdc35dca64fd7a7090218597a2abe83174aa0
+  run 39506682088: 13 baris ringkasan diambil dari berkas TER-COMMIT ci_hosted_39506682088_2026-10-20.log | SHA256 blok = 13db7b350e6f215847a8e284cf2cdc35dca64fd7a7090218597a2abe83174aa0
+  run 39506688219: 13 baris ringkasan diambil dari berkas TER-COMMIT ci_hosted_39506688219_2026-10-20.log | SHA256 blok = 13db7b350e6f215847a8e284cf2cdc35dca64fd7a7090218597a2abe83174aa0
+  run 39511692285: 13 baris ringkasan diambil dari berkas TER-COMMIT ci_hosted_39511692285_2026-10-20.log | SHA256 blok = 13db7b350e6f215847a8e284cf2cdc35dca64fd7a7090218597a2abe83174aa0
+  run 39511696696: 13 baris ringkasan diambil dari berkas TER-COMMIT ci_hosted_39511696696_2026-10-20.log | SHA256 blok = 13db7b350e6f215847a8e284cf2cdc35dca64fd7a7090218597a2abe83174aa0
+  (keenam blok SAMA persis. Alasannya terukur di berkas ekstrak: berkas .rs yang berubah pada tree T4
+   bukan milik tiga crate yang diinstrumentasi job coverage, dan jumlah barisnya tidak bergerak)
+
+=== [7] Delta tree yang diuji hosted (dihitung dengan git, bukan dibaca mata) ===
+  `git diff --numstat 9d2ae57 d2f63b72eb864596b3291ec5721555177fc6f439 -- *.rs Cargo.toml Cargo.lock`:
+    5	5	asl-kernel/asl-kernel-core/src/lib.rs
+  jumlah baris lib.rs pada kedua rev = 2693 / 2693
+  `git diff --name-only 9d2ae57 d2f63b72eb864596b3291ec5721555177fc6f439` = 13 berkas (commit T4)
+
+Kelas bukti seluruh berkas ini: VERIFIED-ON-HOST (pengukuran di host Windows) untuk bagian [1]-[3] dan [7]; VERIFIED-ON-CI (angka yang berasal dari log runner Linux, ditandai per berkas) untuk bagian [4]-[6].

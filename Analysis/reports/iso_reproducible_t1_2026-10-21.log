@@ -1,0 +1,122 @@
+PHASE-7 T1 - ISO REPRODUCIBLE PER-PLATFORM (transkrip pengukuran, 2026-10-21)
+================================================================================
+Branch  : feature/phase7 (base main tip 6623dd8); commit tip sebelum commit T1 ini = b9a4057
+Host    : Windows 10.0.26200 x64, shell PowerShell 5.1.26100.7705 + Git Bash
+Alur    : scripts/build_kernel.ps1 -Action iso  (langkah [3/4] gerbang lokal)
+Konvensi tanggal: nama berkas memakai tanggal lokal (+0700), nilai di dalam berkas UTC.
+
+1. VERSI ALAT (diukur hari ini, bukan disalin dari dokumen lama)
+   xorriso : GNU xorriso 1.5.2 : RockRidge filesystem manipulator, libburnia project
+   limine  : Limine 8.7.0  (keluaran `limine.exe --version` dari asl-kernel/target/limine_v8_binary)
+             CATATAN DRIFT: dokumen AUD-02 menyebut "limine 8.4.1"; angka di atas yang terukur hari ini.
+   rustc   : 1.99.0 (b940084d7 2026-09-28)
+   cargo   : 1.99.0 (5f94df478 2026-08-27)
+   qemu    : QEMU emulator version 10.2.50 (v10.2.0-14086-g840320663e)
+   (rustc/cargo/QEMU berbeda dari "1.86.0-nightly" yang dikutip dokumen lama; tidak ada
+    perubahan kode .rs pada fase ini, jadi perbedaan itu hanya dicatat, tidak direkonsiliasi.)
+
+2. BASELINE PRA-T1 (artefak ter-commit)
+   ISO rilis v1.1.0 (CLOSEOUT T2, build di tip bb4a9df):
+     ukuran 4.118.528 B, SHA256 faca92f4e1e92b2ee5eb8d2e931c0b1a64df9c2035a308529e69d4e5128c8355
+     field tanggal PVD  : created = 2026102012363400, modified = 2026102012363400  (waktu generasi)
+     rujukan: Analysis/reports/iso_build_v1.1.0_2026-10-20.log, release_v1.1.0_SHA256SUMS_2026-10-20.txt
+   Transkrip langkah ISO pra-T1 (baseline pembanding keluaran xorriso):
+     Analysis/reports/ci_2026-10-20.log.step3_iso.log (1829 B, disahkan di T0)
+   Temuan yang ditutup: AUD-03 (docs/ROADMAP/AUDIT_ASL_AUD_03_ADVERSARIAL_PR2.md) - dua build
+     independen menghasilkan SHA256 ISO berbeda walau biner ELF di dalamnya identik.
+
+3. DIAGNOSIS AKAR NON-DETERMINISME (terukur, dua arah)
+   3a. xorriso menanam waktu generasi di Primary Volume Descriptor + menyalin mtime berkas
+       sumber ke Rock Ridge. Diperbaiki dengan --modification-date=<YYYYMMDDhhmmsscc> dan
+       --set_all_file_dates=<sama>, keduanya diberi nilai dari SOURCE_DATE_EPOCH.
+       Bukti perbaikan: ISO pasca-langkah-4 (build iso1 dan iso2) punya PVD created/modified
+       = 2026010100000000 pada KEDUA build, sedangkan baseline pra-T1 = 2026102012363400.
+   3b. `limine.exe bios-install` menulis Disk GUID acak di header GPT primer + cadangan dan
+       menurunkan Unique GUID tiap entri partisi darinya, lalu menyusun dua CRC32 yang mengikuti.
+       Bukti (dua build bersih HANYA dengan pin tanggal, tanpa pin GUID):
+         iso1 SHA256 230bc0aa38cd60549ccebf69d841bd9ff995a6440227072b98b2c2e6c9e52071
+         iso2 SHA256 84ac73f9298373963cfbeb75273417f136b8cd1640d1164bd86d3813f2c8331a
+         ELF di dalamnya IDENTIK: ee1274be011e90df57df52fb1944f40839df92206b8240214b0a459b0be2def2 (243.568 B)
+         selisih = 144 byte pada 12 run, seluruhnya struktur GPT:
+           0x210..0x213   (4)  HeaderCRC32 header primer          0x238..0x247 (16) Disk GUID primer
+           0x258..0x25b   (4)  PartitionEntryArrayCRC32 primer
+           0x410..0x41f   (16) Unique GUID entri 0                 0x490..0x49f (16) entri 1
+           0x510..0x51f   (16) Unique GUID entri 2
+           0x3e5a10..0x3e5a1f (16), 0x3e5a90..0x3e5a9f (16), 0x3e5b10..0x3e5b1f (16)  salinan array cadangan
+           0x3ed610..0x3ed613 (4), 0x3ed638..0x3ed647 (16), 0x3ed658..0x3ed65b (4)   header cadangan
+         Tidak ada satu byte pun yang berbeda di luar struktur GPT -> langkah mastering xorriso
+         sudah deterministik pada titik itu.
+
+4. PERUBAHAN YANG DIBUAT (satu berkas, bukan .rs)
+   scripts/build_kernel.ps1, aksi "iso":
+     - langkah 4: SOURCE_DATE_EPOCH dibaca bila bernilai digit (^\d{1,10}$), kalau tidak dipakai
+       konstanta baked 1767225600 = 2026-01-01T00:00:00Z; nilai itu dipakai untuk
+       --modification-date dan --set_all_file_dates xorriso.
+     - langkah 6 (baru): setelah bios-install, Disk GUID diganti nilai deterministik =
+       16 byte pertama SHA256("ASL-ISO-GPT:<epoch>") dengan nibble versi/variant RFC4122 dan
+       byte[9]=0; Unique GUID tiap entri partisi = GUID itu dengan byte[9]=indeks+1;
+       PartitionEntryArrayCRC32 (offset 88) dan HeaderCRC32 (offset 16, dihitung dengan field itu
+       dinolkan) dihitung ulang untuk header primer dan cadangan. Jika header "EFI PART" tidak
+       ditemukan, build STOP (fail-closed, tidak merilis image yang tidak di-pin).
+     - helper Get-Crc32 / Get-Slice / Set-UInt32Le memakai aritmetika Int64 dan konstanta desimal:
+       PowerShell 5.1 mem-parse literal heksa di atas 0x7FFFFFFF sebagai Int32 negatif sehingga
+       0xFFFFFFFF -bxor/-band melakukan sign-extension dan merusak CRC (terukur: crc32("123456789")
+       sempat menghasilkan 0xFFFFFFFFF273791B sebelum diperbaiki; sesudah perbaikan 0xCBF43926).
+   Nol berkas .rs berubah. Nol dependensi workspace baru (hanya .NET BCL: SHA256, BitConverter).
+
+5. PENGUKURAN PASCA-T1: DUA BUILD BERSIH, HOST DAN PLATFORM SAMA
+   Definisi "bersih" (dinyatakan eksplisit): `target/x86_64-unknown-none/release` dihapus,
+   ISO lama dihapus, salinan `iso_root/boot/asl-kernel.elf` dihapus; direktori `target/iso_root`
+   (staging Limine) dan `target/limine_v8_binary` DIPERTAHANKAN karena bukan keluaran cargo dan
+   diperlukan sebagai input mastering.
+   Build A: logs/t1_cleanA.log -> exit 0, 13 baris "Compiling", Finished release [optimized] in 6.78s
+            GUID dip-pin ke e181e879-31ec-3d41-a200-b4997a320a0d
+            ISO 4.118.528 B, SHA256 9cd49028d8b1b9b70d9316c9410a2902f20673cbb6c0ca5836dfe5808cc8e8f2
+   Build B: logs/t1_cleanB.log -> exit 0
+            ISO 4.118.528 B, SHA256 9cd49028d8b1b9b70d9316c9410a2902f20673cbb6c0ca5836dfe5808cc8e8f2
+   Bandingkan: `cmp logs/t1/cleanA.iso logs/t1/cleanB.iso` = KELUAR 0, 0 byte berbeda (nol run).
+   -> KRITERIA EXIT T1 TERPENUHI pada host+platform ini: DUA build bersih, SHA256 ISO IDENTIK.
+   Salinan biner kedua ISO hidup hanya di logs/t1/ (direktori ter-ignore **/logs/); angka di atas
+   adalah hasil ukur terhadap salinan tersebut, dan transkrip ini adalah bukti ter-commit-nya.
+
+6. VALIDASI TAMBAHAN
+   6a. Jalur SOURCE_DATE_EPOCH: dua build dengan SOURCE_DATE_EPOCH=1700000000 ->
+       PVD created/modified = 2023111422132000, GUID = d86dec7b-2df4-4b49-b100-3b4e4941a550,
+       ISO epochD dan epochE sama-sama SHA256 6be74c3537de225720b3e9e57fc9b4c0b559b7caa603d026125cfbdc2b52a3ef
+       (cmp = 0 byte berbeda). Membuktikan pin tanggal DAN pin GUID keduanya bekerja lewat env,
+       dan bahwa perubahan hash datang dari pin, bukan kebetulan.
+   6b. Struktur GPT divalidasi parser independen (Python binascii.crc32 + struct, bukan kode build):
+       header primer di 0x200 (myLBA 1, backupLBA 8043, FirstUsable 64, LastUsable 7980, 44 entri x 128 B,
+       array di LBA 2 = 0x400) dan header cadangan di 0x3ed600 (array di LBA 7981 = 0x3e5a00).
+       Hasil: Disk GUID kedua header = nilai pin; array CRC32 dan header CRC32 KEDUA header cocok
+       dengan nilai yang dihitung ulang; entri: Gap0 (64..127), "EFI boot partition" (128..5887),
+       Gap1 (5888..7979), Unique GUID = basis pin dengan byte[9] = 01/02/03.
+   6c. Boot check image ter-pin (QEMU 10.2.50, -machine q35 -vga std -m 256M -cdrom, headless
+       `-display none`): log harness logs/t1_boot_check.ps1 atas logs/t1/cleanA.iso ->
+       "RESULT reached=True m6=True crash=False serial_lines=55 stderr_lines=0", BOOT CHECK: PASS.
+       KATEGORI BUKTI: VERIFIED-ON-VM (smoke rutin setara langkah [3/4] gerbang lokal), BUKAN
+       run penerimaan G9 dan BUKAN VERIFIED-ON-HARDWARE. Jalur boot UEFI (ESP) tidak dilatih
+       lokal, sama seperti fase-fase sebelumnya; yang divalidasi untuk jalur itu hanyalah
+       konsistensi struktur GPT di 6b.
+   6d. Gerbang G4 pada tree ini:
+       [1] cargo test --workspace --target x86_64-pc-windows-msvc --lib -> 30 suite, 172 passed / 0 failed
+           (21 baris warning milik profil test, non-blocking; exit 0) - logs/t1_gate_test.log
+       [2] cargo build --package asl-kernel-bin --target x86_64-unknown-none --release -> exit 0,
+           0 baris warning, 0 baris error; build dari-nol yang sebenarnya terjadi di Build A
+           (13 baris "Compiling", Finished in 6.78s) - logs/t1_cleanA.log, logs/t1_gate_build.log
+       ELF hasil: 243.568 B (Windows). rujukan silang: hosted CI Linux melaporkan 243.560 B.
+
+7. BATAS YANG DINYATAKAN TERANG
+   - Reprosibilitas diukur pada SATU host+platform (Windows/cygwin-xorriso). Klaimnya adalah
+     "reproducible PER-PLATFORM", bukan "identik antar-platform". Delta antar-platform (ELF 8 B:
+     243.568 vs 243.560) DIDOKUMENTASIKAN dan BUKAN target, sesuai instruksi PHASE-7; host Linux
+     tidak dapat menjalankan langkah ISO ini di CI hosted (butuh xorriso build cygwin, path
+     /cygdrive, dan Limine lokal), jadi belum ada pengukuran pair Linux->Linux.
+   - Konstanta epoch baked 1767225600 membuat build default dua host yang sama identik; bila
+     operator ingin ISO merefleksikan waktu rilis, set SOURCE_DATE_EPOCH secara eksplisit.
+   - scripts/test_hv2_stack_overflow_qemu.ps1 punya pemanggilan xorriso sendiri (membangun ISO
+     tersuntik untuk pengujian negatif HV-2) dan TIDAK diubah pada T1; jalur ISO non-kanonik itu
+     masih non-reproducible. Jalur kanonik = scripts/build_kernel.ps1 yang dipakai ci_local.ps1 [3/4].
+   - Tidak ada penghapusan bukti lama: ISO pra-T1 yang identik dengan artefak rilis disalin ke
+     logs/pre_t1/ (ter-ignore) sebelum rebuild; SHA256-nya faca92f4... tetap sah sebagai hash
+     rilis v1.1.0 yang ter-commit di Analysis/reports/release_v1.1.0_SHA256SUMS_2026-10-20.txt.

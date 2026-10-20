@@ -211,3 +211,18 @@ Status audit dibedakan secara ketat dan transparan:
 **Rekomendasi:** **`APPROVE`**
 
 > Seluruh merge-blocking checks, pengujian adversarial, dan verifikasi empiris cold-boot ISO final pada commit `f2eb303` telah tervalidasi sukses (PASS). PR #2 siap untuk ditinjau dan disetujui oleh Human Reviewer sebelum digabungkan ke branch `main`.
+
+---
+
+## 11. CATATAN STATUS APPEND-ONLY — PHASE-7 T1 (2026-10-21)
+
+> Ditambahkan di atas teks audit asli; **tidak ada butir §1–§10 yang diubah atau dihapus**, termasuk angka `73CE11DE...` di §2 yang tetap sah sebagai pengukuran era AUD-03.
+
+Temuan reproducible ISO di §2 butir 1 dan §1 (SHA256 ISO bergantung pada timestamp generasi `xorriso`) kini **tertutup untuk jalur build kanonik** (`scripts/build_kernel.ps1`, aksi `iso`), dengan satu koreksi penting pada diagnosis:
+
+1. **Akar (a) — stempel waktu xorriso** (Volume Descriptor + mtime berkas sumber yang disalin). Ditangani oleh `--modification-date=<YYYYMMDDhhmmsscc>` dan `--set_all_file_dates=<sama>`, bernilai dari `SOURCE_DATE_EPOCH` (konstanta baked default `1767225600` = 2026-01-01T00:00:00Z).
+2. **Akar (b) — tidak tercatat di AUD-03 dan ditemukan lewat pengukuran di PHASE-7 T1**: `limine.exe bios-install` menulis **Disk GUID acak** pada header GPT primer+cadangan, plus Unique GUID tiap entri partisi yang diturunkan darinya, serta `HeaderCRC32` dan `PartitionEntryArrayCRC32` yang mengikuti. Bukti terukur: dua build bersih dengan **pin tanggal saja** tetap berbeda (`230bc0aa...` vs `84ac73f9...`) dengan ELF identik; selisih = **144 byte pada 12 run**, seluruhnya di dalam struktur GPT. Limine 8.7.0 tidak menyediakan opsi pin GUID, jadi build script menurunkan GUID dari epoch (`SHA256("ASL-ISO-GPT:<epoch>")`, versi/variant RFC 4122 dipaksa) dan menghitung ulang kedua CRC; langkah ini **fail-closed** (build STOP bila header `EFI PART` tidak ditemukan).
+
+Hasil ukur pasca-T1 (satu host Windows, xorriso cygwin): dua build bersih => **SHA256 ISO identik** `9CD49028D8B1B9B70D9316C9410A2902F20673CBB6C0CA5836DFE5808CC8E8F2`, `cmp` 0 byte berbeda; pasangan `SOURCE_DATE_EPOCH` juga identik; struktur GPT image ter-pin tervalidasi oleh parser independen; image ter-pin tetap cold-boot di QEMU (`M6` + `ASL-OS>`, 55 baris serial) dan dikategorikan **VERIFIED-ON-VM smoke**, bukan run penerimaan G9.
+
+Batas yang dinyatakan: reproduksibilitas diukur **per-platform** (pasangan Linux→Linux belum terukur karena CI hosted tidak menjalankan langkah ISO), delta biner antar-platform 8 B tetap **dokumentasi bukan target**, dan jalur ISO non-kanonik `scripts/test_hv2_stack_overflow_qemu.ps1` tidak diubah sehingga masih non-reproducible. Bukti lengkap: [`Analysis/reports/phase7_t1_iso_reproducible_2026-10-21.md`](file:///c:/asl/Analysis/reports/phase7_t1_iso_reproducible_2026-10-21.md) dan transkrip [`Analysis/reports/iso_reproducible_t1_2026-10-21.log`](file:///c:/asl/Analysis/reports/iso_reproducible_t1_2026-10-21.log).

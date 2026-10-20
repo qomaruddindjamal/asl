@@ -412,7 +412,7 @@ pub mod safe {
         }
 
         #[test]
-        fn test_latch_guard_page_degraded_reason_recorded_in_engine() {
+        fn test_latch_guard_page_degraded_reason_recorded_in_latch() {
             let latch = FaultLatch::new();
             assert!(latch.arm());
             latch.notify_fault(REASON_STACK_GUARD_DEGRADED, 12);

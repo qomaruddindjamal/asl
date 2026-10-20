@@ -254,6 +254,24 @@
       "correction": "Akar kedua ditemukan lewat pengukuran byte-run (12 build, diff per offset), lalu ditutup di jalur build kanonik dan didokumentasikan append-only: laporan baru `Analysis/reports/phase7_t1_iso_reproducible_2026-10-21.md` + transkrip `Analysis/reports/iso_reproducible_t1_2026-10-21.log`; annotasi append-only di README §6/§7, RELEASE_NOTES §0.1 baris ISO + §0.4 + §0.5 baris ISO + §0.6, catatan status §11 di `docs/ROADMAP/AUDIT_ASL_AUD_03_ADVERSARIAL_PR2.md`, dan §10 baru `QODER_FINAL_REPORT.md` (teks §8/§9 lama tetap terbaca sebagai yang dikoreksi). Nol riwayat git ditulis-ulang (G8): commit T1 dibuat di atas tip `feature/phase7` `b9a4057`.",
       "prevented_by": "Eksperimen terkontrol sebelum menulis kode: (1) pin tanggal saja -> masih beda, (2) diff byte per offset -> lokasinya GPT, (3) parser independen -> struktur tetap valid setelah patch. Build script kini fail-closed bila pin tidak bisa diterapkan, sehingga 'image tidak ter-pin' tidak mungkin lolos diam-diam.",
       "violations_recorded_delta": 0
+    },
+    {
+      "date": "2026-10-20T20:30:14Z",
+      "actor": "QODER (agen) - PHASE-7 T1 susulan",
+      "type": "EVIDENCE_METRIC_MISSTATED_IN_COMMITTED_DOCS",
+      "gate_id": "G7 (jangan mengarang angka) / R1 (log bukti append-only)",
+      "result": "CLOSED",
+      "evidence": [
+        "Commit `eaea57c` [PHASE-7-1] mengutip `Analysis/reports/iso_reproducible_t1_2026-10-21.log` sebagai '123 baris ASCII' di tiga tempat (laporan T1 §6, `QODER_FINAL_REPORT.md` §10 baris Bukti, `HANDOFF_STATE.json` phase7_t1_state). Terukur hari ini dengan `wc -l` dan penghitungan byte: berkas itu punya **122** baris (122 karakter newline, file diakhiri newline), ASCII murni (non-ASCII 0), 9.755 B. Jadi 123 adalah salah hitung, bukan pembulatan.",
+        "Isi transkrip tidak tersentuh oleh koreksi ini: SHA256/ukuran ISO, daftar offset byte GPT, tabel build A/B, hasil epoch-override, hasil boot check, dan angka gerbang semuanya tetap. Yang salah hanyalah satu angka meta (jumlah baris berkas bukti), sehingga tidak ada klaim teknis yang berubah nilai - tetapi G7 melarang angka yang tidak terukur sekecil apa pun, dan disiplin yang dipakai sejak #14/#15 adalah mengkoreksi di commit BARU yang menyebut commit yang dikoreksi.",
+        "Koreksi dilakukan append-only di tempat masing-masing (teks '123 baris' tetap terbaca dengan annotasi koreksi di sampingnya, bukan dihapus diam-diam): `Analysis/reports/phase7_t1_iso_reproducible_2026-10-21.md` §6 + §8, `QODER_FINAL_REPORT.md` §10, `HANDOFF_STATE.json` phase7_t1_state. Riwayat git tidak ditulis-ulang (G8): commit koreksi dibuat di atas tip `feature/phase7` `eaea57c`.",
+        "Bersamaan commit ini, hitungan bukti hosted disinkronkan karena ada enam ekstrak ter-commit baru (empat run branch fitur tertunda + dua run atas `eaea57c`): total run `asl-ci-minimal` conclusion=success = **21** (14 rantai `main` 8b829d8 -> 6623dd8 + 7 `feature/phase7`), tingkat bukti **14 / 5 / 2**. Semua angka itu dihitung ulang dari teks log yang diekstrak (30 suite 172 passed / 0 failed, 13 baris `Compiling` + `Finished`, 0 `warning:` / 0 `error:` pada langkah release dengan 21 baris warning milik profil test, ELF Linux 243.560 B) dan dari `gh run list --workflow asl-ci-minimal --limit 60 --json databaseId,headSha,conclusion,event`."
+      ],
+      "notes": "Kesalahan terdeteksi oleh pengecekan sendiri sesudah commit, sebelum ada pihak luar yang membaca; tidak ada angka gerbang (172/0, 0/0, 243.568/243.560 B, 4.118.528 B) yang berubah, dan tidak ada artefak bukti yang hilang. Dua run atas commit T1 `eaea57c` (39491506434 push, 39491517474 pull_request) hijau, jadi G5 tidak terpicu.",
+      "root_cause": "Jumlah baris dikutip dari ingatan sesi kerja (angka antara saat menyusun berkas) dan tidak di-verifikasi ulang dengan `wc -l`/hitung byte sebelum dokumen di-commit, padahal berkasnya sendiri ada di tree.",
+      "correction": "Angka dikoreksi menjadi 122 dengan annotasi append-only di tiga dokumen yang mengutipnya; penegasan metode (`wc -l` = 122 newline, file diakhiri newline) ditambahkan; ratifikasi pada commit [PHASE-7-1b] di atas `eaea57c` (nol amend/rebase/reset).",
+      "prevented_by": "Aturan verifikasi akhir per dokumen: setiap 'jumlah baris/ukuran/hash' yang dikutip dalam dokumen harus dihasilkan dari perintah pengukuran pada saat commit, bukan dari catatan antara - akan dipakai sebagai check standar pada closeout T5.",
+      "violations_recorded_delta": 0
     }
   ]
 }

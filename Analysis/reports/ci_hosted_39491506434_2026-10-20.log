@@ -1,0 +1,67 @@
+HOSTED CI EVIDENCE - workflow asl-ci-minimal, run 39491506434 (run push branch fitur feature/phase7 (PHASE-7 T1, bukti untuk commit [PHASE-7-1]))
+Ekstrak ter-filter dari `gh run view 39491506434 --log` (836 baris mentah; sekuens warna dibuang, kolom job/step diringkas; job = test-and-build).
+Branch teruji: feature/phase7 | headSha: eaea57cb16f1a61b6da5ae74e7d56267eaf0d831
+Metadata run: {"conclusion": "success", "createdAt": "2026-10-20T20:23:06Z", "databaseId": 39491506434, "displayTitle": "[PHASE-7-1] T1: ISO reproducible per-platform - kriteria exit TERUKUR\u2026", "event": "push", "headBranch": "feature/phase7", "headSha": "eaea57cb16f1a61b6da5ae74e7d56267eaf0d831", "updatedAt": "2026-10-20T20:23:19Z", "workflowName": "asl-ci-minimal"}
+Ekstraksi dilakukan 2026-10-21 03:29 +0700 (= 2026-10-20T20:29Z); penanggalan berkas mengikuti tanggal run (2026-10-20).
+
+=== [1/2] cargo test --workspace --lib  (baris 'test result:' per suite) ===
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 31 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 14 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 17 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 36 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+--- TOTAL TERHITUNG DARI 30 SUITE: 172 passed, 0 failed ---
+--- warning profil test terhitung pada langkah [1/2]: 21 baris (non-blocking; gerbang 0-warning misi berlaku untuk build RELEASE) ---
+
+=== [2/2] cargo build --package asl-kernel-bin --target x86_64-unknown-none --release ===
+Compiling asl-bootloader v0.1.0 (/home/runner/work/asl/asl/asl-kernel/asl-bootloader)
+Compiling asl-driver-pci v0.1.0 (/home/runner/work/asl/asl/asl-kernel/asl-driver-pci)
+Compiling asl-driver-ps2-keyboard v0.1.0 (/home/runner/work/asl/asl/asl-kernel/asl-driver-ps2-keyboard)
+Compiling asl-kernel-bin v0.1.0 (/home/runner/work/asl/asl/asl-kernel/asl-kernel-bin)
+Compiling asl-memory v0.1.0 (/home/runner/work/asl/asl/asl-kernel/asl-memory)
+Compiling asl-cockpit-shell v0.1.0 (/home/runner/work/asl/asl/asl-kernel/asl-cockpit-shell)
+Compiling asl-storage v0.1.0 (/home/runner/work/asl/asl/asl-kernel/asl-storage)
+Compiling asl-security-vault v0.1.0 (/home/runner/work/asl/asl/asl-kernel/asl-security-vault)
+Compiling asl-sched v0.1.0 (/home/runner/work/asl/asl/asl-kernel/asl-sched)
+Compiling asl-afdx-ipc v0.1.0 (/home/runner/work/asl/asl/asl-kernel/asl-afdx-ipc)
+Compiling asl-hal v0.1.0 (/home/runner/work/asl/asl/asl-kernel/asl-hal)
+Compiling asl-kernel-core-secondary v0.1.0 (/home/runner/work/asl/asl/asl-kernel/asl-kernel-core-secondary)
+Compiling asl-kernel-core v0.1.0 (/home/runner/work/asl/asl/asl-kernel/asl-kernel-core)
+Finished `release` profile [optimized] target(s) in 1.55s
+  (13 baris `Compiling` + 1 baris `Finished` = langkah benar-benar berjalan, bukan cache)
+  (terukur pada langkah ini: 0 baris `warning:`, 0 baris `error:`; 21 baris warning lainnya milik langkah [1/2] profil test)
+  (runner hosted sengaja TIDAK memasang env RUSTFLAGS: env menggantikan rustflags asl-kernel/.cargo/config.toml sehingga linking rusak.)
+
+=== langkah 'Bukti footprint ELF hasil build' ===
+-rwxr-xr-x 2 runner runner 243560 Oct 20 20:23 target/x86_64-unknown-none/release/asl-kernel
+
+=== Catatan kejujuran cakupan ===
+- Hosted hanya menegakkan langkah [1]-[2]; langkah [3] QEMU cold-boot dan [4] ringkasan TIDAK dijalankan hosted. Bukti langkah [3] = run penerimaan berjendela (G9/G9-lite) + `scripts/ci_local.ps1` lokal.
+- commit yang diuji (eaea57c = [PHASE-7-1]) adalah commit PHASE-7 PERTAMA yang mengubah berkas non-dokumen: scripts/build_kernel.ps1 (jalur build ISO, aksi iso). Berkas PowerShell tidak dikompilasi dan tidak dipakai workflow hosted (langkah ISO tidak berjalan hosted), dan nol berkas .rs berubah, sehingga angka test/build/ELF yang dihasilkan tree tetap harus sama - dan memang sama. Justru karena ada perubahan jalur build, gerbang G4 direplikasi LOKAL pada tree ini (30 suite 172 passed/0 failed; release 0 warning/0 error) dan tercatat di Analysis/reports/iso_reproducible_t1_2026-10-21.log.
+- ELF Linux 243.560 B vs Windows 243.568 B = delta pautan 8 B antar-platform; biner yang di-boot pada run berjendela adalah yang Windows. Riwayat: Analysis/reports/elf_footprint_history.txt. Reproduksibilitas ISO pasca-PHASE-7 T1 berlaku PER-PLATFORM (dua build bersih Windows => SHA256 identik 9cd49028...); langkah ISO tidak berjalan hosted sehingga pasangan Linux->Linux tidak terukur di sini.
+- RANTAI HOSTED: 21 run asl-ci-minimal conclusion=success secara total (terukur lewat `gh run list --workflow asl-ci-minimal --limit 60 --json databaseId,headSha,conclusion,event`) = 14 pada rantai main 8b829d8 -> 6623dd8 + 7 run branch fitur feature/phase7: 39486017207 @ 7e2ac24 (push), 39486751618 @ 0a49ba7 (push), 39487122265 @ 0a49ba7 (pull_request), 39488022468 @ b9a4057 (push), 39488028743 @ b9a4057 (pull_request), 39491506434 @ eaea57c (push), 39491517474 @ eaea57c (pull_request). Yang TIDAK dihitung sebagai run asl-ci-minimal: 39417510019 @ cc3fe28 dan sembilan run 2026-10-17 ber-event dynamic.

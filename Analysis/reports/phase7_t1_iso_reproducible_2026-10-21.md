@@ -123,7 +123,7 @@ yang validated hanyalah konsistensi struktur GPT di 4.2. Run G9 PHASE-7 yang dis
 | `docs/ROADMAP/HANDOFF_STATE.json` | `active_phase`, `next_immediate_step`, kunci `phase7_t1_state` baru, `timestamp` | T1 belum dimulai | T1 selesai, langkah berikutnya T2 (coverage) |
 | `docs/ROADMAP/ACCOUNTABILITY_FAULT_LOG.json` | `fault_history` | 15 entri | **16** entri: ratifikasi keputusan pin GPT GUID + kategorisasi boot check (`ISO_REPRODUCIBILITY_GPT_GUID_PINNING_DECISION`, CLOSED); `violations_recorded` tetap **0** |
 
-Bukti: `Analysis/reports/iso_reproducible_t1_2026-10-21.log` (123 baris ASCII) dan laporan ini.
+Bukti: `Analysis/reports/iso_reproducible_t1_2026-10-21.log` (123 baris ASCII) dan laporan ini. **[KOREKSI APPEND-ONLY `[PHASE-7-1b]`: jumlah baris transkrip itu terukur 122 lewat `wc -l`, bukan 123; salah hitung ini terjadi pada commit `eaea57c` dan dikoreksi di commit berikutnya tanpa menyentuh commit itu (G8). Isi transkrip tidak berubah.]**
 Nol berkas `.rs`, nol `Cargo.toml`/`Cargo.lock`, nol `CHECKLIST_STATE.json`.
 
 ## 7. Kepatuhan G8
@@ -132,3 +132,31 @@ Commit T1 ini dibuat di atas tip `feature/phase7` `b9a4057` sebagai commit baru 
 hash yang dikutip di dalam dokumen (`b9a4057`, `6623dd8`, `0a49ba7`) semuanya commit yang sudah ada. Run CI atas
 commit T1 ini dilaporkan lewat check PR dan ekstrak log mentahnya masuk repo pada commit docs-only berikutnya
 (pola anti-regres yang sama seperti T0 §6).
+
+## 8. Susulan `[PHASE-7-1b]` - ekstrak CI atas commit T1 dan commit sebelumnya yang tertunda
+
+Commit T1 `eaea57c` diuji dua kali hosted dan **keduanya hijau** (terukur `gh run list --workflow asl-ci-minimal --json databaseId,headSha,conclusion,event`):
+
+| run | event | headSha | createdAt -> updatedAt | kesimpulan |
+|---|---|---|---|---|
+| `39491506434` | push | `eaea57c` | 2026-10-20T20:23:06Z -> 20:23:19Z | success |
+| `39491517474` | pull_request (PR #4) | `eaea57c` | 2026-10-20T20:23:10Z -> 20:23:34Z | success |
+
+Ini penting karena `eaea57c` adalah commit PHASE-7 **pertama yang mengubah berkas non-dokumen** (`scripts/build_kernel.ps1`): gerbang G5 ("CI merah = STOP") terbukti tidak terpicu pada perubahan jalur build, dan karena berkas PowerShell itu tidak dikompilasi maupun dipakai workflow (langkah ISO tidak berjalan hosted), angka tree yang diuji tetap sama - **terukur dari teks log**, bukan diasumsikan: 30 suite **172 passed / 0 failed**, 13 baris `Compiling` + `Finished`, **0 `warning:` / 0 `error:`** pada langkah release (21 baris warning milik profil test di langkah `[1/2]`, non-blocking), ELF Linux **243.560 B**.
+
+Bersamaan itu, empat ekstrak run branch fitur yang sebelumnya tertunda ikut masuk repo, sehingga celah "log mentah hanya ada di `logs/`" (tingkat 2 pada T0 §5.1) tertutup untuk keenam run tersebut:
+
+| berkas baru | run | event | commit teruji |
+|---|---|---|---|
+| `Analysis/reports/ci_hosted_39486751618_2026-10-20.log` | 39486751618 | push | `0a49ba7` [PHASE-7-0c] |
+| `Analysis/reports/ci_hosted_39487122265_2026-10-20.log` | 39487122265 | pull_request | `0a49ba7` (merge ref PR #4) |
+| `Analysis/reports/ci_hosted_39488022468_2026-10-20.log` | 39488022468 | push | `b9a4057` [PHASE-7-0d] |
+| `Analysis/reports/ci_hosted_39488028743_2026-10-20.log` | 39488028743 | pull_request | `b9a4057` (merge ref PR #4) |
+| `Analysis/reports/ci_hosted_39491506434_2026-10-20.log` | 39491506434 | push | `eaea57c` [PHASE-7-1] |
+| `Analysis/reports/ci_hosted_39491517474_2026-10-20.log` | 39491517474 | pull_request | `eaea57c` (merge ref PR #4) |
+
+Keenamnya 67-68 baris ASCII (non-ASCII 0), dibuat dengan penyaring per langkah dari `gh run view <id> --log` (836-857 baris mentah per run): metadata run + daftar `test result:` per suite dan total terhitung + baris `Compiling`/`Finished` + hitung `warning:`/`error:` per langkah + baris `ls -l` ELF + catatan cakupan. Berkas mentah tetap hanya ada di `logs/` (ter-ignore); yang diaudit dari repo adalah ekstrak ini, dan pola G8 tetap berlaku - ekstrak run atas commit `eaea57c` masuk lewat commit `eaea57c`+1, bukan dengan amend.
+
+**Dampak pada hitungan bukti (sinkron append-only di README §6, RELEASE_NOTES §0.1/§0.6, `QODER_FINAL_REPORT` §7 butir 5):** total run `asl-ci-minimal` hijau = **21** (14 rantai `main` + 7 `feature/phase7`), tingkat bukti tertinggi (ekstrak ter-commit) = **14**, tingkat 2 = **5**, tingkat 3 = **2**. Rinciannya: 7 ekstrak pada rantai `main` + 7 ekstrak pada `feature/phase7` (yang terakhir = `39486017207` yang sudah masuk sejak `[PHASE-7-0c]` + enam berkas baru di atas). Angka gerbang tidak berubah sedikit pun.
+
+**Koreksi yang dibawa commit ini:** klaim "123 baris" pada §6 laporan ini dan tiga rujukannya di dokumen lain (transkrip T1 sebenarnya **122** baris). Dikoreksi append-only di tempat masing-masing dan diratifikasi sebagai fault log entri **#17** (`violations_recorded` tetap 0).

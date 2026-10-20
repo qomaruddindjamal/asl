@@ -2,7 +2,7 @@
 //! =====================================================
 //! Standar DO-178C DAL-A & Allocation-Free Command Interpreter.
 //! Menghadirkan prompt interaktif:
-//! `ASL-OS> `
+//! `ASL-KERNEL> ` (satu-sumber: konstanta `SHELL_PROMPT` di berkas ini)
 //! Perintah bawaan:
 //! - `help`    : Menampilkan daftar perintah
 //! - `clear`   : Membersihkan layar
@@ -16,7 +16,13 @@
 #![no_std]
 
 pub const SHELL_BUFFER_MAX: usize = 128;
-pub const PROMPT_STRING: &str = "ASL-OS> ";
+
+/// Identitas rilis kernel: SATU-SUMBER untuk lima situs tampil
+/// (logo, VGA, framebuffer, serial, uname) di asl-kernel-core.
+pub const KERNEL_VERSION: &str = "v1.0.2";
+
+/// Prompt shell: SATU-SUMBER untuk seluruh situs tampil. Tanpa posisi folder.
+pub const SHELL_PROMPT: &str = "ASL-KERNEL> ";
 
 /// Perintah Shell yang dikenali
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -254,5 +260,17 @@ mod tests {
         // Pastikan panjang string terpotong aman pada SHELL_BUFFER_MAX - 1 (127)
         assert_eq!(shell.current_line().len(), SHELL_BUFFER_MAX - 1);
         assert_eq!(shell.handle_char(b'\n'), Some(ShellCommand::Unknown));
+    }
+
+    #[test]
+    fn test_identitas_rilis_satu_sumber() {
+        // Janji misi v1.0.2 Bagian 1.1: prompt polos, TANPA posisi folder di prompt.
+        assert_eq!(SHELL_PROMPT, "ASL-KERNEL> ");
+        assert!(SHELL_PROMPT.ends_with("> "));
+        assert!(!SHELL_PROMPT.contains('/'));
+        assert!(!SHELL_PROMPT.contains('\\'));
+        // Identitas rilis dibaca dari satu konstanta oleh seluruh situs tampil.
+        assert_eq!(KERNEL_VERSION, "v1.0.2");
+        assert!(KERNEL_VERSION.starts_with('v'));
     }
 }

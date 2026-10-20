@@ -1123,7 +1123,8 @@ pub unsafe extern "C" fn _asl_kernel_entry(handover_ptr: *const AslBootHandover)
         "[ASL-CORE] M6: Kernel Cold Boot Complete. Entering Deterministic Idle Loop.\n",
     );
 
-    let logo = "       ___    ____    __   \n      /   |  / __/   / /   \n     / /| |  \\ \\    / /    \n    / ___ | _/ /   / /___  \n   /_/  |_|/___/  /_____/  \n\n   ASL Kernel v1.1.0\n   Selamat Datang Di ASL Kernel\n\n";
+    let logo_head = "       ___    ____    __   \n      /   |  / __/   / /   \n     / /| |  \\ \\    / /    \n    / ___ | _/ /   / /___  \n   /_/  |_|/___/  /_____/  \n\n   ASL Kernel ";
+    let logo_tail = "\n   Selamat Datang Di ASL Kernel\n\n";
 
     #[cfg(target_arch = "x86_64")]
     {
@@ -1132,22 +1133,30 @@ pub unsafe extern "C" fn _asl_kernel_entry(handover_ptr: *const AslBootHandover)
 
         // Render to legacy VGA text buffer
         (*vga).set_color(0x0F); // White
-        (*vga).write_str(logo);
+        (*vga).write_str(logo_head);
+        (*vga).write_str(asl_cockpit_shell::KERNEL_VERSION);
+        (*vga).write_str(logo_tail);
 
         // Render to Linear Framebuffer (VBE / GOP)
         (*fb).set_fg_color(0x00FFFFFF); // White
-        (*fb).write_str(logo);
+        (*fb).write_str(logo_head);
+        (*fb).write_str(asl_cockpit_shell::KERNEL_VERSION);
+        (*fb).write_str(logo_tail);
 
         if kernel_init_ok {
             (*vga).set_color(0x0A); // Light Green
             (*vga).write_str("   [ OK ] ");
             (*vga).set_color(0x0F);
-            (*vga).write_str("Kernel initialized: ASL Core Kernel v1.1.0\n");
+            (*vga).write_str("Kernel initialized: ASL Core Kernel ");
+            (*vga).write_str(asl_cockpit_shell::KERNEL_VERSION);
+            (*vga).write_str("\n");
 
             (*fb).set_fg_color(0x0000FF00); // Green
             (*fb).write_str("   [ OK ] ");
             (*fb).set_fg_color(0x00FFFFFF);
-            (*fb).write_str("Kernel initialized: ASL Core Kernel v1.1.0\n");
+            (*fb).write_str("Kernel initialized: ASL Core Kernel ");
+            (*fb).write_str(asl_cockpit_shell::KERNEL_VERSION);
+            (*fb).write_str("\n");
         }
 
         if mem_init_ok {
@@ -1228,9 +1237,13 @@ pub unsafe extern "C" fn _asl_kernel_entry(handover_ptr: *const AslBootHandover)
         (*fb).write_str("   ASL kernel booted successfully.\n");
     }
 
-    early_serial_write_str(logo);
+    early_serial_write_str(logo_head);
+    early_serial_write_str(asl_cockpit_shell::KERNEL_VERSION);
+    early_serial_write_str(logo_tail);
     if kernel_init_ok {
-        early_serial_write_str("   [ OK ] Kernel initialized: ASL Core Kernel v1.1.0\n");
+        early_serial_write_str("   [ OK ] Kernel initialized: ASL Core Kernel ");
+        early_serial_write_str(asl_cockpit_shell::KERNEL_VERSION);
+        early_serial_write_str("\n");
     }
     if mem_init_ok {
         let mut installed_mb = if !handover_ptr.is_null() {
@@ -1339,11 +1352,12 @@ pub unsafe extern "C" fn _asl_kernel_entry(handover_ptr: *const AslBootHandover)
 
         // Tampilkan prompt Cockpit Shell pertama kali
         (*fb).set_fg_color(0x0000FF00); // Green
-        (*fb).write_str("ASL-OS> ");
+        (*fb).write_str(asl_cockpit_shell::SHELL_PROMPT);
         (*fb).set_fg_color(0x00FFFFFF);
     }
 
-    early_serial_write_str("\nASL-OS> ");
+    early_serial_write_str("\n");
+    early_serial_write_str(asl_cockpit_shell::SHELL_PROMPT);
 
     #[cfg(feature = "test-gate3d")]
     #[cfg(target_arch = "x86_64")]
@@ -1819,10 +1833,15 @@ pub unsafe extern "C" fn _asl_kernel_entry(handover_ptr: *const AslBootHandover)
                         }
                     }
                     asl_cockpit_shell::ShellCommand::Uname => {
-                        let uname_msg = "ASL Core Kernel v1.1.0 (x86_64-unknown-none) [DO-178C-inspired deterministic engineering]\n";
-                        early_serial_write_str(uname_msg);
+                        let uname_head = "ASL Core Kernel ";
+                        let uname_tail = " (x86_64-unknown-none) [DO-178C-inspired deterministic engineering]\n";
+                        early_serial_write_str(uname_head);
+                        early_serial_write_str(asl_cockpit_shell::KERNEL_VERSION);
+                        early_serial_write_str(uname_tail);
                         unsafe {
-                            (*fb).write_str(uname_msg);
+                            (*fb).write_str(uname_head);
+                            (*fb).write_str(asl_cockpit_shell::KERNEL_VERSION);
+                            (*fb).write_str(uname_tail);
                         }
                     }
                     asl_cockpit_shell::ShellCommand::Reboot => {
@@ -1865,10 +1884,10 @@ pub unsafe extern "C" fn _asl_kernel_entry(handover_ptr: *const AslBootHandover)
                     asl_cockpit_shell::ShellCommand::Empty => {}
                 }
 
-                early_serial_write_str("ASL-OS> ");
+                early_serial_write_str(asl_cockpit_shell::SHELL_PROMPT);
                 unsafe {
                     (*fb).set_fg_color(0x0000FF00); // Green
-                    (*fb).write_str("ASL-OS> ");
+                    (*fb).write_str(asl_cockpit_shell::SHELL_PROMPT);
                     (*fb).set_fg_color(0x00FFFFFF);
                 }
             }

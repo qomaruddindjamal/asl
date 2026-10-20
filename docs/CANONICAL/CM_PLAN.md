@@ -11,7 +11,7 @@ Semua artefak **RUNTIME VERIFIED** (log serial, screenshot, hasil test, metadata
 | Screenshot bukti tampilan (mis. `asl_vm_screen.png`) | `Analysis/reports/` | **WAJIB ter-commit** |
 | Hasil test/audit (mis. `DEEP_AUDIT_REPORT.md`, `QODER_EXECUTION_LOG.md`) | `Analysis/reports/`, `audit/`, `docs/ROADMAP/` | **WAJIB ter-commit** |
 | Dump mentah debugging (`*.dump`, `*.raw`, `*.bin`) | `Analysis/reports/` | TETAP di-ignore (aturan `.gitignore` sudah ada) |
-| Log ad-hoc root (`boot_*.log`, `test_de_output*.log`, `trace_gt.log`) | root repo | **Deprecated-location** — salin/sahkan ke `Analysis/reports/` sebelum dirujuk dokumen; root log hanya kerja sementara |
+| Log ad-hoc root (`boot_*.log`, `test_de_output*.log`, `trace_gt.log`) | root repo | **Deprecated-location** — salin/sahkan ke `Analysis/reports/` sebelum dirujuk dokumen; root log hanya kerja sementara. **Status 2026-10-20 (PHASE-6B-CLOSEOUT T5): root = 0 berkas `.log`; 9 berkas pra-eksisting -> 4 disahkan ke `Analysis/reports/` dengan nama asli (`boot_final`, `boot_working`, `test_de_output`, `trace_gt`), 5 dihapus karena terbukti byte-identik dengan yang disimpan (`cmp` = 0 beda); checker `Sub_Assist.py --hygiene` = `[PASS (V)] ROOT WORKSPACE BERSIH 100%`. Manifest/SHA256/alasan: `Analysis/reports/hygiene_root_logs_2026-10-20.log`** |
 | Artefak build (`target/`, ISO, ELF) | `asl-kernel/target/` | Tidak ter-track; identitas = SHA256 yang dicatat di laporan |
 
 **Status `.gitignore` (verifikasi 2026-10-20):** sudah benar — `Analysis/reports/` ter-track kecuali `*.dump/*.raw/*.bin`. Tidak ada perubahan yang diperlukan; CM_PLAN ini menegakkan kebijakannya.

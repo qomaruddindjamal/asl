@@ -1,0 +1,108 @@
+HYGIENE ROOT-LOG INVENTORY - PHASE-6B-CLOSEOUT T5 (2026-10-20)
+Aturan sumber: docs/CANONICAL/CM_PLAN.md baris 'Log ad-hoc root' = Deprecated-location; root log
+hanya kerja sementara dan dokumen hanya boleh merujuk salinan yang disahkan di Analysis/reports/.
+Perintah misi T5: yang dirujuk dokumen -> pindah ke Analysis/reports/; yang tidak -> hapus.
+
+BASELINE checker sebelum tindakan (python tools/Sub_Assist.py --hygiene):
+  [!] DITEMUKAN FILE SAMPAH: 9 berkas - boot_final, boot_gdt_test, boot_nominal, boot_tss_test,
+      boot_working, test_de_output, test_de_output2, test_de_output3, trace_gt (.log di root)
+
+Status rujukan dokumen (git grep atas tree ter-commit; inventaris sampah di QODER_EXECUTION_LOG.md
+dan ACCOUNTABILITY_FAULT_LOG.json hanya MEMDAFTAR nama, bukan merujuk isi):
+  boot_working.log    DIRUJUK SEBAGAI BUKTI di docs/CANONICAL/ADR-001_LANGUAGE_STRATEGY.md:13
+                      ('log boot_working.log, Analysis/reports/') - rujukan itu sebelumnya SALAH
+                      ALAMAT: berkasnya ada di root, belum di Analysis/reports/
+  test_de_output.log  pola namanya hanya menjadi CONTOH deprecated-location di CM_PLAN.md:14
+  trace_gt.log        sama: contoh pola di CM_PLAN.md:14
+  6 sisanya           tidak dirujuk sama sekali
+Tidak ada tool/skrip yang membaca path root ini (git grep tools/ scripts/ = 0 hasil).
+
+MANIFEST 9 BERKAS ROOT - diukur dengan sha256sum + wc -l + ls -l SEBELUM tindakan:
+  boot_final.log          1087 B  sha256=37c0cae24c6d3ed0583bfc45005b2a7e58f1a855c06ca2c393766a52bd0687d8  newline=24  -> PINDAH
+  boot_gdt_test.log       1946 B  sha256=dd7c6a5e50b054874b533eb129afddde4888ccc51c2ea6467dd765c947fe2d64  newline=46  -> HAPUS: kembarannya boot_working.log
+  boot_nominal.log        1087 B  sha256=37c0cae24c6d3ed0583bfc45005b2a7e58f1a855c06ca2c393766a52bd0687d8  newline=24  -> HAPUS: kembarannya boot_final.log
+  boot_tss_test.log       1087 B  sha256=37c0cae24c6d3ed0583bfc45005b2a7e58f1a855c06ca2c393766a52bd0687d8  newline=24  -> HAPUS: kembarannya boot_final.log
+  boot_working.log        1946 B  sha256=dd7c6a5e50b054874b533eb129afddde4888ccc51c2ea6467dd765c947fe2d64  newline=46  -> PINDAH (dirujuk ADR-001)
+  test_de_output.log      2047 B  sha256=f111b23b512c5442b6e18e69d0ddc42cd2ad89bcd90a5599b76d0be67b9d8965  newline=49  -> PINDAH
+  test_de_output2.log     2047 B  sha256=f111b23b512c5442b6e18e69d0ddc42cd2ad89bcd90a5599b76d0be67b9d8965  newline=49  -> HAPUS: kembarannya test_de_output.log
+  test_de_output3.log     2047 B  sha256=f111b23b512c5442b6e18e69d0ddc42cd2ad89bcd90a5599b76d0be67b9d8965  newline=49  -> HAPUS: kembarannya test_de_output.log
+  trace_gt.log            1088 B  sha256=4c0b59b0893870592a37069fdfd73b34cc30a8798f8659f285a997afb6aff0bb  newline=24  -> PINDAH
+  Kesimpulan: 9 berkas fisik hanya memuat 4 ISI berbeda (37c0cae2 x3, dd7c6a5e x2, f111b23b x3, 4c0b59b0 x1).
+
+BUKTI IDENTIFIKASI SEBELUM `rm` (cmp byte-against-byte berkas root vs salinan yang dipertahankan,
+dijalankan di sesi ini, kelima pasangan kembali ke exit 0 = nol byte berbeda):
+  boot_gdt_test.log   cmp Analysis/reports/boot_working.log   -> identik
+  boot_nominal.log    cmp Analysis/reports/boot_final.log     -> identik
+  boot_tss_test.log   cmp Analysis/reports/boot_final.log     -> identik
+  test_de_output2.log cmp Analysis/reports/test_de_output.log -> identik
+  test_de_output3.log cmp Analysis/reports/test_de_output.log -> identik
+
+ISI YANG DIPERTAHANKAN (ter-commit, tidak disunting sedikit pun; provenance dicatat di file ini,
+bukan ditanam ke dalam log mentah):
+  boot_final.log          1087 B  sha256=37c0cae24c6d3ed0583bfc45005b2a7e58f1a855c06ca2c393766a52bd0687d8
+  boot_working.log        1946 B  sha256=dd7c6a5e50b054874b533eb129afddde4888ccc51c2ea6467dd765c947fe2d64
+  test_de_output.log      2047 B  sha256=f111b23b512c5442b6e18e69d0ddc42cd2ad89bcd90a5599b76d0be67b9d8965
+  trace_gt.log            1088 B  sha256=4c0b59b0893870592a37069fdfd73b34cc30a8798f8659f285a997afb6aff0bb
+  boot_final.log     : serial M1..M3 saja (boot parsial era v1.0.1, tanpa shell)
+  boot_working.log   : serial penuh M1..M6 + prompt ASL-OS> - inilah berkas yang dirujuk ADR-001
+  test_de_output.log : boot + blok [GATE-1B-TEST] Mandatory Fault Tests (mis. INT3) - satu-satunya
+                       jejak run GATE-1B; karena itu dipertahankan meski misinya 'hapus bila tak dirujuk'
+  trace_gt.log       : serial parsial M1..M3 lalu bait 'G' (keluaran terpotong)
+
+TINDAKAN: mv 4 berkas ke Analysis/reports/ dengan NAMA ASLI (agar rujukan dokumen resolusi),
+rm 5 dupleks byte-identik. Nol perubahan .rs, nol perubahan tool, nol suntingan isi log.
+
+CHECKER SESUDAH: python tools/Sub_Assist.py --hygiene ->
+  [PASS (V)] ROOT WORKSPACE BERSIH 100%. Struktur Analysis Valid.
+  Verifikasi independen: berkas .log di root = 0 []
+
+DEVIASI YANG DINYATAKAN (dibacakan di ACCOUNTABILITY_FAULT_LOG entri ke-11):
+  1. Empat berkas dipertahankan meski hanya boot_working.log yang dirujuk sebagai bukti, karena
+     kesembilan berkas hanya memuat empat isi berbeda; menghapus tiga sisanya akan memusnahkan
+     satu-satunya jejak run GATE-1B dan dua serial parsial era v1.0.1. Tidak ada informasi hilang:
+     yang dibuang hanyalah salinan yang terbukti byte-identik dengan yang disimpan.
+  2. Klaim higiene sebelumnya (CLEAN_100_PERCENT di HANDOFF_STATE.json era v1.0.1) sudah diturunkan
+     di CLOSEOUT T1 menjadi DEGRADED_9_ROOT_LOG_FILES_PREEXISTING; setelah T5 dinaikkan kembali ke
+     status bersih dengan bukti keluaran checker di atas - urutan ini penting agar tidak tampak
+     seperti klaim yang naik tanpa bukti.
+
+ADDENDUM T5 - temuan sekunder yang muncul saat inventaris (diperbaiki dalam commit yang sama):
+  CM_PLAN baris 'Log serial boot/telemetri (M0..M6)' mewajibkan artefak semacam ini TER-COMMIT di
+  Analysis/reports/. `git ls-files --error-unmatch` menemukan dua berkas yang DIRUJUK oleh dokumen
+  kanonik tetapi ternyata tidak ter-track:
+    asl_vm_serial.log           759 B - dirujuk audit/asl-core-kernel/EXECUTIVE_SUMMARY.md,
+                                    audit/asl-core-kernel/TEST_RESULTS.md,
+                                    docs/CANONICAL/FILE_INVENTORY_AND_AUDIT_MATRIX.md,
+                                    docs/RELEASE/SUPPORTED_TARGETS.md, docs/RELEASE/TEST_MATRIX.md,
+                                    docs/ROADMAP/LAPORAN_AUDIT_ULANG_DAN_STATUS.md
+    asl_vm_serial_release.log  1903 B - dirujuk README.md sec.2 (baris Serial Telemetry M1..M6),
+                                    audit/asl-core-kernel/REMEDIATION_PLAN.md,
+                                    audit/asl-core-kernel/TEST_RESULTS.md,
+                                    docs/CANONICAL/DEVELOPER_ONBOARDING.md
+  Keduanya serial boot era sebelum misi (mtime 2026-10-15 dan 2026-10-17), ASCII bersih (0 baris
+  non-ASCII), dan lolos pemindaian path personal/kredensial (grep untuk user-home Windows,
+  nama akun lokal, token, password = 0 hasil). Isinya M1..M6 sampai prompt ASL-OS>. Sejak commit
+  ini keduanya di-track, jadi rujukan dokumen di atas menunjuk artefak repo dan bukan hanya berkas
+  lokal mesin ini. Kategori bukti TIDAK di-upgrade: tetap RUNTIME VERIFIED era v1.0.1 (headless).
+
+Sisa berkas TIDAK ter-track di Analysis/reports/ (daftar diambil sebelum git add, jadi 14 termasuk
+  berkas inventaris ini sendiri -> pasca-commit tersisa 13, dan semuanya sengaja tidak diubah):
+  asl_vm_serial_d5.log
+  ci_2026-10-20.log.step1.log
+  ci_2026-10-20.log.step2.log
+  ci_2026-10-20.log.step3_iso.log
+  hygiene_root_logs_2026-10-20.log
+  qemu_ci_smoke_qemu_stderr.log
+  qemu_hv2_qemu_stderr.log
+  qemu_hv2_serial.log
+  qemu_nominal_regression_serial.log
+  qemu_qm01_vtd_qemu_stderr.log
+  qemu_qm01_vtd_serial.log
+  qemu_serial.log
+  qemu_serial_check.log
+  vbox_check.log
+  Kategori: transcript selangkah CI (ci_2026-10-20.log.step*.log) yang README sec.7 memang
+  menyatakan tidak di-stage karena artefak kanoniknya ci_2026-10-20.log; sisanya salinan kerja/
+  diagnostik QEMU atau VirtualBox yang tidak dirujuk dokumen mana pun. Penanganannya (hapus atau
+  sahkan) jadi keputusan pemilik repo di PHASE-7 - checker --hygiene hanya mengaudit root sehingga
+  status PASS 100% tidak terpengaruh oleh berkas-berkas ini.

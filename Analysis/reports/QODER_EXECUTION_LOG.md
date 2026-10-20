@@ -618,3 +618,51 @@ Push commit dokumentasi `[PHASE-6A]` memicu run hosted kedua; keduanya diverifik
 - Annotation non-blocking yang sama muncul di kedua run (`actions/checkout@v4` masih menarget Node.js 20; `ubuntu-latest` bermigrasi ke Ubuntu 26 mulai 2026-10-19) — dicatat, tidak diubah di fase ini.
 - Status remote terverifikasi: `git ls-remote --heads origin security/asl-v1.0.2-audit` = `5a180f6…` = HEAD lokal; tree tracked bersih.
 - PHASE-7 **tetap STOP**: prasyarat 6A yang belum diotorisasi pemilik repo = PR + merge, penutupan execution log sebagai closeout, tag + rilis `v1.1.0`.
+
+## [PHASE-6B][prep] — ARTEFAK RUN HOSTED KETIGA + VERIFIKASI PREKONDISI MERGE (docs/evidence-only, 2026-10-20)
+
+**G8 — pengungkapan hash tertunda:** hash commit entri `[PHASE-6A] Addendum` di atas = **`fff0975`** (`fff0975c81896de92d07fcfacaa7edc73caa9907`), yang juga merupakan tip branch saat entri ini ditulis. Hash commit `[PHASE-6B][prep]` ini sendiri TIDAK ditulis di dalamnya — diungkapkan pada entri berikutnya bila ada. Nol amend / rebase / reset --hard / force-push sejak awal misi.
+
+**Otorisasi:** pemilik repo menyetujui merge dengan verdict advisory `VERIFY-MERGE-1: LAYAK MERGE` (T1 bukti run ketiga → T2 PR → T3 `gh pr merge --merge` → T4 verifikasi pasca-merge + entri docs-only ke main). Batasan yang diterima: **NOL perubahan `.rs`** pada fase ini (docs/evidence-only), metode merge = **merge commit** (dilarang squash/rebase, dilarang hapus branch), **G5 CI merah = STOP**.
+
+### Audit precondition (terukur)
+| Prasyarat T1 | Hasil | Sumber |
+|---|---|---|
+| Tip `security/asl-v1.0.2-audit` = `fff0975` | **TERPENUHI** | `git rev-parse HEAD` = `fff0975c81896de92d07fcfacaa7edc73caa9907` |
+| Tree tracked bersih | **TERPENUHI** — `git diff --name-only` = 0 file berubah; yang muncul hanya log sampah harness pre-existing (untracked/ter-ignore) | `git status --porcelain` |
+| Run hosted ketiga hijau di tip ini | **TERPENUHI** | `gh run view 39400350619 --json` → `conclusion success`, `event push`, `headSha fff0975…`, `createdAt 2026-10-20T09:23:44Z`, `updatedAt 09:24:07Z` |
+
+### T1 dieksekusi: log mentah diverifikasi, bukan hanya badge
+`gh run view 39400350619 --log` = **841 baris**; ekstrak ter-filter (67 baris ASCII) di-commit sebagai `Analysis/reports/ci_hosted_39400350619_2026-10-20.log`. Angka dihitung ulang dari teks log, tidak disalin dari entri lama:
+* `[1/2] cargo test --workspace --lib` → **30 baris `test result: ok`**, jumlah terparse = **172 passed / 0 failed** di `ubuntu-latest`.
+* `[2/2] cargo build --package asl-kernel-bin --target x86_64-unknown-none --release` → **13 baris `Compiling` + 1 baris `Finished`** (`Finished \`release\` profile [optimized] target(s) in 1.98s`), **0 `warning:` / 0 `error:` pada langkah release ini** (dihitung dengan grep terprogram pada rentang baris langkah, bukan diasumsikan).
+* Footprint: `-rwxr-xr-x 2 runner runner 243560 Oct 20 09:24 target/x86_64-unknown-none/release/asl-kernel` → **ELF Linux 243.560 B**.
+* Warning yang ada di log hosted semuanya di profil `test` (**21 baris**, mis. penamaan variant `asl-ont-gpon`) dan di luar gerbang 0-warning misi ini, yang berlaku untuk build release — sama seperti catatan dua entri 6A sebelumnya.
+
+### Rantai bukti hosted kini tiga run berturut-turut
+| Run | headSha | Tree yang diuji | Kesimpulan |
+|---|---|---|---|
+| `39399083819` | `8b829d8` | GERBANG AKHIR (kode) | success |
+| `39400212750` | `5a180f6` | docs 6A | success |
+| `39400350619` | `fff0975` | docs addendum 6A | success |
+
+Konsekuensi untuk klaim: **VERIFIED-ON-CI untuk langkah [1]–[2]** kini ditopang tiga tip berurutan, termasuk dua tip docs-only di atas tree kode `8b829d8` — jadi yang diverifikasi hosted adalah pipeline-nya, dan tree kodenya diuji pada run pertama. Cakupan tetap **bukan** empat langkah: [3] QEMU cold-boot dan [4] ringkasan/footprint hanya dibuktikan lokal.
+
+### Gerbang (G4) pada tree ini — diukur ulang, bukan disimpulkan
+* `cargo test --workspace --lib` (host Windows): **30 suite, 172 passed / 0 failed**.
+* `cargo build --package asl-kernel-bin --target x86_64-unknown-none --release` (host Windows): **0 warning / 0 error**, `Finished` 10.31 s, **ELF 243.568 B** (sama dengan angka README §6 dan `elf_footprint_history.txt`).
+* Metode agar pautan benar-benar dijalankan ulang dan bukan cache no-op: `touch asl-kernel-bin/src/main.rs` (perubahan **mtime saja**, nol perubahan isi — `git status` tetap 0 file terubah). Setelahnya `Compiling` muncul 1x dan langkah selesai 0/0.
+* G1 tidak tersentuh (nol dependency), G2 tidak tersentuh (nol perubahan `CHECKLIST_STATE.json`), G3 tidak tersentuh (nol perubahan `MajorFrameSchedule`), G9 belum dipakai (run penerimaan berjendela masuk PHASE-6B-CLOSEOUT).
+
+### File berubah (docs/evidence-only, nol `.rs`)
+2 path: **`Analysis/reports/ci_hosted_39400350619_2026-10-20.log` (baru)** dan `Analysis/reports/QODER_EXECUTION_LOG.md` (entri ini).
+
+### Deviasi & hal yang TIDAK saya lakukan
+* **`scripts/ci_local.ps1` sengaja tidak dijalankan ulang** pada fase ini: langkahnya menulis `Analysis/reports/ci_2026-10-20.log` dengan `Out-File` (menimpa), sehingga re-run akan mengubah isi artefak bukti GERBANG AKHIR yang sudah ter-commit (termasuk SHA256 ISO yang tidak reproducible). Sebagai gantinya langkah [1] dan [2] diukur langsung dengan perintah cargo yang sama (tabel di atas). Angka langkah [3]/[4] yang dikutip entri lama tetap sah untuk run 2026-10-20 itu.
+* Log mentah 841 baris tidak di-commit utuh (memuat path workspace runner); yang di-commit ekstrak ASCII 67 baris berisi baris bukti. Raw sementara di `logs/` (ter-ignore).
+* **Push akan memicu run hosted keempat** di tip `[PHASE-6B][prep]`; run itu wajib hijau sebelum T2 (G5). Bila merah → STOP + laporan, bukan retry senyap.
+* 9 file `.log` sampah di root repo tetap **tidak dihapus** (bukan buatan agen ini; owner menunda bersih-bersih ke PHASE-6B-CLOSEOUT) — deviasi hygiene yang sama seperti entri 6A.
+* Tag/release `v1.1.0`, branch protection `main`, penutupan resmi execution log, dan sinkron versi 3-file **tidak dilakukan di sini** (di luar cakupan 6B-MERGE, masuk 6B-CLOSEOUT).
+
+### Commit
+`[PHASE-6B][prep] <ringkasan>` — staging eksplisit per file (2 path di atas), tanpa `git add -A`.

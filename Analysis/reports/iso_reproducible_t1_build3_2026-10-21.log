@@ -1,0 +1,72 @@
+PHASE-7 T1 BUILD C - verifikasi ulang pada state script yang ter-commit (2026-10-21)
+=====================================================================================
+Tujuan: membuktikan bahwa hash ISO yang didokumentasikan di laporan T1 dihasilkan oleh
+state `scripts/build_kernel.ps1` yang benar-benar ter-commit di tip branch, bukan oleh
+salinan working tree saat pengukuran. Ditambah karena dua pengukuran A/B dilakukan sebelum
+tip bergerak ke `eaea57c`/`7876749`.
+
+Waktu eksekusi  : 2026-10-20T20:32Z (= 2026-10-21 03:32 +0700)
+Git tip         : `7876749` ([PHASE-7-1b]) di `feature/phase7`
+Working tree    : bersih - `git status --porcelain` = 0 baris
+`git diff --numstat eaea57c HEAD -- scripts/build_kernel.ps1` = kosong (state script identik
+                  dengan yang ter-commit di commit T1; nol divergensi antara yang diuji dan yang dirilis)
+
+Perintah
+--------
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/build_kernel.ps1 -Action iso
+(alur ISO kanonik yang sama dengan yang dipakai `scripts/ci_local.ps1` langkah [3/4]; log
+penuh tersimpan di `logs/t1_rebuild_verify.log`, direktori ter-ignore)
+
+Keluaran kunci (dipetik dari log, sekuens warna dibuang)
+-------------------------------------------------------
+==> Building bootable hybrid ISO...
+    Finished `release` profile [optimized] target(s) in 0.04s
+==> Pinning ISO image dates to 2026010100000000 (UTC, from baked default 1767225600)
+GNU xorriso 1.5.2 : RockRidge filesystem manipulator, libburnia project.
+xorriso : UPDATE :      14 files added in 1 seconds
+ISO image produced: 2011 sectors
+Written to medium : 2011 sectors at LBA 0
+Writing to 'stdio:/cygdrive/c/asl/asl-kernel/target/asl-core-kernel.iso' completed successfully.
+Physical block size of 512 bytes.
+Installing to GPT. Logical block size of 512 bytes.
+Secondary header at LBA 0x1f6b.
+Secondary header valid.
+GPT partition NOT specified. Attempting GPT embedding.
+New maximum count of partition entries: 44.
+Stage 2 to be located at 0x1a00 and 0x3e7000.
+Limine BIOS stages installed successfully!
+==> GPT Disk GUID pinned to e181e879-31ec-3d41-a200-b4997a320a0d (derived from epoch 1767225600)
+[OK] ISO successfully mastered: C:\asl\asl-kernel\target\asl-core-kernel.iso (4118528 bytes, SHA256: 9CD49028D8B1B9B70D9316C9410A2902F20673CBB6C0CA5836DFE5808CC8E8F2)
+
+Hash dan perbandingan
+---------------------
+ELF  asl-kernel/target/x86_64-unknown-none/release/asl-kernel  243568 B  ee1274be011e90df57df52fb1944f40839df92206b8240214b0a459b0be2def2
+ISO  asl-kernel/target/asl-core-kernel.iso                      4118528 B  9cd49028d8b1b9b70d9316c9410a2902f20673cbb6c0ca5836dfe5808cc8e8f2
+ISO  logs/t1/cleanA.iso  (Build A)                              4118528 B  9cd49028d8b1b9b70d9316c9410a2902f20673cbb6c0ca5836dfe5808cc8e8f2
+ISO  logs/t1/cleanB.iso  (Build B)                              4118528 B  9cd49028d8b1b9b70d9316c9410a2902f20673cbb6c0ca5836dfe5808cc8e8f2
+cmp Build C vs cleanA  : exit 0, 0 byte berbeda
+cmp Build C vs cleanB  : exit 0, 0 byte berbeda
+GUID ter-pin           : e181e879-31ec-3d41-a200-b4997a320a0d (= turunan epoch baked 1767225600, sama seperti Build A dan B)
+
+Yang dinyatakan jujur tentang lingkaran ini
+------------------------------------------
+1. Build C TIDAK mengompilasi ulang kernel: cargo melaporkan `Finished ... in 0.04s` tanpa
+   baris `Compiling` (cache fingerprint valid), dan ELF tetap `ee1274be...`. Jadi build C
+   memverifikasi ulang tahap mastering xorriso + bios-install + pin GUID/CRC pada state
+   script ter-commit - bukan gerbang G4 build-dari-nol. Replikasi dari-nol sudah diukur pada
+   Build A (13 baris `Compiling`, `Finished ... in 6.78s`) dan dicatat di
+   `Analysis/reports/iso_reproducible_t1_2026-10-21.log`.
+2. Kategori: VERIFIED-ON-HOST (pengukuran file di host Windows ini). Tidak ada klaim boot baru
+   di file ini; boot check atas image ter-pin tercatat di laporan T1 butir 4.3 dengan
+   kategori VERIFIED-ON-VM smoke, BUKAN G9.
+3. Biner ISO hasil C hidup di `asl-kernel/target/` dan salinan A/B di `logs/` (dua duanya
+   ter-ignore); bukti ter-commitnya adalah transkrip ini + SHA256/ukuran yang dikutipnya.
+4. Yang TIDAK berubah oleh build ulang ini: `logs/pre_t1/asl-core-kernel_pre-T1_faca92f4.iso`
+   (SHA256 `faca92f4...`) tetap artefak rilis v1.1.0 yang tidak dibangun ulang.
+
+Kesimpulan
+----------
+State `scripts/build_kernel.ps1` yang ter-commit di rantai PHASE-7 (`eaea57c`, masih identik
+di tip `7876749`) menghasilkan ISO dengan SHA256 persis seperti yang didokumentasikan sebagai
+kriteria exit T1. Reprodusibilitas kini terukur pada TIGA build yang semuanya byte-identik: A dan B
+dari-nol pada tree commit T1, dan C pada tip `7876749` dengan cache cargo.

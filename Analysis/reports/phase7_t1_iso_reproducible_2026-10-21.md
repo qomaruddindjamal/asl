@@ -160,3 +160,22 @@ Keenamnya 67-68 baris ASCII (non-ASCII 0), dibuat dengan penyaring per langkah d
 **Dampak pada hitungan bukti (sinkron append-only di README §6, RELEASE_NOTES §0.1/§0.6, `QODER_FINAL_REPORT` §7 butir 5):** total run `asl-ci-minimal` hijau = **21** (14 rantai `main` + 7 `feature/phase7`), tingkat bukti tertinggi (ekstrak ter-commit) = **14**, tingkat 2 = **5**, tingkat 3 = **2**. Rinciannya: 7 ekstrak pada rantai `main` + 7 ekstrak pada `feature/phase7` (yang terakhir = `39486017207` yang sudah masuk sejak `[PHASE-7-0c]` + enam berkas baru di atas). Angka gerbang tidak berubah sedikit pun.
 
 **Koreksi yang dibawa commit ini:** klaim "123 baris" pada §6 laporan ini dan tiga rujukannya di dokumen lain (transkrip T1 sebenarnya **122** baris). Dikoreksi append-only di tempat masing-masing dan diratifikasi sebagai fault log entri **#17** (`violations_recorded` tetap 0).
+
+## 9. Build C - state script ter-commit menghasilkan hash yang didokumentasikan
+
+Setelah dua commit T1 masuk (`eaea57c`, `7876749`) dan kedua pasang run hosted hijau, satu
+rebuild ISO dijalankan pada tip branch untuk menutup celah "yang diukur = yang ter-commit":
+
+- `powershell -File scripts/build_kernel.ps1 -Action iso` pada tree `7876749`, working tree bersih,
+  `git diff --numstat eaea57c HEAD -- scripts/build_kernel.ps1` = kosong.
+- Hasil: **4.118.528 B**, SHA256 `9cd49028d8b1b9b70d9316c9410a2902f20673cbb6c0ca5836dfe5808cc8e8f2` —
+  **identik dengan Build A dan B** (`cmp` exit 0 terhadap kedua salinan), GUID ter-pin
+  `e181e879-31ec-3d41-a200-b4997a320a0d` (turunan epoch baked), ELF tetap `ee1274be…` 243.568 B.
+- Batas yang dinyatakan: Build C **tidak** mengompilasi ulang kernel (`Finished … in 0.04s`, nol baris
+  `Compiling`, cache cargo valid), jadi yang diverifikasi pada lingkaran ini adalah tahap mastering +
+  `bios-install` + pin GUID/CRC pada state script ter-commit - bukan replikasi dari-nol (sudah diukur di
+  Build A) dan bukan boot check (butir 4.3, kategorinya VERIFIED-ON-VM smoke).
+- Bukti: `Analysis/reports/iso_reproducible_t1_build3_2026-10-21.log` (72 baris ASCII).
+
+Reprodusibilitas karena itu terukur pada **tiga** build, bukan dua, semuanya byte-identik. Commit
+ini tidak mengubah angka gerbang apa pun: 172/0, release 0/0, ELF 243.568 B (Windows) / 243.560 B (Linux).

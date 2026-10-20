@@ -35,3 +35,35 @@ jobs:
         run: cargo build --package asl-kernel-bin --target x86_64-unknown-none --release
       - name: "Bukti footprint ELF hasil build"
         run: ls -l target/x86_64-unknown-none/release/asl-kernel
+
+  # PHASE-7 T2 — job coverage NON-BLOCKING. Nama job 'coverage' SENGAJA tidak
+  # dipasang sebagai required status check (branch protection main hanya
+  # mengunci contexts: ["test-and-build"]), dan continue-on-error membuat job
+  # ini tidak pernah membuat pipeline merah walau ambangnya tidak tercapai.
+  # Angka ambang di bawah diambil dari BASELINE HOST yang terukur dan
+  # ter-commit: lines TOTAL 86,82% pada rev 489d4ee
+  # (Analysis/reports/coverage_baseline_t2_2026-10-21.log), diberi margin 6,82
+  # poin ke 80 karena runner Linux memakai build LLVM sendiri sehingga angka
+  # CI bisa berbeda beberapa digit. Ambang ini ADVISORY, bukan gerbang rilis.
+  # Cakupan sengaja tetap tiga crate (bukan workspace) sesuai kontrak T2.
+  # cargo-llvm-cov = tooling host yang di-install di runner, BUKAN dependency
+  # crate workspace (G1); nol berkas .rs disentuh job ini.
+  coverage:
+    name: coverage (non-blocking, advisory)
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    defaults:
+      run:
+        working-directory: asl-kernel
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: llvm-tools
+      - name: "[1/2] cargo install cargo-llvm-cov --locked (tooling host, bukan dependency)"
+        run: cargo install cargo-llvm-cov --locked
+      - name: "[2/2] cargo llvm-cov tiga crate --lib (ambang advisory lines >= 80)"
+        run: >
+          cargo llvm-cov -p asl-storage -p asl-bootloader
+          -p asl-kernel-core-secondary --lib --summary-only
+          --fail-under-lines 80

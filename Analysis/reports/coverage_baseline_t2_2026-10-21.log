@@ -1,0 +1,233 @@
+PHASE-7 T2 - BASELINE COVERAGE TERUKUR (cargo-llvm-cov) - ASL Core Kernel
+=========================================================================
+Waktu pengukuran : 2026-10-21 03:43 dan 03:46 +0700 (dua run pada rev yang sama, lihat bagian 5)
+Tempat           : host Windows ini (BUKAN runner GitHub), workspace C:\asl\asl-kernel
+Rev git saat ukur: 489d4ee72c06ae8d520e9d5cead641a8b99092b5 (branch feature/phase7, tip [PHASE-7-1c])
+Peralatan        : cargo-llvm-cov 0.9.1 - di-install agen pada 2026-10-21 atas izin eksplisit
+                   pemilik ('Izinkan agen install'). Keluaran install hidup di
+                   logs/t2_install_llvmcov.log (scratch ter-ignore git, exit 0).
+                   rustc 1.99.0 (b940084d7 2026-09-28), cargo 1.99.0 (5f94df478 2026-08-27),
+                   komponen llvm-tools-x86_64-pc-windows-msvc sudah terpasang sebelum T2.
+Perintah         : cargo llvm-cov -p asl-storage -p asl-bootloader
+                   -p asl-kernel-core-secondary --lib --summary-only
+Target           : HOST x86_64-pc-windows-msvc (default cargo, TANPA --target). rustflags wajib di
+                   .cargo/config.toml hanya ter-scope ke [target.x86_64-unknown-none] dan
+                   [target.aarch64-unknown-none-softfloat] sehingga tidak menimpa build host ini;
+                   env RUSTFLAGS tidak diset sama sekali (jebakan yang sudah tercatat di repo).
+Cakupan          : TIGA crate yang diminta misi (asl-storage, asl-bootloader,
+                   asl-kernel-core-secondary), hanya target --lib. BUKAN angka workspace.
+                   Test workspace yang menjadi gerbang G4 tetap 172 passed / 0 failed pada 30 suite;
+                   pengukuran T2 ini menyentuh 59 test pada 3 suite. Kedua angka TIDAK boleh
+                   dicampur atau saling menggantikan.
+Kategori bukti   : VERIFIED-ON-HOST (pengukuran lokal, dapat diulang dengan perintah di atas).
+                   Nol dependensi crate baru (G1): cargo-llvm-cov adalah tooling host, bukan
+                   dependency workspace. Nol berkas .rs berubah pada T2.
+
+1. ANGKA TERTINGKAT (dikeluarkan llvm-cov; baris TOTAL dikutip verbatim di bagian 7)
+   regions   : total 6027, missed 740  -> 87.72%
+   functions : total 225, missed 43   -> 80.89%
+   lines     : total 3718, missed 490  -> 86.82%
+   branches  : 0 region cabang, 0 missed, Cover = '-' -> TIDAK DIUKUR
+   Nilai cabang BUKAN 100% dan BUKAN 0%: cabang tidak diukur. Branch coverage Rust membutuhkan
+   -Zcoverage-options=branch pada toolchain nightly; yang dipakai di sini stable 1.99.0, jadi
+   angka cabang memang tidak ada. Klaim apa pun tentang branch coverage untuk fase ini tidak sah.
+
+2. AGREGAT PER CRATE (dihitung sendiri dari baris per berkas di bagian 7, bukan dari alat)
+   rumus: covered = total - missed; persen = covered / total * 100
+   asl-bootloader             regions   289/  315 =  91.75%   functions  13/ 14 =  92.86%   lines   233/  255 =  91.37%
+   asl-kernel-core-secondary  regions   448/  487 =  91.99%   functions  35/ 40 =  87.50%   lines   305/  329 =  92.71%
+   asl-storage                regions  4550/ 5225 =  87.08%   functions 134/171 =  78.36%   lines  2690/ 3134 =  85.83%
+   CHECK aritmetika: penjumlahan baris per berkas = regions 6027 (missed 740), functions 225 (missed 43),
+   lines 3718 (missed 490) - persis sama dengan baris TOTAL llvm-cov di bagian 7. Assert Python pada
+   generator transkrip ini: LULUS (kalau tidak sama, transkrip tidak akan tercipta).
+
+3. EMPAT BERKAS PALING RENDAH CAKUPANNYA (urutan menaik dari tabel bagian 7)
+   asl-storage\src\ahci.rs                regions   0.00%  functions  0/5    lines   0.00%
+   asl-storage\src\ata.rs                 regions   4.38%  functions  2/14   lines   8.05%
+   asl-storage\src\block.rs               regions  54.55%  functions  1/3    lines  42.86%
+   asl-storage\src\vfs.rs                 regions  58.96%  functions 10/13   lines  67.57%
+   Penyebab yang DIUKUR langsung dari source (bukan spekulasi):
+     - asl-storage/src/ahci.rs, 0 dari 5 fungsi tereksekusi. Modul uji lib.rs tidak menyebut satu
+       pun simbol AHCI (grep 'Ahci' dan 'HbaPort' di dalam region #[cfg(test)] = nol hasil).
+       Dari lima fungsinya, is_ahci_pci dan probe_pci menerima &PciDeviceDescriptor hasil
+       enumerasi PCI dan inspect_hba membaca register MMIO HBA; empty()/new() memang konstruktor
+       murni tetapi tetap 0% karena tidak dipanggil modul uji mana pun.
+     - asl-storage/src/ata.rs, 2 dari 14 fungsi tereksekusi. Referensi ATA satu-satunya di dalam
+       modul uji adalah konstruktor AtaPioDriver::new(AtaChannel::Primary, false) (grep
+       'AtaPioDriver' dan 'AtaChannel' pada region #[cfg(test)] lib.rs = 1 baris). Fungsi I/O
+       register (read_reg, write_reg, io_delay, wait_not_busy, wait_drq, identify, ...) memakai
+       inb/outb port I/O sehingga tidak dapat berjalan di host. Fungsi ke-2 yang terhitung
+       tereksekusi TIDAK diidentifikasi lebih lanjut pada T2.
+     - asl-storage/src/block.rs, 1 dari 3 fungsi; asl-storage/src/vfs.rs, 10 dari 13 fungsi.
+       FUNGSI mana yang tidak tereksekusi TIDAK disinventarisasi pada T2; ini dibiarkan sebagai
+       pekerjaan lanjutan, bukan dijelaskan dengan dugaan.
+   Status verifikasi jalur register perangkat KERA (AHCI MMIO / ATA PIO) berada DI LUAR cakupan T2
+   dan TIDAK diklaim oleh angka mana pun di berkas ini; itu wilayah temuan terbuka board fisis
+   (DMA-ADDR-01 / VT-D-DRV-01 / DA-07), bukan soal coverage.
+
+4. SUITE YANG DIJALANKAN DI BAWAH INSTRUMEN (baris 'test result:' verbatim dari run)
+   test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+   test result: ok. 14 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+   test result: ok. 36 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+   Test dieksekusi = 9 + 14 + 36 = 59, gagal = 0. Cocok dengan penanda #[test] di source (terukur
+   dengan grep -c '#\[test\]' pada berkas yang sama): asl-bootloader/src/lib.rs = 9,
+   asl-kernel-core-secondary/src/lib.rs = 14, asl-storage/src/*.rs = 36. Tidak ada test yang hilang
+   karena instrumentasi, dan ketiga baris hasil melaporkan '0 ignored' sehingga tidak ada test
+   ber-#[ignore] yang di-skip di ketiga crate ini.
+
+5. REPRODUSIBILITAS PENGUKURAN (run kedua pada rev yang sama, 03:46 +0700)
+   Berkas mentah run kedua = logs/t2_coverage_repeat.log (scratch ter-ignore git). Karena itu baris
+   TOTAL-nya dikutip verbatim di sini dan audit tidak bergantung pada berkas tersebut.
+   Baris TOTAL run 1: TOTAL                                       6027               740    87.72%         225                43    80.89%        3718               490    86.82%           0                 0         -
+   Baris TOTAL run 2: TOTAL                                       6027               740    87.72%         225                43    80.89%        3718               490    86.82%           0                 0         -
+   Pemeriksaan struktural (bukan pembacaan mata), hasil checker Python pada sesi ini:
+     a. 13 baris data tabel ringkasan (12 berkas + TOTAL) BYTE-IDENTIK antara kedua run: True
+     b. Tiap run memuat 62 baris yang diawali 'test ' (59 baris hasil test + 3 baris 'test result:');
+        multiset kedua run identik: True
+     c. Setelah baris 'Compiling' dan 'Finished' dibuang dari kedua berkas, kedua run sama persis
+        sebagai multiset baris: True
+   Diff mentah kedua berkas memuat 66 baris perubahan, dan seluruhnya jatuh ke salah satu dari tiga
+   kategori: urutan baris 'Compiling', durasi pada baris 'Finished' (2.50s vs 1.82s), atau urutan
+   cetak test dari harness paralel. Sepuluh baris pertama dikutip apa adanya (kiri = run 1):
+     @@ -3 +3 @@
+     -   Compiling asl-driver-pci v0.1.0 (C:\asl\asl-kernel\asl-driver-pci)
+     +   Compiling asl-storage v0.1.0 (C:\asl\asl-kernel\asl-storage)
+     @@ -5,2 +5 @@
+     -   Compiling asl-storage v0.1.0 (C:\asl\asl-kernel\asl-storage)
+     -    Finished `test` profile [unoptimized + debuginfo] target(s) in 2.50s
+     +    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.82s
+     @@ -11,0 +11,2 @@
+     +test tests::test_kernel_physical_exceeds_platform_limit ... ok
+     +test tests::test_invalid_magic_or_version ... ok
+   Kesimpulan: baseline ini stabil pada host. Tidak seperti hash ISO (yang di T1 butuh pen-pin-an
+   epoch dan Disk GUID GPT), angka coverage tidak punya nondeterminisme yang harus di-pin.
+
+6. BATASAN JUJUR DARI ANGKA INI
+   a. Modul uji berada DI DALAM berkas yang sama (mis. asl-storage/src/lib.rs memuat
+      #[cfg(test)] mod tests). llvm-cov menghitung baris modul uji sebagai baris berkas itu,
+      sehingga persentase lib.rs yang tinggi (98.74% baris) sebagian berasal dari baris test yang
+      memang dieksekusi. Angka ini sah sebagai 'berapa banyak baris berkas yang pernah dijalankan',
+      BUKAN sebagai 'berapa banyak logika produksi yang teruji'. Cakupan khusus-logika-produksi
+      tidak diukur pada T2 dan tidak diklaim.
+   b. Instrumen hanya dipasang pada tiga crate yang diminta; crate lain (asl-kernel-core, driver,
+      HAL, dsb) TIDAK masuk pengukuran ini, sehingga tidak ada angka workspace-wide di T2.
+   c. Diukur di host Windows. Runner GitHub memakai Linux dan build LLVM sendiri sehingga angka CI
+      dapat berbeda beberapa digit. Karena itu job CI coverage T2 dipasang NON-BLOCKING dan ambang
+      yang dipilih memberi margin di bawah baseline (lihat
+      Analysis/reports/phase7_t2_coverage_2026-10-21.md).
+   d. Nol perubahan .rs pada T2 (kontrak misi): nol test baru, nol rename, nol edit sumber.
+      Artefak build instrumentasi hidup di asl-kernel/target/llvm-cov-target/ yang di-ignore git;
+      'git status --porcelain' tetap kosong (nol baris) setelah pengukuran - terukur setelah run.
+   e. cargo-llvm-cov menyetel cfg(coverage) otomatis (baris 'info:' pertama keluaran mentah). Tidak
+      ada kode di workspace yang membacanya (terukur di sesi ini: os.walk seluruh .rs di
+      C:\asl\asl-kernel dengan target/ dan .git/ dikecualikan, jumlah kemunculan 'cfg(coverage)'
+      = 0), jadi flag konfigurasi itu tidak mengubah perilaku yang diuji.
+   f. Yang TIDAK dilakukan T2: menutup celah ahci.rs/ata.rs, menambah test, atau menaikkan angka.
+      T2 hanya menetapkan baseline yang bisa diaudit; tindak lanjut angka adalah keputusan pemilik.
+
+7. KELUARAN MENTAH RUN 1 (99 baris, verbatim; satu-satunya sumber angka di atas)
+   ---------------------------------------------------------------------------
+   | info: cargo-llvm-cov currently setting cfg(coverage); you can opt-out it by passing --no-cfg-coverage
+   |    Compiling asl-bootloader v0.1.0 (C:\asl\asl-kernel\asl-bootloader)
+   |    Compiling asl-driver-pci v0.1.0 (C:\asl\asl-kernel\asl-driver-pci)
+   |    Compiling asl-kernel-core-secondary v0.1.0 (C:\asl\asl-kernel\asl-kernel-core-secondary)
+   |    Compiling asl-storage v0.1.0 (C:\asl\asl-kernel\asl-storage)
+   |     Finished `test` profile [unoptimized + debuginfo] target(s) in 2.50s
+   |      Running unittests src\lib.rs (target\llvm-cov-target\debug\deps\asl_bootloader-05939e957e7457d2.exe)
+   | 
+   | running 9 tests
+   | test tests::test_build_profile_option_env_fallback ... ok
+   | test tests::test_empty_or_overflowing_memory_region ... ok
+   | test tests::test_kernel_physical_overflow ... ok
+   | test tests::test_invalid_magic_or_version ... ok
+   | test tests::test_framebuffer_config_validation_positive_and_negative ... ok
+   | test tests::test_kernel_physical_exceeds_platform_limit ... ok
+   | test tests::test_kernel_virtual_overflow ... ok
+   | test tests::test_valid_handover ... ok
+   | test tests::test_zero_kernel_size ... ok
+   | 
+   | test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+   | 
+   |      Running unittests src\lib.rs (target\llvm-cov-target\debug\deps\asl_kernel_core_secondary-79e318a917b26fb5.exe)
+   | 
+   | running 14 tests
+   | test safe::tests::test_latch_arm_only_from_uninit ... ok
+   | test safe::tests::test_latch_armed_notify_records_via_engine_then_recovery ... ok
+   | test safe::tests::test_latch_guard_page_degraded_reason_recorded_in_engine ... ok
+   | test safe::tests::test_latch_preinit_uninit_records_without_engine_touch ... ok
+   | test safe::tests::test_latch_concurrent_notify_counts_all_and_keeps_one_engine_writer ... ok
+   | test safe::tests::test_latch_recovery_terminal_counts_without_engine_reentry ... ok
+   | test safe::tests::test_latch_stack_overflow_pf_signature_recovers_with_memory_integrity ... ok
+   | test tests::test_corrupted_handover_fails_to_recovery_failed ... ok
+   | test tests::test_diagnostic_log_bounding_and_truncation ... ok
+   | test tests::test_failover_invalid_transition_fails_closed ... ok
+   | test tests::test_failover_state_machine_nominal_sequence ... ok
+   | test tests::test_injected_fault_harness ... ok
+   | test tests::test_operational_rearm_to_standby ... ok
+   | test tests::test_secondary_notify_fault_no_takeover ... ok
+   | 
+   | test result: ok. 14 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+   | 
+   |      Running unittests src\lib.rs (target\llvm-cov-target\debug\deps\asl_storage-87461ca528536589.exe)
+   | 
+   | running 36 tests
+   | test tests::test_ata_timeout_and_error_handling ... ok
+   | test tests::test_ext4_superblock_parsing ... ok
+   | test tests::test_fat32_extreme_bpb_rejections_and_capacity ... ok
+   | test tests::test_fat32_bpb_validation_and_cluster_math ... ok
+   | test tests::test_fat32_fragmented_file_read_write_flush ... ok
+   | test tests::test_fat32_cyclic_cluster_chain_rejection ... ok
+   | test tests::test_fat32_full_read_write_directory_cycle ... ok
+   | test tests::test_fat32_illegal_clusters_and_write_bounds ... ok
+   | test tests::test_ext4_fail_closed_write_rejection ... ok
+   | test tests::test_fat32_large_file_exceeding_256_clusters ... ok
+   | test tests::test_gpt_crc32_and_bounds ... ok
+   | test tests::test_gpt_crc_corruption_and_invalid_header_rejection ... ok
+   | test tests::test_gpt_raw_entry_linux_raid_guid_positive_and_negative ... ok
+   | test tests::test_raid0_member_failure_propagation ... ok
+   | test tests::test_raid0_striping_sector_mapping_across_boundaries ... ok
+   | test tests::test_mbr_overlapping_partition_rejection ... ok
+   | test tests::test_raid1_degraded_mode_read_fallback_and_no_false_success ... ok
+   | test tests::test_raid0_creation_validation_and_rejections ... ok
+   | test tests::test_mbr_partition_parsing_and_boundary_validation ... ok
+   | test tests::test_raid1_member0_failure_behavior_symmetric ... ok
+   | test tests::test_raid1_flush_failure_propagation ... ok
+   | test tests::test_raid1_mirror_write_readback_and_consistency ... ok
+   | test tests::test_raid1_partial_write_failure_policy ... ok
+   | test tests::test_raid_boundary_heterogeneous_capacity_and_zero_sector_ops ... ok
+   | test tests::test_raid_metadata_crc32_known_answer_vector ... ok
+   | test tests::test_raid_metadata_generation_counter_wraparound ... ok
+   | test tests::test_raid_metadata_peer_compatibility ... ok
+   | test tests::test_ramdisk_bounded_read_write ... ok
+   | test tests::test_ramdisk_read_only_and_error_injection ... ok
+   | test tests::test_vfs_directory_and_file_operations ... ok
+   | test tests::test_vfs_missing_device_and_unmounted_safety ... ok
+   | test tests::test_raid_metadata_roundtrip_raid0_and_raid1 ... ok
+   | test tests::test_vfs_mounted_on_raid1_volume ... ok
+   | test tests::test_raid_metadata_corruption_and_rejections ... ok
+   | test tests::test_raid_metadata_operational_update_fault_injection_and_readback_tamper ... ok
+   | test tests::test_raid_metadata_reservation_and_lba0_protection ... ok
+   | 
+   | test result: ok. 36 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+   | 
+   | Filename                                 Regions    Missed Regions     Cover   Functions  Missed Functions  Executed       Lines      Missed Lines     Cover    Branches   Missed Branches     Cover
+   | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+   | asl-bootloader\src\lib.rs                    315                26    91.75%          14                 1    92.86%         255                22    91.37%           0                 0         -
+   | asl-kernel-core-secondary\src\lib.rs         487                39    91.99%          40                 5    87.50%         329                24    92.71%           0                 0         -
+   | asl-storage\src\ahci.rs                       75                75     0.00%           5                 5     0.00%          72                72     0.00%           0                 0         -
+   | asl-storage\src\ata.rs                       274               262     4.38%          14                12    14.29%         174               160     8.05%           0                 0         -
+   | asl-storage\src\block.rs                      11                 5    54.55%           3                 2    33.33%           7                 4    42.86%           0                 0         -
+   | asl-storage\src\ext4.rs                      231                52    77.49%          12                 4    66.67%         139                34    75.54%           0                 0         -
+   | asl-storage\src\fat32.rs                     692                87    87.43%          20                 3    85.00%         445                61    86.29%           0                 0         -
+   | asl-storage\src\lib.rs                      2502                17    99.32%          48                 4    91.67%        1266                16    98.74%           0                 0         -
+   | asl-storage\src\partition.rs                 323                37    88.54%          10                 2    80.00%         269                26    90.33%           0                 0         -
+   | asl-storage\src\raid.rs                      883                78    91.17%          38                 2    94.74%         612                44    92.81%           0                 0         -
+   | asl-storage\src\ramdisk.rs                   100                 7    93.00%           8                 0   100.00%          76                 3    96.05%           0                 0         -
+   | asl-storage\src\vfs.rs                       134                55    58.96%          13                 3    76.92%          74                24    67.57%           0                 0         -
+   | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+   | TOTAL                                       6027               740    87.72%         225                43    80.89%        3718               490    86.82%           0                 0         -
+   ---------------------------------------------------------------------------
+Akurasi: setiap digit pada bagian 1-5 dibaca dari blok mentah di bagian 7 ini (G7: nol angka
+karangan). Transkrip ini dihasilkan otomatis dari berkas log oleh logs/gen_t2_report.py, bukan
+diketik ulang oleh manusia; skrip generator ikut disimpan di scratch ter-ignore dan kutipannya
+dipertahankan di sini agar cara perhitungannya dapat ditiru pihak ketiga.

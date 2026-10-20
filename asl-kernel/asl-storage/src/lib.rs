@@ -98,7 +98,7 @@ mod tests {
     }
 
     #[test]
-    fn test_mbr_partition_parsing_and_boundary_validation() {
+    fn test_mbr_partition_parsing_of_valid_entries() {
         let mut dev = MemBlockDevice::<{ 1024 * SECTOR_SIZE }>::new();
 
         // Construct valid MBR at sector 0
@@ -824,7 +824,7 @@ mod tests {
     }
 
     #[test]
-    fn test_ata_timeout_and_error_handling() {
+    fn test_ata_pio_driver_default_fields() {
         let driver = AtaPioDriver::new(AtaChannel::Primary, false);
         // On host test environment (without bare metal I/O port mapping or device),
         // timeout or busy poll will fail safely with Timeout
@@ -905,7 +905,7 @@ mod tests {
     }
 
     #[test]
-    fn test_raid0_striping_sector_mapping_across_boundaries() {
+    fn test_raid0_striped_roundtrip_and_oob_rejection() {
         let mut d1 = MemBlockDevice::<{ 32 * SECTOR_SIZE }>::new();
         let mut d2 = MemBlockDevice::<{ 32 * SECTOR_SIZE }>::new();
         let mut d3 = MemBlockDevice::<{ 16 * SECTOR_SIZE }>::new();
@@ -1156,7 +1156,7 @@ mod tests {
     }
 
     #[test]
-    fn test_raid1_member0_failure_behavior_symmetric() {
+    fn test_raid1_primary_member_write_failure_degrades_volume() {
         let mut d1 = MemBlockDevice::<{ 64 * SECTOR_SIZE }>::new();
         let mut d2 = MemBlockDevice::<{ 64 * SECTOR_SIZE }>::new();
         let mut d3 = MemBlockDevice::<{ 16 * SECTOR_SIZE }>::new();
@@ -1240,7 +1240,7 @@ mod tests {
     }
 
     #[test]
-    fn test_raid_metadata_crc32_known_answer_vector() {
+    fn test_crc32_known_answer_vector() {
         // Known-answer test (KAT) for IEEE 802.3 CRC32:
         // ASCII string b"123456789" CRC32 MUST be 0xCBF43926
         let kat_input = b"123456789";
@@ -1464,7 +1464,7 @@ mod tests {
     }
 
     #[test]
-    fn test_raid_metadata_reservation_and_lba0_protection() {
+    fn test_raid_metadata_reservation_lba0_protection_and_update_guards() {
         // Rule: partition_start_lba == 0 MUST be strictly rejected (LBA 0 is MBR / Protective MBR)
         assert_eq!(
             DedicatedPartitionReservation::new(0, 1000, 1, 8),

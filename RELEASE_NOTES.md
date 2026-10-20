@@ -2,7 +2,8 @@
 =========================================
 **Release Version:** `v1.1.0` (tag GitHub) = `1.1.0` (numeric, di `CHECKLIST_STATE.json` dan `HANDOFF_STATE.json`) = header berkas ini — CM_PLAN §3 "versi produk kanonik tunggal"
 **Date:** 2026-10-20
-**Provenance (terukur, bukan narasi):** tip `main` hasil **merge commit `c56c69a`** (PR #3; parent `14bc022` + `cc3fe28`), membawa **17 commit / 63 file / +9363 −152** dari branch `security/asl-v1.0.2-audit` dengan merge-base `95bac29`. Rantai riwayat misi: `8b829d8` (GERBANG AKHIR) → `5a180f6` → `fff0975` (PHASE-6A + addendum) → `cc3fe28` (6B prep) → `c56c69a` (merge) → `45a33c7` (6B close entry) → `5829e28` (CLOSEOUT T0) → `bb4a9df` (CLOSEOUT T1, basis build ISO T2 dan run G9). Nol amend / rebase / reset / force-push (G8).
+**Rilis GitHub (CLOSEOUT T4, 2026-10-20 14:02:13Z):** https://github.com/qomaruddindjamal/asl/releases/tag/v1.1.0 — annotated tag `v1.1.0` = tag object `90954ce008eb1e4774e792357ddcf528bc7f41a3` → peel commit `7104814e2ea1b3c45ff4b69c0fe70ed6d8c0423e`; `draft=false`, `prerelease=false`, `target_commitish=main`; 5 aset termasuk `asl-core-kernel-v1.1.0.iso` 4.118.528 B ber-digest `sha256:faca92f4e1e92b2ee5eb8d2e931c0b1a64df9c2035a308529e69d4e5128c8355` = **biner persis yang di-boot pada run G9** (bukan rebuild). Bukti: `Analysis/reports/release_v1.1.0_evidence_2026-10-20.log` + `Analysis/reports/release_v1.1.0_SHA256SUMS_2026-10-20.txt`.
+**Provenance (terukur, bukan narasi):** tip `main` hasil **merge commit `c56c69a`** (PR #3; parent `14bc022` + `cc3fe28`), membawa **17 commit / 63 file / +9363 −152** dari branch `security/asl-v1.0.2-audit` dengan merge-base `95bac29`. Rantai riwayat misi: `8b829d8` (GERBANG AKHIR) → `5a180f6` → `fff0975` (PHASE-6A + addendum) → `cc3fe28` (6B prep) → `c56c69a` (merge) → `45a33c7` (6B close entry) → `5829e28` (CLOSEOUT T0) → `bb4a9df` (CLOSEOUT T1, basis build ISO T2) → `e78b186` (CLOSEOUT T3 = bukti G9 berjendela) → `7104814` (koreksi presisi waktu bukti T3 + ekstrak CI `39434189599`; **tip yang di-tag `v1.1.0`**). Nol amend / rebase / reset / force-push (G8).
 **Architecture Authority:** `asl_core.md` (150 Silicon Platforms)
 **Governing Standard:** **DO-178C-aligned**, tangga sertifikasi **DAL-C (x86_64, v1.1) → B → A** per `docs/CANONICAL/ADR-002_CERTIFICATION_LADDER.md`; ARINC 653 / IMA. Klaim "DAL-A traceability pass" di bawah (era v1.0.1) adalah teks historis dan **bukan** status proses kanonik saat ini.
 
@@ -14,19 +15,19 @@
 | Item | Nilai | Artefak |
 |---|---|---|
 | Unit test host (`cargo test --workspace --lib`) | **172 passed / 0 failed** pada **30** suite, 31 paket workspace | `Analysis/reports/ci_2026-10-20.log` langkah [1/4] |
-| Build bare-metal (`--target x86_64-unknown-none --release`) | **0 error / 0 warning** | `ci_2026-10-20.log` langkah [2/4] + 9 run hosted |
+| Build bare-metal (`--target x86_64-unknown-none --release`) | **0 error / 0 warning** | `ci_2026-10-20.log` langkah [2/4] + 11 run hosted |
 | Footprint ELF | **243.568 B (Windows — biner yang di-boot di VM)** / **243.560 B (Linux runner)**; delta 8 B = perbedaan pautan per-platform | `Analysis/reports/elf_footprint_history.txt` (append-only) |
 | ISO bootable | **4.118.528 B**; **tidak byte-reproducible** (xorriso menanam volume timestamp → SHA256 berubah tiap rebuild). Build final yang di-boot G9 di tip `bb4a9df`: SHA256 `FACA92F4E1E92B2EE5EB8D2E931C0B1A64DF9C2035A308529E69D4E5128C8355` | `Analysis/reports/iso_build_v1.1.0_2026-10-20.log` + `ci_2026-10-20.log` langkah [3/4] |
 | Cold-boot smoke QEMU q35 | Capai **`M6: Kernel Cold Boot Complete`** + prompt **`ASL-OS>`**; serial 55 baris; stderr QEMU 0 baris | `Analysis/reports/qemu_ci_smoke_serial.log` |
 | **G9 acceptance run (berjendela)** | **PASS** — 2026-10-20 20:48:23 (+0700), QEMU 10.2.50, cmdline **tanpa** `-display none`, jendela disaksikan; `M6=True shell=True crash=False`; serial 55 baris; stderr 0 baris saat checker selesai, +1 baris assertion GTK QEMU pada 20:51:46 (bukan keluaran kernel) | `Analysis/reports/g9_acceptance_serial_2026-10-20.log`, `g9_acceptance_summary_2026-10-20.log`, `g9_acceptance_qemu_stderr_2026-10-20.log` |
 | Gerbang governance | **49** gerbang: 24 `Phase_01..06` **PASS & LOCKED**, 25 `Milestone_03` **PARTIAL / unlocked** | `docs/ROADMAP/CHECKLIST_STATE.json` |
 | Register temuan | **16** entri: **12 CLOSED / 2 VERIFIED-ON-VM / 1 PARTIAL-MITIGATED (CODE) / 1 OPEN** | `audit/asl-core-kernel/SECURITY_FINDINGS.md` |
-| CI hosted | **VERIFIED-ON-CI untuk langkah [1]–[2] saja** — **9** run hijau berturut-turut sampai tip `bb4a9df` (run terakhir `39423423307`), tiap angka ditarik dari log mentah (`gh run view --log`) | `Analysis/reports/ci_hosted_*.log` |
+| CI hosted | **VERIFIED-ON-CI untuk langkah [1]–[2] saja** — **11** run hijau berturut-turut sampai commit bertag `7104814` (run terakhir `39435093922`: 30 suite 172/0, release 0 warning/0 error, ELF 243.560 B), tiap angka ditarik dari log mentah (`gh run view --log`) | `Analysis/reports/ci_hosted_*.log` (5 ekstrak ter-commit) + `release_v1.1.0_evidence_2026-10-20.log` |
 
 ### 0.2 Disiplin kategori bukti (ADR-002 §5) — dibaca bersama rilis ini
 * **VERIFIED** = lulus di host (`cargo test`). **VERIFIED-ON-VM** = lulus di QEMU q35 via serial log. **VERIFIED-ON-CI** = dibuktikan oleh run Actions publik yang log mentahnya dibaca. **CODE-COMPLETE** = mekanisme ada, klaim penuh menuntut hardware gate.
 * **VERIFIED-ON-HARDWARE = 0 item.** Yang masih menunggu board fisis: `DMA-ADDR-01`, `VT-D-DRV-01`, `DA-07`.
-* **Bukti visual G9: SUDAH DIJALANKAN** pada CLOSEOUT T3 (2026-10-20 20:48 WIB, hasil **PASS**, lihat §0.5) dengan jendela QEMU **terbuka** dan cmdline **tanpa** `-display none`. Catatan kategori: HV-1/HV-2 era v1.0.1 tetap **VERIFIED-ON-VM headless** (serial log saja, tanpa screenshot) dan tidak di-upgrade oleh run ini; run G9 adalah cold-boot penuh yang disaksikan, bukan pengukuran HV-1/HV-2. Hasil ini **tidak** mengubah **VERIFIED-ON-HARDWARE = 0**.
+* **Bukti visual G9: SUDAH DIJALANKAN** pada CLOSEOUT T3 (2026-10-20 20:48:23, offset mesin +0700, hasil **PASS**, lihat §0.5) dengan jendela QEMU **terbuka** dan cmdline **tanpa** `-display none`. Catatan kategori: HV-1/HV-2 era v1.0.1 tetap **VERIFIED-ON-VM headless** (serial log saja, tanpa screenshot) dan tidak di-upgrade oleh run ini; run G9 adalah cold-boot penuh yang disaksikan, bukan pengukuran HV-1/HV-2. Hasil ini **tidak** mengubah **VERIFIED-ON-HARDWARE = 0**.
 
 ### 0.3 Perubahan fungsional utama (nol dependency eksternal baru, semua `no_std` tulisan tangan)
 1. **Failover/FSM latch** `SecondaryCoreEngine` + validasi carve-out memori (PHASE-2).
@@ -45,6 +46,7 @@
 * Barrier cache HW riil (`DMA-CACHE-01`) masih **PARTIAL-MITIGATED (CODE)**; `ATOMIC-SPARC-01` masih **OPEN** (WCET SPARC butuh TSIM3/GRMON3).
 * Tangga DAL-C prasyarat belum terpenuhi: MC/DC coverage, tim verifikasi independen, DO-330 tool qualification (`Gemini_Assist`/`Sub_Assist`), keterlibatan otoritas.
 * Item open milik pemilik repo: 9 file `.log` sampah pra-eksisting di root repo (checker `Sub_Assist.py --hygiene`) — ditangani di CLOSEOUT T5.
+* **Sisa CLOSEOUT setelah tag `v1.1.0`:** T5 (higiene 9 `.log` root) dan T6 (branch protection `main`) keduanya docs/process-only dan **tidak** mengubah biner rilis. Konsekuensi urutan langkah: commit bukti T4 (ekstrak CI atas commit bertag, salinan `SHA256SUMS`, log bukti rilis) masuk **di atas** tip bertag, jadi tip `main` tidak lagi sama persis dengan objek yang di-tag — dijelaskan di `Analysis/reports/release_v1.1.0_evidence_2026-10-20.log` bagian [6].
 
 ### 0.5 HASIL G9 ACCEPTANCE RUN (berjendela, disaksikan pemilik repo)
 **STATUS: DIJALANKAN — PASS** (CLOSEOUT T3). Ini bukti visual cold-boot pertama yang memenuhi aturan G9; sebelumnya hanya ada bukti **VERIFIED-ON-VM headless** (serial log, tanpa jendela).

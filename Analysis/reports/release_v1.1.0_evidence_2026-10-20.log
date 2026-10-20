@@ -1,0 +1,44 @@
+RELEASE EVIDENCE - ASL Core Kernel v1.1.0 (PHASE-6B-CLOSEOUT T4, 2026-10-20)
+Semua nilai di bawah ditarik dari API GitHub dan git pada sesi ini, bukan dari ingatan atau badge.
+
+[1] TAG
+  ref             : refs/tags/v1.1.0 -> tag object 90954ce008eb1e4774e792357ddcf528bc7f41a3
+  peel (commit)   : 7104814e2ea1b3c45ff4b69c0fe70ed6d8c0423e  (tip main saat penandaan)
+  annotated       : ya (objecttype=tag); pesan tag memuat provenance, angka teruji, keterbatasan
+  remote verified : git push origin v1.1.0 = [new tag]; gh api git/refs/tags/v1.1.0 mengonfirmasi objecttype tag
+
+[2] RELEASE
+  url             : https://github.com/qomaruddindjamal/asl/releases/tag/v1.1.0
+  tag_name        : v1.1.0
+  draft           : False
+  prerelease      : False   (sesuai misi: BUKAN pre-release)
+  published_at    : 2026-10-20T14:02:13Z
+  target_commitish: main
+
+[3] ASET (digest sha256 dihitung ulang oleh GitHub saat upload, dicocokkan dengan hash lokal)
+  asl-core-kernel-v1.1.0.iso                   4118528 B  sha256:faca92f4e1e92b2ee5eb8d2e931c0b1a64df9c2035a308529e69d4e5128c8355
+  g9_acceptance_serial_2026-10-20.log             2511 B  sha256:f47441b1e651b75c94a5fa5c8351eb9b4691c0d30c514ce1d537c86a39addcc2
+  g9_acceptance_summary_2026-10-20.log            1150 B  sha256:163718f86fe19c69832ae3c292174fec5a4a7e62d49648ea0c15f08e24dd4f4f
+  iso_build_v1.1.0_2026-10-20.log                 3500 B  sha256:ac383cfa3cdaf10d82340130887e5cfb7f111ab10c5ef5b021da9f83931ad5f4
+  SHA256SUMS.txt                                  1392 B  sha256:df13c3b8e414e9e4e83704ebe2eb8bafcd9708c612e526f6c80c0236bc9f78c8
+  ISO yang dilampirkan = persis biner yang di-boot pada G9 acceptance run berjendela
+  (SHA256 lokal faca92f4e1e92b2ee5eb8d2e931c0b1a64df9c2035a308529e69d4e5128c8355; sha256sum -c pada
+   direktori aset sebelum upload: OK untuk keempat berkas bukti).
+
+[4] IDENTITAS INPUT KERNEL PADA TAG
+  git diff --numstat cc3fe28 7104814 : 15 berkas berubah, 0 di antaranya berkas .rs
+  shortstat: 15 files changed, 631 insertions(+), 16 deletions(-)
+  cc3fe28 adalah tip branch yang tree-nya identik dengan merge commit c56c69a (git diff cc3fe28 c56c69a kosong),
+  jadi biner pada tag ini dibangun dari kode yang sama dengan yang diuji di GERBANG AKHIR (8b829d8).
+
+[5] CI ATAS COMMIT BERTAG
+  run 39435093922 (push @ 7104814) = conclusion success; ekstrak ter-commit di
+  Analysis/reports/ci_hosted_39435093922_2026-10-20.log : 30 suite 172 passed / 0 failed;
+  langkah release 13 baris Compiling + Finished 2,05 s, 0 warning / 0 error; ELF Linux 243.560 B.
+  Total run hosted hijau sampai titik ini: 11.
+
+[6] URUTAN YANG DISENGAJA DICATAT JUJUR
+  Tag dibuat pada 7104814 yang CI-nya sudah diverifikasi dari log mentah. Ekstrak CI run tersebut, salinan
+  SHA256SUMS, dan berkas bukti ini masuk commit BERIKUTNYA (docs-only), sehingga ekstrak atas commit bukti ini
+  sendiri tidak akan pernah ter-tag - konsekuensi wajar dari melampirkan artefak berisi hasil run atas tag.
+  Sisa CLOSEOUT: T5 higiene 9 berkas .log di root (fault log entri ke-11), T6 branch protection main.

@@ -666,3 +666,54 @@ Konsekuensi untuk klaim: **VERIFIED-ON-CI untuk langkah [1]–[2]** kini ditopan
 
 ### Commit
 `[PHASE-6B][prep] <ringkasan>` — staging eksplisit per file (2 path di atas), tanpa `git add -A`.
+
+## [PHASE-6B] — PR #3 DI-MERGE KE `main` (MERGE COMMIT) + VERIFIKASI PASCA-MERGE (docs/evidence-only, 2026-10-20)
+
+**G8 — pengungkapan hash tertunda:** hash commit entri `[PHASE-6B][prep]` di atas = **`cc3fe28`** (`cc3fe28fa003a60c890de65a36313c84b5523053`). Hash merge commit hasil fase ini = **`c56c69a`** (`c56c69a0e7e7b0fd2379e35c6555012b149a95db`). Hash commit `[PHASE-6B]` ini sendiri TIDAK ditulis di dalamnya — diungkapkan pada entri berikutnya (PHASE-6B-CLOSEOUT). Nol amend / rebase / reset --hard / force-push; metode merge commit sengaja dipilih agar rantai 17 commit misi tetap utuh.
+
+### Otorisasi & aturan yang diterima
+Pemilik repo menyetujui merge (verdict advisory `VERIFY-MERGE-1: LAYAK MERGE`) dengan urutan T1 (bukti run ketiga) → T2 (PR + CI `pull_request`) → T3 (`gh pr merge --merge`; **DILARANG** squash/rebase, **DILARANG** `--delete-branch`) → T4 (verifikasi pasca-merge + entri docs-only langsung ke `main`). Batasan: **nol perubahan `.rs`**, G1–G9 + R1–R4 tetap berlaku, **G5: CI merah = STOP**.
+
+### T1 — artefak run ketiga (rinci di entri `[PHASE-6B][prep]` di atas)
+`gh run view 39400350619 --json` = `conclusion success`, `event push`, `headSha fff0975…`; log mentah 841 baris → ekstrak ter-commit `Analysis/reports/ci_hosted_39400350619_2026-10-20.log` (**30 suite = 172 passed / 0 failed**; `[2/2]` 13 `Compiling` + `Finished 1.98s`, **0 `warning:` / 0 `error:`** pada langkah release; ELF Linux **243.560 B**). Push prep memicu run keempat `39417162899` @ `cc3fe28` = success dengan angka identik — **nol STOP** (G5 tidak terpicu).
+
+### T2 — PR #3 dibuat dan CI-nya diverifikasi dari log mentah
+* `gh pr create --base main --head security/asl-v1.0.2-audit --title "[PHASE-6B] Merge mission branch: PHASE-1..5 + GERBANG AKHIR + 6A evidence"` → **https://github.com/qomaruddindjamal/asl/pull/3**
+* Body ditulis setelah pengukuran, bukan setelah klaim: **(a)** cakupan hosted = **hanya langkah [1]–[2]** dari pipeline 4 langkah, dengan tabel run `push` + run `pull_request`; **(b)** langkah **[3]–[4] QEMU = bukti LOKAL** GERBANG AKHIR (`ci_local.ps1` → `ci_2026-10-20.log`: capai M6 + prompt `ASL-OS>`, serial 55 baris, ELF 243.568 B, ISO 4.118.528 B) plus pernyataan **VERIFIED-ON-VM ≠ VERIFIED-ON-HARDWARE (jumlah item hardware = 0)** dan **screenshot VM tidak tersedia**; **(c)** metode merge = **merge commit**, squash/rebase dan penghapusan branch dilarang; **(d)** ARCHIDENT bersih (target `x86_64-unknown-none`, `#![no_std]`, **nol dependency eksternal baru**), dan daftar eksplisit **yang sengaja tidak ada** di PR (G9 berjendela, tag/rilis `v1.1.0`, branch protection, penutupan execution log, sinkron versi 3-file, 9 `.log` sampah root, HV-3..8, prasyarat tangga DAL-C).
+* Ukuran PR terukur: `git rev-list --count origin/main..HEAD` = **17 commit**; `HEAD..origin/main` = 1 (merge commit `14bc022` PR #2 — ditangani di tabel T4); `git diff --shortstat origin/main...HEAD` = **63 file, +9363/−152** dengan merge-base terukur `95bac29`.
+* Run `pull_request` **`39417504070`** @ `cc3fe28` = `conclusion success` (job 13 s). **Diverifikasi dari log mentah 852 baris**, bukan dari badge: 30 suite = **172 passed / 0 failed**, 14 baris release, **0 warning / 0 error**, ELF Linux 243.560 B. Status GitHub: `mergeable=MERGEABLE`, `mergeStateStatus=CLEAN`; dry-run lokal `git merge-tree --write-tree origin/main cc3fe28` = **nol conflict**.
+
+### T3 — merge dengan merge commit (bukan squash/rebase)
+`gh pr merge 3 --merge` → `state=MERGED`, `mergedAt=2026-10-20T11:49:43Z`, `mergeCommit.oid=c56c69a0e7e7b0fd2379e35c6555012b149a95db`. Tidak ada flag `--squash`, `--rebase`, `--delete-branch`, atau `--admin` yang dipakai.
+
+### T4 — verifikasi pasca-merge (terukur)
+| Pemeriksaan | Hasil | Sumber |
+|---|---|---|
+| Bentuk merge commit | `c56c69a` punya **TEPAT dua parent**: `14bc022` (main pra-merge) + `cc3fe28` (tip branch) ⇒ **metode merge commit terverifikasi struktural**; squash akan menghasilkan 1 parent, rebase akan linear | `git rev-list --parents -n 1 origin/main` |
+| Branch sumber | **TETAP ADA** di remote pada `cc3fe28`; `feature/asl-v1.0.2` juga tidak disentuh | `git ls-remote --heads origin` |
+| Tip `main` | `c56c69a…` sama di remote dan lokal; lokal hanya di-fast-forward `b6c8b58 → c56c69a` (`main` lama adalah ancestor ⇒ **bukan rewrite**) | `git fetch`; `git rev-parse HEAD` |
+| Tree hasil merge | **`git diff cc3fe28 c56c69a` = KOSONG** ⇒ tree `main` pasca-merge **identik** dengan tip branch yang sudah diuji, sehingga angka lokal pada `cc3fe28` (172/0; release 0/0; ELF Windows 243.568 B) berlaku untuk `main`; `behind 1` bukan konten yang belum diuji — lini `main` pra-merge sudah termuat dalam tree gabungan | `git diff --stat cc3fe28 c56c69a` |
+| CI terpicu push ke `main` | Run **`39417746328`** (`event push`, `headBranch main`, `headSha c56c69a…`) = `conclusion success`; log mentah 841 baris diverifikasi: **30 suite 172 passed / 0 failed**, 14 baris release, **0 warning / 0 error**, ELF Linux 243.560 B → ekstrak ter-commit **`Analysis/reports/ci_hosted_39417746328_2026-10-20.log`**. Nilai tambah run ini: ia menguji **tree gabungan**, jadi konflik semantis yang tidak terlihat di UI akan tertangkap di sini | `gh run view 39417746328 --json` / `--log` |
+
+### Gerbang (G4) sebelum commit docs-only ini — diukur, bukan disimpulkan
+* `cargo test --workspace --lib` (host Windows; tree `.rs` `cc3fe28` = `c56c69a`): **30 suite, 172 passed / 0 failed**.
+* `cargo build --package asl-kernel-bin --target x86_64-unknown-none --release`: **0 warning / 0 error**, ELF **243.568 B**, `Finished` 10.31 s (pautan dipaksa jalan ulang dengan `touch` **mtime-only**, nol perubahan isi — `git status --porcelain --untracked-files=no` tetap 0 sebelum edit fase ini).
+* G1 nol dependency baru; G2 tidak ada perubahan status gate di `CHECKLIST_STATE.json`; G3 tidak tersentuh; G5 tidak terpicu (nol kegagalan di semua run); G9 **masih belum dipakai** — run penerimaan berjendela tetap hard gate sebelum rilis dan jadi milik PHASE-6B-CLOSEOUT.
+
+### File berubah pada commit docs-only di `main` ini (nol `.rs`)
+5 path: `Analysis/reports/QODER_EXECUTION_LOG.md` (entri ini), **`Analysis/reports/ci_hosted_39417746328_2026-10-20.log` (baru)**, `README.md` (§6 bullet bukti hosted → enam run termasuk run `main`; §7 bullet status merge dengan **koreksi eksplisit** atas kalimat 6A "PR belum dibuat/di-merge"), `Analysis/reports/QODER_FINAL_REPORT.md` (judul + header + blok gerbang PHASE-7 diperbarui; baris 6B-prep dan 6B-MERGE di §1; §2 VERIFIED-ON-CI → enam run; §5 bullet keputusan metode merge + direct-push; §6 daftar hash dan fault log 8 entri; §7 item CI dan verdict disinkronkan), `docs/ROADMAP/ACCOUNTABILITY_FAULT_LOG.json` (+1 entri `PROCESS_DIRECT_PUSH_TO_MAIN`, `ACCEPTED_WITH_WRITTEN_JUSTIFICATION`).
+
+### Deviasi & hal yang TIDAK saya lakukan
+* **`PROCESS_DIRECT_PUSH_TO_MAIN`:** commit docs-only ini masuk `main` **tanpa lewat PR** — secara harfiah mengikuti instruksi T4 pemilik repo, tetapi melewati gerbang review yang biasanya menegakkan "pipeline merah = tidak boleh merge". Dicatat di fault log dengan justifikasi + rencana ratifikasi (jalur ini dilarang begitu branch protection aktif). Tidak disembunyikan.
+* **`scripts/ci_local.ps1` tidak dijalankan ulang** pada fase 6B: langkahnya menulis `Analysis/reports/ci_2026-10-20.log` dengan `Out-File` (menimpa artefak bukti GERBANG AKHIR yang sudah ter-commit, termasuk SHA256 ISO yang memang tidak reproducible). Langkah [1] dan [2] diukur langsung dengan perintah cargo yang sama; angka [3]/[4] yang dikutip entri lama tetap sah untuk run 2026-10-20 tersebut.
+* Log mentah per run (841–852 baris) **tidak di-commit utuh** — hanya ekstrak 67 baris ASCII, sesuai "Artifact naming discipline" README §6; raw sementara ada di `logs/` (ter-ignore).
+* **Tidak ada** tag, release `v1.1.0`, branch protection, penutupan resmi execution log, sinkron versi 3-file, maupun penghapusan 9 file `.log` sampah di root (bukan buatan agen ini; owner menunda ke CLOSEOUT). Tidak ada klaim hardware baru: **jumlah item VERIFIED-ON-HARDWARE tetap 0**.
+* Push branch dan push `main` keduanya fast-forward, tanpa `--force` dan tanpa `-u` (git config tidak diubah).
+
+### Status akhir fase
+Precondition PHASE-6A/6B untuk **push branch + PR + merge + hosted CI langkah [1]–[2]** kini **TERPENUHI dan terverifikasi dari log mentah**. PHASE-7 (T0/RND_09) **tetap tidak dimulai** karena tiga item closeout masih terbuka: penutupan resmi `QODER_EXECUTION_LOG`, run penerimaan **berjendela (G9)**, dan publikasi rilis `v1.1.0` + branch protection `main`.
+
+**Catatan antisipasi (bukan klaim):** daftar enam run di atas adalah status pada saat commit ini ditulis. Push commit docs-only `[PHASE-6B]` ke `main` akan memicu run **ketujuh** di tip docs ini; hasil run itu **belum** dinyatakan di sini dan wajib ditarik dari log mentah lalu dicatat pada entri PHASE-6B-CLOSEOUT — bukan diasumsikan hijau hanya karena workflow-nya sudah terbukti hijau enam kali.
+
+### Commit
+`[PHASE-6B] <ringkasan>` — staging eksplisit per file (5 path di atas), tanpa `git add -A`. Hash commit ini diungkapkan pada entri berikutnya (G8).

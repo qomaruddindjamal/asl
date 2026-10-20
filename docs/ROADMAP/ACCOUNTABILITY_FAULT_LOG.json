@@ -101,6 +101,21 @@
         "Build ISO terbukti tidak byte-reproducible: dua run berurutan atas tree yang sama menghasilkan SHA256 berbeda (6DDF4E6C…, BB97F25E…) dengan ukuran 4.118.528 B identik — dokumentasi kini melarang dikutipnya hash di luar artefak run bersangkutan."
       ],
       "notes": "Bukan pelanggaran aturan G1–G8: tidak ada gerbang CHECKLIST_STATE.json yang diubah, tidak ada riwayat commit yang ditulis-ulang, tidak ada dependency baru. Ini koreksi drift angka/label yang ditemukan saat verifikasi akhir; koreksi dilakukan lewat file baru/entri baru dan commit baru, sesuai G8 (koreksi selalu menyebut angka/dokumen yang dikoreksi)."
+    },
+    {
+      "date": "2026-10-20T11:50:00Z",
+      "actor": "QODER (agen) — PHASE-6B",
+      "type": "PROCESS_DIRECT_PUSH_TO_MAIN",
+      "gate_id": "G6 (satu commit per fase) / G8 (rantai hash) / §7 README repository integrity",
+      "result": "ACCEPTED_WITH_WRITTEN_JUSTIFICATION",
+      "evidence": [
+        "Misi PHASE-6B dari pemilik repo mensyaratkan urutan eksplisit: T1 bukti run hosted ketiga -> T2 PR dengan body jujur -> T3 `gh pr merge --merge` (dilarang squash/rebase, dilarang hapus branch) -> T4 verifikasi pasca-merge lalu 'commit docs-only LANGSUNG ke main'. Otoritas pemilik tercatat di QODER_EXECUTION_LOG entri [PHASE-6B][prep] dan [PHASE-6B].",
+        "Metode merge diverifikasi struktural, bukan diasumsikan: `git rev-list --parents -n 1 origin/main` = `c56c69a0e7e7b0fd2379e35c6555012b149a95db 14bc022c8075be49f30b89d942614990e5c8cec cc3fe28fa003a60c890de65a36313c84b5523053` => TEPAT dua parent (bukan squash yang hanya satu parent, bukan rebase yang linear). Branch `security/asl-v1.0.2-audit` tetap ada di remote pada `cc3fe28` (`git ls-remote --heads`) — `--delete-branch` tidak dipakai.",
+        "Nol perubahan `.rs` pada fase 6B: commit `cc3fe28` = 2 file docs/evidence (+115/−0); commit docs-only di `main` hanya menyentuh README, laporan akhir, fault log ini, dan QODER_EXECUTION_LOG.",
+        "Gerbang G4 diukur ulang sebelum commit: host `cargo test --workspace --lib` = 30 suite 172 passed / 0 failed; build release x86_64-unknown-none 0 error / 0 warning, ELF 243.568 B (pautan benar-benar dijalankan ulang via `touch` mtime-only pada `asl-kernel-bin/src/main.rs`, bukan cache no-op; nol perubahan isi).",
+        "CI diverifikasi dari log mentah, bukan badge: run `39417162899` (push @ cc3fe28), `39417504070` (pull_request @ cc3fe28), `39417746328` (push @ c56c69a di main) — masing-masing 841/852 baris log disaring: 30 suite `test result: ok` = 172 passed/0 failed, langkah release 14 baris Compiling/`Finished`, 0 `warning:`/0 `error:`, ELF Linux 243.560 B."
+      ],
+      "notes": "PENYIMPANGAN PROSES YANG DISADARI: commit docs-only `PHASE-6B` masuk ke `main` tanpa melalui PR, sehingga melewati gerbang 'pipeline MERAH = tidak boleh merge' versi review-PR. Justifikasi tertulis: (1) isinya semata dokumentasi/bukti pasca-merge yang tidak mungkin mengubah perilaku biner (nol `.rs`, nol dependency), (2) instruksi eksplisit pemilik repo pada misi 6B T4, (3) branch protection `main` memang belum aktif dan pembuatannya ditunda ke PHASE-6B-CLOSEOUT bersama penutupan resmi `QODER_EXECUTION_LOG`. RATIFIKASI: begitu required check `asl-ci-minimal` dipasang di `main`, jalur direct-push docs-only ini DILARANG dan seluruh perubahan wajib lewat PR; entri ini adalah catatan terbuka agar sejarah tidak tampak seolah semua perubahan sudah Review-PR. Tidak ada klaim hardware yang dinaikkan (jumlah item VERIFIED-ON-HARDWARE tetap 0); `violations_recorded` tetap 0 karena entri ini deviasi-berjustifikasi-berotorisasi, bukan pelanggaran gerbang."
     }
   ]
 }

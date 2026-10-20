@@ -116,6 +116,20 @@
         "CI diverifikasi dari log mentah, bukan badge: run `39417162899` (push @ cc3fe28), `39417504070` (pull_request @ cc3fe28), `39417746328` (push @ c56c69a di main) — masing-masing 841/852 baris log disaring: 30 suite `test result: ok` = 172 passed/0 failed, langkah release 14 baris Compiling/`Finished`, 0 `warning:`/0 `error:`, ELF Linux 243.560 B."
       ],
       "notes": "PENYIMPANGAN PROSES YANG DISADARI: commit docs-only `PHASE-6B` masuk ke `main` tanpa melalui PR, sehingga melewati gerbang 'pipeline MERAH = tidak boleh merge' versi review-PR. Justifikasi tertulis: (1) isinya semata dokumentasi/bukti pasca-merge yang tidak mungkin mengubah perilaku biner (nol `.rs`, nol dependency), (2) instruksi eksplisit pemilik repo pada misi 6B T4, (3) branch protection `main` memang belum aktif dan pembuatannya ditunda ke PHASE-6B-CLOSEOUT bersama penutupan resmi `QODER_EXECUTION_LOG`. RATIFIKASI: begitu required check `asl-ci-minimal` dipasang di `main`, jalur direct-push docs-only ini DILARANG dan seluruh perubahan wajib lewat PR; entri ini adalah catatan terbuka agar sejarah tidak tampak seolah semua perubahan sudah Review-PR. Tidak ada klaim hardware yang dinaikkan (jumlah item VERIFIED-ON-HARDWARE tetap 0); `violations_recorded` tetap 0 karena entri ini deviasi-berjustifikasi-berotorisasi, bukan pelanggaran gerbang."
+    },
+    {
+      "date": "2026-10-20T12:05:00Z",
+      "actor": "QODER (agen) — PHASE-6B-CLOSEOUT T1",
+      "type": "CONFIG_VERSION_SYNC_AND_HYGIENE_CLAIM_CORRECTION",
+      "gate_id": "CM_PLAN §3 (Identitas Konfigurasi) / G2 (perubahan CHECKLIST_STATE.json) / README §7 (hygiene 100%)",
+      "result": "ACCEPTED_WITH_WRITTEN_JUSTIFICATION",
+      "evidence": [
+        "Perintah pemilik repo (misi PHASE-6B-CLOSEOUT T1): sinkron 3-file ke v1.1.0 sesuai CM_PLAN §3. Diedit: `RELEASE_NOTES.md` header -> v1.1.0, `docs/ROADMAP/CHECKLIST_STATE.json` field `version` `1.0.0-dev` -> `1.1.0`, `docs/ROADMAP/HANDOFF_STATE.json` +field `version`=`1.1.0`. NOL perubahan status gerbang: 24 gate Phase_01..06 tetap PASS & LOCKED, 25 gate Milestone_03 tetap PARTIAL/unlocked, total 49 (terukur sebelum dan sesudah edit).",
+        "Nol perubahan `.rs`. Edit dilakukan bedah teks (bukan re-serialisasi JSON) karena round-trip `json.dumps(indent=2)` tidak identik dengan file asli (CHECKLIST 13111 vs 10581 karakter) -> diff minimal, hanya baris versi/hygiene.",
+        "Koreksi klaim higiene: `HANDOFF_STATE.json` sebelumnya menulis `hygiene_status = CLEAN_100_PERCENT`, sedangkan `python tools/Sub_Assist.py --hygiene` pada tree ini mengeluarkan 9 file `.log` pra-eksisting di root (`boot_final`, `boot_gdt_test`, `boot_nominal`, `boot_tss_test`, `boot_working`, `test_de_output`, `test_de_output2`, `test_de_output3`, `trace_gt`). Label diganti jadi `DEGRADED_9_ROOT_LOG_FILES_PREEXISTING` sampai T5 menanganinya; ini penurunan klaim (bukan kenaikan) sehingga tidak melanggar preseden FALSE_CLAIM_INSTRUCTION.",
+        "Koreksi drift kategori di `RELEASE_NOTES.md` §3 era v1.0.1 yang menulis 'Fully resolved' untuk `DMA-CACHE-01`, `DMA-ADDR-01`, `ATOMIC-SPARC-01`: ditambahkan §3.1 dengan status kanonik terukur (PARTIAL-MITIGATED (CODE) / VERIFIED-ON-VM bukan HARDWARE / OPEN) dan pernyataan **jumlah item VERIFIED-ON-HARDWARE = 0**. Teks historis v1.0.1 tidak dihapus."
+      ],
+      "notes": "JUSTIFIKASI G2: field `version` pada CHECKLIST_STATE.json bukan status gerbang, namun berkasnya tunduk pada CM_PLAN §3 dan aturan append-only, jadi perubahan ini disertai bukti terukur + entri ini. Yang TIDAK diubah: `phases.*.gates.*.status`, `MajorFrameSchedule` (G3), daftar dependency (G1 — nol dependency baru), `last_audit`. Nilai `active_phase`/`active_gate`/`current_status`/`next_immediate_step`/`current_task` pada HANDOFF_STATE.json dibiarkan apa adanya karena mendeskripsikan state era v1.0.1 (Phase_06/Gate_6.3) yang tidak diuji ulang pada misi PHASE-1..6B; label 'DAL-A' di bagian riwayat v1.0.1 ditandai eksplisit sebagai teks historis dan status proses kanonik kini DO-178C-aligned tangga DAL-C (ADR-002)."
     }
   ]
 }

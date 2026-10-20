@@ -724,3 +724,45 @@ Precondition PHASE-6A/6B untuk **push branch + PR + merge + hosted CI langkah [1
 - Isi koreksi: pesan commit `45a33c7` menulis label hasil fault log sebagai `ACCEPTED_WITH_WRTITTEN_JUSTIFICATION` (typo satu huruf, "WRTITTEN"). **Data kanoniknya sudah benar** — `docs/ROADMAP/ACCOUNTABILITY_FAULT_LOG.json` entri ke-8 (`PROCESS_DIRECT_PUSH_TO_MAIN`) memakai nilai `ACCEPTED_WITH_WRITTEN_JUSTIFICATION`, terverifikasi ulang dengan parser: `json.load` sukses, `fault_history` = 8 entri, `violations_recorded` = 0.
 - Jadi ini **murni kesalahan teks pada commit message**, bukan kesalahan bukti: tidak ada angka, kategori, atau status gate yang berubah. Reader yang mencocokkan string label antara pesan commit dan JSON harus memakai nilai di JSON sebagai sumber kebenaran (README §7: "numbers come from the committed artifact, never from chat").
 - Nol perubahan `.rs`; satu path dokumen berubah (log eksekusi ini). Run `asl-ci-minimal` atas tip hasil commit ini wajib hijau sebelum T1 (G5: merah = STOP).
+
+## [PHASE-6B-C1] — CLOSEOUT T0+T1: KOREKSI APPEND-ONLY, SINKRON VERSI v1.1.0, PENUTUPAN LOG (docs-only, 2026-10-20)
+
+**G8 — pengungkapan hash tertunda + koreksi angka:**
+- Hash commit entri `[PHASE-6B]` di atas = **`45a33c7`** (`45a33c73e9d3241ded0ad18c5af22422a4164b83`, tip `main` saat entri ini dibuat).
+- Hash commit `[PHASE-6B-CLOSEOUT][T0]` = **`5829e28`** (`5829e2812e6de2593a80f0fd96931ecdbd3d10bf`).
+- **Koreksi append-only atas `5829e28`:** pesan commitnya menulis "+9 baris addendum", sedangkan terukur `git show --numstat` = **1 file, +7 insertions / −0** (angka 717→726 mencakup 2 baris dari edit "Catatan antisipasi" pada `45a33c7`, bukan hanya addendum T0). `5829e28` **tidak** di-amend (G8); koreksi dicatat di sini dan di pesan commit `[PHASE-6B-C1]`.
+- Hash commit `[PHASE-6B-C1]` ini sendiri diungkapkan pada entri berikutnya / pesan commit berikutnya (G8).
+
+### Rantai riwayat penuh misi (terukur `git log`, nol rewrite)
+`95bac29` (state pra-misi di branch) → `e07cfac…8b829d8` (PHASE-1..5 + GERBANG AKHIR, 14 commit) → `5a180f6` (6A) → `fff0975` (6A addendum) → `cc3fe28` (6B prep) → **`c56c69a`** (merge commit PR #3 ke `main`; parent `14bc022` + `cc3fe28`) → `45a33c7` (6B close entry, direct docs-only ke `main`) → `5829e28` (CLOSEOUT T0) → commit entri ini (`[PHASE-6B-C1]`).
+
+### T0 — koreksi typo (sudah dieksekusi sebelum entri ini)
+Fakta: `45a33c7` menulis label fault log `ACCEPTED_WITH_WRTITTEN_JUSTIFICATION`; nilai kanonik di `docs/ROADMAP/ACCOUNTABILITY_FAULT_LOG.json` entri ke-8 = `ACCEPTED_WITH_WRITTEN_JUSTIFICATION` (terverifikasi `json.load`). Koreksi = commit baru `5829e28` yang menyebut hash-nya. Nol perubahan bukti/angka/kategori. CI hosted atas tip `5829e28` = run **`39422495702`** (`event push`, `headBranch main`) **success**, dan **ditarik dari log mentah 841 baris**: 30 suite **172 passed / 0 failed**, langkah release **0 warning / 0 error**, ELF Linux **243.560 B**.
+
+### T1 — sinkron identitas konfigurasi 3-file (CM_PLAN §3)
+| Berkas | Sebelum | Sesudah | Cara edit |
+|---|---|---|---|
+| `RELEASE_NOTES.md` | header `v1.0.1` (2026-10-17) | header **`v1.1.0`** + §0 baru (provenance, angka teruji, disiplin kategori, perubahan fungsional, keterbatasan, **§0.5 placeholder hasil G9**) + banner "BAGIAN RIWAYAT v1.0.1" + **§3.1 koreksi kategori** | teks ditambahkan; isi v1.0.1 **tidak dihapus** |
+| `docs/ROADMAP/CHECKLIST_STATE.json` | `version = "1.0.0-dev"` | `version = "1.1.0"` | **satu baris** (`git diff` = +1/−1); **nol** perubahan status gerbang |
+| `docs/ROADMAP/HANDOFF_STATE.json` | tanpa `version`; `hygiene_status = CLEAN_100_PERCENT` | `version = "1.1.0"`, `release_identity` (memetakan tag `v1.1.0` ↔ numerik `1.1.0`), `hygiene_status = DEGRADED_9_ROOT_LOG_FILES_PREEXISTING`, `timestamp` 2026-10-20 | klaim higiene **diturunkan** jadi sesuai kenyataan (checker mengeluarkan 9 file `.log` root), bukan dinaikkan |
+
+- **Kenapa JSON diedit bedah teks, bukan re-serialisasi:** round-trip `json.dumps(indent=2)` TIDAK identik dengan berkas asli (`CHECKLIST_STATE.json` 13111 karakter vs hasil re-serialisasi 10581) — re-serialisasi akan merusak review. Diverifikasi: parser `json.load` sukses untuk kedua berkas setelah edit.
+- **Gerbang tidak tersentuh (G2/G3):** re-parse deterministik di-append ke `Analysis/reports/2026-10-20_gate_parse_evidence.txt` — **Phase_01..06 = 24 gate PASS (locked=True)**, **Milestone_03 = 25 gate locked=False** dengan per-status `{'PASS':20,'PARTIAL':1,'PASS_READONLY':1,'PASS (…)':1,'GAP_IDENTIFIED (…)':1,'NOT TESTED':1}`, **grand total 49**. Identik dengan parse sebelumnya kecuali field `version`.
+- **Koreksi drift kategori di bagian riwayat v1.0.1:** `RELEASE_NOTES.md` §3 lama menulis "Fully resolved" untuk `DMA-CACHE-01`, `DMA-ADDR-01`, `ATOMIC-SPARC-01`. §3.1 kini menyatakan status kanonik: **PARTIAL-MITIGATED (CODE)** / **VERIFIED-ON-VM (bukan HARDWARE)** / **OPEN**, dan **jumlah item VERIFIED-ON-HARDWARE = 0**. Teks historis dipertahankan utuh (jejak audit), koreksi ditambahkan di bawahnya.
+- Fault log: **+1 entri ke-9** `CONFIG_VERSION_SYNC_AND_HYGIENE_CLAIM_CORRECTION` (`ACCEPTED_WITH_WRITTEN_JUSTIFICATION`), `violations_recorded` tetap 0. **Catatan penomoran:** teks misi CLOSEOUT menyebut pembersihan higiene sebagai "entri ke-9"; karena T1 memakai entri ke-9 lebih dulu, **pembersihan higiene T5 akan menjadi entri ke-10** — dichiarato di sini agar tidak ada yang mengira entri ganda.
+
+### Gerbang (G4) pada tree ini — diukur ulang sebelum commit (bukan disimpulkan)
+* `cargo test --workspace --lib` (host Windows): **30 suite, 172 passed / 0 failed**.
+* `cargo build --package asl-kernel-bin --target x86_64-unknown-none --release`: **0 error / 0 warning**, ELF **243.568 B**.
+* Nol perubahan `.rs` pada T0/T1 ⇒ tidak ada jalur regresi kode; angka di atas adalah pengukuran aktual, dan run hosted di tip hasil commit ini menjadi konfirmasi lintas-platform.
+
+### Kebijakan setelah penutupan log (penting untuk ketertelusuran)
+Sesuai instruksi misi: **`QODER_EXECUTION_LOG.md` dinyatakan CLOSED untuk misi PHASE-1..6B**; entri berikutnya di berkas ini adalah **PHASE-7**. Agar sisa CLOSEOUT tidak kehilangan jejak, bukti aksi pasca-T1 dicatat di tempat lain yang ter-commit:
+* **T2 (build ISO final)** → ukuran + SHA256 ditulis di `RELEASE_NOTES.md` §0.5 dan/atau `Analysis/reports/iso_build_v1.1.0_2026-10-20.log` (nama BARU; `ci_local.ps1` tidak dijalankan apa adanya karena `Out-File`-nya menimpa `Analysis/reports/ci_2026-10-20.log` yang sudah ter-commit sebagai bukti GERBANG AKHIR).
+* **T3 (G9 acceptance berjendela)** → serial log `Analysis/reports/g9_acceptance_serial_2026-10-20.log` + §0.5 terisi + pesan commit `[PHASE-6B-C2]`.
+* **T4 (tag + release v1.1.0)** → tag annotated + body release (provenance, kategori, ARCHIDENT, keterbatasan).
+* **T5 (higiene root)** → `ACCOUNTABILITY_FAULT_LOG.json` entri ke-10 + pergerakan/penghapusan file.
+* **T6 (branch protection)** → hasil `gh api`/keputusan owner dicatat di pesan commit rilis dan `README.md` §7.
+
+### Status penutupan
+Misi PHASE-1..5 + GERBANG AKHIR + PHASE-6A + PHASE-6B (push → PR #3 → merge commit → verifikasi) **selesai dan terekam**. Yang masih terbuka **bukan** kegagalan misi: board fisis (HV/`DMA-ADDR-01`/`VT-D-DRV-01`/`DA-07`), HV-3..HV-8, prasyarat tangga DAL-C (MC/DC, tim verifikasi independen, DO-330 TQL), `ATOMIC-SPARC-01` OPEN, `DMA-CACHE-01` PARTIAL, ISO tidak byte-reproducible (perbaikan dijadwalkan PHASE-7 T1), serta langkah [3]–[4] CI yang hanya bisa lokal. **PHASE-7 / T0 RND_09 belum dimulai.**

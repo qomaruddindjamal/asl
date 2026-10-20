@@ -70,3 +70,19 @@ SUMMARY:
   Milestone_03 per-status = {'PASS': 20, 'PARTIAL': 1, 'PASS_READONLY': 1, 'PASS (Persistent Metadata Wire Format, CRC32 KAT, Reservation Contract & Fault Injection Verified; Boot Assembly GAP_IDENTIFIED)': 1, 'GAP_IDENTIFIED (Deferred to Post-M3 Volume Management)': 1, 'NOT TESTED': 1}
   Grand total gates = 49
   FINAL VERDICT 24-vs-25: klaim README '25/25' TIDAK sesuai struktur: Phase_01..06 = 24 gates (semua PASSED, locked), Milestone_03 = 25 gates PARTIAL unlocked.
+
+REPARSE 2026-10-20 (setelah sinkron versi CLOSEOUT T1) - deterministic parse, python json
+Source: docs/ROADMAP/CHECKLIST_STATE.json | project=ASL Core Kernel version=1.1.0 last_audit=2026-10-13T04:26:22.578856
+Perintah: baca berkas dengan json.load lalu hitung per-phase; tidak ada angka yang disalin dari entri lama.
+  Phase_01 phase-status=PASSED locked=True gates=6 -> {'PASS': 6}
+  Phase_02 phase-status=PASSED locked=True gates=4 -> {'PASS': 4}
+  Phase_03 phase-status=PASSED locked=True gates=4 -> {'PASS': 4}
+  Phase_04 phase-status=PASSED locked=True gates=4 -> {'PASS': 4}
+  Phase_05 phase-status=PASSED locked=True gates=3 -> {'PASS': 3}
+  Phase_06 phase-status=PASSED locked=True gates=3 -> {'PASS': 3}
+  Milestone_03 phase-status=PARTIAL locked=False gates=25 -> {'PASS': 20, 'PARTIAL': 1, 'PASS_READONLY': 1, 'PASS (Persistent Metadata Wire Format, CRC32 KAT, Reservation Contract & Fault Injection Verified; Boot Assembly GAP_IDENTIFIED)': 1, 'GAP_IDENTIFIED (Deferred to Post-M3 Volume Management)': 1, 'NOT TESTED': 1}
+
+SUMMARY REPARSE:
+  Phase_01..06 combined gates = 24 (semua PASS) | Milestone_03 gates = 25 locked=False | Grand total gates = 49
+  Delta terhadap parse 2026-10-20 sebelumnya (Analysis/reports/2026-10-20_gate_parse_evidence.txt di atas): HANYA field `version` 1.0.0-dev -> 1.1.0. Struktur fase, jumlah gerbang, dan setiap status gerbang IDENTIK (terukur: total 49; 24 PASS locked; Milestone_03 per-status tidak berubah).
+  Tidak ada kenaikan status gerbang pada rilis ini (G2): perubahan versi konfigurasi bukan perubahan klaim verifikasi.

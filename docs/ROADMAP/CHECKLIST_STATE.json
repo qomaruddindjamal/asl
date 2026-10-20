@@ -1,6 +1,6 @@
 {
     "project": "ASL Core Kernel",
-    "version": "1.0.0-dev",
+    "version": "1.1.0",
     "last_audit": "2026-10-13T04:26:22.578856",
     "phases": {
         "Phase_01": {

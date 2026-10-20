@@ -1,5 +1,6 @@
 {
     "project": "ASL Core Kernel",
+    "version": "1.1.0",
     "active_phase": "Phase_06",
     "active_gate": "Gate_6.3_DO178C_DAL_A_Traceability_Pass",
     "current_status": "LOCKED_AND_VERIFIED",
@@ -7,6 +8,7 @@
     "next_recommended_model": "Any-Antigravity-Model",
     "next_immediate_step": "System Verified & Running Live with Graphical Output",
     "current_task": "Bare-Metal Boot Verified in Headless VirtualBox with Live Linear Framebuffer and Serial Output",
-    "hygiene_status": "CLEAN_100_PERCENT",
-    "timestamp": "2026-10-17T12:18:30.000000"
+    "hygiene_status": "DEGRADED_9_ROOT_LOG_FILES_PREEXISTING (checker Sub_Assist.py --hygiene; dikoreksi di PHASE-6B-CLOSEOUT T5)",
+    "release_identity": "tag v1.1.0 (GitHub) = versi numerik 1.1.0 di berkas ini dan CHECKLIST_STATE.json = header RELEASE_NOTES.md",
+    "timestamp": "2026-10-20T12:00:00.000000"
 }

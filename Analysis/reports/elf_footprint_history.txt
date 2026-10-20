@@ -10,6 +10,8 @@
 
 243.568 B | diukur pada 2026-10-20 | tree [PHASE-5C] working (hash commit dicatat pada entri log QODER_EXECUTION_LOG berikutnya pasca-commit, G8) | ls -la target/x86_64-unknown-none/release/asl-kernel (+184 B / +0,08% vs 965c3e2 PHASE-5B) | Pasca-PHASE-5C (build release DEFAULT, fitur test-hv2-stack-overflow TIDAK ikut terhitung): += crash record stack-overflow di asl_fault_notifier (cetak state/reason latch) + accessor safe::latch_reason() + #PF dipasang pada IST1 di asl-hal/x86_fault.rs.
 
+243.560 B | diukur pada 2026-10-20 | commit 8b829d8 ([PHASE-5] GERBANG AKHIR; tip origin/security/asl-v1.0.2-audit) | `ls -l target/x86_64-unknown-none/release/asl-kernel` di GitHub runner `ubuntu-latest`, log run asl-ci-minimal id 39399083819 (ditarik via `gh run view --log`) | **Bukan** angka yang dikutip README.md §6 (yang itu biner Windows yang di-boot di VM lokal). Dicatat supaya delta platform jujur: source + rustflags + target + profil IDENTIK, ukuran biner Linux 8 B lebih kecil (243.568 -> 243.560). Build hosted: 0 warning, 0 error, 172/172 host test PASS -> status CI = VERIFIED-ON-CI untuk langkah [1]-[2].
+
 # Cara mengukur ulang (repo root, dari C:\asl):
 #   ls -la asl-kernel/target/x86_64-unknown-none/release/asl-kernel
 #   (jika artefak tidak ada: cargo build --package asl-kernel-bin --target x86_64-unknown-none --release)

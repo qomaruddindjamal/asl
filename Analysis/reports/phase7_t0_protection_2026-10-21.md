@@ -56,14 +56,14 @@ Kesimpulan: **direct push ke `main` masih ditolak GitHub** (PR tetap wajib + che
 
 `feature/phase7` dibuat dari `6623dd8` (bukan branch misi lama `security/asl-v1.0.2-audit`, yang dipertahankan sebagai rantai bukti PHASE-1..6B). Workflow `asl-ci-minimal` punya pemicu `push: branches ["**"]` + `pull_request`, jadi branch fitur ini ikut ter-CI sebelum PR dibuka. Tidak ada langkah yang mengklaim [3]–[4] di hosted; gerbang lokal `scripts/ci_local.ps1` tetap dijalankan terpisah dan **tidak** di-overwrite ke artefak yang sudah ter-commit (nama output baru).
 
-## 5. Rekonsiliasi hitungan run CI: satu angka final = 14
+## 5. Rekonsiliasi hitungan run CI: satu angka final = 14 di `main` (+1 run branch fitur = 15 total)
 
 Dokumen pra-PHASE-7 menyebut angka berbeda karena diukur pada waktu berbeda: "enam run" (PHASE-6B), "sebelas run" (RELEASE_NOTES §0.1 pasca-T4), "13 run" (laporan CLOSEOUT). Pengukuran hari ini dengan `gh run list --workflow asl-ci-minimal --limit 40 --json databaseId,headSha,conclusion,event`: **14 run `asl-ci-minimal` dengan `conclusion=success`** pada rantai `8b829d8` → `6623dd8`, daftar lengkap ada di `Analysis/reports/ci_hosted_39444157361_2026-10-20.log` baris rantai. Entri `39417510019` @ `cc3fe28` dan sembilan run 2026-10-17 **dikecualikan** karena bukan workflow `asl-ci-minimal` (event `dynamic`/suite lain) — sebelumnya sempat dihitung sebagai "run hosted", itu sumber selisih angka.
 
-### 5.1 Tingkat bukti: 14 run = 7 + 5 + 2 (audit ulang hari ini, bukan salin kalimat lama)
+### 5.1 Tingkat bukti: 15 run = 8 + 5 + 2 (audit ulang hari ini, bukan salin kalimat lama)
 
-**Tier 1 — log mentah ditarik DAN ekstrak ter-commit di repo (7 run).** Inilah tingkat bukti terkuat karena angkanya bisa dibaca ulang dari artefak yang ter-track:
-`39399083819` @ `8b829d8`, `39400350619` @ `fff0975`, `39417746328` @ `c56c69a`, `39434189599` @ `e78b186`, `39435093922` @ `7104814` (run atas commit bertag), `39437444616` @ `3c716d4`, `39444157361` @ `6623dd8` (ekstrak baru yang PR ini masukkan).
+**Tier 1 — log mentah ditarik DAN ekstrak ter-commit di repo (8 run: 7 pada rantai `main` + 1 pada branch fitur).** Inilah tingkat bukti terkuat karena angkanya bisa dibaca ulang dari artefak yang ter-track:
+`39399083819` @ `8b829d8`, `39400350619` @ `fff0975`, `39417746328` @ `c56c69a`, `39434189599` @ `e78b186`, `39435093922` @ `7104814` (run atas commit bertag), `39437444616` @ `3c716d4`, `39444157361` @ `6623dd8` (ekstrak yang commit PHASE-7-0 masukkan), `39486017207` @ `7e2ac24` (run atas branch `feature/phase7` — bukti pertama yang masuk repo lewat jalur PR, jadi ia sekaligus uji fungsional pipeline baru).
 
 **Tier 2 — log mentah ditarik dan diukur pada sesinya, tetapi ekstrak TIDAK pernah ter-commit (5 run).** `39417162899` @ `cc3fe28` (push), `39417504070` @ `cc3fe28` (`pull_request` PR #3), `39418646354` @ `45a33c7`, `39422495702` @ `5829e28`, `39423423307` @ `bb4a9df`. Berkas mentahnya masih ada di `logs/` — direktori yang di-ignore `.gitignore:159 **/logs/`, jadi **tidak dapat diaudit dari repo**. Pemetaan berkas→run dilakukan struktural (kolom langkah `[2/2]`/`Bukti footprint ELF hasil build` + stempel waktu UTC di dalam berkas vs `createdAt` API), lalu angka diukur ulang hari ini dengan parser yang dipakai untuk ekstrak:
 
@@ -81,6 +81,8 @@ Waktu mtime `logs/raw_t0.log` = 2026-10-20 19:29 dan `logs/raw_c1.log` = 19:36 (
 
 **Tier 3 — hanya metadata API `conclusion=success` + `headSha`, log mentah tidak pernah ditarik (2 run).** `39400212750` @ `5a180f6`, `39436250243` @ `08f706a`.
 
+**Rekonsiliasi setelah run branch fitur masuk (`gh run list --workflow asl-ci-minimal --limit 40 --json databaseId,headBranch,headSha,createdAt,conclusion` diukur ulang 2026-10-21 02:47 +0700):** total run `asl-ci-minimal` `conclusion=success` yang pernah ada = **15** = 14 pada rantai `main` `8b829d8` -> `6623dd8` + 1 pada `feature/phase7` (`39486017207` @ `7e2ac24`, `createdAt 2026-10-20T19:44:28Z`, `updatedAt 19:44:42Z`). Angka **14 tetap dipakai sebagai hitungan rantai `main`** — angka yang selama ini dikutip dokumen — dan selisihnya selalu disebut sebagai run branch fitur, supaya rekonsiliasi hari ini tidak mengulang sumber kebingungan yang sama (campur-campur cakupan, bukan beda waktu pengukuran).
+
 Angka yang dihitung ulang dari teks log pada tier 1 dan tier 2 identik: 30 suite **172 passed / 0 failed**, langkah release 13 baris `Compiling` + `Finished`, **0 `warning:` / 0 `error:`** pada langkah release (21 baris warning milik profil test, non-blocking), ELF Linux **243.560 B**.
 
 ### 5.2 Koreksi append-only dua arah atas pernyataan tingkat bukti
@@ -92,6 +94,8 @@ Angka yang dihitung ulang dari teks log pada tier 1 dan tier 2 identik: 30 suite
 ## 6. Ekstrak CI baru yang masuk repo lewat PR ini
 
 `Analysis/reports/ci_hosted_39444157361_2026-10-20.log` (67 baris ASCII) — run `push` atas commit `6623dd8` (tip `main` pasca-CLOSEOUT T6), `createdAt 2026-10-20T14:58:41Z`, `updatedAt 14:59:05Z`, job `test-and-build`. Berkas ini tadinya hanya bisa hidup di `logs/` (ter-ignore) karena direct push sudah tertutup; Opsi B + pipeline PR menutup celah penelusuran itu.
+
+**Susulan (bagian dari commit PHASE-7-0c):** `Analysis/reports/ci_hosted_39486017207_2026-10-20.log` (67 baris ASCII) = ekstrak log mentah run `39486017207` atas tip branch `7e2ac24`, diukur dari teks: 30 suite **172 passed / 0 failed**, 13 baris `Compiling` + `Finished release profile [optimized] target(s) in 2.45s`, **0 `warning:` / 0 `error:`** pada langkah release (21 baris warning milik profil test, non-blocking), ELF Linux **243.560 B**. Ini pola yang dinyatakan di §4: ekstrak run atas commit N masuk repo lewat commit N+1, bukan dengan amend commit N (G8); run atas tip terakhir PR akan diekstrak-ter-commit pada closeout T5.
 
 ## 7. Higiene scratch `Analysis/reports/`
 

@@ -717,3 +717,10 @@ Precondition PHASE-6A/6B untuk **push branch + PR + merge + hosted CI langkah [1
 
 ### Commit
 `[PHASE-6B] <ringkasan>` — staging eksplisit per file (5 path di atas), tanpa `git add -A`. Hash commit ini diungkapkan pada entri berikutnya (G8).
+
+### Addendum [PHASE-6B][koreksi-typo] (2026-10-20, commit docs-only ke `main`)
+
+- **Hash commit yang dikoreksi: `45a33c7`** (`45a33c73e9d3241ded0ad18c5af22422a4164b83`) — commit penutup `[PHASE-6B]` di `main`. Bentuk koreksi = **commit baru** ini; `45a33c7` **tidak** di-amend / di-rebase / di-reset (G8).
+- Isi koreksi: pesan commit `45a33c7` menulis label hasil fault log sebagai `ACCEPTED_WITH_WRTITTEN_JUSTIFICATION` (typo satu huruf, "WRTITTEN"). **Data kanoniknya sudah benar** — `docs/ROADMAP/ACCOUNTABILITY_FAULT_LOG.json` entri ke-8 (`PROCESS_DIRECT_PUSH_TO_MAIN`) memakai nilai `ACCEPTED_WITH_WRITTEN_JUSTIFICATION`, terverifikasi ulang dengan parser: `json.load` sukses, `fault_history` = 8 entri, `violations_recorded` = 0.
+- Jadi ini **murni kesalahan teks pada commit message**, bukan kesalahan bukti: tidak ada angka, kategori, atau status gate yang berubah. Reader yang mencocokkan string label antara pesan commit dan JSON harus memakai nilai di JSON sebagai sumber kebenaran (README §7: "numbers come from the committed artifact, never from chat").
+- Nol perubahan `.rs`; satu path dokumen berubah (log eksekusi ini). Run `asl-ci-minimal` atas tip hasil commit ini wajib hijau sebelum T1 (G5: merah = STOP).

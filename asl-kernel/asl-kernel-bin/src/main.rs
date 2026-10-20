@@ -239,8 +239,15 @@ core::arch::global_asm!(
     "jmp 2b",
     ".section .bss",
     ".align 4096",
+    // Guard pad 4KB tepat di bawah stack: PTE-nya di-clear saat boot (stack guard page)
+    ".global _asl_guard_page",
+    "_asl_guard_page:",
+    ".skip 4096",
+    ".align 4096",
+    ".global _asl_stack_bottom",
     "_asl_stack_bottom:",
     ".skip 524288",
+    ".global _asl_stack_top",
     "_asl_stack_top:"
 );
 
@@ -257,8 +264,14 @@ core::arch::global_asm!(
     "b    1b",
     ".section .bss",
     ".align 16",
+    ".global _asl_guard_page",
+    "_asl_guard_page:",
+    ".skip 4096",
+    ".align 16",
+    ".global _asl_stack_bottom",
     "_asl_stack_bottom:",
     ".skip 524288",
+    ".global _asl_stack_top",
     "_asl_stack_top:"
 );
 

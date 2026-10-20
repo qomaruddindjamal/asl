@@ -26,6 +26,17 @@ SECTIONS
         *(.data .data.*)
     }
 
+    /* Carve-out region: Secondary failover engine + datanya
+       (WAJIB sebelum .bss: pola .bss.* menyerap .bss.asl_secondary jika lebih dulu) */
+    . = ALIGN(4096);
+
+    .asl_secondary : ALIGN(4096) {
+        __asl_secondary_start = .;
+        KEEP(*(.asl_secondary .asl_secondary.* .bss.asl_secondary))
+        . = ALIGN(4096);
+        __asl_secondary_end = .;
+    }
+
     .bss : {
         *(.bss .bss.*)
         *(COMMON)

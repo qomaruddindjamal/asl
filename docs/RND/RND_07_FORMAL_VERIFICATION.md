@@ -3,7 +3,7 @@
 **Author:** ANTI-GRAVITY (Independent Lead Auditor & R&D Systems Engineer)  
 **Date:** 2026-10-13  
 **Status Baseline:** Formal Methods Blueprint & Safety Certification Pathway  
-**Governing Standards:** DO-178C DAL-A / DO-333 (Formal Methods Supplement) / ISO 26262 ASIL-D
+**Governing Standards:** DO-178C-aligned, ladder DAL-C->A (lihat ADR-002) / DO-333 (Formal Methods Supplement) / ISO 26262 ASIL-D
 
 ---
 

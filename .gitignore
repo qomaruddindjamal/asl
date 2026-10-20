@@ -93,6 +93,8 @@ __pycache__/
 .coverage
 htmlcov/
 *.log
+# CM_PLAN §3: artefak bukti RUNTIME VERIFIED wajib ter-track
+!Analysis/reports/*.log
 
 # -----------------------------------------------------------------------------
 # 5. TEMPORARY & SYSTEM OS CLUTTER
@@ -151,4 +153,10 @@ vgcore.*
 # Local-only project tools
 /tools/
 **/tools/
+
+# Test runs and logs
+/logs/
+**/logs/
+/Python/
+**/Python/
 

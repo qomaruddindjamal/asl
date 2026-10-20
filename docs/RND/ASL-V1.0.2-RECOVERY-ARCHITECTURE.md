@@ -2,7 +2,7 @@
 
 **Release Version:** `v1.0.2`  
 **Subsystem:** `asl-kernel-core-secondary`  
-**Standard Compliance:** DO-178C DAL-A, ARINC 653 Part 1 / Part 2 Fault Recovery  
+**Standard Compliance:** DO-178C-aligned, ladder DAL-C->A (lihat ADR-002), ARINC 653 Part 1 / Part 2 Fault Recovery  
 **Target:** Bare-Metal Recovery Runtime and Failover Architecture
 
 ---

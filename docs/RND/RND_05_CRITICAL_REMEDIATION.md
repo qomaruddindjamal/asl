@@ -3,7 +3,7 @@
 **Author:** ANTI-GRAVITY (Independent Lead Auditor & R&D Systems Engineer)  
 **Date:** 2026-10-13  
 **Status Baseline:** Formal Specification & Verification Blueprint (Post Cross-Review Amendments)  
-**Standard Compliance:** DO-178C DAL-A / ARINC 653 IMA Part 1 / ARINC 664 (AFDX)
+**Standard Compliance:** DO-178C-aligned, ladder DAL-C->A (lihat ADR-002) / ARINC 653 IMA Part 1 / ARINC 664 (AFDX)
 
 ---
 

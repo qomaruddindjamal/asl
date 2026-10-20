@@ -1,6 +1,6 @@
 # ASL CORE FULL-REPOSITORY FILE INVENTORY & AUDIT MATRIX
 =============================================================
-**Scope:** Complete repository filesystem (112 active worktree files)
+**Scope:** Complete repository filesystem (112 active worktree files — snapshot 2026-10-13; workspace crates reconciled 2026-10-20 to **31 members = 30 lib + 1 bin** per `cargo metadata`, superseding the stale "17 crates" baseline)
 **Excluded from table:** .git/ internals (231 files), target/ build caches (4464 files)
 
 | File ID | Relative Path | Extension | Category | Tracking Status | Audit Depth | Size | Status |

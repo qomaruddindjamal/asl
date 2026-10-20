@@ -5,7 +5,7 @@
 **Project:** ASL Core Kernel  
 **Repository Root:** `C:\asl`  
 **Git Remote:** `https://github.com/qomaruddindjamal/asl.git`  
-**Governing Standard:** DO-178C DAL-A / ARINC 653 IMA  
+**Governing Standard:** DO-178C-aligned, ladder DAL-C->A (lihat ADR-002) / ARINC 653 IMA  
 
 ---
 
@@ -60,7 +60,7 @@ To prevent ambiguity, each domain of knowledge has exactly one authoritative mas
   - `DMA-ADDR-01` (IOMMU translation vs raw physical addresses in DMA burst)
   - `ALIGN-01` (descriptor alignment enforcement)
 * **Resolution:**
-  - All four findings remain formally **OPEN** in the project risk register until dedicated BSP drivers with hardware testbeds are deployed.
+  - ~~All four findings remain formally **OPEN**~~ **Corrected 2026-10-20:** `ALIGN-01` is **CLOSED** (evidence: `asl-pmd/src/lib.rs:35` `#[repr(C, align(64))]` + static asserts + runtime `init_pool` check + 4 unit tests; register `SECURITY_FINDINGS.md` row ALIGN-01). The remaining three findings (`ATOMIC-SPARC-01`, `DMA-CACHE-01`, `DMA-ADDR-01`) plus `VT-D-DRV-01` (PLANNED) stay formally **OPEN** until dedicated BSP drivers with hardware testbeds are deployed.
 
 ---
 
@@ -75,7 +75,7 @@ To prevent ambiguity, each domain of knowledge has exactly one authoritative mas
 
 ## 5. INTERRUPT SERVICE ROUTINE (ISR) LOCKING POLICIES & AUDIT INVENTORY (AG-04)
 **Status:** RATIFIED v1.0 (Final - Amended W-10 & W-11)  
-**Governing Safety Standard:** DO-178C DAL-A / ARINC 653 Part 1
+**Governing Safety Standard:** DO-178C-aligned, ladder DAL-C->A (lihat ADR-002) / ARINC 653 Part 1
 
 ### 5.1 Formal Safety Policies (P-ISR-1 to P-ISR-4)
 * **P-ISR-1 (No Dynamic Allocation & Zero Panic):** Kode yang dieksekusi di dalam konteks Interrupt Service Routine (ISR) **DILARANG KERAS** melakukan alokasi dinamis pada heap, memanggil panic liar, atau operasi tanpa batas waktu. Seluruh operasi wajib bounded Worst-Case Execution Time (WCET).

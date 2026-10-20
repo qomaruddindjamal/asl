@@ -67,26 +67,34 @@ Sistem IPC (*Inter-Process Communication*) internal ASL Core didasarkan pada kon
 
 ## 3. STRUKTUR REKAYASA KERNEL ASL
 
+> **Rebaseline 2026-10-20 (ADR-001):** Pohon di bawah ini adalah *pemetaan konseptual* avionics → crate Rust. Implementasi aktual adalah workspace Rust `#![no_std]` 31 crate (lihat `docs/CANONICAL/ADR-001_LANGUAGE_STRATEGY.md`); spesifikasi C23 lama (`fms_exec.c`, `cpu_interface.h`, dst.) telah digantikan dan tidak lagi menjadi cetak biru build.
+
 ```
-asl-kernel/
-├── avionics/                       # Core Avionics Executive
-│   ├── fms_exec.c                  # Flight Management Executive (Core Scheduler)
-│   ├── arinc653_partition.c       # Space and Time Memory Isolation
-│   ├── fault_containment.c         # Health Monitor & Auto-Recovery Engine
-│   └── virtual_link_ipc.c          # Deterministic Message Passing Bus
-├── hal/                            # Universal Hardware Abstraction Layer
-│   ├── cpu_interface.h             # Kontrak instruksi universal
-│   ├── memory_grid.h               # Paging MMU / Region MPU / Flat Grid
-│   ├── interrupt_matrix.h          # Global Interrupt & Event Matrix
-│   └── dma_telemetry.h             # DMA Channels & Hardware Buffers
-├── modules/                        # Line Replaceable Modules (LRM)
-│   ├── flight_control/             # Profil Server & Compute Host (x86_64, ARM64, RV64)
-│   ├── engine_control/             # Profil Real-Time Microcontroller (Cortex-M, TriCore)
-│   ├── radar_dsp/                  # Profil Signal & Neural Processing (C6000, NPU, CUDA)
-│   └── actuator_network/           # Profil Switching Jaringan & PON Fiber (ASIC, OLT)
-└── cockpit/                        # Interface & Abstraksi Userspace
-    ├── posix_bridge/               # Kompatibilitas API standar
-    └── telemetry_cli/              # Konsol diagnostik dan telemetri sistem
+asl-kernel/                              # Workspace Cargo, 31 crate no_std
+├── asl-kernel-core/                     # [Cockpit Executive] microkernel IMA primer:
+│                                        #   _asl_kernel_entry, ARINC 653 Vault, MajorFrameSchedule,
+│                                        #   FbConsole, fault notifier, panic handler
+│                                        #   (dulu: avionics/fms_exec.c + arinc653_partition.c +
+│                                        #          fault_containment.c)
+├── asl-kernel-core-secondary/           # Disaster-Recovery FSM (SecondaryCoreEngine)
+├── asl-sched/                           # Jadwal temporal Major/Minor Frame ARINC 653
+├── asl-security-vault/                  # Partisi spasial (SpatialPartitionManager)
+├── asl-afdx-ipc/ asl-dsp-rpc/           # [Unified Fabric] bus pesan deterministik SPSC
+│                                        #   (dulu: avionics/virtual_link_ipc.c)
+├── asl-hal/                             # [Universal HAL] trait InterruptController/MMU/
+│   ├── mmio.rs cache.rs dma_space.rs    #   Timer + MmioRegister volatile + DmaAddressSpace
+│   └── x86_fault.rs apic.rs             #   (dulu: hal/cpu_interface.h, memory_grid.h,
+│                                        #          interrupt_matrix.h, dma_telemetry.h)
+├── asl-memory/                          # Buddy allocator + paging HHDM
+├── asl-bootloader/                      # Kontrak AslBootHandover (Limine v2)
+├── asl-driver-pci/ asl-driver-ps2-keyboard/ asl-storage/  # [LRM] transport & filesystem
+├── asl-nano/ asl-mpu/ asl-automotive-asil/                # Profil RT/MCU (engine_control)
+├── asl-cctv-dma/ asl-undi-npu/ asl-gpu-uvm/ asl-space-tmr/ asl-s390x-mainframe/
+├── asl-power10-loongson/ asl-ont-gpon/ asl-olt-carrier/
+├── asl-tcam/ asl-pmd/ asl-mips-fastpath/                  # [LRM] radar_dsp + actuator_network
+├── asl-legacy-sandbox/ asl-fleet-regression/ asl-do178c-cert/
+└── asl-cockpit-shell/ + asl-kernel-bin/ # [Cockpit] CLI telemetri & launcher ELF Limine
+                                         #   (dulu: cockpit/telemetry_cli + posix_bridge)
 ```
 
 ---

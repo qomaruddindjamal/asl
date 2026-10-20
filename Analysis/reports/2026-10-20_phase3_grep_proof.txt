@@ -1,0 +1,31 @@
+=== GREP-PROOF FASE-3 (2026-10-20) — tidak ada pemanggil alamat mentah ===
+
+$ grep -rn 'transmit_burst(' asl-kernel --include=*.rs
+asl-kernel/asl-pmd/src/lib.rs:154:    pub fn transmit_burst(
+asl-kernel/asl-pmd/src/lib.rs:229:        assert_eq!(queue.transmit_burst(&lease, 512, 100), Ok(()));
+asl-kernel/asl-pmd/src/lib.rs:237:            queue.transmit_burst(&lease2, 256, 100),
+asl-kernel/asl-pmd/src/lib.rs:253:            queue.transmit_burst(&lease, 0x500, 100),
+asl-kernel/asl-pmd/src/lib.rs:256:        assert_eq!(queue.transmit_burst(&lease, 0, 100), Err("ERR_TX_LEN_EXCEEDS_LEASE"));
+asl-kernel/asl-pmd/src/lib.rs:263:        assert_eq!(queue.transmit_burst(&ok, 64, 100), Ok(()));
+
+$ grep -rnE 'transmit_burst\(0x|transmit_burst\(phys|transmit_burst\([a-z_]*addr' asl-kernel --include=*.rs  (pola raw-address)
+exit=1 (1 = 0 kecocokan)
+
+$ grep -rn 'setup_channel_buffer(' asl-kernel --include=*.rs
+asl-kernel/asl-cctv-dma/src/lib.rs:106:    pub fn setup_channel_buffer(
+asl-kernel/asl-cctv-dma/src/lib.rs:240:            .setup_channel_buffer(0, 0, &ly0, &lu0, 640, 480)
+asl-kernel/asl-cctv-dma/src/lib.rs:243:            .setup_channel_buffer(0, 1, &ly1, &lu1, 640, 480)
+asl-kernel/asl-cctv-dma/src/lib.rs:264:            engine.setup_channel_buffer(3, 0, &ly, &foreign, 640, 480),
+asl-kernel/asl-cctv-dma/src/lib.rs:271:            engine.setup_channel_buffer(3, 0, &tiny_y, &tiny_uv, 640, 480),
+asl-kernel/asl-cctv-dma/src/lib.rs:276:            engine.setup_channel_buffer(3, 0, &ly, &lu, 0, 480),
+asl-kernel/asl-cctv-dma/src/lib.rs:280:            engine.setup_channel_buffer(3, 0, &ly, &lu, u32::MAX, u32::MAX),
+asl-kernel/asl-cctv-dma/src/lib.rs:285:            engine.setup_channel_buffer(16, 0, &ly, &lu, 640, 480),
+asl-kernel/asl-cctv-dma/src/lib.rs:309:            .setup_channel_buffer(5, 0, &ly, &lu, 640, 480)
+
+$ grep -rnE 'setup_channel_buffer\([^,]+, *[0-9]+, *0x' asl-kernel --include=*.rs  (pola raw u64 lama)
+exit=1 (1 = 0 kecocokan)
+
+$ grep -rn 'debug_assert' asl-kernel/asl-pmd/src/lib.rs
+103:    /// `Result::Err(DmaPoolError::PoolMisaligned)`, BUKAN sekadar `debug_assert!` yang tereliminasi di build release.
+152:    /// Penjagaan runtime (bukan debug_assert): keselarasan 64-byte bus,
+exit=0 (1 = tidak ada lagi precondition tak tertegak di release)

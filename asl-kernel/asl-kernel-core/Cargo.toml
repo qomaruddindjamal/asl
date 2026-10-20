@@ -17,3 +17,8 @@ asl-driver-ps2-keyboard = { path = "../asl-driver-ps2-keyboard" }
 asl-cockpit-shell = { path = "../asl-cockpit-shell" }
 asl-kernel-core-secondary = { path = "../asl-kernel-core-secondary" }
 asl-storage = { path = "../asl-storage" }
+
+[features]
+default = []
+test-gate3d = []
+test-hv2-stack-overflow = []

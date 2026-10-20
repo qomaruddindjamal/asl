@@ -1,0 +1,37 @@
+name: asl-ci-minimal
+
+# PHASE-5D CI minimal. Refleksi dari scripts/ci_local.ps1 (runner yang SAH dan
+# sudah dibuktikan hijau di repo ini). GitHub-hosted TIDAK dapat menjalankan
+# langkah [3/4] QEMU cold-boot (butuh hypervisor + xorriso build cygwin + Limine
+# + path ISO lokal), sehingga workflow hosted hanya menegakkan [1/2].
+# Langkah 3-4 TETAP WAJIB lewat scripts/ci_local.ps1 sebelum merge:
+# pipeline merah = tidak boleh merge.
+#
+# CATATAN: jangan set env RUSTFLAGS di sini — file .cargo/config.toml sudah
+# memuat rustflags wajib per-target (-Tlinker.ld, relocation/code model), dan
+# env RUSTFLAGS akan MENGGANTIKAN (bukan menambah) nilai config tersebut sehingga
+# link gagal. Gerbang "0 warning" ditegakkan oleh langkah [2/4] ci_local.ps1
+# yang mem-parse keluaran build, bukan lewat -D warnings di runner hosted.
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+jobs:
+  test-and-build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: asl-kernel
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-unknown-none
+      - name: "[1/2] cargo test --workspace --lib"
+        run: cargo test --workspace --lib
+      - name: "[2/2] cargo build --package asl-kernel-bin --target x86_64-unknown-none --release"
+        run: cargo build --package asl-kernel-bin --target x86_64-unknown-none --release
+      - name: "Bukti footprint ELF hasil build"
+        run: ls -l target/x86_64-unknown-none/release/asl-kernel

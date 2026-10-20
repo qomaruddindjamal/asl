@@ -2,7 +2,7 @@
 
 **Release Version:** `v1.0.2`  
 **Execution Environment:** Windows 10/11 x86_64, rustc nightly/stable, GNU Make, QEMU v10.2.50, VirtualBox 7.x  
-**Standard:** DO-178C DAL-A / DO-330 Tool Qualification / Zero Dummy Data
+**Standard:** DO-178C-aligned, ladder DAL-C->A (lihat ADR-002) / DO-330 Tool Qualification (target ADR-002) / Zero Dummy Data
 
 ---
 

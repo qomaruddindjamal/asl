@@ -1,0 +1,21 @@
+ASL CI LOCAL - 2026-10-20 03:11:59
+commit: 6353c77+dirty
+toolchain: rustc 1.99.0 (b940084d7 2026-09-28) / cargo 1.99.0 (5f94df478 2026-08-27)
+
+=== [1/4] cargo test --workspace --lib ===
+[1/4] PASS - 172 host tests passed, 0 failed
+
+=== [2/4] cargo build --package asl-kernel-bin --target x86_64-unknown-none --release (0 error / 0 warning) ===
+[2/4] PASS - 0 error, 0 warning, ELF 243568 bytes
+
+=== [3/4] QEMU q35 cold-boot smoke (harus capai M6 + shell) ===
+ISO: 4118528 bytes SHA256=BB97F25ED3E5DBEE44C53FD179586B0A6BE0230C1E1AC85E8E5111C723ACC959
+[3/4] PASS - M6 tercapai + prompt shell (serial 55 baris, stderr QEMU 0 baris)
+
+=== [4/4] RINGKASAN PIPELINE ===
+  [1/4] tests: PASS (172 passed / 0 failed)
+  [2/4] bare-metal build: PASS (0 error / 0 warning, ELF 243568 B)
+  [3/4] QEMU smoke: PASS (M6 reached, serial 55 lines)
+  footprint: ELF=243568 B | ISO=4118528 B | commit=6353c77+dirty
+  KEPUTUSAN: Pipeline HIJAU - 4/4 langkah lulus. Merge diizinkan sesuai aturan fase (G6: hanya setelah gerbang hijau).
+  artefak: C:\asl\Analysis\reports\ci_2026-10-20.log

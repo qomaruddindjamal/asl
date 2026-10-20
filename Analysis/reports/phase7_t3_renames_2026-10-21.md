@@ -293,3 +293,113 @@ dan pembaruan `docs/ROADMAP/HANDOFF_STATE.json`. Scratch yang tetap ter-ignore d
 `logs/apply_t3_renames.py`, `logs/cmp_t3_baseline.py`, `logs/t3_test_bodies.py`,
 `logs/t3_elf_sections.py`, `logs/t3_elf_segments.py`, `logs/t3_traceability.py`,
 `logs/t3_renames_backup/`.
+
+---
+
+## 10. Susulan `[PHASE-7-3b]` - bukti hosted atas commit T3 + dua ekstrak tertunda
+
+Commit T3 (`62c1c31`) hanya mengukur gerbang di host. Sesuai urutan yang dipilih pemilik
+("lokali dulu, lalu commit + push, ekstrak di 3b"), bab ini menutup sisi hosted dan sekaligus
+membayar dua ekstrak run atas `adcd250` yang tertunda sejak `[PHASE-7-2b]`. Semua angka di bawah
+dibaca dari `gh run view <id> --log` (mentah di `logs/`, ter-ignore) oleh penyaring per langkah
+yang sama dengan keluarga ekstrak `Analysis/reports/ci_hosted_*.log`.
+
+### 10.1 Empat run, semuanya DUA job dan hijau
+
+| Run | Event | headSha | `Finished` release | ELF Linux (baris `ls -l`) | Ekstrak ter-commit |
+|---|---|---|---|---|---|
+| 39499814356 | push | `adcd250` | 1,99s | 243.560 B | `ci_hosted_39499814356_2026-10-20.log` (107 baris) |
+| 39499821544 | pull_request | `adcd250` | 2,66s | 243.560 B | `ci_hosted_39499821544_2026-10-20.log` (108 baris) |
+| 39506682088 | push | `62c1c31` | 1,26s | **243.568 B** | `ci_hosted_39506682088_2026-10-20.log` (107 baris) |
+| 39506688219 | pull_request | `62c1c31` | 2,88s | **243.568 B** | `ci_hosted_39506688219_2026-10-20.log` (108 baris) |
+
+`conclusion=success` untuk kedua job pada keempatnya (`test-and-build` wajib + `coverage (non-blocking, advisory)`),
+dikonfirmasi dua arah: dari `gh run view --json jobs` (nama job + conclusion) dan dari keberadaan langkah
+coverage di dalam log mentah itu sendiri. Angka gerbang identik keempatnya dan identik dengan angka host §4:
+30 baris `test result:` dengan total **172 passed / 0 failed**, 172 baris `test <nama> ... ok`,
+21 baris warning profil test pada langkah [1/2] (non-blocking), 13 baris `Compiling` + 1 `Finished` pada
+langkah [2/2] dengan **0 `warning:` / 0 `error:`**. Baris mentah log: 1.374 (push) dan 1.401 (pull_request).
+
+G5 tidak terpicu: tidak ada run merah pada branch misi.
+
+### 10.2 Rename terbukti TER-ECSEKUSI di runner, bukan hanya terkompilasi di host
+
+Pencocokan memakai batas identifier `(?<![A-Za-z0-9_])nama(?![A-Za-z0-9_])` pada teks langkah [1/2],
+bukan substring, supaya pasangan ber-prefix (`test_valid_handover` vs `test_valid_handover_and_usable_memory_total`)
+tidak saling ikut menghitung:
+
+| Tree | Nama lama yang hadir | Nama baru yang hadir |
+|---|---|---|
+| `adcd250` (pra-T3) | 8 | 0 |
+| `62c1c31` (T3) | 0 | 8 |
+
+Selisih simetris roster nama test kedua tree = **tepat 16** (8 lama + 8 baru), dan kedua run pada tree yang sama
+mempunyai roster yang sama satu sama lain. Pencocokan dibandingkan sebagai himpunan, bukan urutan posisi:
+harness libtest paralel sehingga urutan baris tidak stabil antar run (§5 sudah menyatakan ini untuk sisi host).
+Job `coverage` memberikan konfirmasi kedua: pada `62c1c31` ia mengompilasi ulang 4 crate (`Compiling asl-driver-pci`,
+`asl-bootloader`, `asl-kernel-core-secondary`, `asl-storage`), mencetak `Finished `test` profile` (0,85s push / 0,80s PR),
+lalu menjalankan 59 baris `test ... ok` dengan nama baru - jadi jalur instrumentasi juga melihat hasil rename,
+bukan hanya jalur gerbang.
+
+### 10.3 Tabel coverage tetap identik WALAU tree berubah - dan penjelasannya diukur, bukan disimpulkan
+
+13 baris tabel ringkasan llvm-cov pada keempat run sama baris-per-baris satu dengan lain, dan sama dengan
+baseline host Windows `coverage_baseline_t2_2026-10-21.log` (normalisasi pemisah jalan `\` -> `/` lalu
+rapatkan whitespace sebelum membandingkan). TOTAL tetap regions 6027/740 = 87,72%, functions 225/43 = 80,89%,
+lines 3718/490 = 86,82%, branches tidak diukur.
+
+Ini bukan kebetulan dan bukan alasan "tree sama", karena untuk `62c1c31` tree-nya justru berbeda:
+
+* `git diff --numstat 489d4ee 62c1c31 -- *.rs` = `+1/-1`, `+1/-1`, `+6/-6` pada tiga berkas (delapan penggantian
+  identifier sebaris), dan `wc -l` per berkas identik di kedua rev: **452 / 581 / 2000**.
+* Ringkasan llvm-cov dihitung per berkas atas baris/region, bukan atas nama fungsi, sehingga rename tidak
+  menggerakkan satu digit pun pada tabel.
+* Untuk `adcd250` alasannya berbeda dan lebih kuat: `git diff --numstat 489d4ee adcd250 -- *.rs Cargo.toml Cargo.lock`
+  kosong, jadi tree run itu memang identik dengan tree baseline.
+
+Kontras dengan §6: hal yang sama (rename `#[cfg(test)]`) menggerakkan identitas byte ELF tetapi tidak menggerakkan
+tabel coverage. Keduanya terukur, dan itu sebabnya keduanya dinyatakan pada level yang diukur.
+
+### 10.4 TEMUAN hosted: delta UKURAN ELF antar-platform menjadi 0 (fault log entri #21)
+
+Baris `ls -l` pada langkah "Bukti footprint ELF hasil build" keluar 243.560 B pada **20 ekstrak ter-commit
+sebelumnya** dan pada kedua run `adcd250`, lalu **243.568 B** pada kedua run `62c1c31`. Ukuran ELF Windows pada
+tree T3 juga 243.568 B (sebelum rename pun sudah 243.568 B; yang berubah SHA256-nya, `ee1274be...` -> `9609ab8b...`).
+Jadi delta antar-platform yang selama ini ditempel ke setiap ekstrak sebagai satu kalimat baku ("Linux 243.560 vs
+Windows 243.568 = 8 B") terukur **NOL** pada tree ini.
+
+Akar yang dicatat bukan angka salah, melainkan generalisasi yang tidak diuji: generator ekstrak memakai satu teks
+baku untuk semua run. Koreksinya (append-only, 20 ekstrak lama tidak ditulis ulang karena angkanya benar untuk
+tree masing-masing): generator kini membangkitkan catatan ELF **per-run**, dan aturan turunannya masuk ke
+HANDOFF - footprint ELF dibandingkan pada dua platform setiap kali ada perubahan `.rs`. Kategori ini meneruskan
+preseden #19 (retraksi ekspektasi delta antar-platform) dan #20 (invarian yang diasumsikan).
+
+### 10.5 Batas yang dinyatakan terang
+
+* Langkah ISO dan langkah [3]/[4] QEMU tidak berjalan hosted, jadi tidak ada satu angka ISO pun yang diklaim
+  berasal dari runner. Angka ISO pada ekstrak T3 (`f7dd6eca...`, 4.118.528 B) adalah pengukuran host Windows §6d
+  yang dikutip sebagai konteks.
+* Pasangan reproduksibilitas ISO Linux->Linux tetap **belum terukur** (warisan batas T1, tidak berubah di sini).
+* Baseline coverage resmi tetap pengukuran host Windows; angka runner Linux dipakai sebagai konfirmasi, tidak
+  dipatok sebagai baseline, dan ambang advisory `--fail-under-lines 80` tidak disetel ulang.
+* Berkas mentah keempat run tetap hanya ada di `logs/` (`.gitignore:159 **/logs/`); yang dapat diaudit dari repo
+  adalah empat ekstrak + bab ini.
+
+### 10.6 Recount rantai dan berkas yang dihasilkan `[PHASE-7-3b]`
+
+Rantai diukur ulang dengan
+`gh run list --workflow asl-ci-minimal --limit 100 --json databaseId,headSha,conclusion,event,headBranch`:
+**31 baris, 31 `conclusion=success`, 0 bukan-success** = 14 pada rantai yang menjadi `main`
+(`8b829d8` -> `6623dd8`) + **17** pada `feature/phase7`. Berkas ekstrak ter-commit = **24**
+(20 sebelum commit ini + 4 pada commit ini). Tingkat bukti: 24 ekstrak / 5 log mentah tanpa ekstrak ter-commit /
+2 hanya metadata API. Baris `VERIFIED-ON-CI = belum ada untuk T3` pada tabel §9 adalah keadaan saat commit T3
+dan tertutup oleh bab ini; §9 tidak ditulis ulang (R1).
+
+Berkas bukti commit ini: empat `Analysis/reports/ci_hosted_*_2026-10-20.log` (107/108 baris, ASCII non-ASCII 0,
+LF, CRLF 0), bab ini, entri **#21** `ACCOUNTABILITY_FAULT_LOG.json` (CLOSED, `violations_recorded_delta` 0,
+total entri 21), anotasi append-only pada `README.md`, `RELEASE_NOTES.md`, `QODER_FINAL_REPORT.md`, dan
+pembaruan `HANDOFF_STATE.json`. Scratch ter-ignore yang dapat dibaca ulang: `logs/ci_<id>_raw.log` +
+`logs/ci_<id>_meta.json` (empat run), `logs/ci_chain_2026-10-21.json`, `logs/measure_t3_ci.py`,
+`logs/cmp_cov_t3_ci.py`, `logs/cov_detail_t3_ci.py`, `logs/extract_ci.py`, `logs/add_fault21.py`,
+`logs/sync_t3b_handoff.py`. Nol berkas `.rs` berubah pada commit ini; `CHECKLIST_STATE.json` tidak disentuh;
+nol amend/rebase/reset/force-push; branch `feature/phase7` tidak dihapus; `VERIFIED-ON-HARDWARE` tetap 0.

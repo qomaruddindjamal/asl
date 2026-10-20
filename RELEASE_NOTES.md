@@ -2,7 +2,7 @@
 =========================================
 **Release Version:** `v1.1.0` (tag GitHub) = `1.1.0` (numeric, di `CHECKLIST_STATE.json` dan `HANDOFF_STATE.json`) = header berkas ini — CM_PLAN §3 "versi produk kanonik tunggal"
 **Date:** 2026-10-20
-**Provenance (terukur, bukan narasi):** tip `main` hasil **merge commit `c56c69a`** (PR #3; parent `14bc022` + `cc3fe28`), membawa **17 commit / 63 file / +9363 −152** dari branch `security/asl-v1.0.2-audit` dengan merge-base `95bac29`. Rantai riwayat misi: `8b829d8` (GERBANG AKHIR) → `5a180f6` → `fff0975` (PHASE-6A + addendum) → `cc3fe28` (6B prep) → `c56c69a` (merge) → `45a33c7` (6B close entry) → `5829e28` (CLOSEOUT T0). Nol amend / rebase / reset / force-push (G8).
+**Provenance (terukur, bukan narasi):** tip `main` hasil **merge commit `c56c69a`** (PR #3; parent `14bc022` + `cc3fe28`), membawa **17 commit / 63 file / +9363 −152** dari branch `security/asl-v1.0.2-audit` dengan merge-base `95bac29`. Rantai riwayat misi: `8b829d8` (GERBANG AKHIR) → `5a180f6` → `fff0975` (PHASE-6A + addendum) → `cc3fe28` (6B prep) → `c56c69a` (merge) → `45a33c7` (6B close entry) → `5829e28` (CLOSEOUT T0) → `bb4a9df` (CLOSEOUT T1, basis build ISO T2 dan run G9). Nol amend / rebase / reset / force-push (G8).
 **Architecture Authority:** `asl_core.md` (150 Silicon Platforms)
 **Governing Standard:** **DO-178C-aligned**, tangga sertifikasi **DAL-C (x86_64, v1.1) → B → A** per `docs/CANONICAL/ADR-002_CERTIFICATION_LADDER.md`; ARINC 653 / IMA. Klaim "DAL-A traceability pass" di bawah (era v1.0.1) adalah teks historis dan **bukan** status proses kanonik saat ini.
 
@@ -14,18 +14,19 @@
 | Item | Nilai | Artefak |
 |---|---|---|
 | Unit test host (`cargo test --workspace --lib`) | **172 passed / 0 failed** pada **30** suite, 31 paket workspace | `Analysis/reports/ci_2026-10-20.log` langkah [1/4] |
-| Build bare-metal (`--target x86_64-unknown-none --release`) | **0 error / 0 warning** | `ci_2026-10-20.log` langkah [2/4] + 8 run hosted |
+| Build bare-metal (`--target x86_64-unknown-none --release`) | **0 error / 0 warning** | `ci_2026-10-20.log` langkah [2/4] + 9 run hosted |
 | Footprint ELF | **243.568 B (Windows — biner yang di-boot di VM)** / **243.560 B (Linux runner)**; delta 8 B = perbedaan pautan per-platform | `Analysis/reports/elf_footprint_history.txt` (append-only) |
-| ISO bootable | **4.118.528 B**; **tidak byte-reproducible** (xorriso menanam volume timestamp → SHA256 berubah tiap rebuild) | `ci_2026-10-20.log` langkah [3/4] |
+| ISO bootable | **4.118.528 B**; **tidak byte-reproducible** (xorriso menanam volume timestamp → SHA256 berubah tiap rebuild). Build final yang di-boot G9 di tip `bb4a9df`: SHA256 `FACA92F4E1E92B2EE5EB8D2E931C0B1A64DF9C2035A308529E69D4E5128C8355` | `Analysis/reports/iso_build_v1.1.0_2026-10-20.log` + `ci_2026-10-20.log` langkah [3/4] |
 | Cold-boot smoke QEMU q35 | Capai **`M6: Kernel Cold Boot Complete`** + prompt **`ASL-OS>`**; serial 55 baris; stderr QEMU 0 baris | `Analysis/reports/qemu_ci_smoke_serial.log` |
+| **G9 acceptance run (berjendela)** | **PASS** — 2026-10-20 20:48:23, QEMU 10.2.50, cmdline **tanpa** `-display none`, jendela disaksikan; `M6=True shell=True crash=False`; serial 55 baris / stderr 0 baris | `Analysis/reports/g9_acceptance_serial_2026-10-20.log`, `g9_acceptance_summary_2026-10-20.log` |
 | Gerbang governance | **49** gerbang: 24 `Phase_01..06` **PASS & LOCKED**, 25 `Milestone_03` **PARTIAL / unlocked** | `docs/ROADMAP/CHECKLIST_STATE.json` |
 | Register temuan | **16** entri: **12 CLOSED / 2 VERIFIED-ON-VM / 1 PARTIAL-MITIGATED (CODE) / 1 OPEN** | `audit/asl-core-kernel/SECURITY_FINDINGS.md` |
-| CI hosted | **VERIFIED-ON-CI untuk langkah [1]–[2] saja** — delapan run hijau, tiap angka ditarik dari log mentah (`gh run view --log`) | `Analysis/reports/ci_hosted_*.log` |
+| CI hosted | **VERIFIED-ON-CI untuk langkah [1]–[2] saja** — **9** run hijau berturut-turut sampai tip `bb4a9df` (run terakhir `39423423307`), tiap angka ditarik dari log mentah (`gh run view --log`) | `Analysis/reports/ci_hosted_*.log` |
 
 ### 0.2 Disiplin kategori bukti (ADR-002 §5) — dibaca bersama rilis ini
 * **VERIFIED** = lulus di host (`cargo test`). **VERIFIED-ON-VM** = lulus di QEMU q35 via serial log. **VERIFIED-ON-CI** = dibuktikan oleh run Actions publik yang log mentahnya dibaca. **CODE-COMPLETE** = mekanisme ada, klaim penuh menuntut hardware gate.
 * **VERIFIED-ON-HARDWARE = 0 item.** Yang masih menunggu board fisis: `DMA-ADDR-01`, `VT-D-DRV-01`, `DA-07`.
-* **Tidak ada screenshot** untuk HV-1/HV-2 pada bukti lama (VM headless `-display none`); bukti berupa serial log. Run penerimaan **berjendela** sesuai aturan **G9 VISIBLE-VERIFICATION** dijadwalkan pada CLOSEOUT T3 — **sampai dokumen ini ditulis, G9 belum dijalankan dan belum ada bukti visualnya** (status hasil dicatat di §0.5 setelah T3).
+* **Bukti visual G9: SUDAH DIJALANKAN** pada CLOSEOUT T3 (2026-10-20 20:48 WIB, hasil **PASS**, lihat §0.5) dengan jendela QEMU **terbuka** dan cmdline **tanpa** `-display none`. Catatan kategori: HV-1/HV-2 era v1.0.1 tetap **VERIFIED-ON-VM headless** (serial log saja, tanpa screenshot) dan tidak di-upgrade oleh run ini; run G9 adalah cold-boot penuh yang disaksikan, bukan pengukuran HV-1/HV-2. Hasil ini **tidak** mengubah **VERIFIED-ON-HARDWARE = 0**.
 
 ### 0.3 Perubahan fungsional utama (nol dependency eksternal baru, semua `no_std` tulisan tangan)
 1. **Failover/FSM latch** `SecondaryCoreEngine` + validasi carve-out memori (PHASE-2).
@@ -40,20 +41,25 @@
 * CI hosted **tidak** menjalankan langkah [3]–[4] (butuh hypervisor + ISO + xorriso + Limine lokal).
 * Run hosted **tidak** menyetel env `RUSTFLAGS` karena env **menggantikan** rustflags wajib di `asl-kernel/.cargo/config.toml` dan merusak linking; gerbang 0-warning ditegakkan parsing `ci_local.ps1`, bukan `-D warnings`.
 * **ISO tidak byte-reproducible** — perbaikan (penanam timestamp tetap) dijadwalkan di PHASE-7 T1.
+* **Banner kernel di boot console masih menulis `ASL Kernel v1.0.2`** (`asl-kernel/asl-kernel-core/src/lib.rs:1126`, string hardcoded) sementara identitas rilis produk = **v1.1.0**. Yang disinkronkan oleh CM_PLAN §3 hanyalah tiga berkas konfigurasi/dokumen (`RELEASE_NOTES.md`, `CHECKLIST_STATE.json.version`, `HANDOFF_STATE.json`), bukan string di dalam source. Menyamakan banner menuntut perubahan `.rs` sehingga **tidak** dilakukan di CLOSEOUT (aturan "NOL perubahan .rs") — dijadwalkan di PHASE-7 dengan re-gate G4. Konsekuensi jujur: serial log G9 §0.5 mengutip `v1.0.2`, dan itu bukan salah ketik dokumen ini.
 * Barrier cache HW riil (`DMA-CACHE-01`) masih **PARTIAL-MITIGATED (CODE)**; `ATOMIC-SPARC-01` masih **OPEN** (WCET SPARC butuh TSIM3/GRMON3).
 * Tangga DAL-C prasyarat belum terpenuhi: MC/DC coverage, tim verifikasi independen, DO-330 tool qualification (`Gemini_Assist`/`Sub_Assist`), keterlibatan otoritas.
 * Item open milik pemilik repo: 9 file `.log` sampah pra-eksisting di root repo (checker `Sub_Assist.py --hygiene`) — ditangani di CLOSEOUT T5.
 
 ### 0.5 HASIL G9 ACCEPTANCE RUN (berjendela, disaksikan pemilik repo)
-**STATUS SEMENTARA: BELUM DIJALANKAN.** Field ini diisi setelah CLOSEOUT T3 dan commit berikutnya; sampai saat entri [PHASE-6B-C1] ditulis, satu-satunya bukti cold-boot adalah **VERIFIED-ON-VM headless** (serial log, tanpa jendela, tanpa screenshot).
-| Field | Nilai |
+**STATUS: DIJALANKAN — PASS** (CLOSEOUT T3). Ini bukti visual cold-boot pertama yang memenuhi aturan G9; sebelumnya hanya ada bukti **VERIFIED-ON-VM headless** (serial log, tanpa jendela).
+
+| Field | Nilai (terukur) |
 |---|---|
-| Tanggal & jam run | *(diisi T3)* |
-| QEMU version + cmdline | *(diisi T3 — wajib TANPA `-display none`)* |
-| Jendela terlihat & disaksikan user | *(ya/tidak — hard gate rilis)* |
-| Keluar yang diamati | *(wajib: `M6: Kernel Cold Boot Complete` + prompt `ASL-OS>`)* |
-| Serial log ter-commit | *(nama file `Analysis/reports/g9_acceptance_serial_<tanggal>.log`)* |
-| ISO yang di-boot: ukuran / SHA256 | *(dari T2; SHA256 hanya sah untuk build tersebut)* |
+| Tanggal & jam run | 2026-10-20 **20:48:23** (offset mesin +0700) — capai `ASL-OS>` pada 20:48:29 (mtime serial log) |
+| QEMU version + cmdline | `QEMU emulator version 10.2.50 (v10.2.0-14086-g840320663e)`; `qemu-system-x86_64.exe -machine q35 -vga std -m 256M -cdrom C:\asl\asl-kernel\target\asl-core-kernel.iso -serial file:C:\asl\Analysis\reports\g9_acceptance_serial_2026-10-20.log -no-reboot -no-shutdown` — **TANPA `-display none` / `-WindowStyle Hidden`** |
+| Jendela terlihat & disaksikan user | **YA** — proses PID 18760 punya `MainWindowTitle = "QEMU"`, jendela **dibiarkan TERBUKA** setelah PASS agar pemilik repo menyaksikan; ditutup manual via `scripts\g9_acceptance_run.ps1 -StopQemu` |
+| Keluar yang diamati | **`M6: Kernel Cold Boot Complete`** (baris 32 serial) **+ prompt `ASL-OS>`** (baris 55, baris terakhir); banner `ASL Kernel v1.0.2`, 256 MB RAM terdeteksi, 6 perangkat PCI bus 0, DMAR **ABSEN** (VM tanpa IOMMU → probe VT-d tidak aktif di run ini) |
+| Hasil checker | `M6=True shell=True crash=False`; **0** pola `ASL EXCEPTION` / `ASL-CORE-PANIC` / `FATAL`; serial **55 baris** (`wc -l` = 54 karena baris terakhir tidak diakhiri newline); stderr QEMU **0 baris** |
+| Serial log ter-commit | `Analysis/reports/g9_acceptance_serial_2026-10-20.log` + `Analysis/reports/g9_acceptance_summary_2026-10-20.log` (metadata run) |
+| ISO yang di-boot: ukuran / SHA256 | **4.118.528 B** / `FACA92F4E1E92B2EE5EB8D2E931C0B1A64DF9C2035A308529E69D4E5128C8355` (build T2 di tip main `bb4a9df`; SHA256 **hanya sah untuk build ini** — ISO tidak byte-reproducible) |
+| Kategori bukti yang bertambah | **VERIFIED-ON-VM** dengan observasi visual. **VERIFIED-ON-CI tetap langkah [1]–[2]. VERIFIED-ON-HARDWARE tetap 0 item.** |
+| Harness | `scripts/g9_acceptance_run.ps1` — fail-closed: exit 1 pada timeout 180 s, crash, atau proses QEMU berhenti; tidak ada jalur "PASS" tanpa kedua string di serial log |
 
 ---
 

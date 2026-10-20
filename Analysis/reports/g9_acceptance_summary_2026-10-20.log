@@ -1,0 +1,12 @@
+ASL G9 ACCEPTANCE RUN (VISIBLE) - 2026-10-20 20:48:23
+QEMU   : QEMU emulator version 10.2.50 (v10.2.0-14086-g840320663e)
+ISO    : C:\asl\asl-kernel\target\asl-core-kernel.iso
+ISO    : 4118528 bytes  SHA256=FACA92F4E1E92B2EE5EB8D2E931C0B1A64DF9C2035A308529E69D4E5128C8355
+Catatan: ISO tidak byte-reproducible (xorriso menanam volume timestamp) - SHA256 hanya sah untuk build ini.
+CMDLINE: "C:\Program Files\qemu\qemu-system-x86_64.exe" -machine q35 -vga std -m 256M -cdrom C:\asl\asl-kernel\target\asl-core-kernel.iso -serial file:C:\asl\Analysis\reports\g9_acceptance_serial_2026-10-20.log -no-reboot -no-shutdown
+==> Jendela QEMU dibuka. Silakan lihat layarnya sampai prompt 'ASL-OS>' muncul.
+PID    : 18760  (ditutup nanti dengan: g9_acceptance_run.ps1 -StopQemu)
+Hasil  : M6=True shell=True crash=False  serial=55 baris  stderr=0 baris
+[PASS] G9: cold-boot berjendela mencapai M6 + prompt ASL-OS>; jendela DIBIARKAN TERBUKA agar pemilik repo menyaksikan.
+Serial log: C:\asl\Analysis\reports\g9_acceptance_serial_2026-10-20.log
+Lanjut: setelah menyaksikan, tutup jendela dengan  powershell -File scripts\g9_acceptance_run.ps1 -StopQemu

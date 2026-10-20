@@ -1,0 +1,55 @@
+CLOSEOUT T2 - FINAL ISO BUILD for release v1.1.0 (2026-10-20)
+================================================================
+Command   : powershell -ExecutionPolicy Bypass -File C:\asl\scripts\build_kernel.ps1 -Action iso
+Repo tip  : main = bb4a9df6566e7ef23979fb0e4238ff9db9ecf72a ([PHASE-6B-C1], docs-only)
+Kernel tip: isi .rs identik dengan merge commit c56c69a (PR #3) - diverifikasi `git diff cc3fe28 c56c69a` kosong
+            dan seluruh commit setelahnya (45a33c7, 5829e28, bb4a9df) = nol perubahan .rs.
+Bukti yang TIDAK dipakai: scripts\ci_local.ps1 tidak dijalankan (langkah [3/4]-nya menulis
+            Analysis\reports\ci_2026-10-20.log dengan Out-File = menimpa artefak GERBANG AKHIR
+            yang sudah ter-commit). Langkahnya direplikasi dengan nama berkas keluar baru
+            (file ini + Analysis\reports\g9_acceptance_*).
+
+Artefak terukur
+---------------
+ELF   : asl-kernel\target\x86_64-unknown-none\release\asl-kernel
+        243568 bytes | SHA256(prefix) EE1274BE011E90DF... | x86_64-unknown-none release, 0 error / 0 warning
+ELF2  : asl-kernel\target\iso_root\boot\asl-kernel.elf  = 243568 bytes (salinan identik yang ditanam ke ISO)
+ISO   : asl-kernel\target\asl-core-kernel.iso
+        4118528 bytes | SHA256 = FACA92F4E1E92B2EE5EB8D2E931C0B1A64DF9C2035A308529E69D4E5128C8355
+
+Perbandingan dengan riwayat
+---------------------------
+Ukuran ISO 4118528 bytes = SAMA dengan yang dikutip README sec.2 / ci_2026-10-20.log (ukuran stabil).
+SHA256 BERBEDA dari hash run sebelumnya (2B055DC2..., 6DDF4E6C..., BB97F25E...) karena build ISO
+TIDAK byte-reproducible: xorriso menanam volume timestamp. Jadi SHA256 di atas hanya sah untuk
+build tanggal 2026-10-20 ini dan itulah satu-satunya biner yang boleh di-boot pada T3 (G9) dan
+dilampirkan pada rilis v1.1.0 (T4). Perbaikan reproducible-build dijadwalkan PHASE-7 T1.
+
+Ekstrak log xorriso / limine (dari keluaran langkah iso)
+--------------------------------------------------------
+xorriso : UPDATE :      14 files added in 1 seconds
+ISO image produced: 2011 sectors
+Written to medium : 2011 sectors at LBA 0
+Writing to 'stdio:/cygdrive/c/asl/asl-kernel/target/asl-core-kernel.iso' completed successfully.
+Physical block size of 512 bytes.
+Installing to GPT. Logical block size of 512 bytes.
+Secondary header at LBA 0x1f6b.
+GPT partition NOT specified. Attempting GPT embedding.
+New maximum count of partition entries: 44.
+Stage 2 to be located at 0x1a00 and 0x3e7000.
+Limine BIOS stages installed successfully!
+[OK] ISO successfully mastered: C:\asl\asl-kernel\target\asl-core-kernel.iso (4118528 bytes,
+     SHA256: FACA92F4E1E92B2EE5EB8D2E931C0B1A64DF9C2035A308529E69D4E5128C8355)
+
+Status gerbang
+--------------
+G4 tetap hijau pada tree ini (diukur sebelum commit [PHASE-6B-C1]): 30 suite 172 passed / 0 failed,
+build release 0 error / 0 warning, ELF 243568 B. Konfirmasi lintas-platform: run hosted
+39423423307 @ bb4a9df = success, log mentah 841 baris (172/0; 0 warning; ELF Linux 243560 B).
+T3 (G9 acceptance run berjendela) berikutnya = hard gate sebelum tag/rilis v1.1.0.
+
+UPDATE (setelah T3, 2026-10-20 20:48): T3 Dijalankan - PASS pada ISO build ini (SHA256 dicocokkan
+FACA92F4...8355, 4118528 bytes, di-hash ulang sebelum dan sesudah boot), jendela QEMU terbuka
+(tanpa -display none), serial capai M6 + prompt ASL-OS>. Bukti: Analysis\reports\
+g9_acceptance_serial_2026-10-20.log, g9_acceptance_summary_2026-10-20.log, harness scripts\
+g9_acceptance_run.ps1. ISO inilah yang dilampirkan pada rilis v1.1.0 (T4).

@@ -262,3 +262,62 @@ cargo llvm-cov -p asl-storage -p asl-bootloader \
 
 Jalankan di host Windows **tanpa** `--target` dan tanpa env `RUSTFLAGS`; artefak
 instrumentasi masuk ke `asl-kernel/target/llvm-cov-target/` (ter-ignore git).
+---
+
+## 9. [PHASE-7-2b, 2026-10-21] Hasil hosted pertama — pasangan platform coverage TERUKUR
+
+Dua run atas commit `[PHASE-7-2]` (`60ef58a`), keduanya `conclusion=success` dan keduanya
+sudah punya **dua** job:
+
+| Run | Event | `test-and-build` | Job `coverage` |
+|---|---|---|---|
+| `39498246825` | push | 30 suite **172 passed / 0 failed**, 13 baris `Compiling`, `Finished` release 2,25s, 0 `warning:` / 0 `error:`, ELF Linux **243.560 B**, 21 baris warning profil test | **success**, 13 baris tabel terukur |
+| `39498253429` | pull_request (merge ref PR #4) | identik (release `Finished` 3,72s) | **success**, 13 baris tabel terukur |
+
+**Job coverage benar-benar berjalan, bukan cache.** Langkah `[1/2]` (118 baris log) memuat
+`Compiling cargo-llvm-cov v0.9.1` lalu `Installed package `cargo-llvm-cov v0.9.1` (executable
+`cargo-llvm-cov`)`; langkah `[2/2]` (107 baris) memuat empat baris `Compiling` terinstrumentasi
+(`asl-driver-pci`, `asl-bootloader`, `asl-kernel-core-secondary`, `asl-storage`) dan
+`Finished `test` profile [unoptimized + debuginfo] target(s) in 2.49s` (push) / `0.70s`
+(pull_request). Rentang stempel waktu langkah di log (21:12:18,46 -> 21:12:22,02 UTC pada run
+push) konsisten dengan durasi yang dilaporkan cargo sendiri, dan build instrumentasi yang sama
+di host memakan 2,50s — jadi tidak ada tanda langkah noop. Exit code 0 berarti ambang advisory
+`--fail-under-lines 80` **terpenuhi di Linux**.
+
+**Temuan utama: delta platform coverage TERUKUR = NOL pada pasangan ini.** Ketiga belas baris
+ringkasan Linux (12 berkas + `TOTAL`) **sama baris-per-baris dan angka-per-angka** dengan
+baseline host Windows, termasuk `TOTAL` regions 6.027/740 = **87,72%**, functions 225/43 =
+**80,89%**, lines 3.718/490 = **86,82%**, branches `0 0 -`. Perbandingan ini sah karena
+`git diff --numstat 489d4ee 60ef58a -- *.rs Cargo.toml Cargo.lock` **kosong** (baseline host
+diukur pada rev `489d4ee`, run hosted pada rev `60ef58a`, tree sumber identik). Nama berkas
+hanya dibedakan pemisah jalur (`asl-storage\src\lib.rs` di host vs `asl-storage/src/lib.rs`
+di Linux).
+
+**Batas yang harus dibaca bersama temuan itu.** (1) Toolchain **tidak** identik: host
+`rustc 1.99.0` (`x86_64-pc-windows-msvc`) vs runner `rustc 1.99.1`
+(`stable-x86_64-unknown-linux-gnu`; terukur dari baris `rustc 1.99.1 (58cf8f9c3 2026-10-13)`
+pada log run). Jadi "nol delta" adalah hasil ukur **satu pasangan**, bukan hukum, dan tidak
+boleh dikutip sebagai "coverage tidak bergantung platform". (2) Delta 8 B pada ELF
+(243.568 B Windows vs 243.560 B Linux) tetap nyata dan tidak berubah oleh temuan ini —
+coverage mengukur profil test, bukan artefak release. (3) Margin 6,82 poin pada ambang
+**tidak** disetel ulang: ambang tetap advisory, dan penyetelan ulang adalah keputusan fase
+tersendiri (utang §6 butir lain tetap berlaku). (4) Kategori bukti blok ini **VERIFIED-ON-CI**;
+baseline resmi tetap §2 (VERIFIED-ON-HOST) sampai ada kebijakan lain.
+
+**Koreksi append-only atas pernyataan sebelum ukur.** Transkrip baseline §6c dan butir
+"Delta platform" README §6 menulis bahwa angka CI **mungkin** berbeda beberapa digit karena
+belum ada pasangan pengukuran. Keduanya dibiarkan apa adanya sebagai keadaan pada saat
+penulisan; hasil ukur bagian inilah yang menggantikannya, dan ratifikasinya tercatat sebagai
+entri #19 di `docs/ROADMAP/ACCOUNTABILITY_FAULT_LOG.json`. Tidak ada riwayat commit yang
+ditulis-ulang (G8).
+
+**Bukti dan recount.** Dua ekstrak baru:
+`Analysis/reports/ci_hosted_39498246825_2026-10-20.log` (94 baris) dan
+`Analysis/reports/ci_hosted_39498253429_2026-10-20.log` (95 baris) — yang pertama dalam
+keluarga ini yang memuat blok `job coverage`; keduanya ASCII murni (non-ASCII 0) dan LF.
+Rantai diukur ulang dengan `gh run list --workflow asl-ci-minimal --limit 60`: **27 run**
+`asl-ci-minimal` `conclusion=success` = 14 rantai `main` (`8b829d8` -> `6623dd8`) + **13**
+`feature/phase7`; jumlah berkas `Analysis/reports/ci_hosted_*.log` terukur = **20**
+(18 sebelum commit ini + 2 baru), sehingga tingkat bukti menjadi **20 / 5 / 2** dan
+20 + 5 + 2 = **27**. Nol `.rs`, nol `Cargo.*`, `CHECKLIST_STATE.json` tidak disentuh pada
+commit ini.

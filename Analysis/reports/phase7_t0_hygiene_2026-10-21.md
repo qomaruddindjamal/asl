@@ -4,7 +4,7 @@ Aturan misi PHASE-7 T0: berkas `.log` scratch tak-ter-track di direktori bukti h
 atau **dihapus**. Kebijakan yang dipakai = preseden CLOSEOUT T5: tidak ada informasi yang hilang tanpa bukti;
 manifest SHA256 + ukuran + mtime diambil SEBELUM tindakan; penghapusan hanya untuk berkas yang (a) byte-identik
 dengan artefak ter-commit (`cmp` = 0 byte berbeda), (b) seluruh baris isinya sudah tercakup korpus ter-commit
-plus berkas yang justro disahkan pada langkah ini, atau (c) yang baris uniknya murni noise wrapper PowerShell
+plus berkas yang justru disahkan pada langkah ini, atau (c) yang baris uniknya murni noise wrapper PowerShell
 tanpa nilai verdict - dan itu dinyatakan terang, bukan diam-diam.
 
 ## 1. Manifest 13 berkas scratch sebelum tindakan
@@ -61,6 +61,24 @@ tanpa nilai verdict - dan itu dinyatakan terang, bukan diam-diam.
 ## 6. Eksekusi dan hasil
 - Dihapus 9 berkas (A=7, B=1, D=1). Disahkan 4 berkas (Kelas C).
 - Sisa `.log` tak-ter-track setelah penghapusan = **4** berkas, yaitu tepat berkas Kelas C yang di-stage
-  pada commit T0 ini (``asl_vm_serial_d5.log`, `ci_2026-10-20.log.step1.log`, `ci_2026-10-20.log.step3_iso.log`, `qemu_serial.log``); angka ini terukur SEBELUM `git add` dijalankan.
+  pada commit T0 ini (`asl_vm_serial_d5.log`, `ci_2026-10-20.log.step1.log`, `ci_2026-10-20.log.step3_iso.log`, `qemu_serial.log`); angka ini terukur SEBELUM `git add` dijalankan.
 - Berkas **ter-track** yang dihapus/dipindah/diubah isinya: **0**. Nol bukti historis hilang; artefak GERBANG AKHIR dan CLOSEOUT tetap utuh.
 - Nama berkas Kelas C TIDAK diubah (byte dan nama asli dipertahankan) agar bisa dicocokkan dengan rujukan historis di `QODER_EXECUTION_LOG.md`; statusnya berubah dari 'sengaja tidak di-stage' menjadi 'di-stage sebagai baseline PHASE-7' - itu perubahan keputusan, bukan koreksi bukti.
+
+## 7. Verifikasi ulang PASCA-penghapusan (2026-10-21, setelah 9 berkas dihapus)
+
+Klaim "byte-identik" di §2 diuji ulang tanpa memakai berkas yang sudah hilang: SHA256 tiap berkas terhapus yang tercatat di §1 dibandingkan ulang dengan SHA256 **artefak pendamping yang masih ter-commit di repo**. Hasil: **7/7 cocok** —
+
+| berkas terhapus | sha256 tercatat di §1 | padanan ter-commit | cocok |
+|---|---|---|---|
+| `qemu_ci_smoke_qemu_stderr.log` | `e3b0c442...b855` | `hv2_qemu_stderr_2026-10-20.log` | ya |
+| `qemu_hv2_qemu_stderr.log` | `e3b0c442...b855` | `hv2_qemu_stderr_2026-10-20.log` | ya |
+| `qemu_hv2_serial.log` | `eb016321...56379` | `hv2_stack_overflow_serial_2026-10-20.log` | ya |
+| `qemu_nominal_regression_serial.log` | `f47441b1...dcc2` | `g9_acceptance_serial_2026-10-20.log` + `nominal_regression_serial_2026-10-20.log` + `qemu_ci_smoke_serial.log` | ya (ketiganya) |
+| `qemu_qm01_vtd_qemu_stderr.log` | `15d70544...10e1` | `qm01_vtd_qemu_stderr_2026-10-20.log` | ya |
+| `qemu_qm01_vtd_serial.log` | `0630c675...967c` | `qm01_vtd_serial_2026-10-20.log` | ya |
+| `vbox_check.log` | `12eb2f1c...1b28` | `asl_vm_serial.log` | ya |
+
+Konsekuensi yang boleh disimpulkan: untuk ketujuh berkas itu **isi masih ada di repo** (nol byte hilang secara faktual), sehingga penghapusan salinannya reversibel secara informatif. Yang TIDAK boleh disimpulkan: bahwa Kelas B (`qemu_serial_check.log`) dan Kelas D (`ci_2026-10-20.log.step2.log`) punya jaminan sekuat itu — keduanya tidak byte-identik dengan satu artefak, hanya barisnya terbukti tercakup (B) atau terbukti noise wrapper (D); SHA256 keduanya tetap tercatat di §1 sebagai detektor kehilangan.
+
+Ukuran + SHA256 keempat berkas Kelas C juga diukur ulang setelah staging dan cocok dengan §1: `asl_vm_serial_d5.log` 206 B / 3 baris berisi, `ci_2026-10-20.log.step1.log` 22910 B / 363 baris, `ci_2026-10-20.log.step3_iso.log` 1829 B / 30 baris, `qemu_serial.log` 936 B / 22 baris.

@@ -1123,7 +1123,7 @@ pub unsafe extern "C" fn _asl_kernel_entry(handover_ptr: *const AslBootHandover)
         "[ASL-CORE] M6: Kernel Cold Boot Complete. Entering Deterministic Idle Loop.\n",
     );
 
-    let logo = "       ___    ____    __   \n      /   |  / __/   / /   \n     / /| |  \\ \\    / /    \n    / ___ | _/ /   / /___  \n   /_/  |_|/___/  /_____/  \n\n   ASL Kernel v1.0.2\n   Selamat Datang Di ASL Kernel\n\n";
+    let logo = "       ___    ____    __   \n      /   |  / __/   / /   \n     / /| |  \\ \\    / /    \n    / ___ | _/ /   / /___  \n   /_/  |_|/___/  /_____/  \n\n   ASL Kernel v1.1.0\n   Selamat Datang Di ASL Kernel\n\n";
 
     #[cfg(target_arch = "x86_64")]
     {
@@ -1142,12 +1142,12 @@ pub unsafe extern "C" fn _asl_kernel_entry(handover_ptr: *const AslBootHandover)
             (*vga).set_color(0x0A); // Light Green
             (*vga).write_str("   [ OK ] ");
             (*vga).set_color(0x0F);
-            (*vga).write_str("Kernel initialized: ASL Core Kernel v1.0.2\n");
+            (*vga).write_str("Kernel initialized: ASL Core Kernel v1.1.0\n");
 
             (*fb).set_fg_color(0x0000FF00); // Green
             (*fb).write_str("   [ OK ] ");
             (*fb).set_fg_color(0x00FFFFFF);
-            (*fb).write_str("Kernel initialized: ASL Core Kernel v1.0.2\n");
+            (*fb).write_str("Kernel initialized: ASL Core Kernel v1.1.0\n");
         }
 
         if mem_init_ok {
@@ -1230,7 +1230,7 @@ pub unsafe extern "C" fn _asl_kernel_entry(handover_ptr: *const AslBootHandover)
 
     early_serial_write_str(logo);
     if kernel_init_ok {
-        early_serial_write_str("   [ OK ] Kernel initialized: ASL Core Kernel v1.0.2\n");
+        early_serial_write_str("   [ OK ] Kernel initialized: ASL Core Kernel v1.1.0\n");
     }
     if mem_init_ok {
         let mut installed_mb = if !handover_ptr.is_null() {
@@ -1819,7 +1819,7 @@ pub unsafe extern "C" fn _asl_kernel_entry(handover_ptr: *const AslBootHandover)
                         }
                     }
                     asl_cockpit_shell::ShellCommand::Uname => {
-                        let uname_msg = "ASL Core Kernel v1.0.2 (x86_64-unknown-none) [DO-178C-inspired deterministic engineering]\n";
+                        let uname_msg = "ASL Core Kernel v1.1.0 (x86_64-unknown-none) [DO-178C-inspired deterministic engineering]\n";
                         early_serial_write_str(uname_msg);
                         unsafe {
                             (*fb).write_str(uname_msg);

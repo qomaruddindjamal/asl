@@ -12,8 +12,6 @@
 #![no_std]
 #![cfg_attr(not(test), no_main)]
 
-use core::panic::PanicInfo;
-
 use asl_afdx_ipc::AfdxVirtualLinkRingBuffer;
 use asl_bootloader::{AslBootHandover, TargetArch};
 use asl_hal::ArchitectureRuntime;
@@ -912,8 +910,10 @@ pub fn asl_fault_notifier(ctx: &asl_hal::x86_fault::ExceptionContext) {
 
 /// Tujuan tulis konteks panic: serial COM1 dan framebuffer, sehingga pemilik
 /// melihat penyebabnya di jendela sekaligus di berkas log.
+#[cfg(not(test))]
 struct PanicContextSink;
 
+#[cfg(not(test))]
 impl core::fmt::Write for PanicContextSink {
     fn write_str(&mut self, s: &str) -> core::fmt::Result {
         early_serial_write_str(s);
@@ -936,7 +936,7 @@ impl core::fmt::Write for PanicContextSink {
 /// pencetakan konteks tidak berputar tanpa bukti.
 #[cfg(not(test))]
 #[panic_handler]
-fn panic(info: &PanicInfo) -> ! {
+fn panic(info: &core::panic::PanicInfo) -> ! {
     static SINK_SEDANG_PAKAI: core::sync::atomic::AtomicBool =
         core::sync::atomic::AtomicBool::new(false);
     early_serial_write_str("\n[ASL-CORE-PANIC] Fail-Safe Trap Invoked. Spinning in safe loop.\n");

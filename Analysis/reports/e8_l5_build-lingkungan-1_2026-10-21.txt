@@ -1,0 +1,5 @@
+   Compiling asl-cockpit-shell v0.1.0 (C:\asl\asl-kernel\asl-cockpit-shell)
+   Compiling asl-storage v0.1.0 (C:\asl\asl-kernel\asl-storage)
+   Compiling asl-kernel-core v0.1.0 (C:\asl\asl-kernel\asl-kernel-core)
+   Compiling asl-kernel-bin v0.1.0 (C:\asl\asl-kernel\asl-kernel-bin)
+    Finished `release` profile [optimized] target(s) in 6.05s

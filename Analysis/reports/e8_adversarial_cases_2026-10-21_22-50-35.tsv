@@ -1,0 +1,60 @@
+id	label	hasil_pokok	jenis_kirim	byte_kirim	detik_mm	kiriminput_terlihat	teks_balasan_terpotong
+S01	SIAP: buat direktori uji	OK	line	20	475	create-folder e8uji	create-folder e8uji | Direktori dibuat: /e8uji | ASL-KERNEL> 
+S02	SIAP: masuk direktori uji	OK	line	11	444	open e8uji	open e8uji | Ruang kerja: /e8uji | ASL-KERNEL> 
+S03	SIAP: buat berkas a.txt	OK	line	18	445	create-file a.txt	create-file a.txt | Berkas dibuat: /e8uji/a.txt | ASL-KERNEL> 
+S04	SIAP: isi a.txt	OK	line	29	447	write-file a.txt isi awal e8	write-file a.txt isi awal e8 | Tertulis 11 byte di /e8uji/a.txt | ASL-KERNEL> 
+C01	baris kosong	OK	line	1	412		 | ASL-KERNEL> 
+C02	hanya spasi	OK	line	6	411	     	      | ASL-KERNEL> 
+C03	baris 512 karakter	OK	line	513	448	AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA...[512 byte]	AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA | Unknown command. Type 'help' for available commands. | ASL-KERNEL> 
+C04	baris 1024 karakter	OK	line	1025	446	BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB...[1024 byte]	BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB | Unknown command. Type 'help' for available commands. | ASL-KERNEL> 
+C05	baris 5000 karakter (>=4096)	OK	line	5001	511	CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC...[5000 byte]	CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC | Unknown command. Type 'help' for available commands. | ASL-KERNEL> 
+C06	argumen '..'	OK	line	8	448	open ..	open .. | Ruang kerja: / | ASL-KERNEL> 
+C07	argumen '//'	OK	line	8	415	open //	open // | Ruang kerja: / | ASL-KERNEL> 
+C08	trailing slash	OK	line	22	446	create-folder namaku/	create-folder namaku/ | Direktori dibuat: /namaku | ASL-KERNEL> 
+C09	argumen titik	OK	line	7	414	open .	open . | Ruang kerja: / | ASL-KERNEL> 
+C10	argumen berkutip	OK	line	30	457	create-folder "nama bertanda"	create-folder "nama bertanda" | Sintaks: create-folder <nama> | ASL-KERNEL> 
+C11	argumen hubung	OK	line	14	448	delete-file -	delete-file - | Galat: tidak ditemukan | ASL-KERNEL> 
+C12	open berkas yang ada	OK	line	11	445	open a.txt	open a.txt | Galat: tidak ditemukan | ASL-KERNEL> 
+C13	open jalur tidak ada	OK	line	20	447	open tidak-ada-e8-9	open tidak-ada-e8-9 | Galat: tidak ditemukan | ASL-KERNEL> 
+C14	open '/..'	OK	line	9	443	open /..	open /.. | Ruang kerja: / | ASL-KERNEL> 
+C15	up di akar	OK	line	3	463	up	up | Unknown command. Type 'help' for available commands. | ASL-KERNEL> 
+C16	create-folder nama baru (siap kasus bertumpuk)	OK	line	18	447	create-folder sub	create-folder sub | Direktori dibuat: /sub | ASL-KERNEL> 
+C16B	create-folder nama sudah ada	OK	line	18	444	create-folder sub	create-folder sub | Galat: sudah ada | ASL-KERNEL> 
+C17	create-folder berisi garis miring	OK	line	25	458	create-folder luar/dalam	create-folder luar/dalam | Galat: tidak ditemukan | ASL-KERNEL> 
+C18	create-folder tanpa nama	OK	line	14	443	create-folder	create-folder | Sintaks: create-folder <nama> | ASL-KERNEL> 
+C19	create-file nama sudah ada	OK	line	18	446	create-file a.txt	create-file a.txt | Berkas dibuat: /a.txt | ASL-KERNEL> 
+C20	write-file ke folder tidak ada	OK	line	34	461	write-file tidak-ada-e8/x.txt isi	write-file tidak-ada-e8/x.txt isi | Galat: tidak ditemukan | ASL-KERNEL> 
+C21	write-file pada folder	OK	line	19	446	write-file sub isi	write-file sub isi | Galat: objek ini direktori | ASL-KERNEL> 
+C22	write-file isi kosong (tanpa argumen isi)	OK	line	17	448	write-file a.txt	write-file a.txt | Tertulis 0 byte di /a.txt | ASL-KERNEL> 
+C23	write-file isi satu spasi	OK	line	19	466	write-file a.txt  	write-file a.txt   | Tertulis 0 byte di /a.txt | ASL-KERNEL> 
+C24	write-file tepat 8192 byte (di ujung baris)	OK	line	8210	566	write-file a.txt DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD...[8209 byte]	write-file a.txt DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD | Tertulis 64 byte di /a.txt | ASL-KERNEL> 
+C25	write-file 8193 byte (di ujung baris)	OK	line	8211	573	write-file a.txt EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE...[8210 byte]	write-file a.txt EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE | Tertulis 64 byte di /a.txt | ASL-KERNEL> 
+C26	rename ke nama sudah ada	OK	line	19	457	rename a.txt b.txt	rename a.txt b.txt | Unknown command. Type 'help' for available commands. | ASL-KERNEL> 
+C27	rename akar	OK	line	11	446	rename / /	rename / / | Unknown command. Type 'help' for available commands. | ASL-KERNEL> 
+C28	delete-file pada folder	OK	line	16	444	delete-file sub	delete-file sub | Galat: objek ini direktori | ASL-KERNEL> 
+C29	delete-folder pada berkas	OK	line	20	445	delete-folder a.txt	delete-folder a.txt | Galat: objek ini bukan direktori | ASL-KERNEL> 
+C30	delete akar	OK	line	16	447	delete-folder /	delete-folder / | Galat: tidak ditemukan | ASL-KERNEL> 
+C31	perintah tak dikenal	OK	line	23	447	perintahane8takdikenal	perintahane8takdikenal | Unknown command. Type 'help' for available commands. | ASL-KERNEL> 
+C32	argumen berlebih	OK	line	66	447	list satu dua tiga empat lima enam tujuh delapan sembilan sepuluh	list satu dua tiga empat lima enam tujuh delapan sembilan sepuluh | Sintaks: list [jalan] | ASL-KERNEL> 
+C33	nama panjang 127 byte di ujung buffer	OK	line	128	447	ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff...[127 byte]	fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff | Unknown command. Type 'help' for available commands. | ASL-KERNEL> 
+C34	byte kendali mentah (NUL, BEL, BS, DEL, ESC-A)	OK	bytes	8	1062	00 07 08 127 27 91 65	 | ASL-KERNEL> 
+C35	rentetan cepat tanpa jeda (8 baris)	OK	burst	74	668	'status' 'where' 'list' 'open ..' 'help' 'create-file b.txt' 'delete-file b.txt' 'status'	status | Status Cockpit Shell v1.0.2 |   Sistem berkas   : ramdisk |   Kapasitas       : 262144 byte |   Terpakai        : 75 byte |   Entri hidup     : 6 |   Ruang kerja     : / |   Perintah kanonik: 11 | ASL-KERNEL> where | / | ASL-KERNEL...[2541 byte]
+C36	rentetan cepat baris kosong x12	OK	burst	12	730	'' '' '' '' '' '' '' '' '' '' '' ''	 | ASL-KERNEL>  | ASL-KERNEL>  | ASL-KERNEL>  | ASL-KERNEL>  | ASL-KERNEL>  | ASL-KERNEL>  | ASL-KERNEL>  | ASL-KERNEL>  | ASL-KERNEL>  | ASL-KERNEL>  | ASL-KERNEL>  | ASL-KERNEL> 
+S91	SISA: kembali ke akar	OK	line	7	440	open /	open / | Ruang kerja: / | ASL-KERNEL> 
+S92	SISA: hapus direktori uji	OK	line	20	446	delete-folder e8uji	delete-folder e8uji | Galat: direktori masih berisi | ASL-KERNEL> 
+D01	diagnostik meminfo	OK	line	8	446	meminfo	meminfo | Installed RAM: 256 MB | Free Heap Pages: 4096 | ASL-KERNEL> 
+D02	diagnostik cpuinfo	OK	line	8	447	cpuinfo	cpuinfo | CPU Model: QEMU Virtual CPU version 2.5+ | ASL-KERNEL> 
+D03	diagnostik lspci	OK	line	6	445	lspci	lspci | PCI Bus Devices: |   [0:0.0] Vendor: 0x8086 Device: 0x29C0 Class: Bridge Device |   [0:1.0] Vendor: 0x1234 Device: 0x1111 Class: Display Controller (VGA/GPU) |   [0:2.0] Vendor: 0x8086 Device: 0x10D3 Class: Network Controller |   [0...[473 byte]
+D04	diagnostik lsblk	OK	line	6	441	lsblk	lsblk | Block Devices & Storage Subsystem: |   [ata0] No ATA device detected on Primary Channel | ASL-KERNEL> 
+D05	diagnostik fdisk	OK	line	6	445	fdisk	fdisk | Partition Table Inspection (fdisk): |   No active ATA drive detected to parse partitions. | ASL-KERNEL> 
+D06	diagnostik mount	OK	line	6	446	mount	mount | VFS Mount Points & File Systems: |   / (Root) -> VFS Active (Supported: FAT32 rw, Ext4 ro) |   /dev     -> Block and Character Device Mount | ASL-KERNEL> 
+D07	diagnostik uname	OK	line	6	444	uname	uname | ASL Core Kernel v1.0.2 (x86_64-unknown-none) [DO-178C-inspired deterministic engineering] | ASL-KERNEL> 
+D08	diagnostik failover	OK	line	9	445	failover	failover | Secondary Failover Engine: Active-Standby Armed. |   State: Standby (Read-Only Locked Partition) |   Takeover latency: < 1 ms (DO-178C DAL-A Invariant) | ASL-KERNEL> 
+D09	diagnostik test_pml4	OK	line	10	442	test_pml4	test_pml4 | [TEST-PML4] Starting Gate 1C PML4 Virtual Memory Validation Tests... |   [TEST 1] Current CR3: 0x000000000FF59000 -> PASS (CR3 Loaded & Active) |   [TEST 5] HHDM Read at 0xFFFF800000001000: 0x0000000000000000 -> PASS (HHDM Valid...[591 byte]
+D10	diagnostik test_apic (mengaktifkan interupsi)	OK	line	10	695	test_apic	test_apic | [TEST-APIC] Starting Gate 2 Local APIC & APIC Timer Tests... |   [TEST 1] APIC Base MSR (0x1B): 0x00000000FEE00900 | Phys Base: 0x00000000FEE00000 -> PASS |   [TEST 2] Local APIC Initialized & SVR Software-Enabled -> PASS |   [T...[519 byte]
+D11	sesudah test_apic: status (shell masih hidup?)	OK	line	7	915	status	status | Status Cockpit Shell v1.0.2 |   Sistem berkas   : ramdisk |   Kapasitas       : 262144 byte |   Terpakai        : 75 byte |   Entri hidup     : 6 |   Ruang kerja     : / |   Perintah kanonik: 11 | ASL-KERNEL> 
+D12	rentetan cepat saat timer aktif	OK	burst	29	1010	'where' 'list' 'status' 'uname' 'help'	where | / | ASL-KERNEL> list | Daftar isi / (4 entri): |   d e8uji  0 B |   d namaku  0 B |   d sub  0 B |   - a.txt  64 B | ASL-KERNEL> status | Status Cockpit Shell v1.0.2 |   Sistem berkas   : ramdisk |   Kapasitas       : 262144 byte | ...[2283 byte]
+D13	diagnostik test_task (jalur unwrap/assert)	OK	line	10	245054	test_task	test_task | [TEST-TASK] Starting Gate 3D 100,000 APIC Preemptive Tests... | [GATE-3D-REMEDIATION] Executing Gate 3D 100,000 APIC Interrupt Preemption Verification Suite... | [GATE-3D-TEST] TEST 1: Ring 0 Interrupt Frame Layout & Normalizati...[2844 byte]
+D14	test_task diulang (stateManager berubah?)	OK	line	10	473	test_task	test_task | [TEST-TASK] Starting Gate 3D 100,000 APIC Preemptive Tests... | [GATE-3D-REMEDIATION] Executing Gate 3D 100,000 APIC Interrupt Preemption Verification Suite... | [GATE-3D-TEST] TEST 1: Ring 0 Interrupt Frame Layout & Normalizati...[2533 byte]
+D15	test_apic setelah test_task	OK	line	10	605	test_apic	test_apic | [TEST-APIC] Starting Gate 2 Local APIC & APIC Timer Tests... |   [TEST 1] APIC Base MSR (0x1B): 0x00000000FEE00900 | Phys Base: 0x00000000FEE00000 -> PASS |   [TEST 2] Local APIC Initialized & SVR Software-Enabled -> PASS |   [T...[528 byte]
+D16	perintah biasa sesudah rangkaian diagnostik	OK	line	7	445	status	status | Status Cockpit Shell v1.0.2 |   Sistem berkas   : ramdisk |   Kapasitas       : 262144 byte |   Terpakai        : 75 byte |   Entri hidup     : 6 |   Ruang kerja     : / |   Perintah kanonik: 11 | ASL-KERNEL> 

@@ -554,6 +554,64 @@
       "correction": "Kalimat yang seharusnya tertulis pada pesan commit merge itu, dalam bentuk utuh: 'Isi yang masuk (terukur `git diff --name-only` terhadap main): tiga berkas dokumen -Analysis/reports/T4R-ARSIP-RILIS-V1.0.2-2026-10-21.md (baru), docs/ROADMAP/ACCOUNTABILITY_FAULT_LOG.json, docs/ROADMAP/HANDOFF_STATE.json. Nol berkas `.rs`, nol `Cargo.*`, nol berkas workflow. Riwayat lama utuh: tidak ada commit yang dibuang dan main tidak digerakkan oleh commit ini.'",
       "prevented_by": "Verifikasi rutin pesan commit yang biasa saya lakukan; kali ini langkah itu saya lewati karena langsung berpindah ke push. Sekarang menjadi bagian tetap dari pencegahan (butir terakhir daftar bukti).",
       "notes": "Pesan commit yang cacat tetap ada di riwayat apa adanya - itulah harga dari aturan nol-amend, dan sengaja dibayar. Utang ekstrak run hosted atas commit BAGIAN 0 (007d3dd, 54abf73, 4e865c0) ditutup pada commit yang sama dengan entri ini; dua run atas commit merge (peristiwa push dan pull_request) baru bisa diekstrak pada commit BERIKUTNYA, sesuai G8."
+    },
+    {
+      "date": "2026-10-21T21:58:00Z",
+      "actor": "QODER (agen) - MISI v1.0.2 R1 BAGIAN 1 E8, laporan diri sendiri atas perubahan di luar cakupan",
+      "type": "OUT_OF_SCOPE_FILE_MODIFIED_BY_FORMATTER_RECURSION",
+      "gate_id": "E8-LANGKAH-3_RUSTFMT-MEREKURSI-MENYENTUH-VTD-BOOT",
+      "result": "CLOSED",
+      "violations_recorded_delta": 0,
+      "root_cause": "Saya ingin memisahkan deviasi tata letak milik sendiri dari deviasi warisan pada asl-kernel-core/src/lib.rs. Percobaan pertama menjalankan rustfmt atas SALINAN berkas itu di direktori sementara gagal (penyelesaian modul tidak ditemukan), lalu saya memindahkan salinan itu ke DALAM direktori src berkas itu berada - dan di sinilah kesalahannya. rustfmt 1.99 tidak memformat satu berkas secara terisolasi: ia memformat SATU PAKET (crate) SECARA KESELURUHAN dengan merekursi setiap deklarasi mod, sehingga berkas lain yang dideklarasikan sebagai modul, yaitu asl-kernel-core/src/vtd_boot.rs, ikut ditulis ulang oleh perkakas. Akar penyebabnya adalah asumsi saya bahwa 'satu berkas masuk, satu berkas keluar'; itu keliru untuk pemformat berkas berbahasa Rust yang sadar-modul. Turunan pertama dari kekeliruan yang sama: angka 'baris yang ingin diubah rustfmt' sebanyak 123 yang saya laporkan untuk lib.rs juga salah baca, karena keluaran --check memuat hunk submodul tanpa saya saring jalurnya - angka yang benar 107.",
+      "evidence": [
+        "Analysis/reports/E8-KECELAKAAN-RUSTFMT-REKURSI-VTD-BOOT.patch (148 baris berkas; 53 baris penambahan, 16 penghapusan; 69 baris vtd_boot.rs bergeser, seluruhnya tata letak - tidak ada perubahan makna)",
+        "Perintah pemulihan: `git restore asl-kernel/asl-kernel-core/src/vtd_boot.rs`; setelahnya `git status --short` hanya menampilkan tiga berkas cakupan (asl-cockpit-shell/src/lib.rs, asl-kernel-core/src/lib.rs, asl-storage/src/ramdisk.rs) ditambah berkas dokumen/alat/artefak baru",
+        "`git diff --stat` atas vtd_boot.rs sebelum restore: 69 baris bergeser, nol baris yang menyentuh logika (dapat dibaca pada berkas patch di atas)",
+        "Alat pengganti yang hanya-baca: `rustfmt --edition 2021 --check` di tempat + irisan rentang baris `git diff -U0`, disimpan sebagai scripts/r1_new_only_gate_check.py; penyaring jalur pada header 'Diff in <jalur>:<baris>:' ditambahkan setelah kekeliruan 123 vs 107 di atas",
+        "docs/RND/ASL-V1.0.2-E8-AKAR-PENYEBAB-DAN-STATUS.md Bagian 6 mencatat peristiwa ini di dokumen pekerjaan yang sama"
+      ],
+      "correction": "vtd_boot.rs dikembalikan persis ke kondisi HEAD (nol diff), sehingga perubahan yang benar-benar masuk ke commit R1-E8 hanya tiga berkas dalam cakupan yang diizinkan. Tidak ada commit yang dibuang dan tidak ada riwayat ditulis ulang: koreksi atas cara ukur saya muncul sebagai entri ini plus dokumen pekerjaan, bukan sebagai penghapusan jejak.",
+      "prevented_by": "(1) Perkakas penata letak hanya dijalankan dengan bendera hanya-baca (--check) pada berkas akar paket di tempat aslinya, tidak pernah pada salinan yang ditaruh di dalam src; (2) keluaran --check disaring berdasarkan jalur pada header, sehingga hunk submodul tidak dapat dihitung sebagai milik berkas yang sedang diukur; (3) `git status --short` diperiksa ulang sebelum setiap commit, bukan hanya sebelum push.",
+      "notes": "Ini laporan diri sendiri SEBELUM ada yang bertanya: perubahan itu terjadi pada berkas yang berada di luar daftar cakupan misi (shell/VFS/ramdisk/kernel + test + dokumen + fault log), dan aturan misi melarang perubahan itu walau bentuknya hanya tata letak. Angka 123 yang sempat saya catat pada rancangan dokumen sudah dikoreksi ke 107 di dokumen sebelum dokumen itu di-commit; dokumen belum pernah dipublikasikan dalam keadaan salah, jadi tidak ada artefak publik yang perlu ditarik."
+    },
+    {
+      "date": "2026-10-21T21:58:00Z",
+      "actor": "QODER (agen) - MISI v1.0.2 R1 BAGIAN 1 E8, pengungkapan dasar pengukuran gerbang",
+      "type": "GATE_MEASUREMENT_BASIS_DISCLOSURE",
+      "gate_id": "E8-LANGKAH-5_GERBANG-FMT-DAN-CLIPPY-DIUKUR-SEBAGAI-NOL-BARU-BUKAN-NOL-MUTLAK",
+      "result": "RECORDED_DISCLOSURE",
+      "violations_recorded_delta": 0,
+      "root_cause": "Dua gerbang yang diminta MASTER PROMPT R1-REVISI tidak dapat ditegakkan secara harfiah pada cabang ini. `cargo fmt --all -- --check` melaporkan 140 blok deviasi dan `cargo clippy --workspace --lib --target ... -D warnings` berhenti dengan keluaran 101 karena diagnostik yang sudah ada sebelum pekerjaan E8: sebagian karena versi perkakas 1.99 lebih ketat daripada versi yang dipakai ketika berkas-berkas itu ditulis, dan satu lint deny-bawaan (not_unsafe_ptr_arg_deref di asl-kernel-core-secondary/src/lib.rs:156) menggagalkan kompilasi dependensi sehingga crate yang saya ubah tidak pernah ikut ter-lint. Menyapu seluruh warisan berarti mengubah puluhan berkas di luar cakupan, yang dilarang aturan yang sama - jadi kedua gerbang tidak saya klaim hijau secara harfiah.",
+      "evidence": [
+        "Analysis/reports/E8-FMT-SELURUH-WORKSPACE-CHECK-2026-10-21.txt (1.914 baris keluaran; 140 header 'Diff in'; terbanyak asl-kernel-core/src/lib.rs 50, asl-hal/src/vtd.rs 22, asl-kernel-core/src/vtd_boot.rs 12, asl-storage/src/ramdisk.rs 10, asl-memory/src/paging.rs 10, asl-cockpit-shell/src/lib.rs 9)",
+        "Analysis/reports/E8-CLIPPY-WORKSPACE-ALLOW-2026-10-21.txt (193 baris; 137 diagnostik ber-baris; terbanyak asl-storage/src/fat32.rs 16, asl-kernel-core/src/lib.rs 13, asl-memory/src/paging.rs 11, asl-cockpit-shell/src/lib.rs 10)",
+        "Alat irisan yang dapat diulang: scripts/r1_new_only_gate_check.py dengan subperintah `fmt` dan `clippy`; keluaran terakhir: 0 irisan dari 130 baris milik saya di asl-cockpit-shell/src/lib.rs, 0 dari 167 baris di asl-kernel-core/src/lib.rs, 0 dari 154 baris di asl-storage/src/ramdisk.rs; TOTAL deviasi/diagnostik BARU = 0, keluar 0",
+        "Tanpa `-A clippy::not_unsafe_ptr_arg_deref` perintah yang sama gagal lebih dini: crate di luar cakupan dihentikan dengan error (dapat diulang dengan menghapus bagian `-A ...` pada baris perintah di atas), sehingga crate yang saya ubah tidak pernah ikut ter-lint",
+        "CI terkelola hanya menjalankan `cargo test --workspace --lib` (nol langkah fmt/clippy/build), jadi fmt dan clippy adalah alat lokal - inilah sebabnya gerbang merah tidak menghentikan misi lewat CI, dan mengapa pengungkapan ini perlu ditulis",
+        "Gerbang yang DAPAT ditegakkan harfiah dan ditegakkan: `cargo test --workspace --lib` = 202 lulus / 0 gagal (196 lama + 6 baru) dan build asl-kernel-bin target kernel = nol baris warning"
+      ],
+      "correction": "Bunyi klaim yang saya pakai, dan tidak lebih dari itu: 'nol deviasi fmt BARU dan nol diagnostik clippy BARU pada baris hasil kerja R1-E8, dengan 140 blok fmt dan 137 diagnostik clippy warisan dibiarkan apa adanya karena di luar cakupan'. Klaim 'fmt bersih' atau 'clippy -D warnings hijau' TIDAK saya buat untuk cabang ini.",
+      "prevented_by": "Angka gerbang hanya diambil dari artefak yang ikut ter-commit, alat pengukur disimpan di scripts/ supaya pihak lain dapat menghitung ulang, dan setiap tabel hasil menyertakan kolom 'dasar terima' yang menyebutkan batas pengukuran.",
+      "notes": "Entri ini bukan cacat pada kode, melainkan penjagaan agar angka tidak dibaca lebih kuat daripada fakta pengukurannya. Kalau pemilik menghendaki fmt/clippy hijau mutlak, itu pekerjaan terpisah di luar R1 karena akan menyentuh berkas di luar cakupan; saya tidak akan memulainya tanpa perintah."
+    },
+    {
+      "date": "2026-10-21T21:58:00Z",
+      "actor": "QODER (agen) - MISI v1.0.2 R1 BAGIAN 1 E8, status kegagalan reproduksi",
+      "type": "E8_NOT_REPRODUCED_AS_PANIC",
+      "gate_id": "E8_KERNEL_PANIC_STATUS_BELUM_TERREPRODUKSI_SEBAGAI_PANIC",
+      "result": "OPEN",
+      "violations_recorded_delta": 0,
+      "root_cause": "Lampiran bukti pemilik untuk E8 kosong (tidak ada teks panic, tidak ada tangkapan layar), jadi jalan resmi adalah reproduksi mandiri seperti yang diinstruksikan. Reproduksi mandiri sudah dijalankan dan hasilnya: pada 43 payload masukan adversarial di QEMU -m 256M tidak ada satu pun penanda crash; yang ter-reproduksi justru pembekuan 178.779 ms karena satu perintah alat uji. Dengan kata lain, gejala yang SAYA ukur berbeda dari gejala yang LAPOR pemilik, dan laporan pemilik tidak punya bahan pembanding. Karena itu E8 tidak bisa dinyatakan tertutup; aturan misi melarang menutup E8 tanpa akar penyebab terverifikasi untuk gejala pemilik.",
+      "evidence": [
+        "Analysis/reports/e8_adversarial_summary_2026-10-21_19-42-51.log (Pass A, keluar 0), ..._20-00-37.log (Pass B, keluar 2, satu kasus GANTUNG D13 test_task), ..._20-09-52.log (Pass D, test_task tunggal)",
+        "Analysis/reports/e8_adversarial_cases_2026-10-21_20-09-52.tsv kolom detik_mm: prompt kembali setelah 178.779 ms; berkas serial pendamping tidak memuat penanda ASL-CORE-PANIC maupun ASL EXCEPTION",
+        "docs/RND/ASL-V1.0.2-E8-AKAR-PENYEBAB-DAN-STATUS.md Bagian 2 (tabel tiga lintasan) dan Bagian 3 (enam lokasi akar penyebab A1-A6 dengan nomor berkas:baris sebelum dan sesudah)",
+        "Enam lokasi panic yang ditemukan adalah hasil audit statis atas jalur yang DAPAT diketik satu kata (range Gate 3D dan cabang test_apic), bukan tangkapan layar atas panic pemilik; semuanya sudah diubah menjadi pesan 'Kesalahan: ...' + prompt kembali dan dijaga enam test panic_guard_* (202 lulus)",
+        "Alat: scripts/e8_adversarial_run.ps1 (41 kasus utama + 2 pembersih + 16 diagnostik + 4 suntikan fault demo), dapat dijalankan ulang oleh pemilik dengan -SelfTest tanpa QEMU"
+      ],
+      "correction": "Yang dibutuhkan untuk menutup E8, dinyatakan terang: (a) pemilik mengulang gejala dan menempel teks panic atau tangkapan layarnya, atau mengonfirmasi bahwa yang dimaksud adalah pembekuan test_task yang sudah terukur; dan (b) jendela G9-LITE disaksikan pemilik dengan pemilik mengulang persis pemicu (test_task tunggal, lalu sesi adversarial) sambil berkas serial disimpan. Sampai keduanya terjadi, E8 berstatus OPEN dan VERIFIED-ON-HARDWARE tetap 0.",
+      "prevented_by": "Panic handler kernel kini mencetak konteks penuh (pesan + berkas:baris + alamat bingkai + rekaman jebakan terakhir: vektor/RIP/CR2/kode galat) ke serial dan framebuffer, jadi kalau panic itu muncul lagi ia datang membawa bukti dan tidak perlu diuraikan dari gejala saja. Ini perbaikan atas A6, dan sekaligus alat bantu untuk LANGKAH 6.",
+      "notes": "Sesuai daftar STOP GLOBAL R1-REVISI butir 'panic tidak dapat direproduksi': tandai E8-STATUS: BELUM-TERREPRODUKSI, laporkan skrip dan hasil, minta pemilik menempel teks panic, JANGAN tutup E8. Persis itulah yang dilakukan entri ini. Pekerjaan BAGIAN 2 (F1-F7) tidak dijalankan sebelum pemilik memberi arahan, karena urutan misi adalah BAGIAN 1 lalu BAGIAN 2 dan LANGKAH 6 adalah gerbang jendela, bukan formalitas di akhir."
     }
   ]
 }

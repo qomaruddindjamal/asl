@@ -73,6 +73,15 @@ smoke. `M6` plus prompt shell adalah syarat lulus smoke boot.
   program header identik dan `.text`, `.rodata`, `.data` byte-identik; yang
   berbeda hanya `.symtab` dan `.strtab` akibat 11 dari 327 simbol mengganti
   sufiks internal `.llvm.<hash>` pada alamat dan ukuran yang sama.
-- Karena itu SHA256 ELF dan ISO hanya boleh dikutip bersama tree dan direktori
-  build tempat ia diukur, dan setiap tahap yang mengandalkan angka boot harus
-  mengukur ulang pada build yang akan diterbitkan.
+- Karena itu SHA256 ELF dan ISO hanya boleh dikutip bersama tree tempat ia diukur,
+  dan setiap tahap yang mengandalkan angka boot harus mengukur ulang pada build yang
+  akan diterbitkan.
+- KOREKSI TERUKUR untuk tahap P7 (menggantikan klaim bahwa direktori build mengubah
+  SHA256): tiga direktori build berbeda pada tree yang sama
+  (`asl-kernel\target`, `logs\target_rustflags_trap`, `logs\target_p7check` yang
+  dibangun dari nol) menghasilkan ELF 325.528 byte dengan SHA256 yang SAMA,
+  `9203864ea6feae5bd3d51abd0cd3dc69ddcec0b8e91cd5401b1c63074a27b216`
+  (`VERIFIED-ON-HOST`). Satu-satunya faktor yang terbukti mengubah SHA256 adalah
+  ISI tree. Angka `494a814a...` yang dikutip pada pesan commit tahap P5 dan P6 tidak
+  dapat direproduksi pada pengukuran ulang dan dinyatakan batal; lihat
+  `ACCOUNTABILITY_FAULT_LOG` entri ke-24.

@@ -1,0 +1,114 @@
+P7 - GERBANG PENUH DIUKUR ULANG PADA TREE v1.0.2 (HOST + VM), 2026-10-21
+=======================================================================
+
+Fase   : MISI v1.0.2 tahap P7 (gerbang penuh sebelum PR/merge).
+Tree   : branch `feature/v1.0.2-shell`, tip ter-commit pada saat pengukuran =
+         e20c4241a5580484c906e0c9e5f9efded9211910 (tahap P6). Isi .rs tree ini identik
+         dengan tip tahap P5 (206cb76) karena P6 hanya menambah dokumen; diverifikasi
+         dengan `git diff --stat 206cb76 e20c424` = empat berkas docs, nol .rs.
+Sifat  : nol berkas .rs diubah pada tahap P7. Berkas ini adalah log bukti, bukan laporan;
+         laporan tunggal misi ditulis pada P10 setelah semua uji selesai.
+Kelas  : VERIFIED-ON-HOST untuk [1]-[3], VERIFIED-ON-VM untuk [4]-[5], VERIFIED-ON-CI untuk [6].
+         Tidak ada klaim kelas VERIFIED-ON-HARDWARE dan tidak ada klaim tangkapan layar
+         (QEMU dijalankan headless).
+
+--- [1] Uji host, satu-sumber gerbang Bagian 5 ---------------------------------------------
+Perintah (dijalankan dari C:\asl\asl-kernel, env RUSTFLAGS dihapus lebih dulu):
+    env -u RUSTFLAGS cargo test --workspace --lib
+Terukur  : 30 suite, 196 lulus, 0 gagal, 196 baris roster `test <nama> ... ok`.
+Peringatan profil test: 21 baris `warning` (non-blocking; misi menegakkan 0-warning hanya
+         pada build release). Baris `error` = 0.
+Baseline Bagian 5 = 172 lulus tanpa penurunan -> margin +24, ratchet terpenuhi.
+Angka yang sama dikeluarkan runner Linux pada tree yang sama (lihat [6]).
+
+--- [2] Build release, nol error dan nol warning -------------------------------------------
+Perintah:
+    env -u RUSTFLAGS cargo build --package asl-kernel-bin --target x86_64-unknown-none --release
+Terukur  : 13 baris `Compiling` + 1 `Finished` (5,89s pada build dari-nol di direktori baru),
+         0 baris `warning`, 0 baris `error`.
+Artefak  : target/x86_64-unknown-none/release/asl-kernel = 325.528 byte,
+         SHA256 9203864ea6feae5bd3d51abd0cd3dc69ddcec0b8e91cd5401b1c63074a27b216
+         (hash dihitung dari berkas yang ada saat berkas ini ditulis, bukan dari memori sesi).
+Reproduksibilitas direktori build (terukur, dan inilah yang membatalkan klaim tahap P6):
+         `asl-kernel/target`                  -> 325.528 B / 9203864e...
+         `logs/target_rustflags_trap`         -> 325.528 B / 9203864e...
+         `logs/target_p7check` (dari nol)     -> 325.528 B / 9203864e...
+         Tiga direktori, satu hasil. Faktor yang mengubah SHA256 adalah ISI tree:
+         `logs/target_fromzero` (tree sebelum P5) = 325.528 B / 765f4e7b...
+         Koreksi lengkap dan akar masalahnya: ACCOUNTABILITY_FAULT_LOG entri ke-24.
+
+--- [3] ISO build pada tree ini -------------------------------------------------------------
+Perintah (dari C:\asl):
+    env -u RUSTFLAGS powershell -NoProfile -ExecutionPolicy Bypass -File scripts\build_kernel.ps1 -Action iso
+Terukur  : asl-kernel/target/asl-core-kernel.iso = 4.200.448 byte,
+         SHA256 aa77806018d7a9009bb705e29e71d33724a6b50fc3a5cf62de24133359c74de9
+         (hash dicetak sendiri oleh skrip dan dihitung ulang dari berkas: cocok).
+Tanggal  : epoch bawaan 1767225600 (2026-01-01T00:00:00Z) dipakai sebagai
+         --modification-date dan --set_all_file_dates; GPT Disk GUID ter-pin
+         e181e879-31ec-3d41-a200-b4997a320a0d, DERIVAT dari epoch tersebut (bukan konstanta bebas).
+Keterikatan ISO ke ELF yang diukur di [2] (terukur dua jalan):
+         pencarian byte utuh ELF 325.528 B di dalam ISO = tepat 1 kejadian;
+         pencarian kepala 128 B ELF = tepat 1 kejadian. Jadi ISO ini benar-benar memuat
+         gambar 9203864e..., bukan warisan ISO tahap P3/P4 (756b87b0...).
+Status gerbang replikasi: SATU invokasi pada tahap ini. Gate 'dua build byte-identik'
+         ditegakkan pada jendela rilis P9 dengan dua invokasi berturut-turut, dan itu yang
+         menjadi bukti penerbitan; angka di atas belum mengklaim reproducible antar-invokasi.
+
+--- [4] Gerbang regresi lantai memori (skrip fail-closed) ------------------------------------
+Perintah:
+    powershell -NoProfile -ExecutionPolicy Bypass -File scripts\test_ram_floor_3mb.ps1
+Keluaran : kode keluar 2 = DEVIASI TERCATAT.
+  [A] janji misi -m 3M    : reached=False, M6=False, crash=False, serial 0 B, stderr 0 B -> GAGAL
+  [B] ratchet    -m 3392K : reached=True,  M6=True,  crash=False, serial 2.498 B, stderr 0 B -> LULUS
+Isi yang dinyatakan: gerbang Bagian 5 'qemu -m 3M lulus' berstatus MERAH pada tree ini dan
+         TIDAK diubah menjadi hijau. Lantai boot tree (3328K gagal / 3360K lulus) diwarisi
+         dari pengukuran tahap P3/P4 yang tercatat pada entri ke-23; pemetaan ulang lantai
+         per-bisect dilakukan pada jendela P8/P9 karena ISO berubah (lihat [3]).
+Artefak: logs/ram_floor_2026-10-21_09-04-39_m3M_serial.log dan pasangannya (scratch, tidak masuk git).
+
+--- [5] Cold-boot smoke pada RAM wajar (setara langkah [3] ci_local, tanpa menimpa bukti) ----
+Perintah (argumen identik dengan Probe-Boot skrip lantai, hanya RAM diganti):
+    qemu-system-x86_64 -machine q35 -vga std -m 256M -cdrom asl-kernel/target/asl-core-kernel.iso
+      -serial file:logs/p7_vm_256M_serial.log -display none -no-reboot -no-shutdown
+Terukur  : serial 2.462 byte, stderr QEMU 0 byte, M0/M1/M2/M4/M5 hadir,
+         'M6: Kernel Cold Boot Complete' hadir, prompt 'ASL-KERNEL> ' hadir,
+         penanda crash ('ASL EXCEPTION', 'ASL-CORE-PANIC', 'FATAL') = TIDAK hadir,
+         string versi 'v1.0.2' hadir pada keluaran boot.
+Catatan metode: QEMU dihentikan paksa setelah 30 detik (mesin tanpa jaringan dan tanpa
+         disk tulis, jadi penghentian paksa bukan bagian dari gerbang).
+Ini BUKAN run penerimaan berjendela. Sesi Bagian 3 (ketik perintah, lihat keluaran) dan
+         pengulangan boot pada titik memori yang disaksikan pemilik tetap kewajiban P8.
+
+--- [6] Hosted CI pada tree-tree misi (VERIFIED-ON-CI) --------------------------------------
+Lima ekstrak ter-commit pada tahap ini:
+    Analysis/reports/ci_hosted_39517683362_2026-10-20.log  push  f34c197 (P2, branch)
+    Analysis/reports/ci_hosted_39517705159_2026-10-20.log  pull_request f34c197 (PR #5)
+    Analysis/reports/ci_hosted_39517997237_2026-10-20.log  push  ef8c1b4 (P2, tip main pasca-merge)
+    Analysis/reports/ci_hosted_39526243107_2026-10-21.log  push  eeef264 (P4; memuat tree P3)
+    Analysis/reports/ci_hosted_39528892312_2026-10-21.log  push  e20c424 (P6; memuat tree P5)
+Semua conclusion=success. Jumlah suite dan lulus pada runner Linux cocok dengan host pada
+    tree P4 (194/0) dan tree P6 ini (196/0); 21 baris warning profil test juga cocok, dan
+    region langkah release mengukur 0 warning / 0 error di kedua platform.
+Celah yang dinyatakan terang (terukur dari `gh run list`, 43 run success, tidak memuat):
+    tidak ada run ber-headSha 112fc38 (tip P3) dan tidak ada run ber-headSha 206cb76 (tip P5);
+    keduanya teruji lewat run di tip berikutnya karena satu peristiwa push hanya menjalankan
+    satu workflow di tip yang di-push.
+Setelah tahap ini: 36 dari 43 run success punya berkas ekstrak; tujuh sisanya adalah run
+    docs/evidence-only lama (empat di rantai main, tiga di branch audit) dan sudah dinyatakan
+    pada ekstrak 39515542430. Angka 36 tidak berarti 'semua run terdiekstrak'.
+
+--- [7] Gerbang teks (G10) dan status deviasi ------------------------------------------------
+CJK (kode titik U+3040-U+9FFF, U+AC00-U+D7AF, U+F900-U+FAFF, U+FF00-U+FFEF) diukur dengan
+    pembacaan byte UTF-8 langsung dari berkas, bukan lewat pipe konsol (pipe cp1252 memberi
+    negatif palsu): kelima ekstrak = 0; docs/ROADMAP/PETA-KANONIK.md = 0;
+    ACCOUNTABILITY_FAULT_LOG.json = 0 (karakter non-ASCII yang hadir = U+00A7, U+2013, U+2014,
+    U+2026, U+2212, semuanya warisan entri lama yang tidak disentuh).
+Dua cacat teks dari commit sebelumnya tidak diperbaiki dengan amend (G8) dan dinyatakan pada
+    entri ke-24: kata Inggris nyasar di prosa pesan e20c424, dan kutipan glif U+7EC8 di pesan
+    206cb76 (ketika mengutip cacat pada eeef264). Aturan yang berlaku: sebut kode titiknya,
+    jangan ketik ulang glifnya.
+Status merge pada akhir P7: hosted hijau, gerbang host/VM [1][2][5] hijau, gerbang Bagian 5
+    `-m 3M` MERAH (deviasi tercatat, entri ke-23 result OPEN). Kondisi 0.2b ('merge otomatis
+    bila semua gerbang hijau') karena itu BELUM terpenuhi; merge ditahan dan dijadwalkan ulang
+    ke jendela P8/P9 bersama pemilik. Tidak ada gerbang yang dibungkam dan tidak ada ambang
+    yang diturunkan untuk membuat pipeline tampak hijau.

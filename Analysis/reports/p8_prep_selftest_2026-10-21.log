@@ -1,0 +1,117 @@
+BUKTI TAHAP P8-PERSIAPAN - SKRIP JENDELA PENERIMAAN v1.0.2 (scripts/g9_final_p8_run.ps1)
+Tanggal UTC: 2026-10-21T02:39:57Z
+Tree: branch feature/v1.0.2-shell; commit tip = hasil `git rev-parse HEAD` yang dijalankan pada invokasi ini:
+  63f0e3ed67e3e7c497e892c6b324b9c2934ac944
+Semua angka di berkas ini dihitung ulang dari artefak oleh logs/p8_prep_evidence.py; tidak ada angka yang diketik tangan (G7).
+
+--- [1] SKRIP BARU: hanya dibaca dari sumber, tanpa mengubah kode ---
+  berkas              : scripts/g9_final_p8_run.ps1, 17958 byte pada disk, 363 baris, SHA256 2a866129fa313ef62a4a3992a84beb63be02f54be63d2570dd95885c79265571
+  karakter non-ASCII  : 0 (G10: konten bahasa Indonesia, murni ASCII)
+  prompt              : TIDAK ditulis tangan di skrip; dibaca dari konstanta SHELL_PROMPT lewat Select-String pada
+                        asl-kernel/asl-cockpit-shell/src/lib.rs (satu-sumber). Bukti jalan: keluaran -SelfTest di bawah.
+  penanda sesi        : 13 penanda; asal setiap penanda ditelusuri ke baris sumber di tabel [2].
+  kelas               : RANCANGAN -> tereksekusi (lihat [3] dan [4]); BUKAN run penerimaan (pemilik belum menyaksikan).
+
+--- [2] PENANDA SESI BAGIAN 3 DAN ASAL SUMBERNYA (terukur) ---
+  'Perintah kanonik Cockpit Shell'
+      sumber: asl-kernel/asl-cockpit-shell/src/lib.rs:776
+  'Status Cockpit Shell '
+      sumber: asl-kernel/asl-kernel-core/src/lib.rs:1273
+  'Direktori dibuat: '
+      sumber: asl-kernel/asl-kernel-core/src/lib.rs:1196
+  'Daftar isi /'
+      SAMBUNGAN DUA CETAK: literal 'Daftar isi ' di asl-kernel/asl-kernel-core/src/lib.rs:1119 lalu `path` hasil resolve_target yang pada build ini selalu diawali '/'. Huruf '/' sengaja ikut diuji karena ringkasan registry asl-kernel/asl-cockpit-shell/src/lib.rs:378 juga tercetak oleh `help`, jadi penanda tanpa '/' bisa terpenuhi hanya dengan mengetik `help`.
+  'Ruang kerja: '
+      sumber: asl-kernel/asl-kernel-core/src/lib.rs:1151
+  'Berkas dibuat: '
+      sumber: asl-kernel/asl-kernel-core/src/lib.rs:1211
+  'Tertulis '
+      sumber: asl-kernel/asl-kernel-core/src/lib.rs:1233
+  'halo dari sesi p8'
+      ISI KETIKAN OPERATOR (bukan string kernel): dibutuhkan 2 kemunculan = gema masukan + isi berkas hasil baca
+  'Berkas dihapus: '
+      sumber: asl-kernel/asl-kernel-core/src/lib.rs:1250
+  'Direktori dihapus: '
+      sumber: asl-kernel/asl-kernel-core/src/lib.rs:1265
+  'Perintah tidak dikenal: '
+      sumber: asl-kernel/asl-kernel-core/src/lib.rs:1095
+  'Sintaks: '
+      sumber: asl-kernel/asl-kernel-core/src/lib.rs:1837, asl-kernel/asl-cockpit-shell/src/lib.rs:1317
+  '<ESC>[2J'
+      sumber: asl-kernel/asl-kernel-core/src/lib.rs:1103, asl-kernel/asl-kernel-core/src/lib.rs:1862
+
+--- [3] SELF-TEST TANPA QEMU (scripts/g9_final_p8_run.ps1 -SelfTest) ---
+  kode keluar: 0 (0 = struktur skrip terbaca PowerShell 5.1 dan prompt satu-sumber berhasil dibaca)
+  | SELF-TEST g9_final_p8_run.ps1 - TIDAK menjalankan QEMU, TIDAK menulis artefak.
+  |   prompt satu-sumber : 'ASL-KERNEL> '
+  |   marker sesi         : 13 penanda, 17 baris sesi
+  |     help (registry)              'Perintah kanonik Cockpit Shell' >= 1
+  |     status                       'Status Cockpit Shell ' >= 1
+  |     create-folder                'Direktori dibuat: ' >= 1
+  |     list + alias dir             'Daftar isi /' >= 2
+  |     cd (alias open) + open /     'Ruang kerja: ' >= 2
+  |     create-file                  'Berkas dibuat: ' >= 1
+  |     write-file                   'Tertulis ' >= 1
+  |     isi berkas via alias cat     'halo dari sesi p8' >= 2
+  |     delete-file                  'Berkas dihapus: ' >= 1
+  |     delete-folder                'Direktori dihapus: ' >= 1
+  |     help token tak dikenal       'Perintah tidak dikenal: ' >= 1
+  |     aritas salah -> Sintaks      'Sintaks: ' >= 1
+  |     clear (sekuens ANSI)         '<ESC>[2J' >= 1
+  |   ISO yang akan di-boot (bila ada): C:\asl\asl-kernel\target\asl-core-kernel.iso
+  |     4200448 bytes SHA256=AA77806018D7A9009BB705E29E71D33724A6B50FC3A5CF62DE24133359C74DE9
+  |   versi gerbang       : 'v1.0.2' >= 1 dan 'v1.1.0' == 0 pada serial
+  |   fase 3M            : -m 3M berjendela; merah -> kode keluar 3 kecuali -AcceptDeviation3M
+
+--- [4] KENDALI-NEGATIF: skrip HARUS mampu merah (G5; gerbang yang tidak bisa merah itu bungkam) ---
+  Perintah (SessionTimeout dipaksa 5 detik supaya sesi pasti belum lengkap):
+    powershell -ExecutionPolicy Bypass -File scripts\g9_final_p8_run.ps1 -SessionTimeoutSeconds 5
+  Kode keluar terukur: 2 = SESI BELUM LENGKAP (jalur fail-closed, bukan 0).
+  Artefak cold-boot 256M dari invokasi ini: logs/g9_final_p8_serial_2026-10-21_09-31-00.log
+    disk     : 2516
+    collapsed: 2462
+    crlf     : 54
+    lf       : 54
+    SHA256 (disk)      : 8c800666a76140ac0aa65459f6cc60910ae7a2aa22e402789a9e3829d209f3ca
+  stderr QEMU         : 0 byte (gerbang: 0)
+  Penghitung pada serial (LF-only, konvensi dihitung ulang):
+    M6        : 1
+    prompt    : 1
+    v1.0.2    : 2
+    v1.1.0    : 0
+    crash     : 0
+  Rincian penanda yang terukur 0 (sesi tidak diketik karena pemilik tidak hadir):
+    13 dari 13 penanda = 0 kemunculan; skrip mendaftar semuanya sebagai KURANG lalu keluar 2.
+  Jendela QEMU dari invokasi ini ditutup dengan -StopQemu (PID tercatat dan dihentikan; lihat [5]).
+
+--- [5] PERNYATAAN JELAS SOAL STATUS JENDELA ---
+  Ini BUKAN pemenuhan P8. P8 mensyaratkan pemilik menyaksikan jendela: cold boot 256M + sebelas perintah
+  kanonik + alias + editor baris + jalur RAMDISK diketik di jendela QEMU, lalu percobaan -m 3M.
+  Skrip ini dibuat di tahap persiapan supaya jendela tidak berjalan dari alat yang belum teruji:
+  [3] membuktikan alat terbaca, [4] membuktikan alat mampu merah, dan jendela nanti membuktikan isinya.
+  Penutupan jendela terukur: logs/g9_final_p8_qemu_pid.txt sesudah -StopQemu = ada/tidak: False
+
+--- [6] REPRODUKSI DINGIN: serial P7 (256M, tanpa ketikan) vs serial kendali-negatif P8 ---
+  logs/p7_vm_256M_serial.log: disk 2516 B, CRLF 54, SHA256 8c800666a76140ac0aa65459f6cc60910ae7a2aa22e402789a9e3829d209f3ca
+  logs/g9_final_p8_serial_2026-10-21_09-31-00.log: disk 2516 B, CRLF 54, SHA256 8c800666a76140ac0aa65459f6cc60910ae7a2aa22e402789a9e3829d209f3ca
+  sama byte per byte: True  (cmp/SHA256 dua berkas pada dua invokasi berbeda, tree sama)
+  Arti yang sah: cold boot pada ISO tree ini menghasilkan keluaran serial yang dapat direproduksi, termasuk
+  penanggalan/waktu yang tidak tertanam di serial. Ini BUKAN klaim ISO dua-build byte-identik (itu P9).
+
+--- [7] KOREKSI KONVENSI ANGKA (ACCOUNTABILITY_FAULT_LOG entri ke-25) ---
+  Berkas bukti tahap P7 (MEASURES = Analysis/reports/p7_gate_measures_2026-10-21.log) menyatakan 'serial 2.462 byte' untuk logs/p7_vm_256M_serial.log.
+  Pengukuran ulang: panjang DISK = 2516 byte; 2462 byte adalah panjang setelah CRLF
+  ({CRLF = 54}) disusutkan menjadi LF. Selisih 54 byte = tepat jumlah CRLF.
+  Aritmetika: 2516 - 54 = 2462 (terukur, bukan diasumsikan).
+  Kesalahan kelasnya: satu berkas bukti memakai dua konvensi byte tanpa menyebutnya, karena pembacaan Python
+  mode-teks (universal newlines) dilaporkan sebagai 'byte' padahal tetangganya dari Get-Item PowerShell (disk).
+  Aturan baru yang dipakai sejak sini: angka byte SELALU panjang disk (Get-Item/wc -c) dan jumlah baris/CRLF
+  dilaporkan sebagai field terpisah; skrip jendela menulis 'byte' dari Get-Item, jadi keluaran jendela tidak ambigu.
+  Baris lama di berkas bukti TIDAK dihapus; koreksi ditambahkan di bawahnya (koreksi dokumen lewat commit
+  berikutnya, riwayat commit tidak ditulis ulang - G8).
+
+--- [8] SIDIK JARI ARTIFAK YANG AKAN DI-BOOT PADA JENDELA (tree ini) ---
+  ISO : asl-kernel/target/asl-core-kernel.iso = 4200448 byte, SHA256 aa77806018d7a9009bb705e29e71d33724a6b50fc3a5cf62de24133359c74de9
+  ELF : asl-kernel/target/x86_64-unknown-none/release/asl-kernel = 325528 byte, SHA256 9203864ea6feae5bd3d51abd0cd3dc69ddcec0b8e91cd5401b1c63074a27b216
+  ELF dicari sebagai byte utuh di dalam ISO: kejadian = 1 (harus tepat 1; kalau bukan 1, jendela tidak boleh dijalankan)
+  Kelas: VERIFIED-ON-HOST. Angka ini PER-TREE dan tidak diwarisi ke tahap berikutnya tanpa pengukuran ulang (G4).

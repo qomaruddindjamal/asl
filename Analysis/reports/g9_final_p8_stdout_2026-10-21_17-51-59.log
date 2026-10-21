@@ -1,0 +1,66 @@
+?prompt satu-sumber : 'ASL-KERNEL> ' (dari lib.rs)
+marker sesi        : 13 penanda keluaran, 17 baris sesi
+QEMU   : QEMU emulator version 10.2.50 (v10.2.0-14086-g840320663e)
+ISO    : C:\asl\asl-kernel\target\asl-core-kernel.iso
+ISO    : 4200448 bytes  SHA256=AA77806018D7A9009BB705E29E71D33724A6B50FC3A5CF62DE24133359C74DE9
+ELF    : 325528 bytes  SHA256=9203864EA6FEAE5BD3D51ABD0CD3DC69DDCEC0B8E91CD5401B1C63074A27B216
+Catatan: ISO reproducible per-platform sejak PHASE-7 T1; SHA256 di atas tetap sidik jari PER-TREE dan hanya sah untuk tree yang di-build pada langkah ini.
+
+=== FASE 1 - cold boot 256M berjendela + sesi Bagian 3 ===
+CMDLINE: "C:\Program Files\qemu\qemu-system-x86_64.exe" -machine q35 -vga std -m 256M -cdrom C:\asl\asl-kernel\target\asl-core-kernel.iso -serial file:C:\asl\Analysis\reports\g9_final_p8_serial_2026-10-21_17-51-59.log -no-reboot -no-shutdown
+PID    : 11140  (tutup dengan: g9_final_p8_run.ps1 -StopQemu)
+Boot   : M6=True prompt=True crash=False (setelah 6s)
+
+==> Jendela QEMU sudah pada prompt 'ASL-KERNEL> '. KETIK baris-baris berikut di jendela itu, ENTER setiap baris:
+      help
+      status
+      where
+      create-folder sesi
+      list
+      dir
+      cd sesi
+      where
+      create-file catatan.txt
+      write-file catatan.txt halo dari sesi p8
+      cat catatan.txt
+      delete-file catatan.txt
+      open /
+      delete-folder sesi
+      help tidakada
+      open
+      clear
+    (satu baris sengaja tanpa argumen untuk menguji jalur aritas; baris terakhir 'clear' mengirim sekuens ANSI)
+    Mesin penunggu membaca penanda keluaran dari berkas serial, bukan dari tebakan.
+
+=== Hasil sesi Bagian 3 (hitung kemunculan penanda di serial) ===
+  [OK  ] help (registry)              'Perintah kanonik Cockpit Shell' terukur 1 (butuh 1)
+  [OK  ] status                       'Status Cockpit Shell ' terukur 1 (butuh 1)
+  [OK  ] create-folder                'Direktori dibuat: ' terukur 1 (butuh 1)
+  [OK  ] list + alias dir             'Daftar isi /' terukur 2 (butuh 2)
+  [OK  ] cd (alias open) + open /     'Ruang kerja: ' terukur 2 (butuh 2)
+  [OK  ] create-file                  'Berkas dibuat: ' terukur 1 (butuh 1)
+  [OK  ] write-file                   'Tertulis ' terukur 1 (butuh 1)
+  [OK  ] isi berkas via alias cat     'halo dari sesi p8' terukur 2 (butuh 2)
+  [OK  ] delete-file                  'Berkas dihapus: ' terukur 1 (butuh 1)
+  [OK  ] delete-folder                'Direktori dihapus: ' terukur 1 (butuh 1)
+  [OK  ] help token tak dikenal       'Perintah tidak dikenal: ' terukur 1 (butuh 1)
+  [OK  ] aritas salah -> Sintaks      'Sintaks: ' terukur 1 (butuh 1)
+  [OK  ] clear (sekuens ANSI)         '[2J' terukur 1 (butuh 1)
+Versi  : occurrence 'v1.0.2'=3  occurrence 'v1.1.0'=0  (gerbang: >=1 dan 0)
+Ukuran : serial=5304 byte  stderr QEMU=0 byte (gerbang: 0)
+[OK] fase 1 lulus: M6 + prompt + sesi Bagian 3 lengkap + gerbang versi + stderr 0 byte.
+
+=== FASE 2 - percobaan boot berjendela pada -m 3M (janji Bagian 5) ===
+Jendela fase 1 ditutup untuk memberi tempat fase 2 (proses QEMU kedua tidak dipakai bersamaan).
+CMDLINE: "C:\Program Files\qemu\qemu-system-x86_64.exe" -machine q35 -vga std -m 3M -cdrom C:\asl\asl-kernel\target\asl-core-kernel.iso -serial file:C:\asl\Analysis\reports\g9_final_p8_serial_3m_2026-10-21_17-51-59.log -no-reboot -no-shutdown
+Hasil  : M6=False prompt=False crash=False serial=0 byte stderr=0 byte
+[MERAH] fase 2: -m 3M tidak mencapai prompt pada ISO ini (serial=0 byte).
+        Ini DEVIASI YANG SUDAH DIKETAHUI, bukan temuan baru: ACCOUNTABILITY_FAULT_LOG entri ke-23
+        ber-result OPEN dan scripts/test_ram_floor_3mb.ps1 mengembalikan kode keluar 2 (DEVIASI TERCATAT).
+        Pemilik yang menerima deviasi ini harus menjalankan ulang dengan -AcceptDeviation3M.
+[PASS BERSYARAT] jendela P8: cold boot 256M + sesi Bagian 3 + gerbang versi + stderr 0 = HIJAU;
+  janji -m 3M MERAH dan deviasinya DITERIMA pemilik lewat -AcceptDeviation3M pada invokasi ini.
+  Deviasi ini WAJIB muncul di LAPORAN-FINAL v1.0.2 dan di ACCOUNTABILITY_FAULT_LOG.
+Artefak: C:\asl\Analysis\reports\g9_final_p8_serial_2026-10-21_17-51-59.log ; C:\asl\Analysis\reports\g9_final_p8_serial_3m_2026-10-21_17-51-59.log ; C:\asl\Analysis\reports\g9_final_p8_summary_2026-10-21_17-51-59.log
+EXIT_CODE=0
+

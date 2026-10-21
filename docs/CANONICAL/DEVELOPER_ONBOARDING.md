@@ -21,7 +21,7 @@ The development workstation requires:
 > **Workspace Cargo Configuration Map (verified 2026-10-20, 6 config files total):**
 > | Config | Purpose | Effect on `cargo test` host |
 > | :--- | :--- | :--- |
-> | `C:\asl\.cargo\config.toml` (repo root) | `build.target = x86_64-pc-windows-msvc` + Windows `rustc-proxy.wrapper` (MSVC env init) | Host-native — helps tests |
+> | `C:\asl\.cargo\config.toml` (repo root) | `build.target = x86_64-pc-windows-msvc` + `rustc-proxy.wrapper` (inisialisasi lingkungan MSVC) | Host-native — helps tests |
 > | `asl-kernel\.cargo\config.toml` (workspace) | Per-target rustflags/linker only (`x86_64-unknown-none`, `aarch64-unknown-none-softfloat`); **no `[build] target` default by policy** | No interference — tests run on host by default |
 > | `asl-kernel\asl-kernel-bin\.cargo\config.toml` | Bare-metal flags scoped to the launcher package dir (`x86_64-unknown-none`, `i686-unknown-none`) | Applies only when cwd = `asl-kernel-bin` |
 > | `asl-kernel\tools\ci\.cargo\config.toml` | Empty placeholder | None |

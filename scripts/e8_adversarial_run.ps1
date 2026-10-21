@@ -50,7 +50,7 @@ param(
     # menghasilkan ISO baru. Nilai bawaan ini adalah ISO pada tree tempat alat
     # terakhir dikalibrasi (lihat dokumen E8 Bagian 5); bangun ulang ISO berarti
     # mengoperkan -ExpectedIsoSha yang baru, bukan memaksakan nilai lama.
-    [string]$ExpectedIsoSha = "0391c41149ec66a565f03e9cada637ef7281179c5f6c820e6044dc22300b74de"
+    [string]$ExpectedIsoSha = "18f40d2d4e18c3b46a88c13090ac1f6fcce13b4d264a1d5b78b4d6e0a833fad0"
 )
 
 $ErrorActionPreference = "Continue"
@@ -265,6 +265,7 @@ if ($SelfTest) {
 Sum "prompt satu-sumber : '$Prompt'"
 Sum "penanda crash      : $($CrashMarkers -join ' | ')"
 Sum "kasus              : $($Cases.Count) utama + $($SetupBack.Count) sisa; dijalankan $($Seq.Count) kasus (diagnostik=$IncludeDiagnostics faultDemo=$IncludeFaultDemo satuToken='$DemoCommand')"
+Sum "batas              : boot=${BootTimeoutSeconds}s; per kasus=${CaseTimeoutSeconds}s; fase penghenti tombol: jeda=${StopKeyDelaySeconds}s batas=$($CaseTimeoutSeconds + 300)s"
 
 if (-not (Test-Path $QemuExe)) { Sum "[FAIL] qemu tidak ditemukan: $QemuExe"; exit 1 }
 if (-not (Test-Path $Iso)) { Sum "[FAIL] ISO tidak ditemukan: $Iso"; exit 1 }

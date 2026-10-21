@@ -925,6 +925,376 @@ fn panic(_info: &PanicInfo) -> ! {
     }
 }
 
+// -----------------------------------------------------------------------------
+// JEMBATAN SHELL KANONIK <-> VFS RAMDISK (misi v1.0.2 Bagian 1.4 + 1.5, tahap P3)
+// -----------------------------------------------------------------------------
+
+/// RAMDISK volatil tempat perintah berkas kanonik bekerja:
+/// 32 simpul x 8 KiB = 256 KiB. Bagian 1.7 menuliskan default 512 KiB, tetapi
+/// ukuran itu bertabrakan dengan gerbang boot `qemu -m 3M` (bukti VERIFIED-ON-VM
+/// 2026-10-21), jadi default turun ke minimum 256 KiB yang diizinkan misi.
+///
+/// `new_bss_zeroed` dipakai supaya image kernel tidak membawa byte nol;
+/// bagian `.bss` dinolkan oleh bootloader Limine (preseden `VTD_ROOT_TABLE`).
+static mut RAMDISK_FS: asl_storage::ramdisk::RamFileSystem =
+    asl_storage::ramdisk::RamFileSystem::new_bss_zeroed();
+
+/// Direktori kerja shell: penyangga tetap, nol alokasi heap.
+struct ShellCwd {
+    buf: [u8; asl_storage::vfs::MAX_PATH_LEN],
+    len: usize,
+}
+
+impl ShellCwd {
+    /// Mulai di akar RAMDISK.
+    const fn root() -> Self {
+        let mut cwd = Self {
+            buf: [0u8; asl_storage::vfs::MAX_PATH_LEN],
+            len: 0,
+        };
+        cwd.buf[0] = b'/';
+        cwd.len = 1;
+        cwd
+    }
+
+    fn as_str(&self) -> &str {
+        match core::str::from_utf8(&self.buf[..self.len]) {
+            Ok(s) if !s.is_empty() => s,
+            _ => "/",
+        }
+    }
+
+    /// Ganti ruang kerja; nama lebih panjang dari penyangga dipotong aman.
+    fn set_path(&mut self, path: &str) {
+        let bytes = path.as_bytes();
+        let mut n = bytes.len();
+        if n > asl_storage::vfs::MAX_PATH_LEN {
+            n = asl_storage::vfs::MAX_PATH_LEN;
+        }
+        let mut i = 0;
+        while i < n {
+            self.buf[i] = bytes[i];
+            i += 1;
+        }
+        self.len = n;
+    }
+}
+
+/// Satu tujuan tulis untuk kedua penampil (serial COM1 + framebuffer) sehingga
+/// setiap pesan perintah ditulis satu kali di satu tempat.
+struct DualOut;
+
+impl DualOut {
+    fn text(&self, s: &str) {
+        early_serial_write_str(s);
+        let fb = core::ptr::addr_of_mut!(FB_CONSOLE);
+        unsafe {
+            (*fb).write_str(s);
+        }
+    }
+
+    /// Angka desimal tanpa `alloc`: render ke penyangga lokal lalu kirim.
+    fn number(&self, n: u64) {
+        let mut buf = [0u8; 24];
+        let s = render_u64(n, &mut buf);
+        self.text(s);
+    }
+}
+
+/// Render `n` desimal ke `buf` milik pemanggil; hasil meminjam `buf`.
+fn render_u64(n: u64, buf: &mut [u8; 24]) -> &str {
+    let mut i = buf.len();
+    let mut value = n;
+    loop {
+        i -= 1;
+        buf[i] = b'0' + (value % 10) as u8;
+        value /= 10;
+        if value == 0 {
+            break;
+        }
+    }
+    core::str::from_utf8(&buf[i..]).unwrap_or("0")
+}
+
+/// Pesan galat VFS berbahasa Indonesia, satu-sumber untuk semua perintah berkas.
+fn vfs_error_message(err: asl_storage::VfsError) -> &'static str {
+    match err {
+        asl_storage::VfsError::NotFound => "tidak ditemukan",
+        asl_storage::VfsError::AlreadyExists => "sudah ada",
+        asl_storage::VfsError::IsADirectory => "objek ini direktori",
+        asl_storage::VfsError::NotADirectory => "objek ini bukan direktori",
+        asl_storage::VfsError::DirectoryNotEmpty => "direktori masih berisi",
+        asl_storage::VfsError::NoSpaceLeft => "ruang RAMDISK habis",
+        asl_storage::VfsError::ReadOnly => "sistem berkas hanya-baca",
+        asl_storage::VfsError::InvalidPath => "path tidak sah",
+        asl_storage::VfsError::Storage(_) => "galat perangkat penyimpanan",
+    }
+}
+
+/// Cetak satu galat VFS dengan label seragam.
+fn print_vfs_error(out: &DualOut, err: asl_storage::VfsError) {
+    out.text("Galat: ");
+    out.text(vfs_error_message(err));
+    out.text("\n");
+}
+
+/// Bagi path absolut hasil normalisasi menjadi `(induk, nama-basis)`.
+///
+/// Diperlukan karena kontrak `FileSystem` membuat/menghapus entri lewat
+/// `(induk, nama)`, bukan path penuh, sehingga argumen absolut seperti
+/// `/tmp/big.txt` tetap sah dipakai perintah berkas.
+fn split_parent(path: &str) -> (&str, &str) {
+    let bytes = path.as_bytes();
+    let mut i = path.len();
+    while i > 0 {
+        i -= 1;
+        if bytes[i] == b'/' {
+            let parent = if i == 0 { "/" } else { &path[..i] };
+            return (parent, &path[i + 1..]);
+        }
+    }
+    ("/", path)
+}
+
+/// Path penuh dari argumen relatif terhadap ruang kerja. Normalisasi gagal
+/// sudah dilaporkan sendiri, jadi pemanggil cukup berhenti pada `None`.
+fn resolve_target<'a>(
+    cwd: &ShellCwd,
+    arg: &str,
+    buf: &'a mut [u8; asl_storage::vfs::MAX_PATH_LEN],
+    out: &DualOut,
+) -> Option<&'a str> {
+    match asl_storage::vfs::resolve_path(cwd.as_str(), arg, buf) {
+        Some(path) => Some(path),
+        None => {
+            out.text("Galat: path terlalu panjang\n");
+            None
+        }
+    }
+}
+
+/// Jalankan satu perintah kanonik terhadap RAMDISK dan kedua penampil.
+///
+/// # Safety
+/// Dipanggil hanya dari galang shell (satu utas, setelah framebuffer aktif)
+/// dan memegang akses eksklusif ke `RAMDISK_FS` selama satu perintah.
+unsafe fn run_canonical_command(inv: &asl_cockpit_shell::Invocation, cwd: &mut ShellCwd) {
+    use asl_cockpit_shell::CanonicalId;
+    let fs_ptr = core::ptr::addr_of_mut!(RAMDISK_FS);
+    (*fs_ptr).ensure_root();
+    let mut vfs = asl_storage::Vfs::new();
+    vfs.mount_root(&mut *fs_ptr);
+    let out = DualOut;
+    let mut path_buf = [0u8; asl_storage::vfs::MAX_PATH_LEN];
+
+    match inv.id {
+        CanonicalId::Help => {
+            if inv.argc == 0 {
+                asl_cockpit_shell::write_help(|s| out.text(s));
+            } else if !asl_cockpit_shell::write_help_for(inv.arg(0), |s| out.text(s)) {
+                out.text("Perintah tidak dikenal: ");
+                out.text(inv.arg(0));
+                out.text("\n");
+            }
+        }
+        CanonicalId::Clear => {
+            (*core::ptr::addr_of_mut!(FB_CONSOLE)).clear();
+            (*core::ptr::addr_of_mut!(FB_CONSOLE)).cursor_y = 16;
+            early_serial_write_str("\x1B[2J\x1B[H");
+        }
+        CanonicalId::Where => {
+            out.text(cwd.as_str());
+            out.text("\n");
+        }
+        CanonicalId::List => {
+            let arg = if inv.argc == 0 { "" } else { inv.arg(0) };
+            let path = match resolve_target(cwd, arg, &mut path_buf, &out) {
+                Some(p) => p,
+                None => return,
+            };
+            let mut entries =
+                [asl_storage::DirectoryEntry::empty(); asl_storage::vfs::MAX_DIR_ENTRIES];
+            match vfs.list_dir(path, &mut entries) {
+                Ok(count) => {
+                    out.text("Daftar isi ");
+                    out.text(path);
+                    out.text(" (");
+                    out.number(count as u64);
+                    out.text(" entri):\n");
+                    let mut i = 0;
+                    while i < count {
+                        let entry = &entries[i];
+                        out.text(if entry.node_type == asl_storage::VfsNodeType::Directory {
+                            "  d "
+                        } else {
+                            "  - "
+                        });
+                        out.text(entry.name_as_str());
+                        out.text("  ");
+                        out.number(entry.size_bytes);
+                        out.text(" B\n");
+                        i += 1;
+                    }
+                }
+                Err(err) => print_vfs_error(&out, err),
+            }
+        }
+        CanonicalId::Open => {
+            let path = match resolve_target(cwd, inv.arg(0), &mut path_buf, &out) {
+                Some(p) => p,
+                None => return,
+            };
+            match vfs.open(path) {
+                Ok(node) => {
+                    if node.node_type == asl_storage::VfsNodeType::Directory {
+                        cwd.set_path(path);
+                        out.text("Ruang kerja: ");
+                        out.text(cwd.as_str());
+                        out.text("\n");
+                    } else {
+                        out.text(path);
+                        out.text(":\n");
+                        let mut chunk = [0u8; 256];
+                        let mut offset: u64 = 0;
+                        let mut total: u64 = 0;
+                        loop {
+                            match vfs.read(&node, offset, &mut chunk) {
+                                Ok(0) => break,
+                                Ok(read) => {
+                                    total += read as u64;
+                                    let teks_isi =
+                                        core::str::from_utf8(&chunk[..read]).unwrap_or("");
+                                    out.text(teks_isi);
+                                    offset += read as u64;
+                                    if read < chunk.len() {
+                                        break;
+                                    }
+                                }
+                                Err(err) => {
+                                    print_vfs_error(&out, err);
+                                    break;
+                                }
+                            }
+                        }
+                        if total == 0 {
+                            out.text("(kosong)");
+                        }
+                        out.text("\n");
+                    }
+                }
+                Err(err) => print_vfs_error(&out, err),
+            }
+        }
+        CanonicalId::CreateFolder => {
+            let path = match resolve_target(cwd, inv.arg(0), &mut path_buf, &out) {
+                Some(p) => p,
+                None => return,
+            };
+            let (parent, base) = split_parent(path);
+            match vfs.mkdir(parent, base) {
+                Ok(_) => {
+                    out.text("Direktori dibuat: ");
+                    out.text(path);
+                    out.text("\n");
+                }
+                Err(err) => print_vfs_error(&out, err),
+            }
+        }
+        CanonicalId::CreateFile => {
+            let path = match resolve_target(cwd, inv.arg(0), &mut path_buf, &out) {
+                Some(p) => p,
+                None => return,
+            };
+            let (parent, base) = split_parent(path);
+            match vfs.touch(parent, base) {
+                Ok(_) => {
+                    out.text("Berkas dibuat: ");
+                    out.text(path);
+                    out.text("\n");
+                }
+                Err(err) => print_vfs_error(&out, err),
+            }
+        }
+        CanonicalId::WriteFile => {
+            let body = inv.arg(1);
+            let path = match resolve_target(cwd, inv.arg(0), &mut path_buf, &out) {
+                Some(p) => p,
+                None => return,
+            };
+            let (parent, base) = split_parent(path);
+            if vfs.open(path).is_err() {
+                if let Err(err) = vfs.touch(parent, base) {
+                    print_vfs_error(&out, err);
+                    return;
+                }
+            }
+            match vfs.write_file(path, body.as_bytes()) {
+                Ok(written) => {
+                    out.text("Tertulis ");
+                    out.number(written as u64);
+                    out.text(" byte di ");
+                    out.text(path);
+                    out.text("\n");
+                }
+                Err(err) => print_vfs_error(&out, err),
+            }
+        }
+        CanonicalId::DeleteFile => {
+            let path = match resolve_target(cwd, inv.arg(0), &mut path_buf, &out) {
+                Some(p) => p,
+                None => return,
+            };
+            let (parent, base) = split_parent(path);
+            match vfs.rm(parent, base) {
+                Ok(_) => {
+                    out.text("Berkas dihapus: ");
+                    out.text(path);
+                    out.text("\n");
+                }
+                Err(err) => print_vfs_error(&out, err),
+            }
+        }
+        CanonicalId::DeleteFolder => {
+            let path = match resolve_target(cwd, inv.arg(0), &mut path_buf, &out) {
+                Some(p) => p,
+                None => return,
+            };
+            let (parent, base) = split_parent(path);
+            match vfs.rmdir(parent, base) {
+                Ok(_) => {
+                    out.text("Direktori dihapus: ");
+                    out.text(path);
+                    out.text("\n");
+                }
+                Err(err) => print_vfs_error(&out, err),
+            }
+        }
+        CanonicalId::Status => {
+            out.text("Status Cockpit Shell ");
+            out.text(asl_cockpit_shell::KERNEL_VERSION);
+            out.text("\n");
+            out.text("  Sistem berkas   : ");
+            out.text(vfs.fs_name());
+            out.text("\n");
+            out.text("  Kapasitas       : ");
+            out.number(vfs.capacity_bytes() as u64);
+            out.text(" byte\n");
+            out.text("  Terpakai        : ");
+            out.number(vfs.used_bytes() as u64);
+            out.text(" byte\n");
+            out.text("  Entri hidup     : ");
+            out.number(vfs.entry_count() as u64);
+            out.text("\n");
+            out.text("  Ruang kerja     : ");
+            out.text(cwd.as_str());
+            out.text("\n");
+            out.text("  Perintah kanonik: ");
+            out.number(asl_cockpit_shell::CANONICAL_COMMAND_COUNT as u64);
+            out.text("\n");
+        }
+    }
+}
+
 /// Official bare-metal kernel entry point
 ///
 /// # Safety
@@ -1368,6 +1738,8 @@ pub unsafe extern "C" fn _asl_kernel_entry(handover_ptr: *const AslBootHandover)
     // 3. Inisialisasi PS/2 Keyboard & Cockpit Shell Engine
     let mut keyboard = asl_driver_ps2_keyboard::Ps2Keyboard::new();
     let mut shell = asl_cockpit_shell::CockpitShell::new();
+    // Ruang kerja perintah berkas kanonik: mulai dari akar RAMDISK.
+    let mut cwd = ShellCwd::root();
 
     // 4. Interactive Cockpit Shell & Deterministic Event Loop
     let mut _shell_ticks: u64 = 0;
@@ -1413,34 +1785,66 @@ pub unsafe extern "C" fn _asl_kernel_entry(handover_ptr: *const AslBootHandover)
         let input_char: Option<u8> = None;
 
         if let Some(ascii) = input_char {
-            // Echo key to serial
-            if ascii == b'\x08' {
-                early_serial_write_str("\x08 \x08");
-            } else if ascii == b'\n' {
-                early_serial_write_str("\n");
-            } else {
-                let b = [ascii];
-                if let Ok(s) = core::str::from_utf8(&b) {
-                    early_serial_write_str(s);
+            // Gema mengikuti efek penyuntingan baris yang nyata, bukan setiap
+            // byte mentah: sekuens escape dan kontrol tak dikenal tidak tercetak.
+            let (echo, submit) = shell.handle_input(ascii);
+            let fb_echo = core::ptr::addr_of_mut!(FB_CONSOLE);
+            match echo {
+                asl_cockpit_shell::Echo::Char(c) => {
+                    let byte = [c];
+                    if let Ok(s) = core::str::from_utf8(&byte) {
+                        early_serial_write_str(s);
+                    }
+                    unsafe {
+                        (*fb_echo).draw_char(c);
+                    }
                 }
+                asl_cockpit_shell::Echo::Backspace => {
+                    early_serial_write_str("\x08 \x08");
+                    unsafe {
+                        if (*fb_echo).cursor_x >= 8 {
+                            (*fb_echo).cursor_x -= 8;
+                            (*fb_echo).draw_char(b' ');
+                            (*fb_echo).cursor_x -= 8;
+                        }
+                    }
+                }
+                asl_cockpit_shell::Echo::Newline => {
+                    early_serial_write_str("\n");
+                    unsafe {
+                        (*fb_echo).draw_char(b'\n');
+                    }
+                }
+                asl_cockpit_shell::Echo::None => {}
             }
 
-            // Echo to Framebuffer
-            let fb = core::ptr::addr_of_mut!(FB_CONSOLE);
-            unsafe {
-                if ascii == b'\x08' {
-                    if (*fb).cursor_x >= 8 {
-                        (*fb).cursor_x -= 8;
-                        (*fb).draw_char(b' ');
-                        (*fb).cursor_x -= 8;
+            // Jalur ganda misi v1.0.2 Bagian 6: registry kanonik dicoba lebih
+            // dulu; perintah lama tetap utuh lewat enumerasi `ShellCommand`.
+            let mut cmd = asl_cockpit_shell::ShellCommand::Empty;
+            let mut submitted = false;
+            if let Some((legacy, outcome)) = submit {
+                submitted = true;
+                cmd = legacy;
+                match outcome {
+                    asl_cockpit_shell::LineOutcome::Ready(inv) => {
+                        unsafe {
+                            run_canonical_command(&inv, &mut cwd);
+                        }
+                        cmd = asl_cockpit_shell::ShellCommand::Empty;
                     }
-                } else {
-                    (*fb).draw_char(ascii);
+                    asl_cockpit_shell::LineOutcome::BadArity(syntax) => {
+                        let out = DualOut;
+                        out.text("Sintaks: ");
+                        out.text(syntax);
+                        out.text("\n");
+                        cmd = asl_cockpit_shell::ShellCommand::Empty;
+                    }
+                    asl_cockpit_shell::LineOutcome::NotCanonical => {}
                 }
             }
 
             // Process command in shell
-            if let Some(cmd) = shell.handle_char(ascii) {
+            if submitted {
                 let fb = core::ptr::addr_of_mut!(FB_CONSOLE);
                 match cmd {
                     asl_cockpit_shell::ShellCommand::Help => {
@@ -2708,5 +3112,64 @@ mod hardening_tests {
         // region descriptor malformed (overflow base+len) -> fail closed
         let bad_map = [desc(u64::MAX - 0xFF, 0x1_0000, MemoryRegionType::FrameBuffer)];
         assert!(!validate_framebuffer_memmap(&bad_map, 0x800_0000, 0x1000, 0, 0));
+    }
+
+    #[test]
+    fn test_render_u64_decimal_boundaries() {
+        let mut buf = [0u8; 24];
+        assert_eq!(render_u64(0, &mut buf), "0");
+        assert_eq!(render_u64(14, &mut buf), "14");
+        assert_eq!(render_u64(1000, &mut buf), "1000");
+        assert_eq!(render_u64(u64::MAX, &mut buf), "18446744073709551615");
+    }
+
+    #[test]
+    fn test_split_parent_of_normalized_absolute_paths() {
+        assert_eq!(split_parent("/"), ("/", ""));
+        assert_eq!(split_parent("/log"), ("/", "log"));
+        assert_eq!(split_parent("/tmp/big.txt"), ("/tmp", "big.txt"));
+        assert_eq!(split_parent("/a/b/c.txt"), ("/a/b", "c.txt"));
+    }
+
+    #[test]
+    fn test_shell_cwd_starts_at_root_and_truncates_long_paths() {
+        let mut cwd = ShellCwd::root();
+        assert_eq!(cwd.as_str(), "/");
+        cwd.set_path("/log");
+        assert_eq!(cwd.as_str(), "/log");
+        let deep_path = ["zzzzzzzzzz"; 20].join("/");
+        cwd.set_path(deep_path.as_str());
+        assert_eq!(cwd.as_str().len(), asl_storage::vfs::MAX_PATH_LEN);
+        // Isi penyangga tetap UTF-8: tidak pernah memotong di tengah byte multi-byte
+        // karena seluruh jalur shell ASCII, dan `as_str` punya fallback "/".
+        assert!(!cwd.as_str().is_empty());
+    }
+
+    #[test]
+    fn test_vfs_error_messages_unique_per_variant() {
+        let cases = [
+            (asl_storage::VfsError::NotFound, "tidak ditemukan"),
+            (asl_storage::VfsError::AlreadyExists, "sudah ada"),
+            (asl_storage::VfsError::IsADirectory, "objek ini direktori"),
+            (asl_storage::VfsError::NotADirectory, "objek ini bukan direktori"),
+            (asl_storage::VfsError::DirectoryNotEmpty, "direktori masih berisi"),
+            (asl_storage::VfsError::NoSpaceLeft, "ruang RAMDISK habis"),
+            (asl_storage::VfsError::ReadOnly, "sistem berkas hanya-baca"),
+            (asl_storage::VfsError::InvalidPath, "path tidak sah"),
+            (
+                asl_storage::VfsError::Storage(asl_storage::StorageError::IoError),
+                "galat perangkat penyimpanan",
+            ),
+        ];
+        let mut i = 0;
+        while i < cases.len() {
+            assert_eq!(vfs_error_message(cases[i].0), cases[i].1);
+            let mut j = i + 1;
+            while j < cases.len() {
+                assert_ne!(cases[i].1, cases[j].1, "dua galat memakai pesan sama");
+                j += 1;
+            }
+            i += 1;
+        }
     }
 }

@@ -26,12 +26,14 @@ di rangkaian Gate 3D dan **satu pemulihan keadaan yang bolong** di
 (LANGKAH 3), dijaga enam test regresi baru (LANGKAH 4), dan panic handler
 kernel kini mencetak konteks penuh (pesan + lokasi sumber + alamat + rekaman
 jebakan terakhir) supaya panic berikutnya tidak datang tanpa bukti.
-**Gerbang penuh LANGKAH 5 sudah diukur** (Bagian 5.1): 202 unit test lulus,
-build nol warning pada dua lingkungan dengan ELF identik, ISO baru
-`0391c411...`, lantai memori diukur ulang (ratchet 3392K lulus, janji 3M tetap
-MERAH), prompt boot tampil pada tiga sesi VM, dan perbaikan A4/A5/A3 terbukti
-di mesin. Yang belum adalah jendela yang disaksikan pemilik (LANGKAH 6) dan
-teks panic dari pemilik.
+**Gerbang penuh LANGKAH 5 sudah diukur** (Bagian 5.1 dan 5.2): 202 unit test
+lulus, build nol warning pada dua lingkungan, ISO `0391c411...` lalu **ISO baru
+`18f40d2d...`** sesudah higiene compiler pada penanganan panic, lantai memori
+diukur ulang pada kedua ISO (ratchet 3392K lulus, janji 3M tetap **MERAH**),
+prompt boot tampil pada tujuh sesi adversarial VM berjendela (empat di antaranya
+di atas ISO final), dan perbaikan A4/A5/A3 terbukti
+di mesin di atas ISO final. Yang belum adalah jendela yang disaksikan pemilik
+(LANGKAH 6) dan teks panic dari pemilik.
 
 **E8-STATUS: BELUM-TERREPRODUKSI-SEBAGAI-PANIC.** Pemilik diminta menempel
 teks panic yang dilihatnya (LANGKAH 6) supaya cocok dengan salah satu jalur
@@ -167,9 +169,19 @@ CARGO_TARGET_DIR=<direktori-scratch> cargo build --package asl-kernel-bin --targ
 pwsh -File scripts/build_kernel.ps1 -Action iso                              # ISO + penanda waktu + GPT embedding
 pwsh -File scripts/test_ram_floor_3mb.ps1 -TimeoutSec 150                    # -m 3M lalu -m 3392K
 pwsh -File scripts/e8_adversarial_run.ps1 -StopKeyDelaySeconds 25
-pwsh -File scripts/e8_adversarial_run.ps1 -IncludeDiagnostics
+pwsh -File scripts/e8_adversarial_run.ps1 -IncludeDiagnostics -CaseTimeoutSeconds 300 -BootTimeoutSeconds 240
 pwsh -File scripts/e8_adversarial_run.ps1 -DemoCommand trap_de
 ```
+
+Dua bendera pada baris Pass B bukan hiasan dan bukan pilihan: kasus D13
+(diagnostik `test_task`) memerlukan **245.054 ms** pada sesi 22-50-35 dan
+**272.600 ms** pada sesi 23-22-59, sedangkan bawaan alat adalah 45 s per
+kasus. Menjalankan `-IncludeDiagnostics` tanpa `-CaseTimeoutSeconds 300`
+menghasilkan kode keluar 2 dengan D13 berstatus [GANTUNG] — bukti nyata hal
+itu tersimpan sebagai sesi 23-19-23 dan dilaporkan sebagai entri
+`ACCOUNTABILITY_FAULT_LOG` ke-36. Sejak commit `1e2035f` tiap artefak
+mencetak batas yang sedang berlaku pada baris kepala `batas`, jadi jalur
+invokasi dapat dibaca dari bukti, bukan dari ingatan.
 
 | Gerbang LANGKAH 5 | Hasil terukur | Kelas bukti | Artefak |
 |---|---|---|---|
@@ -192,11 +204,49 @@ Yang terbukti di mesin untuk tuntutan "cetak konteks" adalah jalur jebakan CPU
 (baris `trap_de` di atas). Perbedaan dua jalur ini tidak boleh dibaca sebagai
 satu kelulusan.
 
-**Konsekuensi alat.** `scripts/e8_adversarial_run.ps1` kini membawa nilai
-bawaan `-ExpectedIsoSha` = `0391c411...`; karena sidik jari ISO per-tree,
-setiap bangun ulang ISO menuntut nilai itu dioper lewat baris perintah (atau
-alat dikalibrasi ulang pada commit berikutnya). Aturan gagal-tutup tidak
-dilonggarkan: sidik jari yang tidak cocok membuat sesi keluar 1.
+**Konsekuensi alat.** `scripts/e8_adversarial_run.ps1` membawa nilai bawaan
+`-ExpectedIsoSha` yang adalah penanda **per-tree**: `0391c411...` pada sesi
+22-49-02 sampai 23-04-58, lalu dikalibrasi ulang menjadi `18f40d2d...` pada
+commit `1e2035f` karena delta `.rs` higiene mengubah ISO. Setiap bangun ulang
+ISO menuntut nilai itu dioper lewat baris perintah atau dikalibrasi ulang pada
+commit berikutnya. Aturan gagal-tutup tidak dilonggarkan: sidik jari yang tidak
+cocok membuat sesi keluar 1 sebelum mesin dinyalakan.
+
+### 5.2 Ukur ulang di atas ISO 18F40D2D (LANGKAH 5b, sesudah higiene compiler)
+
+Commit `53e226f` menghapus tiga diagnostik yang lahir dari kode saya sendiri
+(impor `core::panic::PanicInfo` dihapus dan ditulis penuh pada tanda tangan
+`fn panic`; `struct PanicContextSink` beserta `impl core::fmt::Write`-nya diberi
+`#[cfg(not(test))]`). Perubahan itu mengubah **sidik jari artefak**, jadi seluruh
+angkanya diukur ulang dan seluruh sesi mesin diulang pada ISO baru. Tidak ada
+angka 5.1 yang dipindahkan ke 5.2 tanpa pengukuran ulang.
+
+| Gerbang LANGKAH 5b | Hasil terukur pada tree `53e226f` | Kelas bukti | Artefak |
+|---|---|---|---|
+| Unit test sisi host build | **202 lulus, 0 gagal**; baris `warning` profil test **19**, **nol** dari `asl-kernel-core` (sebelum higiene: 22, dua di antaranya dari kode saya) | VERIFIED-ON-HOST | `e8_l5b_uji-host_2026-10-21.txt` |
+| Irisan tata letak dan lint | fmt: TOTAL deviasi **BARU 0** (baris saya 3 dari 107 yang ingin diubah di `lib.rs`; 0 dari 28 dan 0 dari 19 pada dua berkas lain). clippy: 137 diagnostik ber-baris workspace, TOTAL **BARU 0** (13 di `lib.rs`, semuanya baris lama) | VERIFIED-ON-HOST | `e8_l5b_irisan-{fmt,clippy}_2026-10-21.txt` |
+| Build rilis | 0 `warning`, 0 `error`; ELF **325.120 byte** SHA256 `74405577744896d747b5278fe7ff9a0f8033e0d90ebb2aa5aa8d9b1bdbe287b3` | VERIFIED-ON-HOST | `e8_l5b_build-rilis_2026-10-21.txt` |
+| ISO | **4.200.448 byte** SHA256 `18F40D2D4E18C3B46A88C13090AC1F6FCCE13B4D264A1D5B78B4D6E0A833FAD0` (berubah dari `0391c411...` tepat karena delta `.rs`) | VERIFIED-ON-HOST | `e8_l5b_iso_2026-10-21.txt` |
+| Lantai memori | kode keluar **2**: `-m 3M` tidak sampai prompt, serial **0 byte**; `-m 3392K` lulus, serial 2.498 byte. Janji Bagian 5 `-m 3M` **tetap MERAH** | VERIFIED-ON-VM | `e8_l5b_lantai-memori_2026-10-21.txt`, `e8_l5b_lantai-{3M,3392K}-serial_2026-10-21.log` |
+| A4 — satu ketikan menghentikan `test_task` | `-StopKeyDelaySeconds 25`: keluar 0, prompt kembali=True, **elapsed_ms=25499**, pesan_operator=True, crash=TIDAK | VERIFIED-ON-VM | `e8_adversarial_*_2026-10-21_23-18-46.*` |
+| Pass B penuh | 59 dari 59 kasus **[OK]**, nol penanda crash, keluar 0; D13 `test_task` **272.600 ms** (pembanding 22-50-35: 245.054 ms), D14 pengulangan 473 ms, D15 `test_apic` sesudah `test_task` 882 ms (pembanding 605 ms); A5 terukur lagi di serial baris 246 dan 377 | VERIFIED-ON-VM | `e8_adversarial_*_2026-10-21_23-22-59.*`, `e8_l5b_sesi-diagnostik-konsol_2026-10-21.txt` |
+| A3 — laporan kegagalan berisi konteks | `-DemoCommand trap_de`, keluar 2 = crash yang dipanggil: blok `[ASL EXCEPTION]` baris 58-65 memuat VECTOR 0x0000 (#DE), ERROR 0, RIP `0xFFFFFFFF8011DB82`/CS 0x0028, RSP `0xFFFFFFFF801AAFC0`/SS 0x0030, RFLAGS 0x0000000000010046/RBP 0, lalu Controlled Halt Active; RIP identik dengan sesi 23-04-58 di ISO lama | VERIFIED-ON-VM | `e8_adversarial_*_2026-10-21_23-28-45.*`, `e8_l5b_trap-de-konsol_2026-10-21.txt` |
+| CI terkelola atas tree ini | dua peristiwa atas `53e226f` (push 39634616449, pull_request 39634624636) sama-sama success: 202 lulus/0 gagal pada 30 suite, **19** baris `warning` (turun dari 22 pada run `97d1834`), 13 `Compiling` 0 warning/0 galat, ELF sisi runner 325.184 byte | VERIFIED-ON-CI-API | `ci_hosted_39634616449_2026-10-21.log`, `ci_hosted_39634624636_2026-10-21.log` |
+
+Dua hal yang sengaja tidak disamakan. Pertama, ELF sisi runner CI (325.184
+byte) berbeda dari ELF sisi host build (325.120 byte); itu perbedaan
+lingkungan kompilasi dan dicatat, bukan diratakan. Kedua, tabel llvm-cov pada
+run `53e226f` menghasilkan hash konvensi gabungan-LF
+`1bebd7ef13583fb639714662ed572e162126dcc96fa19af8e0beccb3f9893377` — **identik**
+dengan run `97d1834`. Keidentikan itu justru yang diharapkan: higiene ini
+menghapus diagnostik, bukan baris yang dieksekusi, sehingga cakupan tidak
+bergeser.
+
+Batas yang tetap berlaku sesudah 5.2: jalur panic Rust masih **tidak** dapat
+diketik sampai `panic_handler` pada lintasan perintah kanonik (lihat "Batas
+yang jujur untuk A6" di atas), sehingga bukti jalur itu tetap statis + unit
+host, bukan VERIFIED-ON-VM. E8 tetap BELUM DITUTUP selama teks panic dari
+pemilik belum diterima.
 
 ---
 
@@ -230,15 +280,36 @@ yang berbeda. Koreksi tidak dilakukan dengan menulis ulang pesan commit
 Sejak itu setiap klaim kelulusan menyebut bendera alat yang benar, dan
 baris `kasus ...` pada kepala ringkasan dipakai sebagai dasar penamaan.
 
+Kejadian ketiga (LANGKAH 5b, lapor diri sendiri). Setelah ISO berganti menjadi
+`18f40d2d...`, saya menjalankan ulang Pass B dengan **baris perintah yang tertulis
+di Bagian 5.1 dokumen ini** — yaitu `... -IncludeDiagnostics` tanpa bendera batas
+waktu — dan sesi itu keluar 2 dengan D13 berstatus [GANTUNG] setelah 45.030 ms
+(artefak `2026-10-21_23-19-23`). Tidak ada satu pun baris dokumen yang menyebut
+bahwa sesi lulus 22-50-35 memakai `-CaseTimeoutSeconds 300 -BootTimeoutSeconds 240`;
+baris `kasus` pada kepala ringkasan lama juga tidak mencetak batas yang sedang
+berlaku. Jadi akarnya dua lapis: (a) saya merekonstruksi invokasi dari ingatan
+alih-alih dari artefak sesi yang lulus, dan (b) dokumen 5.1 sendiri tidak lengkap
+sebagai resep. Yang pertama saya akui sebagai entri ke-36
+`ACCOUNTABILITY_FAULT_LOG`; yang kedua diperbaiki di tempat (blok perintah 5.1
+kini membawa bendera wajib dan alasan angkanya dijelaskan di bawahnya), dan
+pencegahan ketiga dibangun ke dalam alat: commit `1e2035f` mencetak baris
+`batas` di kepala setiap artefak sehingga invokasi dapat dibaca dari bukti.
+Artefak sesi keliru 23-19-23 **tidak dibuang dan tidak diberi label lain**; ia
+menjadi bukti bahwa bawaan 45 s tidak memadai untuk `test_task`, dan pembanding
+langsung bagi sesi 23-22-59 yang menjalankan 59 kasus sampai selesai.
+Sesudah kejadian ini, setiap kali alat dijalankan dengan kasus berat, baris
+`batas` pada artefak diperiksa lebih dahulu sebelum keluarannya dibaca.
+
 ---
 
 ## 7. Yang belum selesai (jangan dibaca sebagai selesai)
 
-Sudah selesai pada langkah ini: **LANGKAH 5** tertutup seluruhnya (Bagian 5
-dan 5.1) — unit test 202, irisan fmt/clippy nol BARU, build nol warning pada
-dua lingkungan dengan ELF identik, ISO baru, ukur ulang lantai memori, boot
-QEMU 256M sampai prompt, verifikasi A3/A4/A5 di mesin, dan pernyataan batas
-bukti untuk A6.
+Sudah selesai pada langkah ini: **LANGKAH 5** tertutup seluruhnya (Bagian 5,
+5.1 dan 5.2) — unit test 202 lulus, irisan fmt/clippy nol BARU, build rilis nol
+warning dan nol galat pada dua lingkungan, dua ISO (0391C411 lalu 18F40D2D sebagai
+artefak final rantai ini), lantai memori diukur ulang pada keduanya, boot QEMU
+256M sampai prompt tampil pada tujuh sesi adversarial berjendela, verifikasi
+A3/A4/A5 di mesin di atas ISO final, dan pernyataan batas bukti untuk A6.
 
 Yang tersisa:
 
@@ -252,14 +323,26 @@ Yang tersisa:
    "DILARANG menutup E8 tanpa akar penyebab terverifikasi"; yang terverifikasi
    sekarang adalah akar penyebab pembekuan `test_task`, bukan panic yang
    dilaporkan).
-3. **Utang ekstrak hosted CI (G8)**: empat peristiwa CI atas dua commit E8
-   terdahulu sudah tertutup pada commit ekstrak sebelumnya; yang masih terbuka
-   adalah peristiwa CI atas `97d1834`, `d6c5b12`, dan tiga commit LANGKAH 5
-   (`093a7d6`, `b9acd5b`, `ca582fa`). Ekstrak sebuah commit hanya bisa masuk
-   pada commit BERIKUTNYA, jadi penutupan ini adalah pekerjaan pertama setelah
-   push. Tree pada `97d1834` dan seterusnya sudah memuat perbaikan `.rs` E8
-   (berbeda dari tip-tip tanpa-`.rs` yang diekstrak sebelumnya), jadi angka
-   yang diharapkan di runner CI adalah **202 lulus / 0 gagal**, bukan 196.
+3. **Utang ekstrak hosted CI (G8)** — daftarnya dihitung dari `gh api` dan dari
+   `git ls-files Analysis/reports/`, bukan dari ingatan.
+   *Sudah tertutup* (ekstraknya ter-commit di cabang ini): empat pasangan
+   peristiwa atas `17570f6`, `a141640`, `97d1834`, `53e226f` = delapan berkas
+   `Analysis/reports/ci_hosted_<id>_2026-10-21.log`, masing-masing membawa blok
+   CATATAN PER-RUN.
+   *Masih terbuka* pada saat ini: pasangan peristiwa atas `08ddd71`
+   (run 39632688905 push, 39632700077 pull_request), atas `1e2035f`
+   (39635248616, 39635257738) dan atas commit bukti `8f56625`
+   (39635662050, 39635669557). Keenam run itu `conclusion=success`; ekstrak
+   sebuah run hanya boleh masuk repo lewat commit SESUDAHNYA, jadi dua pasangan
+   pertama ikut unit dokumen ini dan pasangan `8f56625` mengikuti unit
+   berikutnya.
+   *Tidak dapat ditutup, dan ini fakta cara kerja CI bukan kelalaian*: tujuh
+   commit di cabang ini tidak pernah punya run sendiri, karena satu peristiwa
+   push hanya memicu run untuk tip saat itu — `223e7f6`, `6bbd77d`, `939cc95`,
+   `d6c5b12`, `093a7d6`, `b9acd5b`, `ca582fa`. Tree ketujuh commit itu tetap
+   terverifikasi lewat run atas tip berikutnya yang membaca tree yang sama, dan
+   angka yang diharapkan di runner CI adalah **202 lulus / 0 gagal** (bukan 196)
+   karena perbaikan `.rs` E8 sudah hidup sejak `939cc95`.
 4. **Laporan E8 final (LANGKAH 7)**: dokumen ini berlabel STATUS PEKERJAAN;
    laporan penutupan ditulis setelah jendela pemilik dan sesudah teks panic
    pemilik ada atau dinyatakan tidak tersedia.

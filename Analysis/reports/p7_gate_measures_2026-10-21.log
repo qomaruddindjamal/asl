@@ -74,6 +74,16 @@ Terukur  : serial 2.462 byte, stderr QEMU 0 byte, M0/M1/M2/M4/M5 hadir,
          'M6: Kernel Cold Boot Complete' hadir, prompt 'ASL-KERNEL> ' hadir,
          penanda crash ('ASL EXCEPTION', 'ASL-CORE-PANIC', 'FATAL') = TIDAK hadir,
          string versi 'v1.0.2' hadir pada keluaran boot.
+KOREKSI KONVENSI ANGKA (ACCOUNTABILITY_FAULT_LOG entri ke-25, disisipkan di tahap P8-persiapan):
+         baris 'serial 2.462 byte' di atas memakai konvensi yang TIDAK disebut. Angka yang benar
+         untuk panjang berkas pada disk = 2.516 byte. Selisihnya 54 byte = tepat jumlah pasangan
+         CRLF pada berkas yang sama (54 baris), jadi 2.516 - 54 = 2.462 adalah panjang setelah
+         CRLF disusutkan menjadi LF (pembacaan Python mode-teks dengan universal newlines).
+         Tetangga baris itu (seri '2.498 B' dan '0 B' pada bagian [4]) berasal dari Get-Item
+         PowerShell = panjang disk, sehingga satu berkas bukti sempat memakai dua konvensi tanpa
+         label. Sejak P8-persiapan angka byte selalu panjang disk dan jumlah baris/CRLF dilaporkan
+         terpisah; pengukuran dan aritmetika ulangnya ada di
+         Analysis/reports/p8_prep_selftest_2026-10-21.log bagian [7].
 Catatan metode: QEMU dihentikan paksa setelah 30 detik (mesin tanpa jaringan dan tanpa
          disk tulis, jadi penghentian paksa bukan bagian dari gerbang).
 Ini BUKAN run penerimaan berjendela. Sesi Bagian 3 (ketik perintah, lihat keluaran) dan

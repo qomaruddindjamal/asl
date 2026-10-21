@@ -26,6 +26,12 @@ di rangkaian Gate 3D dan **satu pemulihan keadaan yang bolong** di
 (LANGKAH 3), dijaga enam test regresi baru (LANGKAH 4), dan panic handler
 kernel kini mencetak konteks penuh (pesan + lokasi sumber + alamat + rekaman
 jebakan terakhir) supaya panic berikutnya tidak datang tanpa bukti.
+**Gerbang penuh LANGKAH 5 sudah diukur** (Bagian 5.1): 202 unit test lulus,
+build nol warning pada dua lingkungan dengan ELF identik, ISO baru
+`0391c411...`, lantai memori diukur ulang (ratchet 3392K lulus, janji 3M tetap
+MERAH), prompt boot tampil pada tiga sesi VM, dan perbaikan A4/A5/A3 terbukti
+di mesin. Yang belum adalah jendela yang disaksikan pemilik (LANGKAH 6) dan
+teks panic dari pemilik.
 
 **E8-STATUS: BELUM-TERREPRODUKSI-SEBAGAI-PANIC.** Pemilik diminta menempel
 teks panic yang dilihatnya (LANGKAH 6) supaya cocok dengan salah satu jalur
@@ -148,6 +154,50 @@ juga dicatat: `not_unsafe_ptr_arg_deref` (deny bawaan, ada di
 perintah supaya dependensi mau dikompilasi; tanpa itu crate yang saya ubah
 tidak pernah ikut ter-lint.
 
+### 5.1 Gerbang artefak + verifikasi di mesin (LANGKAH 5, di atas ISO baru)
+
+Perintah yang dijalankan (sisi host build, kemudian QEMU 256M berjendela):
+
+```
+# lingkungan 1: build di direktori target bawaan
+cargo build --package asl-kernel-bin --target x86_64-unknown-none --release
+# lingkungan 2: build DARI NOL di direktori target terpisah (direktori itu
+# dihapus lebih dulu; seluruh rentang crate ikut terkompilasi ulang)
+CARGO_TARGET_DIR=<direktori-scratch> cargo build --package asl-kernel-bin --target x86_64-unknown-none --release
+pwsh -File scripts/build_kernel.ps1 -Action iso                              # ISO + penanda waktu + GPT embedding
+pwsh -File scripts/test_ram_floor_3mb.ps1 -TimeoutSec 150                    # -m 3M lalu -m 3392K
+pwsh -File scripts/e8_adversarial_run.ps1 -StopKeyDelaySeconds 25
+pwsh -File scripts/e8_adversarial_run.ps1 -IncludeDiagnostics
+pwsh -File scripts/e8_adversarial_run.ps1 -DemoCommand trap_de
+```
+
+| Gerbang LANGKAH 5 | Hasil terukur | Kelas bukti | Artefak |
+|---|---|---|---|
+| Build kernel pada **dua lingkungan** | lingkungan 1 memakai target bawaan (4 baris `Compiling`), lingkungan 2 dari nol di direktori target terpisah (13 baris `Compiling`); dua-duanya selesai dengan **nol baris warning dan nol galat**; ELF 325.120 byte dengan SHA256 **identik** `3ff9f2a659502d8f2b178bbb6473a217340f0fa5c5ef9b616477e55a4f010363` (diverifikasi ulang terhadap dua berkas ELF sesudah sesi) | VERIFIED-ON-HOST | `e8_l5_build-lingkungan-{1,2}_2026-10-21.txt` |
+| ISO | 4.200.448 byte, SHA256 `0391C41149EC66A565F03E9CADA637EF7281179C5F6C820E6044DC22300B74DE`. Berubah dari `aa778060...` karena delta `.rs` E8 — konsisten dengan sifat sidik jari **per-tree** | VERIFIED-ON-HOST | `e8_l5_iso_2026-10-21.txt` |
+| Boot QEMU 256M sampai prompt tampil | `M6=True prompt=True crash=TIDAK` pada tiga sesi | VERIFIED-ON-VM | tiga berkas `e8_adversarial_summary_*` di bawah |
+| Ukur ulang lantai memori | **kode keluar 2**: `-m 3M` tidak sampai prompt (serial **0 byte** — berkas log kosong itu adalah buktinya), `-m 3392K` lulus penuh (serial 2.498 byte). Janji Bagian 5 `-m 3M` **tetap MERAH**; deviasi entri ke-23 tidak diubah menjadi hijau | VERIFIED-ON-VM | `e8_l5_lantai-memori_2026-10-21.txt`, `e8_l5_lantai-{3M,3392K}-serial_2026-10-21.log` |
+| A4 — satu ketikan menghentikan `test_task` | boot segar + `-StopKeyDelaySeconds 25`: `prompt kembali=True`, **elapsed_ms=25528**, `pesan_operator=True`, crash=TIDAK, kode keluar alat 0. Pra-perbaikan: **178.779 ms** tanpa pemulihan kendali (Bagian 2, Pass D) | VERIFIED-ON-VM | `e8_adversarial_*_2026-10-21_22-49-02.*`, `e8_l5_tombol-penghenti-konsol_2026-10-21.txt` |
+| Pass B penuh sesudah perbaikan | 59 kasus (41 utama + 2 pembersih + 16 diagnostik) **seluruhnya [OK]**, kode keluar alat 0; pembanding pra-perbaikan: Pass B yang sama keluar **2** dengan D13 menggantung. D13 `test_task` 245054 ms, D14 pengulangan 473 ms, D15 `test_apic` sesudah `test_task` 605 ms | VERIFIED-ON-VM | `e8_adversarial_*_2026-10-21_22-50-35.*`, `e8_l5_sesi-diagnostik-konsol_2026-10-21.txt` |
+| A5 — bendera interupsi dipulihkan | serial log baris 246 dan 377 memuat `[TEST 7] Bendera interupsi CPU dipulihkan (cli) -> PASS` | VERIFIED-ON-VM | berkas serial 22-50-35 |
+| A3 — laporan kegagalan berisi konteks | `-DemoCommand trap_de` (crash yang **dipanggil sendiri**, jadi kode keluar 2 adalah hasil yang diharapkan): blok `[ASL EXCEPTION]` mencetak vektor, kode galat, RIP/CS, RSP/SS, RFLAGS, RBP lalu `Controlled Halt Active` | VERIFIED-ON-VM | `e8_adversarial_*_2026-10-21_23-04-58.*`, `e8_l5_trap-de-konsol_2026-10-21.txt` |
+
+**Batas yang jujur untuk A6 (panic handler Rust).** Setelah A1-A6 tidak ada
+satu pun masukan yang dapat diketik pada lintasan perintah kanonik yang
+mencapai `panic_handler` — itulah isi perbaikan itu sendiri — sehingga sesi
+22-49-02 dan 22-50-35 memang tidak menghasilkan penanda crash. Karena itu
+jalur panic **dinyatakan teruji di tingkat statis dan unit test sisi host**
+(202 lulus, enam di antaranya penjaga `panic_guard_*`), bukan VERIFIED-ON-VM.
+Yang terbukti di mesin untuk tuntutan "cetak konteks" adalah jalur jebakan CPU
+(baris `trap_de` di atas). Perbedaan dua jalur ini tidak boleh dibaca sebagai
+satu kelulusan.
+
+**Konsekuensi alat.** `scripts/e8_adversarial_run.ps1` kini membawa nilai
+bawaan `-ExpectedIsoSha` = `0391c411...`; karena sidik jari ISO per-tree,
+setiap bangun ulang ISO menuntut nilai itu dioper lewat baris perintah (atau
+alat dikalibrasi ulang pada commit berikutnya). Aturan gagal-tutup tidak
+dilonggarkan: sidik jari yang tidak cocok membuat sesi keluar 1.
+
 ---
 
 ## 6. Kejadian akuntabilitas selama pekerjaan ini
@@ -167,20 +217,53 @@ dengan `--check` (hanya-baca), dan karena `--check` pun melaporkan submodul
 hasil rekursi, alat irisan menyaring header `Diff in <jalur>:<baris>:` supaya
 hunk milik berkas lain tidak ikut dihitung.
 
+Kejadian kedua (LANGKAH 5, lapor diri sendiri). Pesan commit `b9acd5b`
+(`[V1.0.2-R1-F8-UKUR] ... DI ATAS ISO 0391C411`) menyebut sesi
+`2026-10-21_22-50-35` sebagai **"Pass A penuh"** padahal yang dijalankan
+adalah **Pass B** — 59 kasus termasuk 16 diagnostik (`-IncludeDiagnostics`).
+Angka dan label di dalam artefak tidak salah; yang salah adalah nama jalur di
+kalimat saya, dan nama itu penting karena Bagian 2 mendefinisikan Pass A (43
+payload, keluar 0) dan Pass B (59 kasus, dulu keluar 2) sebagai dua keadaan
+yang berbeda. Koreksi tidak dilakukan dengan menulis ulang pesan commit
+(aturan G6/G8: nol-amend), melainkan lewat entri tersendiri di
+`docs/ROADMAP/ACCOUNTABILITY_FAULT_LOG.json` (ke-35) plus catatan ini.
+Sejak itu setiap klaim kelulusan menyebut bendera alat yang benar, dan
+baris `kasus ...` pada kepala ringkasan dipakai sebagai dasar penamaan.
+
 ---
 
 ## 7. Yang belum selesai (jangan dibaca sebagai selesai)
 
-1. **LANGKAH 5**: gerbang penuh pada artefak — build ISO di dua lingkungan,
-   ukur ulang lantai memori, boot QEMU 256M berjendela sampai prompt tampil.
-2. **LANGKAH 6**: jendela G9-LITE disaksikan pemilik. Pemilik mengulang persis
-   pemicu (`test_task` tunggal, lalu sesi adversarial), tangkapan layar +
-   berkas serial disimpan, dan pemilik menyatakan lulus. **VERIFIED-ON-HARDWARE
-   tetap 0** sampai jendela ini disaksikan.
-3. **Teks panic dari pemilik**: tanpa itu E8 berstatus
-   BELUM-TERREPRODUKSI-SEBAGAI-PANIC dan tidak boleh ditutup.
-4. Verifikasi perilaku perbaikan di mesin (satu per satu, tiap boot): `test_task`
-   dapat dihentikan tombol, `test_apic` mengembalikan IF, panic handler
-   mencetak konteks (suntikan lewat diagnostik `-DemoCommand`/fault demo).
-5. Extraksi hosted CI atas commit pekerjaan ini dan penutupan utang ekstraksi
-   G8 yang tertunda (empat peristiwa CI atas dua commit terdahulu).
+Sudah selesai pada langkah ini: **LANGKAH 5** tertutup seluruhnya (Bagian 5
+dan 5.1) — unit test 202, irisan fmt/clippy nol BARU, build nol warning pada
+dua lingkungan dengan ELF identik, ISO baru, ukur ulang lantai memori, boot
+QEMU 256M sampai prompt, verifikasi A3/A4/A5 di mesin, dan pernyataan batas
+bukti untuk A6.
+
+Yang tersisa:
+
+1. **LANGKAH 6**: jendela G9-LITE disaksikan pemilik. Pemilik mengulang persis
+   pemicu (`test_task` tunggal pada boot segar, lalu sesi adversarial penuh),
+   tangkapan layar + berkas serial disimpan, dan pemilik menyatakan lulus.
+   **VERIFIED-ON-HARDWARE tetap 0** sampai jendela ini disaksikan. Alat
+   `scripts/g9_final_p8_run.ps1` sengaja tidak diubah pada rantai R1.
+2. **Teks panic dari pemilik**: tanpa itu E8 berstatus
+   BELUM-TERREPRODUKSI-SEBAGAI-PANIC dan **tidak boleh ditutup** (aturan
+   "DILARANG menutup E8 tanpa akar penyebab terverifikasi"; yang terverifikasi
+   sekarang adalah akar penyebab pembekuan `test_task`, bukan panic yang
+   dilaporkan).
+3. **Utang ekstrak hosted CI (G8)**: empat peristiwa CI atas dua commit E8
+   terdahulu sudah tertutup pada commit ekstrak sebelumnya; yang masih terbuka
+   adalah peristiwa CI atas `97d1834`, `d6c5b12`, dan tiga commit LANGKAH 5
+   (`093a7d6`, `b9acd5b`, `ca582fa`). Ekstrak sebuah commit hanya bisa masuk
+   pada commit BERIKUTNYA, jadi penutupan ini adalah pekerjaan pertama setelah
+   push. Tree pada `97d1834` dan seterusnya sudah memuat perbaikan `.rs` E8
+   (berbeda dari tip-tip tanpa-`.rs` yang diekstrak sebelumnya), jadi angka
+   yang diharapkan di runner CI adalah **202 lulus / 0 gagal**, bukan 196.
+4. **Laporan E8 final (LANGKAH 7)**: dokumen ini berlabel STATUS PEKERJAAN;
+   laporan penutupan ditulis setelah jendela pemilik dan sesudah teks panic
+   pemilik ada atau dinyatakan tidak tersedia.
+5. Setelah E8 ditutup: BAGIAN 2 (F1-F7). Registry kanonik pada ISO yang di-boot
+   masih 11 perintah, jadi kasus C15 (`up`) dan C26/C27 (`rename`) pada Pass
+   penuh masih menguji jalur "perintah tak dikenal"; jalur aslinya diuji lagi
+   setelah F2 dan F6, dan jendela E8 diulang.

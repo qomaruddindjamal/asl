@@ -1673,4 +1673,134 @@ mod tests {
         assert!(!write_help_for("bukan-perintah", |t| n += t.len()));
         assert_eq!(n, 0);
     }
+
+    // ---------------------------------------------------------------------
+    // E8: regresi "masukan pengguna -> nilai balik, bukan panic".
+    // Setiap test di bawah memakai payload yang dikirim pada LANGKAH 1
+    // (skrip sesi adversarial) dan berhasil bila proses uji selesai tanpa
+    // panik; assert hanya memastikan hasilnya tetap masuk akal.
+    // ---------------------------------------------------------------------
+
+    /// Serahkan `nama + ekor` ke `pakai` sebagai satu baris tersusun. Pinjaman
+    /// berakhir di dalam fungsi supaya penyangga boleh dipakai ulang per iterasi.
+    fn dengan_baris(nama: &str, ekor: &str, pakai: impl FnOnce(&str)) {
+        let mut buf = [0u8; SHELL_BUFFER_MAX];
+        let mut n = 0usize;
+        for b in nama.as_bytes() {
+            buf[n] = *b;
+            n += 1;
+        }
+        for b in ekor.as_bytes() {
+            buf[n] = *b;
+            n += 1;
+        }
+        let baris = core::str::from_utf8(&buf[..n]).unwrap_or("");
+        pakai(baris);
+    }
+
+    #[test]
+    fn panic_guard_baris_sangat_panjang_dari_pengguna() {
+        // 4096 ketikan tanpa jeda: penyangga editor berhenti tumbuh, baris yang
+        // dikirim tetap masuk parser dan keluar sebagai nilai.
+        let mut shell = CockpitShell::new();
+        for _ in 0..4096 {
+            let _ = shell.handle_input(b'x');
+        }
+        assert!(shell.current_line().len() <= SHELL_BUFFER_MAX);
+        assert_eq!(
+            shell.handle_input(b'\n').1,
+            Some((ShellCommand::Unknown, LineOutcome::NotCanonical))
+        );
+
+        // 100.000 karakter: argumen dipotong ke MAX_ARG_LEN, aritas tetap sah.
+        const PANJANG: usize = 100_000;
+        let mut raw = [b'z'; PANJANG];
+        let kata = b"create-file ";
+        let mut i = 0usize;
+        while i < kata.len() {
+            raw[i] = kata[i];
+            i += 1;
+        }
+        let baris = core::str::from_utf8(&raw).unwrap_or("");
+        match parse_line(baris) {
+            LineOutcome::Ready(inv) => assert_eq!(inv.arg(0).len(), MAX_ARG_LEN),
+            other => panic!("perlu Ready, dapat {:?}", other),
+        }
+
+        // Baris hanya spasi dan baris kosong: jalur aritas, bukan panik.
+        assert_eq!(
+            parse_line("                                     "),
+            LineOutcome::NotCanonical
+        );
+        assert_eq!(parse_line(""), LineOutcome::NotCanonical);
+    }
+
+    #[test]
+    fn panic_guard_byte_kendali_nul_dan_utf8_rusak() {
+        // Kasus `-Kind bytes` LANGKAH 1: NUL, BEL, BS, TAB, ESC, '[', DEL,
+        // dan byte tak-UTF-8. Tiga jalur masuk dijalankan agar semua cabang
+        // mesin baris terkena.
+        for b in [0u8, 7, 8, 9, 27, 91, 0x7F, 0x80, 0xC3, 0xFF] {
+            let mut shell = CockpitShell::new();
+            let _ = shell.edit(b);
+            let mut shell2 = CockpitShell::new();
+            let _ = shell2.handle_char(b);
+            let mut shell3 = CockpitShell::new();
+            let _ = shell3.handle_input(b);
+            let _ = shell3.handle_input(b'\n');
+            assert!(shell3.current_line().is_empty());
+        }
+
+        // NUL dan ESC di dalam argumen: token pertama bukan nama registry.
+        assert_eq!(
+            parse_line("\u{0}create-file nama"),
+            LineOutcome::NotCanonical
+        );
+        assert!(matches!(
+            parse_line("open \u{1B}nama\u{7F}"),
+            LineOutcome::Ready(_)
+        ));
+    }
+
+    #[test]
+    fn panic_guard_argumen_berlebih_kutip_dan_indeks_di_luar() {
+        for e in REGISTRY.iter() {
+            let nama = e.name();
+            dengan_baris(nama, " a b c d e f g h i j", |baris| {
+                match parse_line(baris) {
+                    LineOutcome::Ready(inv) => {
+                        assert!(inv.argc <= MAX_ARGS);
+                        assert!(inv.argc >= e.min_args());
+                        assert!(inv.argc <= e.max_args());
+                    }
+                    LineOutcome::BadArity(syntax) => assert_eq!(syntax, e.syntax()),
+                    LineOutcome::NotCanonical => panic!("{} bukan kanonik", nama),
+                }
+            });
+
+            // Kutip dan garis miring menggantung hanyalah byte biasa.
+            for ekor in [" \"satu", " a\"b", " /", " //", " ..", " ../..", " nama/"] {
+                dengan_baris(nama, ekor, |b2| {
+                    assert!(matches!(
+                        parse_line(b2),
+                        LineOutcome::Ready(_)
+                            | LineOutcome::BadArity(_)
+                            | LineOutcome::NotCanonical
+                    ));
+                });
+            }
+        }
+
+        // Indeks di luar argc: string kosong, bukan keluar batas.
+        match parse_line("open satu") {
+            LineOutcome::Ready(inv) => {
+                assert_eq!(inv.arg(1), "");
+                assert_eq!(inv.arg(MAX_ARGS), "");
+                assert_eq!(inv.arg(MAX_ARGS + 7), "");
+                assert_eq!(inv.args()[0], "satu");
+                assert_eq!(inv.entry().name(), "open");
+            }
+            other => panic!("perlu Ready, dapat {:?}", other),
+        }
+    }
 }

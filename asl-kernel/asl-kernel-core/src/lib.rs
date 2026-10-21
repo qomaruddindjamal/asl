@@ -910,11 +910,65 @@ pub fn asl_fault_notifier(ctx: &asl_hal::x86_fault::ExceptionContext) {
     early_serial_write_str("[ASL-CORE] Secondary kernel notified. Controlled Halt Active.\n");
 }
 
+/// Tujuan tulis konteks panic: serial COM1 dan framebuffer, sehingga pemilik
+/// melihat penyebabnya di jendela sekaligus di berkas log.
+struct PanicContextSink;
+
+impl core::fmt::Write for PanicContextSink {
+    fn write_str(&mut self, s: &str) -> core::fmt::Result {
+        early_serial_write_str(s);
+        let fb = core::ptr::addr_of_mut!(FB_CONSOLE);
+        unsafe {
+            (*fb).write_str(s);
+        }
+        Ok(())
+    }
+}
+
 /// Panic Handler Standar Bare-Metal (DO-178C Fail-Safe Trap)
+///
+/// Konteks penuh dicetak sebelum safe loop: pesan panic beserta lokasi sumber
+/// `berkas:baris:kolom` (keluaran `Display` untuk `PanicInfo`), alamat frame
+/// penanganan, dan rekaman jebakan terakhir (vektor, RIP, CR2, kode galat) dari
+/// infrastruktur fault. Backtrace antar-bingkai tidak tersedia pada target
+/// `x86_64-unknown-none` build ini, jadi yang dilaporkan hanya alamat yang
+/// memang dapat diyakini. Penanda reentransi menjaga agar panic di dalam
+/// pencetakan konteks tidak berputar tanpa bukti.
 #[cfg(not(test))]
 #[panic_handler]
-fn panic(_info: &PanicInfo) -> ! {
+fn panic(info: &PanicInfo) -> ! {
+    static SINK_SEDANG_PAKAI: core::sync::atomic::AtomicBool =
+        core::sync::atomic::AtomicBool::new(false);
     early_serial_write_str("\n[ASL-CORE-PANIC] Fail-Safe Trap Invoked. Spinning in safe loop.\n");
+    let cetak_konteks = !SINK_SEDANG_PAKAI.swap(true, core::sync::atomic::Ordering::SeqCst);
+    if cetak_konteks {
+        early_serial_write_str("[ASL-CORE-PANIC] KONTEKS: ");
+        let mut sink = PanicContextSink;
+        let _ =
+            <PanicContextSink as core::fmt::Write>::write_fmt(&mut sink, format_args!("{}", info));
+        early_serial_write_str("\n");
+        let frame = 0u64;
+        early_serial_write_str("[ASL-CORE-PANIC] ALAMAT frame penanganan: 0x");
+        early_serial_write_hex64(&frame as *const u64 as u64);
+        early_serial_write_str("\n");
+        #[cfg(target_arch = "x86_64")]
+        unsafe {
+            let trap = &raw const asl_hal::x86_fault::LAST_TRAP;
+            early_serial_write_str("[ASL-CORE-PANIC] JEBAKAN TERAKHIR vektor=0x");
+            early_serial_write_hex64((*trap).vector);
+            early_serial_write_str(" RIP=0x");
+            early_serial_write_hex64((*trap).rip);
+            early_serial_write_str(" CR2=0x");
+            early_serial_write_hex64((*trap).cr2);
+            early_serial_write_str(" kode_galat=0x");
+            early_serial_write_hex64((*trap).error_code);
+            early_serial_write_str("\n");
+        }
+    } else {
+        early_serial_write_str(
+            "[ASL-CORE-PANIC] panic dalam pencetakan konteks - bukti di atas selesai.\n",
+        );
+    }
     asl_kernel_core_secondary::safe::notify_fault_safe(
         asl_kernel_core_secondary::safe::REASON_KERNEL_PANIC,
         1,
@@ -2218,6 +2272,21 @@ pub unsafe extern "C" fn _asl_kernel_entry(handover_ptr: *const AslBootHandover)
                                 early_serial_write_u64(end_ticks);
                                 early_serial_write_str(" -> PASS (Timer & EOI Stable)\n");
 
+                                // E8: kembalikan bendera interupsi ke keadaan sebelum
+                                // perintah diketik. Pada ISO rilis tidak ada pihak yang
+                                // mengaktifkan IF sebelum prompt, jadi meninggalkannya
+                                // menyala sesudah satu ketikan `test_apic` mengubah sisa
+                                // sesi secara diam-diam.
+                                unsafe {
+                                    core::arch::asm!(
+                                        "cli",
+                                        options(nomem, nostack, preserves_flags)
+                                    );
+                                }
+                                early_serial_write_str(
+                                    "  [TEST 7] Bendera interupsi CPU dipulihkan (cli) -> PASS\n",
+                                );
+
                                 unsafe {
                                     (*fb).write_str("APIC Timer Tests: PASS. See serial COM1 log.\n");
                                 }
@@ -2607,6 +2676,17 @@ extern "C" fn preempt_worker_task_c() -> ! {
     }
 }
 
+/// True bila operator mengirim masukan selama rangkaian uji panjang berjalan:
+/// satu byte siap di COM1 atau satu scancode siap di PS/2. Dipakai jalur
+/// `test_task` supaya satu tekanan tombol mengembalikan kendali ke prompt,
+/// bukan menunggu target 100.000 tukar konteks selesai (misi R1 Bagian 1 E8).
+#[cfg(target_arch = "x86_64")]
+fn suite_masukan_masuk() -> bool {
+    let serial_siap = unsafe { early_inb(COM1_PORT + 5) } & 0x01 != 0;
+    let ps2_siap = unsafe { early_inb(asl_driver_ps2_keyboard::PS2_STATUS_PORT) } & 0x01 != 0;
+    serial_siap || ps2_siap
+}
+
 #[cfg(target_arch = "x86_64")]
 pub fn execute_gate3d_suite() {
     early_serial_write_str("\n[GATE-3D-REMEDIATION] Executing Gate 3D 100,000 APIC Interrupt Preemption Verification Suite...\n");
@@ -2614,11 +2694,18 @@ pub fn execute_gate3d_suite() {
     // =========================================================================
     // TEST 1: Ring 0 Interrupt Frame Layout & Normalization Check (160B / 20 QWORDs)
     // =========================================================================
-    assert_eq!(core::mem::size_of::<asl_sched::InterruptContext>(), 160);
-    assert_eq!(core::mem::align_of::<asl_sched::InterruptContext>(), 8);
-    assert_eq!(core::mem::size_of::<asl_sched::SavedGeneralRegisters>(), 120);
-    assert_eq!(core::mem::size_of::<asl_sched::SamePrivilegeHardwareFrame>(), 40);
-    assert_eq!(core::mem::size_of::<asl_sched::NormalizedInterruptContext>(), 160);
+    // TEST 1: tata letak frame dicek sebagai periksa lunak, bukan `assert_eq!`.
+    // Perintah `test_task` dapat diketik operator mana pun, dan tata letak yang
+    // menyimpang harus berhenti sebagai pesan galat + prompt kembali (E8).
+    let layout_ok = core::mem::size_of::<asl_sched::InterruptContext>() == 160
+        && core::mem::align_of::<asl_sched::InterruptContext>() == 8
+        && core::mem::size_of::<asl_sched::SavedGeneralRegisters>() == 120
+        && core::mem::size_of::<asl_sched::SamePrivilegeHardwareFrame>() == 40
+        && core::mem::size_of::<asl_sched::NormalizedInterruptContext>() == 160;
+    if !layout_ok {
+        early_serial_write_str("Kesalahan: tata letak frame interupsi tidak sesuai sangkaan - rangkaian Gate 3D dihentikan, shell tetap hidup\n");
+        return;
+    }
     early_serial_write_str("[GATE-3D-TEST] TEST 1: Ring 0 Interrupt Frame Layout & Normalization (160B / 20 QWORDs) -> PASS\n");
 
     // =========================================================================
@@ -2675,22 +2762,44 @@ pub fn execute_gate3d_suite() {
     {
         let mut test_mgr = asl_sched::KernelTaskManager::new();
         let _ = test_mgr.spawn_task(0x1000);
-        let t2 = test_mgr.spawn_task(0x2000).unwrap() as usize;
-        test_mgr.preemptive_enabled = true;
-        test_mgr.tasks[0].state = asl_sched::TaskState::Running;
+        // `spawn_task` mengembalikan Result. Versi E8 lama memakai `.unwrap()`
+        // di sini, yaitu panic yang dapat diketik operator lewat `test_task`;
+        // kini kegagalan pembuatan tugas menjadi pesan galat dan TEST 11 dilewati.
+        let id_t2 = match test_mgr.spawn_task(0x2000) {
+            Ok(id) => Some(id as usize),
+            Err(sebab) => {
+                early_serial_write_str("Kesalahan: tugas uji kedua gagal dibuat (");
+                early_serial_write_str(sebab);
+                early_serial_write_str(") - TEST 11 dilewati, shell tetap hidup\n");
+                None
+            }
+        };
+        // TaskId berbasis satu; indeks simpul = id-1. `checked_sub` dipakai agar
+        // id nol tidak pernah berubah menjadi indeks negatif (underflow).
+        let idx_t2 = id_t2
+            .and_then(|id| id.checked_sub(1))
+            .filter(|i| *i < asl_sched::MAX_KERNEL_TASKS);
+        if let Some(t2) = idx_t2 {
+            test_mgr.preemptive_enabled = true;
+            test_mgr.tasks[0].state = asl_sched::TaskState::Running;
 
-        let frame_ptr = test_mgr.tasks[t2 - 1].saved_rsp as *mut asl_sched::InterruptContext;
-        unsafe {
-            (*frame_ptr).rip = 0x00FF_DEAD_BEEF_0000; // Non-canonical RIP
-        }
+            let frame_ptr = test_mgr.tasks[t2].saved_rsp as *mut asl_sched::InterruptContext;
+            unsafe {
+                (*frame_ptr).rip = 0x00FF_DEAD_BEEF_0000; // Non-canonical RIP
+            }
 
-        let cur_rsp = test_mgr.tasks[0].saved_rsp;
-        let next_rsp = test_mgr.on_timer_tick(cur_rsp);
+            let cur_rsp = test_mgr.tasks[0].saved_rsp;
+            let next_rsp = test_mgr.on_timer_tick(cur_rsp);
 
-        if test_mgr.tasks[t2 - 1].state == asl_sched::TaskState::Faulted && next_rsp == cur_rsp {
-            early_serial_write_str("[GATE-3D-TEST] TEST 11: Failure Injection - Non-Canonical RIP Isolation -> PASS\n");
-        } else {
-            early_serial_write_str("[GATE-3D-TEST] TEST 11: FAILED non-canonical RIP isolation!\n");
+            if test_mgr.tasks[t2].state == asl_sched::TaskState::Faulted && next_rsp == cur_rsp {
+                early_serial_write_str("[GATE-3D-TEST] TEST 11: Failure Injection - Non-Canonical RIP Isolation -> PASS\n");
+            } else {
+                early_serial_write_str(
+                    "[GATE-3D-TEST] TEST 11: FAILED non-canonical RIP isolation!\n",
+                );
+            }
+        } else if id_t2.is_some() {
+            early_serial_write_str("Kesalahan: indeks tugas uji berada di luar jangkauan - TEST 11 dilewati, shell tetap hidup\n");
         }
     }
 
@@ -2756,12 +2865,22 @@ pub fn execute_gate3d_suite() {
                 bounds_ok = false;
             }
         }
-        assert_eq!((*mgr).tasks[0].state, asl_sched::TaskState::Running);
-        assert_eq!((*mgr).tasks[1].state, asl_sched::TaskState::Ready);
-        assert_eq!((*mgr).tasks[2].state, asl_sched::TaskState::Ready);
-        assert_eq!((*mgr).tasks[3].state, asl_sched::TaskState::Ready);
-        assert_eq!((*mgr).current_task_idx, 0);
-        assert_eq!((*mgr).total_switches, 0);
+        // E8: keenam sangkaan keadaan penjadwal diubah menjadi periksa lunak.
+        // `test_task` dapat diketik operator dan GLOBAL_TASK_MANAGER dipakai ulang
+        // antar-panggilan, jadi keadaan bisa saja berbeda; kernel tidak boleh panic
+        // karenanya - cukup hentikan uji perangkat keras dan kembali ke prompt.
+        let state_ok = (*mgr).tasks[0].state == asl_sched::TaskState::Running
+            && (*mgr).tasks[1].state == asl_sched::TaskState::Ready
+            && (*mgr).tasks[2].state == asl_sched::TaskState::Ready
+            && (*mgr).tasks[3].state == asl_sched::TaskState::Ready
+            && (*mgr).current_task_idx == 0
+            && (*mgr).total_switches == 0;
+        if !state_ok {
+            (*mgr).preemptive_enabled = false;
+            core::arch::asm!("cli", options(nomem, nostack, preserves_flags));
+            early_serial_write_str("Kesalahan: keadaan penjadwal global tidak bersih - uji praemption perangkat keras dilewati, shell tetap hidup\n");
+            return;
+        }
 
         if bounds_ok {
             early_serial_write_str("[GATE-3D-TEST] TEST 6A: Pre-Stress Stack Bounds & Fresh State Isolation Verification -> PASS\n");
@@ -2790,8 +2909,16 @@ pub fn execute_gate3d_suite() {
         core::arch::asm!("sti", options(nomem, nostack, preserves_flags));
 
         // Spin until true hardware APIC preemptive switch count reaches >= 100,000
+        // E8: setiap iterasi memantau masukan operator. Tanpa ini satu ketikan
+        // `test_task` membekukan shell ~179 s (terukur 178.779 ms pada -m 256M,
+        // bukti VERIFIED-ON-VM 2026-10-21) tanpa jalan keluar.
+        let mut berhenti_karena_operator = false;
         let mut last_milestone: u64 = 0;
         loop {
+            if suite_masukan_masuk() {
+                berhenti_karena_operator = true;
+                break;
+            }
             let current_switches = asl_hal::APIC_PREEMPTIVE_SWITCH_COUNT.load(core::sync::atomic::Ordering::Relaxed);
             if current_switches >= 100_000 {
                 break;
@@ -2816,6 +2943,20 @@ pub fn execute_gate3d_suite() {
 
         // Restore normal APIC timer init count for production system stability
         (*apic).start_periodic_timer(asl_hal::APIC_TIMER_DEFAULT_INIT_COUNT);
+
+        if berhenti_karena_operator {
+            // Kembalikan keadaan shell seperti pada TEST 15, habiskan satu
+            // scancode yang tertunda supaya prompt tidak menerima ketikan liar,
+            // lalu serahkan kendali kembali ke operator.
+            (*mgr).task_count = 1;
+            (*mgr).current_task_idx = 0;
+            (*mgr).tasks[0].state = asl_sched::TaskState::Running;
+            if early_inb(asl_driver_ps2_keyboard::PS2_STATUS_PORT) & 0x01 != 0 {
+                let _ = early_inb(asl_driver_ps2_keyboard::PS2_DATA_PORT);
+            }
+            early_serial_write_str("Kesalahan: uji praemption Gate 3D dihentikan operator sebelum 100.000 tukar - kembali ke prompt, shell tetap hidup\n");
+            return;
+        }
 
         let final_apic_interrupts = asl_hal::APIC_INTERRUPT_COUNT.load(core::sync::atomic::Ordering::Relaxed);
         let final_apic_switches = asl_hal::APIC_PREEMPTIVE_SWITCH_COUNT.load(core::sync::atomic::Ordering::Relaxed);

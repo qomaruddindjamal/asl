@@ -323,26 +323,36 @@ Yang tersisa:
    "DILARANG menutup E8 tanpa akar penyebab terverifikasi"; yang terverifikasi
    sekarang adalah akar penyebab pembekuan `test_task`, bukan panic yang
    dilaporkan).
-3. **Utang ekstrak hosted CI (G8)** — daftarnya dihitung dari `gh api` dan dari
-   `git ls-files Analysis/reports/`, bukan dari ingatan.
-   *Sudah tertutup* (ekstraknya ter-commit di cabang ini): empat pasangan
-   peristiwa atas `17570f6`, `a141640`, `97d1834`, `53e226f` = delapan berkas
+3. **Utang ekstrak hosted CI (G8)** — daftarnya dihitung ulang dari `gh api`
+   (16 run pada cabang `feature/v1.0.2-r1`, seluruhnya `conclusion=success`) dan
+   dari `git ls-tree -r HEAD Analysis/reports`, bukan dari ingatan. Audit
+   per-commit tersimpan sebagai bukti di
+   `Analysis/reports/e8_l5c_audit-utang-ekstrak_2026-10-21.txt`, dibuat oleh
+   `scripts/r1_debt_audit.py` pada HEAD sebelum unit ini (baris `BELUM` pada
+   berkas itu adalah utang yang ditutup unit ini, bukan kegagalan).
+   *Sudah tertutup* sampai unit ini: delapan pasangan peristiwa — atas `17570f6`,
+   `a141640`, `97d1834`, `08ddd71`, `53e226f`, `1e2035f`, commit bukti `8f56625`
+   dan commit dokumen `12adcf1` — = enam belas berkas
    `Analysis/reports/ci_hosted_<id>_2026-10-21.log`, masing-masing membawa blok
-   CATATAN PER-RUN.
-   *Masih terbuka* pada saat ini: pasangan peristiwa atas `08ddd71`
-   (run 39632688905 push, 39632700077 pull_request), atas `1e2035f`
-   (39635248616, 39635257738) dan atas commit bukti `8f56625`
-   (39635662050, 39635669557). Keenam run itu `conclusion=success`; ekstrak
-   sebuah run hanya boleh masuk repo lewat commit SESUDAHNYA, jadi dua pasangan
-   pertama ikut unit dokumen ini dan pasangan `8f56625` mengikuti unit
-   berikutnya.
-   *Tidak dapat ditutup, dan ini fakta cara kerja CI bukan kelalaian*: tujuh
+   CATATAN PER-RUN. Empat ekstrak yang ikut unit ini terukur pada langkah [1/2]
+   dan [2/2]: 202 lulus / 0 gagal pada 30 suite, 19 baris `warning` profil test,
+   13 baris `Compiling` dengan 0 `warning` / 0 `error`, ELF sisi runner CI
+   325.184 byte.
+   *Masih terbuka*: hanya pasangan peristiwa atas commit yang menulis paragraf
+   ini sendiri. Aturan G8 melarang ekstrak sebuah run masuk commit milik run itu,
+   jadi penutupnya wajib ada di unit BERIKUTNYA dan paragraf ini akan kembali
+   belum lengkap sampai LANGKAH 7; itu konsekuensi aturan, bukan kekeliruan.
+   *Tidak dapat ditutup, dan ini fakta cara kerja CI bukan kelalaian*: SEPULUH
    commit di cabang ini tidak pernah punya run sendiri, karena satu peristiwa
-   push hanya memicu run untuk tip saat itu — `223e7f6`, `6bbd77d`, `939cc95`,
-   `d6c5b12`, `093a7d6`, `b9acd5b`, `ca582fa`. Tree ketujuh commit itu tetap
-   terverifikasi lewat run atas tip berikutnya yang membaca tree yang sama, dan
-   angka yang diharapkan di runner CI adalah **202 lulus / 0 gagal** (bukan 196)
-   karena perbaikan `.rs` E8 sudah hidup sejak `939cc95`.
+   push hanya memicu run untuk tip saat itu — `007d3dd`, `54abf73`, `4e865c0`
+   (tiga commit BAGIAN 0) serta `223e7f6`, `6bbd77d`, `939cc95`, `d6c5b12`,
+   `093a7d6`, `b9acd5b`, `ca582fa`. Yang terverifikasi pada run atas tip adalah
+   KUMPULAN perubahan sampai tip itu, bukan tree tiap commit secara individual,
+   dan itu dinyatakan apa adanya. Acuan angka: run ter-commit terdekat atas tip
+   pertama cabang (`17570f6`) mengukur 196 lulus / 0 gagal karena tree itu belum
+   memuat `.rs` E8, sedangkan run atas `97d1834` dan seterusnya mengukur **202
+   lulus / 0 gagal** karena perbaikan `.rs` E8 hidup sejak `6bbd77d` dan penjaga
+   regresinya sejak `939cc95`.
 4. **Laporan E8 final (LANGKAH 7)**: dokumen ini berlabel STATUS PEKERJAAN;
    laporan penutupan ditulis setelah jendela pemilik dan sesudah teks panic
    pemilik ada atau dinyatakan tidak tersedia.

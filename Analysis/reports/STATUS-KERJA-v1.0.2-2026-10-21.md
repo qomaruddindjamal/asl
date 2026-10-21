@@ -19,7 +19,7 @@ Kelas bukti yang dipakai di dokumen ini:
 
 | Label | Arti |
 |---|---|
-| VERIFIED-ON-HOST | Terukur di mesin ini (Windows/MSVC, build host) |
+| VERIFIED-ON-HOST | Terukur di mesin ini (host build, toolchain MSVC) |
 | VERIFIED-ON-CI | Terukur dari log runner hosted (GitHub Actions) |
 | VERIFIED-ON-CI-API | Terukur dari API GitHub (metadata run, state PR, proteksi branch) |
 | VERIFIED-ON-VM | Terukur di QEMU headless di mesin ini |
@@ -112,7 +112,7 @@ makna berbeda: lulus, boot-gagal, sesi belum lengkap, atau 3M merah tanpa peneri
 | Build release di host, direktori build baru | 0 error, 0 warning, 13 `Compiling` | VERIFIED-ON-HOST | `cargo build --package asl-kernel-bin --target x86_64-unknown-none --release` |
 | Build release di runner hosted | 0 error, 0 warning, 13 `Compiling` | VERIFIED-ON-CI | langkah [2/2] run 39534573189 |
 | Hosted CI atas tip `36cf856` | 2 peristiwa, dua-duanya `success` | VERIFIED-ON-CI-API | run 39534573189 (push) + 39534577564 (pull_request) |
-| ELF runner Linux | 325.584 byte | VERIFIED-ON-CI | `ls -l` pada langkah bukti footprint |
+| ELF runner CI | 325.584 byte | VERIFIED-ON-CI | `ls -l` pada langkah bukti footprint |
 | ELF build host | 325.528 byte, SHA256 `9203864e...a27b216` | VERIFIED-ON-HOST | `sha256sum` + `wc -c` |
 | ELF dari direktori build keempat | 325.528 byte, hash identik `9203864e...` | VERIFIED-ON-HOST | build dari nol di `logs/target_p8check` |
 | Blok tabel coverage 13 baris | SHA256 `94ee1504...da493` (gabungan LF) | VERIFIED-ON-CI | region llvm-cov pada job coverage |

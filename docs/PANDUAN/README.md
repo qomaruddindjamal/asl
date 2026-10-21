@@ -47,7 +47,7 @@ diuji) dan klaim tangkapan layar dari mesin virtual headless.
 
 ## Pasal 4 - Batasan panduan ini
 
-- Menyelaskan build `x86_64-unknown-none` pada host Windows dan QEMU `q35`.
+- Menyelaskan build `x86_64-unknown-none` di host build dan QEMU `q35`.
   Jalur aarch64 punya skrip sendiri (`-Action build-aarch64`, `-Action
   run-qemu-aarch64`) dan tidak dijanjikan pada rilis ini.
 - Menyimpan berkas panduannya di repositori, tetapi tidak menyimpan artefak hasil

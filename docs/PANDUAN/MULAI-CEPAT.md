@@ -8,8 +8,8 @@ perintah di bawah adalah perintah yang benar-benar dipakai pipeline repo ini.
 
 ## Pasal 2 - Prasyarat
 
-- Windows dengan PowerShell 5.1 (`powershell.exe`). `pwsh` tidak diasumsikan ada.
-- Rust untuk host `x86_64-pc-windows-msvc` dan target bare-metal
+- PowerShell 5.1 (`powershell.exe`) di host build. `pwsh` tidak diasumsikan ada.
+- Rust dengan toolchain MSVC untuk host build, dan target bare-metal
   `x86_64-unknown-none`. Versi yang terukur saat panduan ini ditulis:
   `rustc 1.99.0 (b940084d7 2026-09-28)` (`VERIFIED-ON-HOST`).
 - QEMU di `C:\Program Files\qemu\qemu-system-x86_64.exe` (lokasi ini yang dibaca

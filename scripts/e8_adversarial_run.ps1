@@ -7,7 +7,7 @@
 #     sehingga baris masukan dapat dikirim secara deterministik dan seluruh
 #     keluaran serial tertangkap byte-per-byte ke berkas bukti.
 #   - Kernel mempoll COM1 sebagai sumber masukan (asl-kernel-core/src/lib.rs
-#   1754-1763) dan menormalisasi 0x0D menjadi 0x0A, jadi satu 0x0A sudah cukup
+#   1804-1819) dan menormalisasi 0x0D menjadi 0x0A, jadi satu 0x0A sudah cukup
 #     sebagai penutup baris.
 #   - Jendela tetap TERLIHAT: sengaja tidak ada "-display none" dan tidak ada
 #     opsi penyembunyi jendela (aturan G9 - alat ini bukan alat senyap).
@@ -31,6 +31,8 @@
 # Pemakaian:
 #   powershell -ExecutionPolicy Bypass -File scripts\e8_adversarial_run.ps1 -SelfTest
 #   powershell -ExecutionPolicy Bypass -File scripts\e8_adversarial_run.ps1
+#   powershell -ExecutionPolicy Bypass -File scripts\e8_adversarial_run.ps1 -IncludeDiagnostics
+#   powershell -ExecutionPolicy Bypass -File scripts\e8_adversarial_run.ps1 -StopKeyDelaySeconds 25
 #   powershell -ExecutionPolicy Bypass -File scripts\e8_adversarial_run.ps1 -StopQemu
 # =============================================================================
 param(
@@ -43,7 +45,12 @@ param(
     [int]$CaseTimeoutSeconds = 45,
     [int]$QuietMilliseconds = 400,
     [int]$BasePort = 14721,
-    [string]$ExpectedIsoSha = "aa77806018d7a9009bb705e29e71d33724a6b50fc3a5cf62de24133359c74de9"
+    [int]$StopKeyDelaySeconds = 0,
+    # Sidik jari ISO adalah penanda PER-TREE: setiap perubahan berkas sumber
+    # menghasilkan ISO baru. Nilai bawaan ini adalah ISO pada tree tempat alat
+    # terakhir dikalibrasi (lihat dokumen E8 Bagian 5); bangun ulang ISO berarti
+    # mengoperkan -ExpectedIsoSha yang baru, bukan memaksakan nilai lama.
+    [string]$ExpectedIsoSha = "0391c41149ec66a565f03e9cada637ef7281179c5f6c820e6044dc22300b74de"
 )
 
 $ErrorActionPreference = "Continue"
@@ -246,7 +253,10 @@ if ($SelfTest) {
     }
     Write-Host "  mesin              : $QemuExe"
     Write-Host "  serial             : chardev socket TCP 127.0.0.1 (porta $BasePort dan seterusnya), berjendela"
-    Write-Host "  kode keluar        : 0=tanpa panic, 1=prasyarat merah, 2=REPRODUKSI POSITIF, 3=QEMU keluar tanpa penanda"
+    Write-Host "  kode keluar        : 0=tanpa panic, 1=prasyarat merah, 2=REPRODUKSI POSITIF, 3=QEMU keluar tanpa penanda
+  tombol penghenti   : -StopKeyDelaySeconds N menjalankan HANYA verifikasi perbaikan A4 pada boot segar
+                       (token 'test_task', lalu satu byte setelah N detik harus menghentikan loop 100.000
+                       tukar dan mengembalikan prompt dengan pesan operator)"
     exit 0
 }
 
@@ -408,6 +418,44 @@ $rows = New-Object System.Collections.Generic.List[string]
 $rows.Add("id`tlabel`thasil_pokok`tjenis_kirim`tbyte_kirim`tdetik_mm`tkiriminput_terlihat`tteks_balasan_terpotong")
 
 $repro = @()
+
+# ------------- fase 1.5: verifikasi tombol penghenti (perbaikan A4), opsional
+# Dijalankan pada boot SEGAR, sebelum kasus lain, karena rangkaian Gate 3D
+# meninggalkan keadaan penjadwal bila dipanggil dua kali. Satu token 'test_task'
+# memulai loop 100.000 tukar; satu byte yang dikirim di tengah loop HARUS
+# menghentikan rangkaian dan mengembalikan prompt dengan pesan operator.
+if ($StopKeyDelaySeconds -gt 0) {
+    $marker = "dihentikan operator"
+    $sebelum = $sb.Length
+    $t0 = Get-Date
+    $kirim = Send-Line "test_task"
+    Start-Sleep -Seconds $StopKeyDelaySeconds
+    $b = New-Object byte[] 1
+    $b[0] = [byte][char]'x'
+    $stream.Write($b, 0, 1); $stream.Flush()
+    $script:bytesOut += 1
+    $batas = $CaseTimeoutSeconds + 300
+    $settled = Wait-Prompt 1 $batas
+    $elap = [int]((Get-Date) - $t0).TotalMilliseconds
+    $reply = ""
+    if ($sb.Length -gt $sebelum) { $reply = $sb.ToString($sebelum, $sb.Length - $sebelum) }
+    $crash = Crash-Found $reply
+    $adaPesan = $reply.Contains($marker)
+    Sum ""
+    Sum "=== FASE 1.5 - verifikasi tombol penghenti (perbaikan A4) ==="
+    Sum "  byte token   : $kirim; satu byte 'x' dikirim setelah $StopKeyDelaySeconds s; batas $batas s"
+    Sum "  prompt kembali=$settled elapsed_ms=$elap pesan_operator=$adaPesan crash=$(if ($crash) { $crash } else { 'TIDAK' })"
+    $rows.Add("V-HALT`ttest_task lalu satu byte penghenti`t$(if ($settled -and $adaPesan -and -not $crash) { 'LULUS' } else { 'GAGAL' })`ttoken+1byte`t$($kirim + 1)`t$elap`t$settled`t$(Show-Text ($reply -replace "[\r\n]+", ' | ') 240)")
+    if (-not $settled -or -not $adaPesan -or $crash) {
+        $repro += "V-HALT tombol penghenti tidak bekerja (prompt=$settled pesan=$adaPesan crash=$crash)"
+        Sum "  [GAGAL] loop 100.000 tukar tidak berhenti oleh satu ketikan, atau pesan operator tidak tercetak."
+    } else {
+        Sum "  [LULUS] loop dihentikan satu ketikan; prompt kembali; shell tetap hidup."
+    }
+    # Mode verifikasi: hanya fase ini yang dijalankan, keadaan boot tetap bersih.
+    $Seq = @()
+}
+
 $caseNo = 0
 foreach ($c in $Seq) {
     $caseNo++

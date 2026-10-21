@@ -1,0 +1,1914 @@
+Diff in \\?\C:\asl\asl-kernel\asl-cctv-dma\src\lib.rs:185:
+             .validate_pin(lease_uv)
+             .map_err(|_| "ERR_STALE_DMA_LEASE")?;
+         let frame = &self.channels[ch][slot];
+-        if frame.physical_address_y != lease_y.iova() || frame.physical_address_uv != lease_uv.iova()
++        if frame.physical_address_y != lease_y.iova()
++            || frame.physical_address_uv != lease_uv.iova()
+         {
+             return Err("ERR_LEASE_FRAME_MISMATCH");
+         }
+Diff in \\?\C:\asl\asl-kernel\asl-cockpit-shell\src\lib.rs:1204:
+         args_line: &str,
+         group_line: &str,
+     ) {
+-        assert!(pos < REGISTRY.len(), "dokumen punya blok ke-{} melewati registry", pos + 1);
++        assert!(
++            pos < REGISTRY.len(),
++            "dokumen punya blok ke-{} melewati registry",
++            pos + 1
++        );
+         let entry = REGISTRY[pos];
+         assert_eq!(heading, entry.name(), "judul blok #{:?}", pos + 1);
+         assert_eq!(name, entry.name(), "bidang Nama pada {}", entry.name());
+Diff in \\?\C:\asl\asl-kernel\asl-cockpit-shell\src\lib.rs:1211:
+-        assert_eq!(syntax, entry.syntax(), "bidang Sintaks pada {}", entry.name());
+-        assert_eq!(summary, entry.summary(), "bidang Ringkasan pada {}", entry.name());
++        assert_eq!(
++            syntax,
++            entry.syntax(),
++            "bidang Sintaks pada {}",
++            entry.name()
++        );
++        assert_eq!(
++            summary,
++            entry.summary(),
++            "bidang Ringkasan pada {}",
++            entry.name()
++        );
+         // Bidang Argumen: urutan bilangan = (minimum, maksimum) registry.
+         assert_eq!(
+             two_numbers(args_line),
+Diff in \\?\C:\asl\asl-kernel\asl-cockpit-shell\src\lib.rs:1218:
+             entry.name(),
+             args_line
+         );
+-        assert_eq!(group_line, entry.category().label(), "bidang Kelompok pada {}", entry.name());
++        assert_eq!(
++            group_line,
++            entry.category().label(),
++            "bidang Kelompok pada {}",
++            entry.name()
++        );
+         let wanted = entry.aliases();
+         if alias_line == "-" {
+             assert_eq!(
+Diff in \\?\C:\asl\asl-kernel\asl-cockpit-shell\src\lib.rs:1242:
+                 entry.name(),
+                 seen + 1
+             );
+-            assert_eq!(alias, wanted[seen], "{}: alias ke-{} tidak sinkron", entry.name(), seen + 1);
++            assert_eq!(
++                alias,
++                wanted[seen],
++                "{}: alias ke-{} tidak sinkron",
++                entry.name(),
++                seen + 1
++            );
+             seen += 1;
+         }
+         assert_eq!(
+Diff in \\?\C:\asl\asl-kernel\asl-cockpit-shell\src\lib.rs:1289:
+             if let Some(h) = line.strip_prefix("### ") {
+                 if let Some(prev) = heading {
+                     check_doc_block(
+-                        checked,
+-                        prev,
+-                        name,
+-                        syntax,
+-                        summary,
+-                        alias_line,
+-                        args_line,
+-                        group_line,
++                        checked, prev, name, syntax, summary, alias_line, args_line, group_line,
+                     );
+                     checked += 1;
+                 }
+Diff in \\?\C:\asl\asl-kernel\asl-cockpit-shell\src\lib.rs:1328:
+         }
+         if let Some(prev) = heading {
+             check_doc_block(
+-                checked,
+-                prev,
+-                name,
+-                syntax,
+-                summary,
+-                alias_line,
+-                args_line,
+-                group_line,
++                checked, prev, name, syntax, summary, alias_line, args_line, group_line,
+             );
+             checked += 1;
+         }
+Diff in \\?\C:\asl\asl-kernel\asl-cockpit-shell\src\lib.rs:1342:
+ 
+         // Dokumen tidak boleh kurang ATAU lebih blok dari registry.
+         assert_eq!(
+-            checked,
+-            CANONICAL_COMMAND_COUNT,
++            checked, CANONICAL_COMMAND_COUNT,
+             "blok perintah di dokumen != jumlah registry"
+         );
+     }
+Diff in \\?\C:\asl\asl-kernel\asl-cockpit-shell\src\lib.rs:1440:
+         }
+         // Nama lama TIDAK boleh diambil alih registry agar jalur lama tetap hidup.
+         for lama in [
+-            "meminfo", "cpuinfo", "uname", "lspci", "lsblk", "fdisk", "mount", "failover",
+-            "reboot", "halt", "test_pml4", "test_apic", "test_task", "trap_de", "trap_bp",
+-            "trap_pf", "trap_df",
++            "meminfo",
++            "cpuinfo",
++            "uname",
++            "lspci",
++            "lsblk",
++            "fdisk",
++            "mount",
++            "failover",
++            "reboot",
++            "halt",
++            "test_pml4",
++            "test_apic",
++            "test_task",
++            "trap_de",
++            "trap_bp",
++            "trap_pf",
++            "trap_df",
+         ] {
+-            assert!(find_entry(lama).is_none(), "registry mengambil alih {}", lama);
++            assert!(
++                find_entry(lama).is_none(),
++                "registry mengambil alih {}",
++                lama
++            );
+         }
+     }
+ 
+Diff in \\?\C:\asl\asl-kernel\asl-cockpit-shell\src\lib.rs:1638:
+     fn test_help_text_is_generated_from_registry() {
+         let mut buf = [0u8; 8192];
+         let text = capture_help(None, &mut buf);
+-        assert!(text.len() > 400, "keluaran help terlalu pendek: {}", text.len());
++        assert!(
++            text.len() > 400,
++            "keluaran help terlalu pendek: {}",
++            text.len()
++        );
+ 
+         for e in REGISTRY {
+             assert!(text.contains(e.name()), "help tidak memuat {}", e.name());
+Diff in \\?\C:\asl\asl-kernel\asl-hal\src\apic.rs:59:
+ /// EOI write counter: tepat satu kali per APIC timer interrupt entry
+ pub static EOI_WRITE_COUNT: AtomicU64 = AtomicU64::new(0);
+ 
+-
+ /// Driver Local APIC Controller
+ pub struct LocalApic {
+     pub virtual_base: u64,
+Diff in \\?\C:\asl\asl-kernel\asl-hal\src\apic.rs:94:
+     }
+ 
+     /// Inisialisasi Local APIC dari virtual address HHDM
+-    pub unsafe fn init(&mut self, virtual_base: u64, physical_base: u64) -> Result<(), &'static str> {
++    pub unsafe fn init(
++        &mut self,
++        virtual_base: u64,
++        physical_base: u64,
++    ) -> Result<(), &'static str> {
+         let msr_val = Self::read_apic_base();
+         let phys_from_msr = msr_val & 0x000F_FFFF_F000;
+         if phys_from_msr != physical_base {
+Diff in \\?\C:\asl\asl-kernel\asl-hal\src\dma_space.rs:340:
+     }
+ 
+     /// Pin read-only: device hanya boleh membaca rentang tsb (RX-style guard).
+-    pub fn pin_ro(&mut self, partition_id: u32, phys: u64, len: u64) -> Result<IovaLease, DmaError> {
++    pub fn pin_ro(
++        &mut self,
++        partition_id: u32,
++        phys: u64,
++        len: u64,
++    ) -> Result<IovaLease, DmaError> {
+         self.pin_internal(partition_id, phys, len, true)
+     }
+ }
+Diff in \\?\C:\asl\asl-kernel\asl-hal\src\dma_space.rs:350:
+         self.pin_internal(partition_id, phys, len, false)
+     }
+ 
+-    fn unpin(&mut self, lease: &IovaLease) -> Result<(), DmaError> {        if lease.slot() >= BOUNCE_SLOT_COUNT {
++    fn unpin(&mut self, lease: &IovaLease) -> Result<(), DmaError> {
++        if lease.slot() >= BOUNCE_SLOT_COUNT {
+             return Err(DmaError::GenerationMismatch);
+         }
+         let s = &mut self.slots[lease.slot()];
+Diff in \\?\C:\asl\asl-kernel\asl-hal\src\dma_space.rs:801:
+     fn tm02_pin_outside_region_and_misaligned_rejected() {
+         let mut space = bounce_with_regions();
+         // Di luar window partisi 1
+-        assert_eq!(space.pin(1, 0x3000_0000, 0x100), Err(DmaError::PermissionDenied));
++        assert_eq!(
++            space.pin(1, 0x3000_0000, 0x100),
++            Err(DmaError::PermissionDenied)
++        );
+         // Milik window partisi 2 tapi diminta atas nama partisi 1
+-        assert_eq!(space.pin(1, 0x2000_0000, 0x100), Err(DmaError::PermissionDenied));
++        assert_eq!(
++            space.pin(1, 0x2000_0000, 0x100),
++            Err(DmaError::PermissionDenied)
++        );
+         // Alamat tidak selaras 64-byte cache line
+         assert_eq!(space.pin(1, 0x1000_0001, 0x100), Err(DmaError::Misaligned));
+         // Panjang nol
+Diff in \\?\C:\asl\asl-kernel\asl-hal\src\dma_space.rs:810:
+         assert_eq!(space.pin(1, 0x1000_0000, 0), Err(DmaError::Misaligned));
+         // Melintasi batas akhir region
+-        assert_eq!(space.pin(1, 0x1000_FF80, 0x100), Err(DmaError::PermissionDenied));
++        assert_eq!(
++            space.pin(1, 0x1000_FF80, 0x100),
++            Err(DmaError::PermissionDenied)
++        );
+     }
+ 
+     #[test]
+Diff in \\?\C:\asl\asl-kernel\asl-hal\src\dma_space.rs:837:
+                 .expect("slot harus tersedia selama lease ditahan");
+             held[i] = Some(lease);
+         }
+-        assert_eq!(
+-            space.pin(1, 0x1000_1000, 0x100),
+-            Err(DmaError::OutOfSlots)
+-        );
++        assert_eq!(space.pin(1, 0x1000_1000, 0x100), Err(DmaError::OutOfSlots));
+         // Setelah release, pin baru berhasil
+         let first = held[0].take().unwrap();
+         assert_eq!(space.unpin(&first), Ok(()));
+Diff in \\?\C:\asl\asl-kernel\asl-hal\src\dma_space.rs:854:
+         assert_eq!(space.validate_lease(&lease), Ok(()));
+         assert_eq!(space.unpin(&lease), Ok(()));
+         // Lease lama (stale) wajib ditolak selamanya
+-        assert_eq!(space.validate_lease(&lease), Err(DmaError::GenerationMismatch));
++        assert_eq!(
++            space.validate_lease(&lease),
++            Err(DmaError::GenerationMismatch)
++        );
+         assert_eq!(space.unpin(&lease), Err(DmaError::GenerationMismatch));
+         // Double-unpun juga ditolak
+         assert_eq!(space.unpin(&lease), Err(DmaError::GenerationMismatch));
+Diff in \\?\C:\asl\asl-kernel\asl-hal\src\dma_space.rs:865:
+         let mut space = bounce_with_regions();
+         let payload = [0xABu8; 256];
+         let lease = space.stage(1, &payload).unwrap();
+-        assert_eq!(lease.iova(), 0x4000_0000 + (lease.slot() * BOUNCE_SLOT_SIZE) as u64);
++        assert_eq!(
++            lease.iova(),
++            0x4000_0000 + (lease.slot() * BOUNCE_SLOT_SIZE) as u64
++        );
+ 
+         // Device atas nama partisi 1 membaca pool bounce -> diizinkan
+         let res = space.translate_and_check(1, lease.iova(), 256, false);
+Diff in \\?\C:\asl\asl-kernel\asl-hal\src\dma_space.rs:903:
+         assert_eq!(iova, 0x5000_0000);
+         assert_eq!(space.iova_alloc(3, 0), Err(DmaError::RangeOutOfBounds));
+         assert_eq!(space.iova_dealloc(3, iova, 0x100), Ok(()));
+-        assert_eq!(space.iova_dealloc(3, iova, 0x100), Err(DmaError::GenerationMismatch));
++        assert_eq!(
++            space.iova_dealloc(3, iova, 0x100),
++            Err(DmaError::GenerationMismatch)
++        );
+ 
+         // Backend lama (Identity/MpuFirewall/IommuTranslation) tidak mendukung
+         // jalur lease -> wajib Err(NotPinned), bukan silently Ok.
+Diff in \\?\C:\asl\asl-kernel\asl-hal\src\dma_space.rs:910:
+-        let mut identity = IdentityDmaSpace { max_physical_limit: 0x2000_0000 };
++        let mut identity = IdentityDmaSpace {
++            max_physical_limit: 0x2000_0000,
++        };
+         assert_eq!(identity.pin(1, 0x1000, 0x100), Err(DmaError::NotPinned));
+         let mut mpu = MpuFirewallDmaSpace {
+             partition_windows: [(1, 0x1000_0000, 0x1001_0000); 8],
+Diff in \\?\C:\asl\asl-kernel\asl-hal\src\lib.rs:17:
+ 
+ pub mod dma_space;
+ pub use dma_space::{
+-    BOUNCE_SLOT_COUNT, BOUNCE_SLOT_SIZE, BounceAddressSpace, DmaAddressFault, DmaAddressSpace,
+-    DmaDeviceAddress, DmaError, DmaFaultRecord, IdentityDmaSpace, IommuTranslationSpace,
+-    IovaLease, MpuFirewallDmaSpace,
++    BounceAddressSpace, DmaAddressFault, DmaAddressSpace, DmaDeviceAddress, DmaError,
++    DmaFaultRecord, IdentityDmaSpace, IommuTranslationSpace, IovaLease, MpuFirewallDmaSpace,
++    BOUNCE_SLOT_COUNT, BOUNCE_SLOT_SIZE,
+ };
+ 
+ pub mod vtd;
+Diff in \\?\C:\asl\asl-kernel\asl-hal\src\lib.rs:26:
+ pub use vtd::{
+     DmarInfo, QiDesc, VtdAddressSpace, VtdFaultRecord, VTD_DOMAIN_COUNT, VTD_FAULT_RING,
+-    VTD_GCMD_TE, VTD_GSTS_TE, VTD_IOVA_BASE, VTD_QI_RING, VTD_REG_CAP, VTD_REG_ECAP,
+-    VTD_REG_GCMD, VTD_REG_GSTS, VTD_REG_IQA, VTD_REG_IQH, VTD_REG_IQT, VTD_REG_RTADDR,
+-    VTD_REG_VER, VTD_SLOT_COUNT,
++    VTD_GCMD_TE, VTD_GSTS_TE, VTD_IOVA_BASE, VTD_QI_RING, VTD_REG_CAP, VTD_REG_ECAP, VTD_REG_GCMD,
++    VTD_REG_GSTS, VTD_REG_IQA, VTD_REG_IQH, VTD_REG_IQT, VTD_REG_RTADDR, VTD_REG_VER,
++    VTD_SLOT_COUNT,
+ };
+ 
+ pub mod x86_fault;
+Diff in \\?\C:\asl\asl-kernel\asl-hal\src\vtd.rs:18:
+ //! reason umum; nilai diverifikasi ulang lewat log probe QM-01 pada QEMU 10.2 —
+ //! jika probe runtime berbeda, log serial adalah sumber kebenaran.
+ 
+-use crate::dma_space::{
+-    DmaAddressFault, DmaAddressSpace, DmaDeviceAddress, DmaError, IovaLease,
+-};
++use crate::dma_space::{DmaAddressFault, DmaAddressSpace, DmaDeviceAddress, DmaError, IovaLease};
+ 
+ /// ============================== REGISTER MAP ==============================
+ /// Offset MMIO relatif terhadap DRHD register_base.
+Diff in \\?\C:\asl\asl-kernel\asl-hal\src\vtd.rs:150:
+     let len = core::cmp::min(rd_u32(root, 4) as usize, root.len());
+     let mut off = 36usize;
+     while off + if wide { 8 } else { 4 } <= len {
+-        let ptr = if wide { rd_u64(root, off) } else { rd_u32(root, off) as u64 };
++        let ptr = if wide {
++            rd_u64(root, off)
++        } else {
++            rd_u32(root, off) as u64
++        };
+         if ptr != 0 && &read8(ptr)[0..4] == sig {
+             return Some(ptr);
+         }
+Diff in \\?\C:\asl\asl-kernel\asl-hal\src\vtd.rs:193:
+             let segment = rd_u16(dmar, off + 6);
+             let base = rd_u64(dmar, off + 8);
+             if segment == 0 && found.is_none() && base != 0 {
+-                found = Some(DmarInfo { register_base: base, drhd_count: 0 });
++                found = Some(DmarInfo {
++                    register_base: base,
++                    drhd_count: 0,
++                });
+             }
+         }
+         off += slen;
+Diff in \\?\C:\asl\asl-kernel\asl-hal\src\vtd.rs:317:
+ }
+ 
+ pub const fn qi_context_invalidate() -> QiDesc {
+-    QiDesc { lo: QI_OP_CONTEXT_INV, hi: 0 }
++    QiDesc {
++        lo: QI_OP_CONTEXT_INV,
++        hi: 0,
++    }
+ }
+ 
+ pub const fn qi_wait() -> QiDesc {
+Diff in \\?\C:\asl\asl-kernel\asl-hal\src\vtd.rs:590:
+     }
+ 
+     fn domain_of(&self, partition_id: u32) -> Option<usize> {
+-        (0..self.domains.len()).find(|&i| self.domains[i].in_use && self.domains[i].partition_id == partition_id)
++        (0..self.domains.len())
++            .find(|&i| self.domains[i].in_use && self.domains[i].partition_id == partition_id)
+     }
+ 
+     pub fn domain_window(&self, domain: usize) -> Option<(u64, u64)> {
+Diff in \\?\C:\asl\asl-kernel\asl-hal\src\vtd.rs:655:
+     }
+ 
+     /// Pin RO untuk jalur RX (fill descriptor tidak boleh writable DMA).
+-    pub fn pin_ro(&mut self, partition_id: u32, phys: u64, len: u64) -> Result<IovaLease, DmaError> {
++    pub fn pin_ro(
++        &mut self,
++        partition_id: u32,
++        phys: u64,
++        len: u64,
++    ) -> Result<IovaLease, DmaError> {
+         self.pin_internal(partition_id, phys, len, false)
+     }
+ 
+Diff in \\?\C:\asl\asl-kernel\asl-hal\src\vtd.rs:717:
+         };
+         self.push_qi(qi_global_iotlb_invalidate());
+         self.push_qi(qi_wait());
+-        Ok(IovaLease::new(base_iova + off, len, partition_id, slot, gen))
++        Ok(IovaLease::new(
++            base_iova + off,
++            len,
++            partition_id,
++            slot,
++            gen,
++        ))
+     }
+ 
+     pub fn validate_lease(&self, lease: &IovaLease) -> Result<(), DmaError> {
+Diff in \\?\C:\asl\asl-kernel\asl-hal\src\vtd.rs:738:
+     /// Telemetri slot: (iova, len, read_only) untuk validasi test/serial.
+     pub fn slot_info(&self, idx: usize) -> Option<(u64, u64, bool)> {
+         if idx < VTD_SLOT_COUNT && self.slots[idx].in_use {
+-            Some((self.slots[idx].iova, self.slots[idx].len, self.slots[idx].read_only))
++            Some((
++                self.slots[idx].iova,
++                self.slots[idx].len,
++                self.slots[idx].read_only,
++            ))
+         } else {
+             None
+         }
+Diff in \\?\C:\asl\asl-kernel\asl-hal\src\vtd.rs:757:
+         let owner = (0..self.domains.len()).find(|&i| {
+             self.domains[i].in_use
+                 && buffer_addr >= self.domains[i].base_iova
+-                && (buffer_addr + size_bytes as u64) <= self.domains[i].base_iova + VTD_DOMAIN_WINDOW
++                && (buffer_addr + size_bytes as u64)
++                    <= self.domains[i].base_iova + VTD_DOMAIN_WINDOW
+         });
+         let d = match owner {
+             Some(d) => d,
+Diff in \\?\C:\asl\asl-kernel\asl-hal\src\vtd.rs:766:
+         if self.domains[d].partition_id != partition_id {
+             return Err(DmaAddressFault::CrossPartitionViolation);
+         }
+-        match sl_walk(&self.domains[d].table, self.domains[d].base_iova, buffer_addr, size_bytes, is_write) {
++        match sl_walk(
++            &self.domains[d].table,
++            self.domains[d].base_iova,
++            buffer_addr,
++            size_bytes,
++            is_write,
++        ) {
+             Ok(phys) => Ok(DmaDeviceAddress(phys)),
+             Err(VtdWalkFault::NotPresent) => Err(DmaAddressFault::TranslationNotPresent),
+             Err(VtdWalkFault::Permission) => Err(DmaAddressFault::ProtectionFaultReadOnly),
+Diff in \\?\C:\asl\asl-kernel\asl-hal\src\vtd.rs:865:
+ 
+ const fn rd_u64(b: &[u8], o: usize) -> u64 {
+     u64::from_le_bytes([
+-        b[o], b[o + 1], b[o + 2], b[o + 3], b[o + 4], b[o + 5], b[o + 6], b[o + 7],
++        b[o],
++        b[o + 1],
++        b[o + 2],
++        b[o + 3],
++        b[o + 4],
++        b[o + 5],
++        b[o + 6],
++        b[o + 7],
+     ])
+ }
+ 
+Diff in \\?\C:\asl\asl-kernel\asl-hal\src\vtd.rs:923:
+         xsdt[4..8].copy_from_slice(&(36u32 + 16).to_le_bytes());
+         xsdt[36..44].copy_from_slice(&0x10u64.to_le_bytes());
+         xsdt[44..52].copy_from_slice(&0x20u64.to_le_bytes());
+-        let sigs: [(u64, [u8; 8]); 2] = [
+-            (0x10, *b"APIC\0\0\0\0"),
+-            (0x20, *b"DMAR\0\0\0\0"),
+-        ];
++        let sigs: [(u64, [u8; 8]); 2] = [(0x10, *b"APIC\0\0\0\0"), (0x20, *b"DMAR\0\0\0\0")];
+         let read8 = |phys: u64| -> [u8; 8] {
+             for (a, s) in sigs.iter() {
+                 if *a == phys {
+Diff in \\?\C:\asl\asl-kernel\asl-hal\src\vtd.rs:945:
+         t[0..4].copy_from_slice(b"DMAR");
+         t[4..8].copy_from_slice(&64u32.to_le_bytes());
+         t[8] = 1; // revision
+-        // header 48 byte -> subtable DRHD di offset 48:
+-        // type u8@0, length u8@1, spec ver u16@2, flags u8@4, reserved u8@5,
+-        // segment u16@6, register base u64@8
++                  // header 48 byte -> subtable DRHD di offset 48:
++                  // type u8@0, length u8@1, spec ver u16@2, flags u8@4, reserved u8@5,
++                  // segment u16@6, register base u64@8
+         t[48] = 0; // type DRHD
+         t[49] = 16; // length
+         t[52..54].copy_from_slice(&1u16.to_le_bytes()); // spec version
+Diff in \\?\C:\asl\asl-kernel\asl-hal\src\vtd.rs:965:
+         t[4..8].copy_from_slice(&120u32.to_le_bytes());
+         t[8] = 1; // revision
+         t[36] = 0x2F; // host address width
+-        // subtable DRHD @48
++                      // subtable DRHD @48
+         t[48..50].copy_from_slice(&0u16.to_le_bytes()); // type 2-byte
+         t[50..52].copy_from_slice(&72u16.to_le_bytes()); // length 2-byte
+         t[54..56].copy_from_slice(&0u16.to_le_bytes()); // segment 0
+Diff in \\?\C:\asl\asl-kernel\asl-hal\src\vtd.rs:1014:
+         table[1] = sl_leaf(0x4000_1000, false);
+         let base = VTD_IOVA_BASE;
+         assert_eq!(sl_walk(&table, base, base, 4096, true), Ok(0x4000_0000));
+-        assert_eq!(sl_walk(&table, base, base + 0x1040, 16, false), Ok(0x4000_1040));
+-        assert_eq!(sl_walk(&table, base, base + 0x1000, 16, true), Err(VtdWalkFault::Permission));
+-        assert_eq!(sl_walk(&table, base, base + 0x2000, 16, false), Err(VtdWalkFault::NotPresent));
+-        assert_eq!(sl_walk(&table, base, base - 0x10, 16, false), Err(VtdWalkFault::RangeOutOfBounds));
+-        assert_eq!(sl_walk(&table, base, base, 0, false), Err(VtdWalkFault::RangeOutOfBounds));
++        assert_eq!(
++            sl_walk(&table, base, base + 0x1040, 16, false),
++            Ok(0x4000_1040)
++        );
++        assert_eq!(
++            sl_walk(&table, base, base + 0x1000, 16, true),
++            Err(VtdWalkFault::Permission)
++        );
++        assert_eq!(
++            sl_walk(&table, base, base + 0x2000, 16, false),
++            Err(VtdWalkFault::NotPresent)
++        );
++        assert_eq!(
++            sl_walk(&table, base, base - 0x10, 16, false),
++            Err(VtdWalkFault::RangeOutOfBounds)
++        );
++        assert_eq!(
++            sl_walk(&table, base, base, 0, false),
++            Err(VtdWalkFault::RangeOutOfBounds)
++        );
+     }
+ 
+     #[test]
+Diff in \\?\C:\asl\asl-kernel\asl-hal\src\vtd.rs:1026:
+         let mut sp = VtdAddressSpace::new();
+         sp.register_domain(7).unwrap();
+         // pin belum ada -> permission denied utk partisi tak terdaftar
+-        assert_eq!(sp.pin(9, 0x4000_0000, 4096), Err(DmaError::PermissionDenied));
++        assert_eq!(
++            sp.pin(9, 0x4000_0000, 4096),
++            Err(DmaError::PermissionDenied)
++        );
+         let lease = sp.pin(7, 0x4000_0000, 0x800).expect("pin");
+         assert_eq!(lease.iova(), VTD_IOVA_BASE);
+         assert_eq!(sp.validate_lease(&lease), Ok(()));
+Diff in \\?\C:\asl\asl-kernel\asl-hal\src\vtd.rs:1033:
+         let qi_after_pin = sp.qi_pushed();
+         assert!(qi_after_pin >= 2); // invalidate + wait
+-        // translate walk SL nyata
++                                    // translate walk SL nyata
+         let got = sp
+             .translate_and_check(7, lease.iova(), 0x800, true)
+             .expect("translate");
+Diff in \\?\C:\asl\asl-kernel\asl-hal\src\vtd.rs:1084:
+             sp.translate_and_check(3, rx.iova(), 0x1000, true),
+             Err(DmaAddressFault::ProtectionFaultReadOnly)
+         );
+-        assert_eq!(sp.translate_and_check(3, rx.iova(), 0x1000, false).is_ok(), true);
++        assert_eq!(
++            sp.translate_and_check(3, rx.iova(), 0x1000, false).is_ok(),
++            true
++        );
+         assert_eq!(sp.iova_dealloc(3, rx.iova(), 0x1000), Ok(()));
+         assert_eq!(sp.validate_lease(&rx), Err(DmaError::GenerationMismatch));
+         // setelah dealloc, translate wilayah tadi = NotPresent
+Diff in \\?\C:\asl\asl-kernel\asl-hal\src\vtd.rs:1141:
+         pd[((base >> 21) & 0x1FF) as usize] = sspt_nonleaf(pt_fake);
+         pt[0] = sl_leaf(stash, true);
+         assert_eq!(sl_walk_hw(&pdp, &pd, &pt, base, 4096, true), Ok(stash));
+-        assert_eq!(sl_walk_hw(&pdp, &pd, &pt, base + 0x40, 16, true), Ok(stash + 0x40));
++        assert_eq!(
++            sl_walk_hw(&pdp, &pd, &pt, base + 0x40, 16, true),
++            Ok(stash + 0x40)
++        );
+         // RO leaf: read lolos, write ditolak Permission
+         pt[1] = sl_leaf(stash + 0x1000, false);
+-        assert_eq!(sl_walk_hw(&pdp, &pd, &pt, base + 0x1000, 16, false), Ok(stash + 0x1000));
+-        assert_eq!(sl_walk_hw(&pdp, &pd, &pt, base + 0x1000, 16, true), Err(VtdWalkFault::Permission));
++        assert_eq!(
++            sl_walk_hw(&pdp, &pd, &pt, base + 0x1000, 16, false),
++            Ok(stash + 0x1000)
++        );
++        assert_eq!(
++            sl_walk_hw(&pdp, &pd, &pt, base + 0x1000, 16, true),
++            Err(VtdWalkFault::Permission)
++        );
+         // leaf belum dipetakan (PT offset 128) -> NotPresent
+         assert_eq!(
+             sl_walk_hw(&pdp, &pd, &pt, base + 0x8_0000, 64, false),
+Diff in \\?\C:\asl\asl-kernel\asl-hal\src\vtd.rs:1161:
+         assert_eq!(big & 0x1F_F000, 0);
+         assert_eq!(big & SSPT_PS, SSPT_PS);
+         pd[((base >> 21) & 0x1FF) as usize] = big;
+-        assert_eq!(sl_walk_hw(&pdp, &pd, &pt, base + 0x1234, 8, true), Ok(0x8000_1234));
++        assert_eq!(
++            sl_walk_hw(&pdp, &pd, &pt, base + 0x1234, 8, true),
++            Ok(0x8000_1234)
++        );
+         // rentang melewati dua halaman leaf
+         pt[2] = sl_leaf(stash + 0x2000, true);
+         // dengan large leaf di L2, seluruh offset dalam 2MiB terpetakan
+Diff in \\?\C:\asl\asl-kernel\asl-hal\src\vtd.rs:1168:
+         // meski PT tidak dipakai sama sekali:
+-        assert_eq!(sl_walk_hw(&pdp, &pd, &pt, base + 0x1FF0, 64, true), Ok(0x8000_1FF0));
++        assert_eq!(
++            sl_walk_hw(&pdp, &pd, &pt, base + 0x1FF0, 64, true),
++            Ok(0x8000_1FF0)
++        );
+         pd[((base >> 21) & 0x1FF) as usize] = sspt_nonleaf(pt_fake);
+         pt[0] = sl_leaf(stash, true);
+         pt[1] = 0;
+Diff in \\?\C:\asl\asl-kernel\asl-hal\src\vtd.rs:1173:
+-        assert_eq!(sl_walk_hw(&pdp, &pd, &pt, base, 0x1000 * 2, true), Err(VtdWalkFault::NotPresent));
+-        assert_eq!(sl_walk_hw(&pdp, &pd, &pt, base, 0, true), Err(VtdWalkFault::RangeOutOfBounds));
++        assert_eq!(
++            sl_walk_hw(&pdp, &pd, &pt, base, 0x1000 * 2, true),
++            Err(VtdWalkFault::NotPresent)
++        );
++        assert_eq!(
++            sl_walk_hw(&pdp, &pd, &pt, base, 0, true),
++            Err(VtdWalkFault::RangeOutOfBounds)
++        );
+         // tipe deskriptor QI global: opcode 2 + GLOBAL bit 4 (persis yang
+         // diterima vtd_process_iotlb_desc QEMU)
+         let d = qi_global_iotlb_invalidate();
+Diff in \\?\C:\asl\asl-kernel\asl-hal\src\x86_fault.rs:125:
+ 
+ pub static mut STATIC_GDT: GdtTable = GdtTable {
+     entries: [
+-        0,                                   // 0x00: Null
+-        0x0000_9A00_0000_FFFF,               // 0x08: 16-bit Code
+-        0x0000_9200_0000_FFFF,               // 0x10: 16-bit Data
+-        0x00CF_9A00_0000_FFFF,               // 0x18: 32-bit Code
+-        0x00CF_9200_0000_FFFF,               // 0x20: 32-bit Data
+-        0x0020_9A00_0000_0000,               // 0x28: 64-bit Kernel Code
+-        0x0000_9200_0000_0000,               // 0x30: 64-bit Kernel Data
+-        0,                                   // 0x38: TSS Low (diisi saat inisialisasi)
+-        0,                                   // 0x40: TSS High (diisi saat inisialisasi)
++        0,                     // 0x00: Null
++        0x0000_9A00_0000_FFFF, // 0x08: 16-bit Code
++        0x0000_9200_0000_FFFF, // 0x10: 16-bit Data
++        0x00CF_9A00_0000_FFFF, // 0x18: 32-bit Code
++        0x00CF_9200_0000_FFFF, // 0x20: 32-bit Data
++        0x0020_9A00_0000_0000, // 0x28: 64-bit Kernel Code
++        0x0000_9200_0000_0000, // 0x30: 64-bit Kernel Data
++        0,                     // 0x38: TSS Low (diisi saat inisialisasi)
++        0,                     // 0x40: TSS High (diisi saat inisialisasi)
+     ],
+ };
+ 
+Diff in \\?\C:\asl\asl-kernel\asl-hal\src\x86_fault.rs:209:
+ #[cfg(target_arch = "x86_64")]
+ pub unsafe fn init_gdt_and_tss() {
+     let tss_ptr = core::ptr::addr_of_mut!(STATIC_TSS);
+-    let ist1_top = core::ptr::addr_of_mut!(DOUBLE_FAULT_IST_STACK) as u64
+-        + DOUBLE_FAULT_IST_STACK_SIZE as u64;
++    let ist1_top =
++        core::ptr::addr_of_mut!(DOUBLE_FAULT_IST_STACK) as u64 + DOUBLE_FAULT_IST_STACK_SIZE as u64;
+     (*tss_ptr).ist1 = ist1_top;
+ 
+     let tss_addr = tss_ptr as u64;
+Diff in \\?\C:\asl\asl-kernel\asl-kernel-core\src\lib.rs:771:
+     early_serial_write_hex64(write_target);
+     early_serial_write_str(" (di dalam guard; expected #PF + STACK OVERFLOW).\n");
+     core::ptr::write_volatile(write_target as *mut u64, 0xDEAD_BEEF_CAFE_B000);
+-    early_serial_write_str("[ASL-HV2] UNEXPECTED: store ke guard page LOLOS (tanpa #PF) - protection gap nyata.\n");
++    early_serial_write_str(
++        "[ASL-HV2] UNEXPECTED: store ke guard page LOLOS (tanpa #PF) - protection gap nyata.\n",
++    );
+     controlled_halt();
+ }
+ 
+Diff in \\?\C:\asl\asl-kernel\asl-kernel-core\src\lib.rs:895:
+     } else {
+         asl_kernel_core_secondary::safe::REASON_ILLEGAL_TRAP
+     };
+-    let pre_state = asl_kernel_core_secondary::safe::notify_fault_safe(reason_code, ctx.vector as u64);
++    let pre_state =
++        asl_kernel_core_secondary::safe::notify_fault_safe(reason_code, ctx.vector as u64);
+     if stack_overflow_hit {
+         // HV-2: bukti FSM Recording atas fault nyata; latch terminal transition
+         // ARMED->Recording terjadi di jalur ini (pre_state = state sebelum notify).
+Diff in \\?\C:\asl\asl-kernel\asl-kernel-core\src\lib.rs:1361:
+         // Inisialisasi IDT, GDT, TSS IST1, dan pasang Fault Notifier
+         asl_hal::x86_fault::init_x86_64_fault_infrastructure();
+         asl_hal::x86_fault::set_fault_notifier(asl_fault_notifier);
+-        early_serial_write_str("[ASL-CORE] M0: x86_64 Minimal Fault Infrastructure (IDT/TSS/IST1) Initialized.\n");
++        early_serial_write_str(
++            "[ASL-CORE] M0: x86_64 Minimal Fault Infrastructure (IDT/TSS/IST1) Initialized.\n",
++        );
+ 
+         #[cfg(target_os = "none")]
+         {
+Diff in \\?\C:\asl\asl-kernel\asl-kernel-core\src\lib.rs:1421:
+                         let fb = core::ptr::addr_of_mut!(FB_CONSOLE);
+                         let pitch_bytes = (fb_cfg.pixels_per_scan_line as usize)
+                             .checked_mul(fb_cfg.bytes_per_pixel as usize);
+-                        let fb_total_bytes = pitch_bytes
+-                            .and_then(|p| p.checked_mul(fb_cfg.height as usize));
+-                        let map_len = core::cmp::min(
+-                            handover.memory_map_count,
+-                            handover.memory_map.len(),
+-                        );
++                        let fb_total_bytes =
++                            pitch_bytes.and_then(|p| p.checked_mul(fb_cfg.height as usize));
++                        let map_len =
++                            core::cmp::min(handover.memory_map_count, handover.memory_map.len());
+                         let fb_ok = match fb_total_bytes {
+                             Some(total) => validate_framebuffer_memmap(
+                                 &handover.memory_map[..map_len],
+Diff in \\?\C:\asl\asl-kernel\asl-kernel-core\src\lib.rs:1471:
+                     // Guard page non-present tepat di bawah stack 512KB (setelah allocator siap)
+                     #[cfg(all(target_arch = "x86_64", target_os = "none"))]
+                     {
+-                        let guard_virt =
+-                            core::ptr::addr_of!(_asl_guard_page) as *const u8 as u64;
++                        let guard_virt = core::ptr::addr_of!(_asl_guard_page) as *const u8 as u64;
+                         let mut space = asl_memory::AddressSpace::from_pml4_phys(
+                             unsafe { asl_memory::read_cr3() } & asl_memory::PHYSICAL_ADDRESS_MASK,
+                             HHDM_OFFSET as u64,
+Diff in \\?\C:\asl\asl-kernel\asl-kernel-core\src\lib.rs:1738:
+             let _ = (*apic).init(virt_apic_base, phys_base);
+             (*apic).start_periodic_timer(asl_hal::APIC_TIMER_DEFAULT_INIT_COUNT);
+         }
+-        early_serial_write_str("[ASL-CORE] Local APIC Timer Initialized (Release Nominal Initial Count: 0x20000).\n");
++        early_serial_write_str(
++            "[ASL-CORE] Local APIC Timer Initialized (Release Nominal Initial Count: 0x20000).\n",
++        );
+     }
+ 
+     // 2. Scan PCI Bus
+Diff in \\?\C:\asl\asl-kernel\asl-kernel-core\src\lib.rs:2117:
+                         }
+                     }
+                     asl_cockpit_shell::ShellCommand::TrapDe => {
+-                        early_serial_write_str("[TEST-TRIGGER] Triggering Vector 0 (#DE - Divide Error)...\n");
++                        early_serial_write_str(
++                            "[TEST-TRIGGER] Triggering Vector 0 (#DE - Divide Error)...\n",
++                        );
+                         #[cfg(target_arch = "x86_64")]
+                         unsafe {
+                             let zero: u64 = 0;
+Diff in \\?\C:\asl\asl-kernel\asl-kernel-core\src\lib.rs:2133:
+                         }
+                     }
+                     asl_cockpit_shell::ShellCommand::TrapBp => {
+-                        early_serial_write_str("[TEST-TRIGGER] Triggering Vector 3 (#BP - Breakpoint / INT3)...\n");
++                        early_serial_write_str(
++                            "[TEST-TRIGGER] Triggering Vector 3 (#BP - Breakpoint / INT3)...\n",
++                        );
+                         #[cfg(target_arch = "x86_64")]
+                         unsafe {
+                             core::arch::asm!("int3", options(nomem, nostack));
+Diff in \\?\C:\asl\asl-kernel\asl-kernel-core\src\lib.rs:2140:
+                         }
+-                        early_serial_write_str("[TEST-RESULT] Returned successfully from INT3 trap handler.\n");
++                        early_serial_write_str(
++                            "[TEST-RESULT] Returned successfully from INT3 trap handler.\n",
++                        );
+                         unsafe {
+                             (*fb).write_str("INT3 Trapped & Resumed successfully.\n");
+                         }
+Diff in \\?\C:\asl\asl-kernel\asl-kernel-core\src\lib.rs:2170:
+                             // Test 5: HHDM Validation - Read physical page via HHDM
+                             let hhdm_ptr = (HHDM_OFFSET + 0x1000) as *const u64;
+                             let val = unsafe { core::ptr::read_volatile(hhdm_ptr) };
+-                            early_serial_write_str("  [TEST 5] HHDM Read at 0xFFFF800000001000: 0x");
++                            early_serial_write_str(
++                                "  [TEST 5] HHDM Read at 0xFFFF800000001000: 0x",
++                            );
+                             early_serial_write_hex64(val);
+                             early_serial_write_str(" -> PASS (HHDM Valid)\n");
+ 
+Diff in \\?\C:\asl\asl-kernel\asl-kernel-core\src\lib.rs:2177:
+                             // Test 2: Virtual Mapping
+-                            early_serial_write_str("  [TEST 2] Dynamic Virtual Mapping (4KB Page)...\n");
++                            early_serial_write_str(
++                                "  [TEST 2] Dynamic Virtual Mapping (4KB Page)...\n",
++                            );
+                             let mut space = asl_memory::AddressSpace::from_pml4_phys(
+                                 current_cr3 & asl_memory::PHYSICAL_ADDRESS_MASK,
+                                 HHDM_OFFSET as u64,
+Diff in \\?\C:\asl\asl-kernel\asl-kernel-core\src\lib.rs:2211:
+                                 early_serial_write_str("  [TEST 3] Unmapping Virtual Page...\n");
+                                 let unmap_res = unsafe { space.unmap_page(test_virt) };
+                                 if unmap_res.is_ok() {
+-                                    early_serial_write_str("  [TEST 3] Page unmapped successfully -> PASS\n");
++                                    early_serial_write_str(
++                                        "  [TEST 3] Page unmapped successfully -> PASS\n",
++                                    );
+                                 }
+                             } else {
+                                 early_serial_write_str("  [TEST 2] Dynamic map failed: already mapped or allocation error.\n");
+Diff in \\?\C:\asl\asl-kernel\asl-kernel-core\src\lib.rs:2224:
+                         }
+                     }
+                     asl_cockpit_shell::ShellCommand::TestApic => {
+-                        early_serial_write_str("[TEST-APIC] Starting Gate 2 Local APIC & APIC Timer Tests...\n");
++                        early_serial_write_str(
++                            "[TEST-APIC] Starting Gate 2 Local APIC & APIC Timer Tests...\n",
++                        );
+                         #[cfg(target_arch = "x86_64")]
+                         {
+                             let apic_base_msr = unsafe { asl_hal::LocalApic::read_apic_base() };
+Diff in \\?\C:\asl\asl-kernel\asl-kernel-core\src\lib.rs:2247:
+                                 // Mulai timer dengan periodic count
+                                 unsafe {
+                                     let apic = core::ptr::addr_of_mut!(asl_hal::STATIC_LOCAL_APIC);
+-                                    (*apic).start_periodic_timer(asl_hal::APIC_TIMER_DEFAULT_INIT_COUNT);
++                                    (*apic).start_periodic_timer(
++                                        asl_hal::APIC_TIMER_DEFAULT_INIT_COUNT,
++                                    );
+                                 }
+-                                early_serial_write_str("  [TEST 3] APIC Periodic Timer Started (Vector 32) -> PASS\n");
++                                early_serial_write_str(
++                                    "  [TEST 3] APIC Periodic Timer Started (Vector 32) -> PASS\n",
++                                );
+ 
+                                 // Aktifkan interrupt prosesor x86 (sti) untuk memverifikasi penerimaan interrupt timer
+                                 early_serial_write_str("  [TEST 4-6] Enabling CPU Interrupts (sti) to observe tick stability...\n");
+Diff in \\?\C:\asl\asl-kernel\asl-kernel-core\src\lib.rs:2256:
+                                 unsafe {
+-                                    core::arch::asm!("sti", options(nomem, nostack, preserves_flags));
++                                    core::arch::asm!(
++                                        "sti",
++                                        options(nomem, nostack, preserves_flags)
++                                    );
+                                 }
+ 
+                                 // Observasi tick berjalan stabil selama loop terukur
+Diff in \\?\C:\asl\asl-kernel\asl-kernel-core\src\lib.rs:2261:
+-                                let start_ticks = asl_hal::GLOBAL_TICK_COUNTER.load(core::sync::atomic::Ordering::Relaxed);
++                                let start_ticks = asl_hal::GLOBAL_TICK_COUNTER
++                                    .load(core::sync::atomic::Ordering::Relaxed);
+                                 let mut sample_loops = 0;
+                                 while sample_loops < 500_000 {
+                                     sample_loops += 1;
+Diff in \\?\C:\asl\asl-kernel\asl-kernel-core\src\lib.rs:2265:
+                                     core::hint::spin_loop();
+                                 }
+-                                let end_ticks = asl_hal::GLOBAL_TICK_COUNTER.load(core::sync::atomic::Ordering::Relaxed);
++                                let end_ticks = asl_hal::GLOBAL_TICK_COUNTER
++                                    .load(core::sync::atomic::Ordering::Relaxed);
+ 
+                                 early_serial_write_str("  [TEST 4-6] Observed Ticks: Start=");
+                                 early_serial_write_u64(start_ticks);
+Diff in \\?\C:\asl\asl-kernel\asl-kernel-core\src\lib.rs:2288:
+                                 );
+ 
+                                 unsafe {
+-                                    (*fb).write_str("APIC Timer Tests: PASS. See serial COM1 log.\n");
++                                    (*fb).write_str(
++                                        "APIC Timer Tests: PASS. See serial COM1 log.\n",
++                                    );
+                                 }
+                             } else {
+-                                early_serial_write_str("  [TEST 2] Local APIC Initialization FAILED.\n");
++                                early_serial_write_str(
++                                    "  [TEST 2] Local APIC Initialization FAILED.\n",
++                                );
+                             }
+                         }
+                     }
+Diff in \\?\C:\asl\asl-kernel\asl-kernel-core\src\lib.rs:2298:
+                     asl_cockpit_shell::ShellCommand::TestTask => {
+-                        early_serial_write_str("[TEST-TASK] Starting Gate 3D 100,000 APIC Preemptive Tests...\n");
++                        early_serial_write_str(
++                            "[TEST-TASK] Starting Gate 3D 100,000 APIC Preemptive Tests...\n",
++                        );
+                         #[cfg(target_arch = "x86_64")]
+                         {
+                             execute_gate3d_suite();
+Diff in \\?\C:\asl\asl-kernel\asl-kernel-core\src\lib.rs:2303:
+                             unsafe {
+-                                (*fb).write_str("Gate 3D APIC Preemption Tests: PASS. See serial COM1 log.\n");
++                                (*fb).write_str(
++                                    "Gate 3D APIC Preemption Tests: PASS. See serial COM1 log.\n",
++                                );
+                             }
+                         }
+                     }
+Diff in \\?\C:\asl\asl-kernel\asl-kernel-core\src\lib.rs:2308:
+                     asl_cockpit_shell::ShellCommand::Uname => {
+                         let uname_head = "ASL Core Kernel ";
+-                        let uname_tail = " (x86_64-unknown-none) [DO-178C-inspired deterministic engineering]\n";
++                        let uname_tail =
++                            " (x86_64-unknown-none) [DO-178C-inspired deterministic engineering]\n";
+                         early_serial_write_str(uname_head);
+                         early_serial_write_str(asl_cockpit_shell::KERNEL_VERSION);
+                         early_serial_write_str(uname_tail);
+Diff in \\?\C:\asl\asl-kernel\asl-kernel-core\src\lib.rs:2408:
+ 
+ #[cfg(target_arch = "x86_64")]
+ static mut TASK_A_CAPTURED_REGS: TaskRegisterPattern = TaskRegisterPattern {
+-    rax: 0, rbx: 0, rcx: 0, rdx: 0, rsi: 0, rdi: 0, rbp: 0,
+-    r8: 0, r9: 0, r10: 0, r11: 0, r12: 0, r13: 0, r14: 0, r15: 0,
++    rax: 0,
++    rbx: 0,
++    rcx: 0,
++    rdx: 0,
++    rsi: 0,
++    rdi: 0,
++    rbp: 0,
++    r8: 0,
++    r9: 0,
++    r10: 0,
++    r11: 0,
++    r12: 0,
++    r13: 0,
++    r14: 0,
++    r15: 0,
+ };
+ 
+ #[cfg(target_arch = "x86_64")]
+Diff in \\?\C:\asl\asl-kernel\asl-kernel-core\src\lib.rs:2416:
+ static mut TASK_B_CAPTURED_REGS: TaskRegisterPattern = TaskRegisterPattern {
+-    rax: 0, rbx: 0, rcx: 0, rdx: 0, rsi: 0, rdi: 0, rbp: 0,
+-    r8: 0, r9: 0, r10: 0, r11: 0, r12: 0, r13: 0, r14: 0, r15: 0,
++    rax: 0,
++    rbx: 0,
++    rcx: 0,
++    rdx: 0,
++    rsi: 0,
++    rdi: 0,
++    rbp: 0,
++    r8: 0,
++    r9: 0,
++    r10: 0,
++    r11: 0,
++    r12: 0,
++    r13: 0,
++    r14: 0,
++    r15: 0,
+ };
+ 
+ #[cfg(target_arch = "x86_64")]
+Diff in \\?\C:\asl\asl-kernel\asl-kernel-core\src\lib.rs:2422:
+ static mut TASK_C_CAPTURED_REGS: TaskRegisterPattern = TaskRegisterPattern {
+-    rax: 0, rbx: 0, rcx: 0, rdx: 0, rsi: 0, rdi: 0, rbp: 0,
+-    r8: 0, r9: 0, r10: 0, r11: 0, r12: 0, r13: 0, r14: 0, r15: 0,
++    rax: 0,
++    rbx: 0,
++    rcx: 0,
++    rdx: 0,
++    rsi: 0,
++    rdi: 0,
++    rbp: 0,
++    r8: 0,
++    r9: 0,
++    r10: 0,
++    r11: 0,
++    r12: 0,
++    r13: 0,
++    r14: 0,
++    r15: 0,
+ };
+ 
+ /// Worker Task A: Infinite loop with unique 0xAAAA... patterns loaded directly into actual CPU registers
+Diff in \\?\C:\asl\asl-kernel\asl-kernel-core\src\lib.rs:2435:
+         rsi: 0xAAAA_0505_0505_0505,
+         rdi: 0xAAAA_0606_0606_0606,
+         rbp: 0xAAAA_0707_0707_0707,
+-        r8:  0xAAAA_0808_0808_0808,
+-        r9:  0xAAAA_0909_0909_0909,
++        r8: 0xAAAA_0808_0808_0808,
++        r9: 0xAAAA_0909_0909_0909,
+         r10: 0xAAAA_1010_1010_1010,
+         r11: 0xAAAA_1111_1111_1111,
+         r12: 0xAAAA_1212_1212_1212,
+Diff in \\?\C:\asl\asl-kernel\asl-kernel-core\src\lib.rs:2519:
+         rsi: 0xBBBB_0505_0505_0505,
+         rdi: 0xBBBB_0606_0606_0606,
+         rbp: 0xBBBB_0707_0707_0707,
+-        r8:  0xBBBB_0808_0808_0808,
+-        r9:  0xBBBB_0909_0909_0909,
++        r8: 0xBBBB_0808_0808_0808,
++        r9: 0xBBBB_0909_0909_0909,
+         r10: 0xBBBB_1010_1010_1010,
+         r11: 0xBBBB_1111_1111_1111,
+         r12: 0xBBBB_1212_1212_1212,
+Diff in \\?\C:\asl\asl-kernel\asl-kernel-core\src\lib.rs:2603:
+         rsi: 0xCCCC_0505_0505_0505,
+         rdi: 0xCCCC_0606_0606_0606,
+         rbp: 0xCCCC_0707_0707_0707,
+-        r8:  0xCCCC_0808_0808_0808,
+-        r9:  0xCCCC_0909_0909_0909,
++        r8: 0xCCCC_0808_0808_0808,
++        r9: 0xCCCC_0909_0909_0909,
+         r10: 0xCCCC_1010_1010_1010,
+         r11: 0xCCCC_1111_1111_1111,
+         r12: 0xCCCC_1212_1212_1212,
+Diff in \\?\C:\asl\asl-kernel\asl-kernel-core\src\lib.rs:2728:
+         let cur_rsp = test_mgr.tasks[1].saved_rsp;
+         let next_rsp = test_mgr.on_timer_tick(cur_rsp);
+ 
+-        if test_mgr.tasks[1].state == asl_sched::TaskState::Faulted && next_rsp == test_mgr.tasks[0].saved_rsp {
+-            early_serial_write_str("[GATE-3D-TEST] TEST 9: Failure Injection - Corrupt Canary Isolation -> PASS\n");
++        if test_mgr.tasks[1].state == asl_sched::TaskState::Faulted
++            && next_rsp == test_mgr.tasks[0].saved_rsp
++        {
++            early_serial_write_str(
++                "[GATE-3D-TEST] TEST 9: Failure Injection - Corrupt Canary Isolation -> PASS\n",
++            );
+         } else {
+             early_serial_write_str("[GATE-3D-TEST] TEST 9: FAILED corrupt canary isolation!\n");
+         }
+Diff in \\?\C:\asl\asl-kernel\asl-kernel-core\src\lib.rs:2891:
+         // Enable Preemption
+         (*mgr).preemptive_enabled = true;
+ 
+-        early_serial_write_str("[GATE-3D-TEST] Starting True 100,000 Hardware APIC Preemption Run...\n");
++        early_serial_write_str(
++            "[GATE-3D-TEST] Starting True 100,000 Hardware APIC Preemption Run...\n",
++        );
+ 
+-        let initial_apic_interrupts = asl_hal::APIC_INTERRUPT_COUNT.load(core::sync::atomic::Ordering::Relaxed);
+-        let initial_apic_switches = asl_hal::APIC_PREEMPTIVE_SWITCH_COUNT.load(core::sync::atomic::Ordering::Relaxed);
+-        let initial_eoi_writes = asl_hal::EOI_WRITE_COUNT.load(core::sync::atomic::Ordering::Relaxed);
++        let initial_apic_interrupts =
++            asl_hal::APIC_INTERRUPT_COUNT.load(core::sync::atomic::Ordering::Relaxed);
++        let initial_apic_switches =
++            asl_hal::APIC_PREEMPTIVE_SWITCH_COUNT.load(core::sync::atomic::Ordering::Relaxed);
++        let initial_eoi_writes =
++            asl_hal::EOI_WRITE_COUNT.load(core::sync::atomic::Ordering::Relaxed);
+ 
+         early_serial_write_str("  [SNAPSHOT-0] APIC Interrupts: ");
+         early_serial_write_u64(initial_apic_interrupts);
+Diff in \\?\C:\asl\asl-kernel\asl-kernel-core\src\lib.rs:2919:
+                 berhenti_karena_operator = true;
+                 break;
+             }
+-            let current_switches = asl_hal::APIC_PREEMPTIVE_SWITCH_COUNT.load(core::sync::atomic::Ordering::Relaxed);
++            let current_switches =
++                asl_hal::APIC_PREEMPTIVE_SWITCH_COUNT.load(core::sync::atomic::Ordering::Relaxed);
+             if current_switches >= 100_000 {
+                 break;
+             }
+Diff in \\?\C:\asl\asl-kernel\asl-kernel-core\src\lib.rs:2930:
+                 early_serial_write_str("  [PROGRESS-SNAPSHOT] APIC Preemptive Switches: ");
+                 early_serial_write_u64(current_switches);
+                 early_serial_write_str(" / 100000 | Total APIC Interrupts: ");
+-                early_serial_write_u64(asl_hal::APIC_INTERRUPT_COUNT.load(core::sync::atomic::Ordering::Relaxed));
++                early_serial_write_u64(
++                    asl_hal::APIC_INTERRUPT_COUNT.load(core::sync::atomic::Ordering::Relaxed),
++                );
+                 early_serial_write_str("\n");
+             }
+ 
+Diff in \\?\C:\asl\asl-kernel\asl-kernel-core\src\lib.rs:2958:
+             return;
+         }
+ 
+-        let final_apic_interrupts = asl_hal::APIC_INTERRUPT_COUNT.load(core::sync::atomic::Ordering::Relaxed);
+-        let final_apic_switches = asl_hal::APIC_PREEMPTIVE_SWITCH_COUNT.load(core::sync::atomic::Ordering::Relaxed);
+-        let final_no_switches = asl_hal::NO_SWITCH_INTERRUPT_COUNT.load(core::sync::atomic::Ordering::Relaxed);
+-        let final_coop_switches = asl_sched::COOPERATIVE_SWITCH_COUNT.load(core::sync::atomic::Ordering::Relaxed);
+-        let final_sim_cycles = asl_hal::SIMULATED_SCHEDULER_CYCLE_COUNT.load(core::sync::atomic::Ordering::Relaxed);
++        let final_apic_interrupts =
++            asl_hal::APIC_INTERRUPT_COUNT.load(core::sync::atomic::Ordering::Relaxed);
++        let final_apic_switches =
++            asl_hal::APIC_PREEMPTIVE_SWITCH_COUNT.load(core::sync::atomic::Ordering::Relaxed);
++        let final_no_switches =
++            asl_hal::NO_SWITCH_INTERRUPT_COUNT.load(core::sync::atomic::Ordering::Relaxed);
++        let final_coop_switches =
++            asl_sched::COOPERATIVE_SWITCH_COUNT.load(core::sync::atomic::Ordering::Relaxed);
++        let final_sim_cycles =
++            asl_hal::SIMULATED_SCHEDULER_CYCLE_COUNT.load(core::sync::atomic::Ordering::Relaxed);
+         let final_eoi_writes = asl_hal::EOI_WRITE_COUNT.load(core::sync::atomic::Ordering::Relaxed);
+ 
+         early_serial_write_str("\n=== [GATE-3D-FINAL-TELEMETRY] ===\n");
+Diff in \\?\C:\asl\asl-kernel\asl-kernel-core\src\lib.rs:3027:
+         } else if min_d > 0 {
+             early_serial_write_str("[GATE-3D-TEST] TEST 5: Three-Task Fairness (All Tasks Active, Zero Starvation) -> PASS\n");
+         } else {
+-            early_serial_write_str("[GATE-3D-TEST] TEST 5: FAILED fairness (starvation detected)!\n");
++            early_serial_write_str(
++                "[GATE-3D-TEST] TEST 5: FAILED fairness (starvation detected)!\n",
++            );
+         }
+ 
+         // =========================================================================
+Diff in \\?\C:\asl\asl-kernel\asl-kernel-core\src\lib.rs:3040:
+             }
+         }
+         if canaries_ok {
+-            early_serial_write_str("[GATE-3D-TEST] TEST 6B: Stack Bounds & Canary Integrity Post-Stress -> PASS\n");
++            early_serial_write_str(
++                "[GATE-3D-TEST] TEST 6B: Stack Bounds & Canary Integrity Post-Stress -> PASS\n",
++            );
+         } else {
+             early_serial_write_str("[GATE-3D-TEST] TEST 6B: FAILED canary corruption detected!\n");
+         }
+Diff in \\?\C:\asl\asl-kernel\asl-kernel-core\src\lib.rs:3052:
+         let b_regs = TASK_B_CAPTURED_REGS;
+         let c_regs = TASK_C_CAPTURED_REGS;
+ 
+-        let a_ok = a_regs.rax == 0xAAAA_0101_0101_0101 && a_regs.rbx == 0xAAAA_0202_0202_0202
+-            && a_regs.rcx == 0xAAAA_0303_0303_0303 && a_regs.rdx == 0xAAAA_0404_0404_0404
+-            && a_regs.rsi == 0xAAAA_0505_0505_0505 && a_regs.rdi == 0xAAAA_0606_0606_0606
+-            && a_regs.rbp == 0xAAAA_0707_0707_0707 && a_regs.r8  == 0xAAAA_0808_0808_0808
+-            && a_regs.r9  == 0xAAAA_0909_0909_0909 && a_regs.r10 == 0xAAAA_1010_1010_1010
+-            && a_regs.r11 == 0xAAAA_1111_1111_1111 && a_regs.r12 == 0xAAAA_1212_1212_1212
+-            && a_regs.r13 == 0xAAAA_1313_1313_1313 && a_regs.r14 == 0xAAAA_1414_1414_1414
++        let a_ok = a_regs.rax == 0xAAAA_0101_0101_0101
++            && a_regs.rbx == 0xAAAA_0202_0202_0202
++            && a_regs.rcx == 0xAAAA_0303_0303_0303
++            && a_regs.rdx == 0xAAAA_0404_0404_0404
++            && a_regs.rsi == 0xAAAA_0505_0505_0505
++            && a_regs.rdi == 0xAAAA_0606_0606_0606
++            && a_regs.rbp == 0xAAAA_0707_0707_0707
++            && a_regs.r8 == 0xAAAA_0808_0808_0808
++            && a_regs.r9 == 0xAAAA_0909_0909_0909
++            && a_regs.r10 == 0xAAAA_1010_1010_1010
++            && a_regs.r11 == 0xAAAA_1111_1111_1111
++            && a_regs.r12 == 0xAAAA_1212_1212_1212
++            && a_regs.r13 == 0xAAAA_1313_1313_1313
++            && a_regs.r14 == 0xAAAA_1414_1414_1414
+             && a_regs.r15 == 0xAAAA_1515_1515_1515;
+ 
+-        let b_ok = b_regs.rax == 0xBBBB_0101_0101_0101 && b_regs.rbx == 0xBBBB_0202_0202_0202
+-            && b_regs.rcx == 0xBBBB_0303_0303_0303 && b_regs.rdx == 0xBBBB_0404_0404_0404
+-            && b_regs.rsi == 0xBBBB_0505_0505_0505 && b_regs.rdi == 0xBBBB_0606_0606_0606
+-            && b_regs.rbp == 0xBBBB_0707_0707_0707 && b_regs.r8  == 0xBBBB_0808_0808_0808
+-            && b_regs.r9  == 0xBBBB_0909_0909_0909 && b_regs.r10 == 0xBBBB_1010_1010_1010
+-            && b_regs.r11 == 0xBBBB_1111_1111_1111 && b_regs.r12 == 0xBBBB_1212_1212_1212
+-            && b_regs.r13 == 0xBBBB_1313_1313_1313 && b_regs.r14 == 0xBBBB_1414_1414_1414
++        let b_ok = b_regs.rax == 0xBBBB_0101_0101_0101
++            && b_regs.rbx == 0xBBBB_0202_0202_0202
++            && b_regs.rcx == 0xBBBB_0303_0303_0303
++            && b_regs.rdx == 0xBBBB_0404_0404_0404
++            && b_regs.rsi == 0xBBBB_0505_0505_0505
++            && b_regs.rdi == 0xBBBB_0606_0606_0606
++            && b_regs.rbp == 0xBBBB_0707_0707_0707
++            && b_regs.r8 == 0xBBBB_0808_0808_0808
++            && b_regs.r9 == 0xBBBB_0909_0909_0909
++            && b_regs.r10 == 0xBBBB_1010_1010_1010
++            && b_regs.r11 == 0xBBBB_1111_1111_1111
++            && b_regs.r12 == 0xBBBB_1212_1212_1212
++            && b_regs.r13 == 0xBBBB_1313_1313_1313
++            && b_regs.r14 == 0xBBBB_1414_1414_1414
+             && b_regs.r15 == 0xBBBB_1515_1515_1515;
+ 
+-        let c_ok = c_regs.rax == 0xCCCC_0101_0101_0101 && c_regs.rbx == 0xCCCC_0202_0202_0202
+-            && c_regs.rcx == 0xCCCC_0303_0303_0303 && c_regs.rdx == 0xCCCC_0404_0404_0404
+-            && c_regs.rsi == 0xCCCC_0505_0505_0505 && c_regs.rdi == 0xCCCC_0606_0606_0606
+-            && c_regs.rbp == 0xCCCC_0707_0707_0707 && c_regs.r8  == 0xCCCC_0808_0808_0808
+-            && c_regs.r9  == 0xCCCC_0909_0909_0909 && c_regs.r10 == 0xCCCC_1010_1010_1010
+-            && c_regs.r11 == 0xCCCC_1111_1111_1111 && c_regs.r12 == 0xCCCC_1212_1212_1212
+-            && c_regs.r13 == 0xCCCC_1313_1313_1313 && c_regs.r14 == 0xCCCC_1414_1414_1414
++        let c_ok = c_regs.rax == 0xCCCC_0101_0101_0101
++            && c_regs.rbx == 0xCCCC_0202_0202_0202
++            && c_regs.rcx == 0xCCCC_0303_0303_0303
++            && c_regs.rdx == 0xCCCC_0404_0404_0404
++            && c_regs.rsi == 0xCCCC_0505_0505_0505
++            && c_regs.rdi == 0xCCCC_0606_0606_0606
++            && c_regs.rbp == 0xCCCC_0707_0707_0707
++            && c_regs.r8 == 0xCCCC_0808_0808_0808
++            && c_regs.r9 == 0xCCCC_0909_0909_0909
++            && c_regs.r10 == 0xCCCC_1010_1010_1010
++            && c_regs.r11 == 0xCCCC_1111_1111_1111
++            && c_regs.r12 == 0xCCCC_1212_1212_1212
++            && c_regs.r13 == 0xCCCC_1313_1313_1313
++            && c_regs.r14 == 0xCCCC_1414_1414_1414
+             && c_regs.r15 == 0xCCCC_1515_1515_1515;
+ 
+         if a_ok && b_ok && c_ok {
+Diff in \\?\C:\asl\asl-kernel\asl-kernel-core\src\lib.rs:3101:
+         let hhdm_test_ptr = (HHDM_OFFSET + 0x1000) as *const u64;
+         let _hhdm_val = core::ptr::read_volatile(hhdm_test_ptr);
+         if current_cr3 != 0 {
+-            early_serial_write_str("[GATE-3D-TEST] TEST 13: Paging & HHDM Regression Check -> PASS\n");
++            early_serial_write_str(
++                "[GATE-3D-TEST] TEST 13: Paging & HHDM Regression Check -> PASS\n",
++            );
+         }
+ 
+         // =========================================================================
+Diff in \\?\C:\asl\asl-kernel\asl-kernel-core\src\lib.rs:3108:
+         // TEST 14: Minimal Fault Infrastructure Regression Check
+         // =========================================================================
+-        early_serial_write_str("[GATE-3D-TEST] TEST 14: Minimal Fault Infrastructure Regression Check -> PASS\n");
++        early_serial_write_str(
++            "[GATE-3D-TEST] TEST 14: Minimal Fault Infrastructure Regression Check -> PASS\n",
++        );
+ 
+         // =========================================================================
+         // TEST 15: Cockpit Shell Responsiveness & Scheduler State Cleanup
+Diff in \\?\C:\asl\asl-kernel\asl-kernel-core\src\lib.rs:3140:
+     fn test_carveout_valid_layout() {
+         // kernel image [0, 2MB), carve-out [1MB, 1MB+4K), stack [1MB+4K, 1MB+4K+512K+pad]
+         assert!(validate_secondary_carveout(
+-            0x10_0000,
+-            0x10_1000,
+-            0x10_1000,
+-            0x18_1000,
+-            0,
+-            0x20_0000
++            0x10_0000, 0x10_1000, 0x10_1000, 0x18_1000, 0, 0x20_0000
+         ));
+     }
+ 
+Diff in \\?\C:\asl\asl-kernel\asl-kernel-core\src\lib.rs:3152:
+     #[test]
+     fn test_carveout_rejects_misaligned_unordered_and_zero() {
+-        assert!(!validate_secondary_carveout(0x10_0001, 0x10_1000, 0x10_1000, 0x18_1000, 0, 0x20_0000));
+-        assert!(!validate_secondary_carveout(0x10_1000, 0x10_1000, 0x10_1000, 0x18_1000, 0, 0x20_0000));
+-        assert!(!validate_secondary_carveout(0x10_0000, 0x10_1000, 0x18_1000, 0x10_1000, 0, 0x20_0000));
+-        assert!(!validate_secondary_carveout(0x10_0000, 0x10_1000, 0x10_1000, 0x18_1000, 0, 0));
++        assert!(!validate_secondary_carveout(
++            0x10_0001, 0x10_1000, 0x10_1000, 0x18_1000, 0, 0x20_0000
++        ));
++        assert!(!validate_secondary_carveout(
++            0x10_1000, 0x10_1000, 0x10_1000, 0x18_1000, 0, 0x20_0000
++        ));
++        assert!(!validate_secondary_carveout(
++            0x10_0000, 0x10_1000, 0x18_1000, 0x10_1000, 0, 0x20_0000
++        ));
++        assert!(!validate_secondary_carveout(
++            0x10_0000, 0x10_1000, 0x10_1000, 0x18_1000, 0, 0
++        ));
+     }
+ 
+     #[test]
+Diff in \\?\C:\asl\asl-kernel\asl-kernel-core\src\lib.rs:3161:
+     fn test_carveout_rejects_outside_kernel_image() {
+         // carve-out di atas kernel image
+-        assert!(!validate_secondary_carveout(0x30_0000, 0x30_1000, 0x10_1000, 0x18_1000, 0, 0x20_0000));
++        assert!(!validate_secondary_carveout(
++            0x30_0000, 0x30_1000, 0x10_1000, 0x18_1000, 0, 0x20_0000
++        ));
+         // stack menembus batas akhir image
+-        assert!(!validate_secondary_carveout(0x10_0000, 0x10_1000, 0x18_1000, 0x20_1000, 0, 0x20_0000));
++        assert!(!validate_secondary_carveout(
++            0x10_0000, 0x10_1000, 0x18_1000, 0x20_1000, 0, 0x20_0000
++        ));
+     }
+ 
+     #[test]
+Diff in \\?\C:\asl\asl-kernel\asl-kernel-core\src\lib.rs:3169:
+     fn test_carveout_rejects_stack_overlap() {
+         // carve-out menindih stack
+-        assert!(!validate_secondary_carveout(0x12_0000, 0x13_0000, 0x10_1000, 0x18_1000, 0, 0x20_0000));
++        assert!(!validate_secondary_carveout(
++            0x12_0000, 0x13_0000, 0x10_1000, 0x18_1000, 0, 0x20_0000
++        ));
+     }
+ 
+     #[test]
+Diff in \\?\C:\asl\asl-kernel\asl-kernel-core\src\lib.rs:3189:
+     fn test_classify_stack_overflow_guard_hit_and_sp_below() {
+         let bottom = 0x10_1000u64;
+         // CR2 mengenai guard page [bottom-4096, bottom)
+-        assert!(classify_stack_overflow(bottom - 4096, bottom + 0x8000, bottom));
++        assert!(classify_stack_overflow(
++            bottom - 4096,
++            bottom + 0x8000,
++            bottom
++        ));
+         assert!(classify_stack_overflow(bottom - 1, bottom + 0x8000, bottom));
+         // RSP sudah di bawah bottom (sudah melewati guard)
+         assert!(classify_stack_overflow(0, bottom - 0x2000, bottom));
+Diff in \\?\C:\asl\asl-kernel\asl-kernel-core\src\lib.rs:3196:
+         // Akses normal: bukan overflow
+-        assert!(!classify_stack_overflow(bottom + 0x1000, bottom + 0x8000, bottom));
++        assert!(!classify_stack_overflow(
++            bottom + 0x1000,
++            bottom + 0x8000,
++            bottom
++        ));
+         // CR2 tepat di bawah guard page region (jauh) dan SP sehat -> bukan stack overflow
+         assert!(!classify_stack_overflow(0x0, bottom + 0x8000, bottom));
+     }
+Diff in \\?\C:\asl\asl-kernel\asl-kernel-core\src\lib.rs:3207:
+             desc(0x0, 0x800_0000, MemoryRegionType::UsableRam),
+             desc(0x800_0000, 0x20_0000, MemoryRegionType::FrameBuffer),
+         ];
+-        assert!(validate_framebuffer_memmap(&map, 0x800_0000, 0x1D_4C00, 0, 0));
++        assert!(validate_framebuffer_memmap(
++            &map, 0x800_0000, 0x1D_4C00, 0, 0
++        ));
+         let map2 = [desc(0xC000_0000, 0x10_0000, MemoryRegionType::Reserved)];
+-        assert!(validate_framebuffer_memmap(&map2, 0xC001_0000, 0x8_0000, 0, 0));
++        assert!(validate_framebuffer_memmap(
++            &map2,
++            0xC001_0000,
++            0x8_0000,
++            0,
++            0
++        ));
+     }
+ 
+     #[test]
+Diff in \\?\C:\asl\asl-kernel\asl-kernel-core\src\lib.rs:3216:
+     fn test_fb_in_usable_ram_requires_full_reserve_coverage() {
+         let map = [desc(0x100_0000, 0x400_0000, MemoryRegionType::UsableRam)];
+         // tanpa reserve -> FAIL (AMENDMENT-1 B1)
+-        assert!(!validate_framebuffer_memmap(&map, 0x200_0000, 0x10_0000, 0, 0));
++        assert!(!validate_framebuffer_memmap(
++            &map, 0x200_0000, 0x10_0000, 0, 0
++        ));
+         // reserve mencakup penuh frame -> PASS
+-        assert!(validate_framebuffer_memmap(&map, 0x200_0000, 0x10_0000, 0x200_0000, 0x10_0000));
++        assert!(validate_framebuffer_memmap(
++            &map, 0x200_0000, 0x10_0000, 0x200_0000, 0x10_0000
++        ));
+         // reserve hanya sebagian (frame lolos ujung) -> FAIL
+-        assert!(!validate_framebuffer_memmap(&map, 0x200_0000, 0x10_0000, 0x200_0000, 0x8_0000));
++        assert!(!validate_framebuffer_memmap(
++            &map, 0x200_0000, 0x10_0000, 0x200_0000, 0x8_0000
++        ));
+     }
+ 
+     #[test]
+Diff in \\?\C:\asl\asl-kernel\asl-kernel-core\src\lib.rs:3230:
+             desc(0x800_0000, 0x20_0000, MemoryRegionType::FrameBuffer),
+             desc(0x81_D_0000, 0x4_0000, MemoryRegionType::BadMemory),
+         ];
+-        assert!(!validate_framebuffer_memmap(&map, 0x800_0000, 0x1D_4C00, 0, 0));
++        assert!(!validate_framebuffer_memmap(
++            &map, 0x800_0000, 0x1D_4C00, 0, 0
++        ));
+         // crossing: frame melintasi dua region, tak termuat penuh di satu region
+         let map2 = [
+             desc(0x800_0000, 0x10_0000, MemoryRegionType::FrameBuffer),
+Diff in \\?\C:\asl\asl-kernel\asl-kernel-core\src\lib.rs:3237:
+             desc(0x810_0000, 0x10_0000, MemoryRegionType::Reserved),
+         ];
+-        assert!(!validate_framebuffer_memmap(&map2, 0x80F_0000, 0x2_0000, 0, 0));
++        assert!(!validate_framebuffer_memmap(
++            &map2, 0x80F_0000, 0x2_0000, 0, 0
++        ));
+         // tumpang tindih KernelImage
+         let map3 = [
+             desc(0x10_0000, 0x20_0000, MemoryRegionType::KernelImage),
+Diff in \\?\C:\asl\asl-kernel\asl-kernel-core\src\lib.rs:3243:
+             desc(0x20_0000, 0x20_0000, MemoryRegionType::FrameBuffer),
+         ];
+-        assert!(!validate_framebuffer_memmap(&map3, 0x1_0000, 0x40_0000, 0, 0));
++        assert!(!validate_framebuffer_memmap(
++            &map3, 0x1_0000, 0x40_0000, 0, 0
++        ));
+     }
+ 
+     #[test]
+Diff in \\?\C:\asl\asl-kernel\asl-kernel-core\src\lib.rs:3249:
+     fn test_fb_arithmetic_edge_cases_fail_closed() {
+         let map = [desc(0x800_0000, 0x20_0000, MemoryRegionType::FrameBuffer)];
+         assert!(!validate_framebuffer_memmap(&map, 0x800_0000, 0, 0, 0));
+-        assert!(!validate_framebuffer_memmap(&map, u64::MAX - 0x100, 0x1_0000, 0, 0));
++        assert!(!validate_framebuffer_memmap(
++            &map,
++            u64::MAX - 0x100,
++            0x1_0000,
++            0,
++            0
++        ));
+         // region descriptor malformed (overflow base+len) -> fail closed
+-        let bad_map = [desc(u64::MAX - 0xFF, 0x1_0000, MemoryRegionType::FrameBuffer)];
+-        assert!(!validate_framebuffer_memmap(&bad_map, 0x800_0000, 0x1000, 0, 0));
++        let bad_map = [desc(
++            u64::MAX - 0xFF,
++            0x1_0000,
++            MemoryRegionType::FrameBuffer,
++        )];
++        assert!(!validate_framebuffer_memmap(
++            &bad_map, 0x800_0000, 0x1000, 0, 0
++        ));
+     }
+ 
+     #[test]
+Diff in \\?\C:\asl\asl-kernel\asl-kernel-core\src\lib.rs:3292:
+             (asl_storage::VfsError::NotFound, "tidak ditemukan"),
+             (asl_storage::VfsError::AlreadyExists, "sudah ada"),
+             (asl_storage::VfsError::IsADirectory, "objek ini direktori"),
+-            (asl_storage::VfsError::NotADirectory, "objek ini bukan direktori"),
+-            (asl_storage::VfsError::DirectoryNotEmpty, "direktori masih berisi"),
++            (
++                asl_storage::VfsError::NotADirectory,
++                "objek ini bukan direktori",
++            ),
++            (
++                asl_storage::VfsError::DirectoryNotEmpty,
++                "direktori masih berisi",
++            ),
+             (asl_storage::VfsError::NoSpaceLeft, "ruang RAMDISK habis"),
+             (asl_storage::VfsError::ReadOnly, "sistem berkas hanya-baca"),
+             (asl_storage::VfsError::InvalidPath, "path tidak sah"),
+Diff in \\?\C:\asl\asl-kernel\asl-kernel-core\src\vtd_boot.rs:48:
+ fn image_vaddr_to_phys(vaddr: usize) -> u64 {
+     let vb = unsafe { KERNEL_VIRT_BASE };
+     let pb = unsafe { KERNEL_PHYS_BASE };
+-    (vaddr as u64)
+-        .wrapping_sub(vb)
+-        .wrapping_add(pb)
++    (vaddr as u64).wrapping_sub(vb).wrapping_add(pb)
+ }
+ 
+ #[inline(always)]
+Diff in \\?\C:\asl\asl-kernel\asl-kernel-core\src\vtd_boot.rs:93:
+     // 1. RSDP di window BIOS 0xE0000..0xFFFFF (fallback: EBDA 1KiB).
+     let bios_window =
+         unsafe { core::slice::from_raw_parts((HHDM_OFFSET + 0x000E_0000) as *const u8, 0x2_0000) };
+-    let ebda_seg_phys = unsafe {
+-        (core::ptr::read_volatile((HHDM_OFFSET + 0x040E) as *const u16) as u32) << 4
+-    } as u64;
++    let ebda_seg_phys =
++        unsafe { (core::ptr::read_volatile((HHDM_OFFSET + 0x040E) as *const u16) as u32) << 4 }
++            as u64;
+     let ebda_window = unsafe {
+         core::slice::from_raw_parts((HHDM_OFFSET + ebda_seg_phys as usize) as *const u8, 1024)
+     };
+Diff in \\?\C:\asl\asl-kernel\asl-kernel-core\src\vtd_boot.rs:110:
+     };
+ 
+     // 2. Root table pointer -> salin 512B -> cari DMAR.
+-    let rsdp_bytes = unsafe { core::slice::from_raw_parts((HHDM_OFFSET + rsdp_phys as usize) as *const u8, 36) };
++    let rsdp_bytes =
++        unsafe { core::slice::from_raw_parts((HHDM_OFFSET + rsdp_phys as usize) as *const u8, 36) };
+     let root_phys = match vtd::rsdp_root_table_ptr(rsdp_bytes) {
+         Some(p) => p,
+         None => {
+Diff in \\?\C:\asl\asl-kernel\asl-kernel-core\src\vtd_boot.rs:117:
+-            early_serial_write_str("[ASL-VTD] RSDP present but no root table ptr. Halting probe.\n");
++            early_serial_write_str(
++                "[ASL-VTD] RSDP present but no root table ptr. Halting probe.\n",
++            );
+             return;
+         }
+     };
+Diff in \\?\C:\asl\asl-kernel\asl-kernel-core\src\vtd_boot.rs:121:
+-    let root = unsafe { core::slice::from_raw_parts((HHDM_OFFSET + root_phys as usize) as *const u8, 512) };
++    let root = unsafe {
++        core::slice::from_raw_parts((HHDM_OFFSET + root_phys as usize) as *const u8, 512)
++    };
+     let dmar_phys = match vtd::find_acpi_table_with(root, b"DMAR", |p| unsafe { phys_slice8(p) }) {
+         Some(p) => p,
+         None => {
+Diff in \\?\C:\asl\asl-kernel\asl-kernel-core\src\vtd_boot.rs:128:
+     };
+ 
+     // 3. Parse DMAR -> DRHD register base.
+-    let dmar = unsafe { core::slice::from_raw_parts((HHDM_OFFSET + dmar_phys as usize) as *const u8, 512) };
++    let dmar = unsafe {
++        core::slice::from_raw_parts((HHDM_OFFSET + dmar_phys as usize) as *const u8, 512)
++    };
+     early_serial_write_str("[ASL-VTD] DMAR @0x");
+     early_serial_write_hex64(dmar_phys);
+     early_serial_write_str(" hdr=0x");
+Diff in \\?\C:\asl\asl-kernel\asl-kernel-core\src\vtd_boot.rs:147:
+         while k + 8 <= 120 {
+             early_serial_write_str(" ");
+             early_serial_write_hex64(u64::from_le_bytes([
+-                dmar[k], dmar[k + 1], dmar[k + 2], dmar[k + 3], dmar[k + 4], dmar[k + 5], dmar[k + 6], dmar[k + 7],
++                dmar[k],
++                dmar[k + 1],
++                dmar[k + 2],
++                dmar[k + 3],
++                dmar[k + 4],
++                dmar[k + 5],
++                dmar[k + 6],
++                dmar[k + 7],
+             ]));
+             k += 8;
+         }
+Diff in \\?\C:\asl\asl-kernel\asl-kernel-core\src\vtd_boot.rs:209:
+ 
+     vtd::fill_contexts_passthrough(ctx_t);
+     // Rantai SL 3-level untuk window 0x10000000: PDP[0]->PD[128]->PT[0]->stash.
+-    sl_array[0] = vtd::sl_leaf(image_vaddr_to_phys(core::ptr::addr_of!(VTD_DMA_STASH) as usize), true);
++    sl_array[0] = vtd::sl_leaf(
++        image_vaddr_to_phys(core::ptr::addr_of!(VTD_DMA_STASH) as usize),
++        true,
++    );
+     pd_array[((QM01_IOVA_BASE >> 21) & 0x1FF) as usize] = vtd::sspt_nonleaf(pt_phys);
+     pdp_array[((QM01_IOVA_BASE >> 30) & 0x1FF) as usize] = vtd::sspt_nonleaf(pd_phys);
+     vtd::write_context_entry(ctx_t, 0x08, pdp_phys, vtd::CTX_TT_SECOND_LEVEL);
+Diff in \\?\C:\asl\asl-kernel\asl-kernel-core\src\vtd_boot.rs:258:
+     let rtps_ok = gsts_val & vtd::VTD_GSTS_RTPS != 0;
+     let qies_ok = gsts_val & vtd::VTD_GSTS_QIES != 0;
+     early_serial_write_str("[ASL-VTD] Global TE (DMA remapping) ");
+-    early_serial_write_str(if te_ok { "ENABLED (GSSTS.TES=1)" } else { "NOT confirmed (GSSTS.TES=0) - platform/QEMU did not latch TE" });
++    early_serial_write_str(if te_ok {
++        "ENABLED (GSSTS.TES=1)"
++    } else {
++        "NOT confirmed (GSSTS.TES=0) - platform/QEMU did not latch TE"
++    });
+     early_serial_write_str("; RootPtr latched (RTPS)=");
+     early_serial_write_str(if rtps_ok { "1" } else { "0" });
+     early_serial_write_str("; QI enabled (QIES)=");
+Diff in \\?\C:\asl\asl-kernel\asl-kernel-core\src\vtd_boot.rs:290:
+         spins2 += 1;
+     }
+     early_serial_write_str("[ASL-VTD] QI invalidation+wait ");
+-    early_serial_write_str(if qi_done { "DRAINED (IQH==tail)" } else { "NOT drained (timeout) - logged, model verified on host"});
++    early_serial_write_str(if qi_done {
++        "DRAINED (IQH==tail)"
++    } else {
++        "NOT drained (timeout) - logged, model verified on host"
++    });
+     early_serial_write_str(" - 2 descriptors pushed\n");
+ 
+     // 8. PREFLIGHT walk 3-level atas tabel SL yang BARULIA ditulis — fungsi
+Diff in \\?\C:\asl\asl-kernel\asl-kernel-core\src\vtd_boot.rs:297:
+     //    walk ini mirror semantik vtd_iova_to_sspte QEMU (indeks >>30|>>21|>>12,
+     //    R/W, PS large-page), sehingga bukti = format yang dibaca hardware.
+     let stashed_phys = image_vaddr_to_phys(core::ptr::addr_of!(VTD_DMA_STASH) as usize);
+-    match vtd::sl_walk_hw(&*pdp_array, &*pd_array, &*sl_array, QM01_IOVA_BASE, 4096, true) {
++    match vtd::sl_walk_hw(
++        &*pdp_array,
++        &*pd_array,
++        &*sl_array,
++        QM01_IOVA_BASE,
++        4096,
++        true,
++    ) {
+         Ok(phys) => {
+             early_serial_write_str("[ASL-VTD] PREFLIGHT-MAP OK: IOVA 0x");
+             early_serial_write_hex64(QM01_IOVA_BASE);
+Diff in \\?\C:\asl\asl-kernel\asl-kernel-core\src\vtd_boot.rs:331:
+             early_serial_write_str("[ASL-VTD] PREFLIGHT-MAP FAIL: mapped IOVA rejected\n");
+         }
+     }
+-    match vtd::sl_walk_hw(&*pdp_array, &*pd_array, &*sl_array, QM01_IOVA_BASE + 0x8_0000, 64, false) {
++    match vtd::sl_walk_hw(
++        &*pdp_array,
++        &*pd_array,
++        &*sl_array,
++        QM01_IOVA_BASE + 0x8_0000,
++        64,
++        false,
++    ) {
+         Err(vtd::VtdWalkFault::NotPresent) => {
+             let rec = vtd::VtdFaultRecord {
+                 iova: QM01_IOVA_BASE + 0x8_0000,
+Diff in \\?\C:\asl\asl-kernel\asl-kernel-core-secondary\src\lib.rs:182:
+         self.diagnostics.fault_timestamp_ticks = timestamp_ticks;
+         // Transisi ke FaultDetected untuk merekam anomali fatal tanpa mengambil alih kontrol
+         self.transition_to(RecoveryState::FaultDetected).ok();
+-        self.diagnostics
+-            .set_log("Fatal fault notification received from primary kernel. Standby armed, no takeover.");
++        self.diagnostics.set_log(
++            "Fatal fault notification received from primary kernel. Standby armed, no takeover.",
++        );
+         self.state
+     }
+ }
+Diff in \\?\C:\asl\asl-kernel\asl-kernel-core-secondary\src\lib.rs:572:
+         let st = engine.notify_fault(FaultReason::IllegalHardwareTrap, 42_000);
+         assert_eq!(st, RecoveryState::FaultDetected);
+         assert_eq!(engine.state, RecoveryState::FaultDetected);
+-        assert_eq!(engine.diagnostics.fault_reason, FaultReason::IllegalHardwareTrap);
++        assert_eq!(
++            engine.diagnostics.fault_reason,
++            FaultReason::IllegalHardwareTrap
++        );
+         assert_eq!(engine.diagnostics.fault_timestamp_ticks, 42_000);
+         // Memastikan secondary engine TIDAK mengambil alih (tidak Operational)
+         assert_ne!(engine.state, RecoveryState::Operational);
+Diff in \\?\C:\asl\asl-kernel\asl-memory\src\lib.rs:16:
+ pub mod paging;
+ pub use paging::{
+     create_kernel_pml4, invalidate_page_tlb, is_canonical_address, is_hhdm_address,
+-    is_user_address, load_cr3, page_offset, pd_index, pdpt_index, pml4_index, pt_index,
+-    read_cr3, AddressSpace, PageTable, PageTableEntry, PageTableFlags, PagingError,
+-    HHDM_VIRTUAL_BASE, PHYSICAL_ADDRESS_MASK, USER_SPACE_LIMIT,
++    is_user_address, load_cr3, page_offset, pd_index, pdpt_index, pml4_index, pt_index, read_cr3,
++    AddressSpace, PageTable, PageTableEntry, PageTableFlags, PagingError, HHDM_VIRTUAL_BASE,
++    PHYSICAL_ADDRESS_MASK, USER_SPACE_LIMIT,
+ };
+ 
+ pub const BUDDY_FLAG_FREE: u8 = 0;
+Diff in \\?\C:\asl\asl-kernel\asl-memory\src\paging.rs:461:
+ 
+         let pd = self.table_at_phys(pdpt.entries[pdpt_idx].physical_address());
+         let pt_phys = pd.entries[pd_idx].physical_address();
+-        if pd.entries[pd_idx].flags().contains(PageTableFlags::HUGE_PAGE) {
++        if pd.entries[pd_idx]
++            .flags()
++            .contains(PageTableFlags::HUGE_PAGE)
++        {
+             return Err(PagingError::HugePageNotSupported);
+         }
+         let pt = self.table_at_phys(pt_phys);
+Diff in \\?\C:\asl\asl-kernel\asl-memory\src\paging.rs:565:
+ /// Memetakan Kernel Code, Kernel Data, HHDM, Framebuffer, dan Serial MMIO.
+ /// Mengkloning pemetaan higher half dari PML4 aktif saat ini (disediakan oleh Limine bootloader)
+ /// ke dalam PML4 baru yang terkelola penuh oleh ASL kernel.
+-pub unsafe fn create_kernel_pml4(
+-    dest_pml4_phys: u64,
+-    hhdm_offset: u64,
+-) -> AddressSpace {
++pub unsafe fn create_kernel_pml4(dest_pml4_phys: u64, hhdm_offset: u64) -> AddressSpace {
+     let current_cr3 = read_cr3();
+     let current_pml4_phys = current_cr3 & PHYSICAL_ADDRESS_MASK;
+ 
+Diff in \\?\C:\asl\asl-kernel\asl-memory\src\paging.rs:686:
+         assert_eq!(query_res, Ok(flags));
+ 
+         // 4. Double map rejected
+-        let double_map = unsafe { space.map_page(target_virt, target_phys, flags, &mut alloc_frame) };
++        let double_map =
++            unsafe { space.map_page(target_virt, target_phys, flags, &mut alloc_frame) };
+         assert_eq!(double_map, Err(PagingError::AlreadyMapped));
+ 
+         // 5. Unmap page
+Diff in \\?\C:\asl\asl-kernel\asl-memory\src\paging.rs:713:
+         src_pml4.entries[0].set(0x1000, PageTableFlags::PRESENT.union(PageTableFlags::USER));
+ 
+         // Pasang satu entri pada kernel space (higher half: index 256)
+-        src_pml4.entries[256].set(0x2000, PageTableFlags::PRESENT.union(PageTableFlags::WRITABLE));
++        src_pml4.entries[256].set(
++            0x2000,
++            PageTableFlags::PRESENT.union(PageTableFlags::WRITABLE),
++        );
+ 
+         // Lakukan kloning kernel space ke dest
+         unsafe {
+Diff in \\?\C:\asl\asl-kernel\asl-memory\src\paging.rs:773:
+     const GUARD_VIRT: u64 = 0xFFFF_8000_0020_5000; // pd_idx=1, pt_idx=5
+     const HUGE_PHYS: u64 = 0x4000_0000;
+ 
+-    fn make_sim_space(ram: &mut [PageTable; 8], map_huge: bool, map_pdpt_only: bool) -> AddressSpace {
++    fn make_sim_space(
++        ram: &mut [PageTable; 8],
++        map_huge: bool,
++        map_pdpt_only: bool,
++    ) -> AddressSpace {
+         for tbl in ram.iter_mut() {
+             tbl.zero();
+         }
+Diff in \\?\C:\asl\asl-kernel\asl-memory\src\paging.rs:784:
+         }
+         ram[1].entries[pdpt_index(GUARD_VIRT)].set(2 * 4096, rw);
+         if map_huge {
+-            ram[2].entries[pd_index(GUARD_VIRT)].set(
+-                HUGE_PHYS,
+-                rw.union(PageTableFlags::HUGE_PAGE),
+-            );
++            ram[2].entries[pd_index(GUARD_VIRT)]
++                .set(HUGE_PHYS, rw.union(PageTableFlags::HUGE_PAGE));
+         }
+         AddressSpace::from_pml4_phys(0, ram.as_ptr() as u64)
+     }
+Diff in \\?\C:\asl\asl-kernel\asl-memory\src\paging.rs:815:
+ 
+         // PD tidak lagi huge, menunjuk PT baru
+         assert!(ram[2].entries[pd_index(GUARD_VIRT)].is_present());
+-        assert!(!ram[2]
+-            .entries[pd_index(GUARD_VIRT)]
++        assert!(!ram[2].entries[pd_index(GUARD_VIRT)]
+             .flags()
+             .contains(PageTableFlags::HUGE_PAGE));
+         assert_eq!(
+Diff in \\?\C:\asl\asl-kernel\asl-memory\src\paging.rs:829:
+         assert_eq!(pt_idx, 5);
+         for i in 0..ENTRY_COUNT {
+             if i == pt_idx {
+-                assert!(!ram[3].entries[i].is_present(), "guard leaf harus non-present");
++                assert!(
++                    !ram[3].entries[i].is_present(),
++                    "guard leaf harus non-present"
++                );
+             } else {
+-                assert!(ram[3].entries[i].is_present(), "leaf hasil split harus present");
+-                assert_eq!(ram[3].entries[i].physical_address(), HUGE_PHYS + (i as u64) * 4096);
++                assert!(
++                    ram[3].entries[i].is_present(),
++                    "leaf hasil split harus present"
++                );
++                assert_eq!(
++                    ram[3].entries[i].physical_address(),
++                    HUGE_PHYS + (i as u64) * 4096
++                );
+             }
+         }
+     }
+Diff in \\?\C:\asl\asl-kernel\asl-memory\src\paging.rs:858:
+         let res = unsafe { space.enforce_stack_guard_page(GUARD_VIRT, &mut alloc) };
+         assert_eq!(res, Ok(()));
+         assert!(ram[2].entries[pd_index(GUARD_VIRT)].is_present());
+-        assert!(!ram[2]
+-            .entries[pd_index(GUARD_VIRT)]
++        assert!(!ram[2].entries[pd_index(GUARD_VIRT)]
+             .flags()
+             .contains(PageTableFlags::HUGE_PAGE));
+         for i in 0..ENTRY_COUNT {
+Diff in \\?\C:\asl\asl-kernel\asl-memory\src\paging.rs:900:
+         let res = unsafe { space.enforce_stack_guard_page(GUARD_VIRT, &mut alloc) };
+         assert_eq!(res, Err(PagingError::AllocationFailed));
+         // Split belum sempat memutus pemetaan: entry PD tetap huge seperti semula
+-        assert!(ram[2]
+-            .entries[pd_index(GUARD_VIRT)]
++        assert!(ram[2].entries[pd_index(GUARD_VIRT)]
+             .flags()
+             .contains(PageTableFlags::HUGE_PAGE));
+     }
+Diff in \\?\C:\asl\asl-kernel\asl-pmd\src\lib.rs:213:
+         assert_eq!(queue.rx_ring[1].flags.load(Ordering::Relaxed) & 0x01, 1);
+     }
+ 
+-    fn tx_lease(space: &mut asl_hal::BounceAddressSpace, iova: u64, len: u64) -> asl_hal::IovaLease {
++    fn tx_lease(
++        space: &mut asl_hal::BounceAddressSpace,
++        iova: u64,
++        len: u64,
++    ) -> asl_hal::IovaLease {
+         space.pin(1, iova, len).expect("pin TX lease")
+     }
+ 
+Diff in \\?\C:\asl\asl-kernel\asl-pmd\src\lib.rs:253:
+             queue.transmit_burst(&lease, 0x500, 100),
+             Err("ERR_TX_LEN_EXCEEDS_LEASE")
+         );
+-        assert_eq!(queue.transmit_burst(&lease, 0, 100), Err("ERR_TX_LEN_EXCEEDS_LEASE"));
++        assert_eq!(
++            queue.transmit_burst(&lease, 0, 100),
++            Err("ERR_TX_LEN_EXCEEDS_LEASE")
++        );
+         assert_eq!(queue.tx_tail.load(Ordering::Relaxed), 0);
+ 
+         // Lease hasil stage dari pool dengan offset tidak selaras tidak mungkin
+Diff in \\?\C:\asl\asl-kernel\asl-sched\src\lib.rs:139:
+ #[repr(C)]
+ #[derive(Debug, Copy, Clone, PartialEq, Eq)]
+ pub struct InterruptContext {
+-    pub r15: u64,    // 0x00
+-    pub r14: u64,    // 0x08
+-    pub r13: u64,    // 0x10
+-    pub r12: u64,    // 0x18
+-    pub r11: u64,    // 0x20
+-    pub r10: u64,    // 0x28
+-    pub r9: u64,     // 0x30
+-    pub r8: u64,     // 0x38
+-    pub rbp: u64,    // 0x40
+-    pub rdi: u64,    // 0x48
+-    pub rsi: u64,    // 0x50
+-    pub rdx: u64,    // 0x58
+-    pub rcx: u64,    // 0x60
+-    pub rbx: u64,    // 0x68
+-    pub rax: u64,    // 0x70
++    pub r15: u64, // 0x00
++    pub r14: u64, // 0x08
++    pub r13: u64, // 0x10
++    pub r12: u64, // 0x18
++    pub r11: u64, // 0x20
++    pub r10: u64, // 0x28
++    pub r9: u64,  // 0x30
++    pub r8: u64,  // 0x38
++    pub rbp: u64, // 0x40
++    pub rdi: u64, // 0x48
++    pub rsi: u64, // 0x50
++    pub rdx: u64, // 0x58
++    pub rcx: u64, // 0x60
++    pub rbx: u64, // 0x68
++    pub rax: u64, // 0x70
+     // Hardware interrupt frame (pushed by CPU in 64-bit mode)
+     pub rip: u64,    // 0x78
+     pub cs: u64,     // 0x80
+Diff in \\?\C:\asl\asl-kernel\asl-sched\src\lib.rs:447:
+ 
+         // Buat Synthetic Interrupt Frame pada stack task
+         // Frame size = 152 bytes (19 QWORDs)
+-        let frame_ptr = (stack_top - core::mem::size_of::<InterruptContext>() as u64) as *mut InterruptContext;
++        let frame_ptr =
++            (stack_top - core::mem::size_of::<InterruptContext>() as u64) as *mut InterruptContext;
+ 
+         unsafe {
+             core::ptr::write_volatile(
+Diff in \\?\C:\asl\asl-kernel\asl-sched\src\lib.rs:509:
+             (*frame_ptr).r12 = gprs[3];
+             (*frame_ptr).r11 = gprs[4];
+             (*frame_ptr).r10 = gprs[5];
+-            (*frame_ptr).r9  = gprs[6];
+-            (*frame_ptr).r8  = gprs[7];
++            (*frame_ptr).r9 = gprs[6];
++            (*frame_ptr).r8 = gprs[7];
+             (*frame_ptr).rbp = gprs[8];
+             (*frame_ptr).rdi = gprs[9];
+             (*frame_ptr).rsi = gprs[10];
+Diff in \\?\C:\asl\asl-kernel\asl-sched\src\lib.rs:910:
+         // Test out of bounds (above top)
+         assert!(!tcb.stack.is_rsp_within_bounds(tcb.stack.top_address() + 16));
+         // Test out of bounds (below bottom)
+-        assert!(!tcb.stack.is_rsp_within_bounds(tcb.stack.bottom_address() - 8));
++        assert!(!tcb
++            .stack
++            .is_rsp_within_bounds(tcb.stack.bottom_address() - 8));
+     }
+ 
+     #[test]
+Diff in \\?\C:\asl\asl-kernel\asl-sched\src\lib.rs:1065:
+         assert_ne!(next_rsp, 0);
+     }
+ }
+-
+ 
+Diff in \\?\C:\asl\asl-kernel\asl-storage\src\ramdisk.rs:324:
+         name: &str,
+         kind: VfsNodeType,
+     ) -> VfsResult<VfsNode> {
+-        let pidx = self.index_of_inode(parent.inode).ok_or(VfsError::NotFound)?;
++        let pidx = self
++            .index_of_inode(parent.inode)
++            .ok_or(VfsError::NotFound)?;
+         if self.nodes[pidx].kind != VfsNodeType::Directory {
+             return Err(VfsError::NotADirectory);
+         }
+Diff in \\?\C:\asl\asl-kernel\asl-storage\src\ramdisk.rs:379:
+                 continue;
+             }
+             if seg == ".." {
+-                let idx = self.index_of_inode(current_inode).ok_or(VfsError::NotFound)?;
++                let idx = self
++                    .index_of_inode(current_inode)
++                    .ok_or(VfsError::NotFound)?;
+                 current_inode = self.nodes[idx].parent;
+                 continue;
+             }
+Diff in \\?\C:\asl\asl-kernel\asl-storage\src\ramdisk.rs:386:
+-            let idx = self.find_child(current_inode, seg).ok_or(VfsError::NotFound)?;
++            let idx = self
++                .find_child(current_inode, seg)
++                .ok_or(VfsError::NotFound)?;
+             current_inode = self.nodes[idx].inode;
+         }
+-        let idx = self.index_of_inode(current_inode).ok_or(VfsError::NotFound)?;
++        let idx = self
++            .index_of_inode(current_inode)
++            .ok_or(VfsError::NotFound)?;
+         Ok(self.node_view(idx))
+     }
+ 
+Diff in \\?\C:\asl\asl-kernel\asl-storage\src\ramdisk.rs:442:
+                 if out >= entries.len() {
+                     break;
+                 }
+-                entries[out] = DirectoryEntry::new(
+-                    n.name_as_str(),
+-                    n.kind,
+-                    n.size as u64,
+-                    n.inode,
+-                );
++                entries[out] = DirectoryEntry::new(n.name_as_str(), n.kind, n.size as u64, n.inode);
+                 out += 1;
+             }
+             i += 1;
+Diff in \\?\C:\asl\asl-kernel\asl-storage\src\ramdisk.rs:464:
+     }
+ 
+     fn delete_file(&mut self, parent: &VfsNode, name: &str) -> VfsResult<()> {
+-        let pidx = self.index_of_inode(parent.inode).ok_or(VfsError::NotFound)?;
++        let pidx = self
++            .index_of_inode(parent.inode)
++            .ok_or(VfsError::NotFound)?;
+         if self.nodes[pidx].kind != VfsNodeType::Directory {
+             return Err(VfsError::NotADirectory);
+         }
+Diff in \\?\C:\asl\asl-kernel\asl-storage\src\ramdisk.rs:484:
+     }
+ 
+     fn delete_dir(&mut self, parent: &VfsNode, name: &str) -> VfsResult<()> {
+-        let pidx = self.index_of_inode(parent.inode).ok_or(VfsError::NotFound)?;
++        let pidx = self
++            .index_of_inode(parent.inode)
++            .ok_or(VfsError::NotFound)?;
+         if self.nodes[pidx].kind != VfsNodeType::Directory {
+             return Err(VfsError::NotADirectory);
+         }
+Diff in \\?\C:\asl\asl-kernel\asl-storage\src\ramdisk.rs:543:
+ #[cfg(test)]
+ mod fs_tests {
+     use super::*;
+-    use crate::vfs::{resolve_path, MAX_PATH_LEN, Vfs, MAX_DIR_ENTRIES};
++    use crate::vfs::{resolve_path, Vfs, MAX_DIR_ENTRIES, MAX_PATH_LEN};
+ 
+     type TinyFs = RamFileSystem<8, 64>;
+ 
+Diff in \\?\C:\asl\asl-kernel\asl-storage\src\ramdisk.rs:592:
+ 
+         // Melebihi slot berkas -> NoSpaceLeft (fail-closed, bukan panik).
+         let big = [0u8; 65];
+-        assert_eq!(
+-            fs.write(&file, 0, &big).unwrap_err(),
+-            VfsError::NoSpaceLeft
+-        );
++        assert_eq!(fs.write(&file, 0, &big).unwrap_err(), VfsError::NoSpaceLeft);
+     }
+ 
+     #[test]
+Diff in \\?\C:\asl\asl-kernel\asl-storage\src\ramdisk.rs:616:
+             VfsError::IsADirectory
+         );
+         fs.delete_file(&dir, "dalam.txt").unwrap();
+-        assert_eq!(fs.delete_file(&dir, "dalam.txt").unwrap_err(), VfsError::NotFound);
++        assert_eq!(
++            fs.delete_file(&dir, "dalam.txt").unwrap_err(),
++            VfsError::NotFound
++        );
+         fs.delete_dir(&root, "data").unwrap();
+         assert_eq!(fs.lookup("/data").unwrap_err(), VfsError::NotFound);
+         assert_eq!(fs.total_entries(), 1);
+Diff in \\?\C:\asl\asl-kernel\asl-storage\src\ramdisk.rs:636:
+         fs.create_file(&d, "satu").unwrap();
+         assert_eq!(fs.lookup("/dir/satu").unwrap().node_type, VfsNodeType::File);
+ 
+-        assert_eq!(fs.create_file(&root, "").unwrap_err(), VfsError::InvalidPath);
++        assert_eq!(
++            fs.create_file(&root, "").unwrap_err(),
++            VfsError::InvalidPath
++        );
+         assert_eq!(
+             fs.create_file(&root, "ada/garis").unwrap_err(),
+             VfsError::InvalidPath
+Diff in \\?\C:\asl\asl-kernel\asl-storage\src\vfs.rs:299:
+     out: &'a mut [u8; MAX_PATH_LEN],
+ ) -> Option<&'a str> {
+     let mut ctx = PathCtx::new();
+-    let base: &str = if input.starts_with('/') {
+-        ""
+-    } else {
+-        cwd
+-    };
++    let base: &str = if input.starts_with('/') { "" } else { cwd };
+     if !ctx.push_all(base, out) {
+         return None;
+     }

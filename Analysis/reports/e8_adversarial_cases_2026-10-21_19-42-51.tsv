@@ -1,0 +1,44 @@
+id	label	hasil_pokok	jenis_kirim	byte_kirim	teks_balasan_terpotong
+S01	SIAP: buat direktori uji	OK	line	20	create-folder e8uji | Direktori dibuat: /e8uji | ASL-KERNEL> 
+S02	SIAP: masuk direktori uji	OK	line	11	open e8uji | Ruang kerja: /e8uji | ASL-KERNEL> 
+S03	SIAP: buat berkas a.txt	OK	line	18	create-file a.txt | Berkas dibuat: /e8uji/a.txt | ASL-KERNEL> 
+S04	SIAP: isi a.txt	OK	line	29	write-file a.txt isi awal e8 | Tertulis 11 byte di /e8uji/a.txt | ASL-KERNEL> 
+C01	baris kosong	OK	line	1	 | ASL-KERNEL> 
+C02	hanya spasi	OK	line	6	      | ASL-KERNEL> 
+C03	baris 512 karakter	OK	line	513	AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA | Unknown command. Type 'help' for available commands. | ASL-KERNEL> 
+C04	baris 1024 karakter	OK	line	1025	BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB | Unknown command. Type 'help' for available commands. | ASL-KERNEL> 
+C05	baris 5000 karakter (>=4096)	OK	line	5001	CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC | Unknown command. Type 'help' for available commands. | ASL-KERNEL> 
+C06	argumen '..'	OK	line	8	open .. | Ruang kerja: / | ASL-KERNEL> 
+C07	argumen '//'	OK	line	8	open // | Ruang kerja: / | ASL-KERNEL> 
+C08	trailing slash	OK	line	22	create-folder namaku/ | Direktori dibuat: /namaku | ASL-KERNEL> 
+C09	argumen titik	OK	line	7	open . | Ruang kerja: / | ASL-KERNEL> 
+C10	argumen berkutip	OK	line	30	create-folder "nama bertanda" | Sintaks: create-folder <nama> | ASL-KERNEL> 
+C11	argumen hubung	OK	line	14	delete-file - | Galat: tidak ditemukan | ASL-KERNEL> 
+C12	open berkas yang ada	OK	line	11	open a.txt | Galat: tidak ditemukan | ASL-KERNEL> 
+C13	open jalur tidak ada	OK	line	20	open tidak-ada-e8-9 | Galat: tidak ditemukan | ASL-KERNEL> 
+C14	open '/..'	OK	line	9	open /.. | Ruang kerja: / | ASL-KERNEL> 
+C15	up di akar	OK	line	3	up | Unknown command. Type 'help' for available commands. | ASL-KERNEL> 
+C16	create-folder nama baru (siap kasus bertumpuk)	OK	line	18	create-folder sub | Direktori dibuat: /sub | ASL-KERNEL> 
+C16B	create-folder nama sudah ada	OK	line	18	create-folder sub | Galat: sudah ada | ASL-KERNEL> 
+C17	create-folder berisi garis miring	OK	line	25	create-folder luar/dalam | Galat: tidak ditemukan | ASL-KERNEL> 
+C18	create-folder tanpa nama	OK	line	14	create-folder | Sintaks: create-folder <nama> | ASL-KERNEL> 
+C19	create-file nama sudah ada	OK	line	18	create-file a.txt | Berkas dibuat: /a.txt | ASL-KERNEL> 
+C20	write-file ke folder tidak ada	OK	line	34	write-file tidak-ada-e8/x.txt isi | Galat: tidak ditemukan | ASL-KERNEL> 
+C21	write-file pada folder	OK	line	19	write-file sub isi | Galat: objek ini direktori | ASL-KERNEL> 
+C22	write-file isi kosong (tanpa argumen isi)	OK	line	17	write-file a.txt | Tertulis 0 byte di /a.txt | ASL-KERNEL> 
+C23	write-file isi satu spasi	OK	line	19	write-file a.txt   | Tertulis 0 byte di /a.txt | ASL-KERNEL> 
+C24	write-file tepat 8192 byte (di ujung baris)	OK	line	8210	write-file a.txt DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD | Tertulis 64 byte di /a.txt | ASL-KERNEL> 
+C25	write-file 8193 byte (di ujung baris)	OK	line	8211	write-file a.txt EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE | Tertulis 64 byte di /a.txt | ASL-KERNEL> 
+C26	rename ke nama sudah ada	OK	line	19	rename a.txt b.txt | Unknown command. Type 'help' for available commands. | ASL-KERNEL> 
+C27	rename akar	OK	line	11	rename / / | Unknown command. Type 'help' for available commands. | ASL-KERNEL> 
+C28	delete-file pada folder	OK	line	16	delete-file sub | Galat: objek ini direktori | ASL-KERNEL> 
+C29	delete-folder pada berkas	OK	line	20	delete-folder a.txt | Galat: objek ini bukan direktori | ASL-KERNEL> 
+C30	delete akar	OK	line	16	delete-folder / | Galat: tidak ditemukan | ASL-KERNEL> 
+C31	perintah tak dikenal	OK	line	23	perintahane8takdikenal | Unknown command. Type 'help' for available commands. | ASL-KERNEL> 
+C32	argumen berlebih	OK	line	66	list satu dua tiga empat lima enam tujuh delapan sembilan sepuluh | Sintaks: list [jalan] | ASL-KERNEL> 
+C33	nama panjang 127 byte di ujung buffer	OK	line	128	fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff | Unknown command. Type 'help' for available commands. | ASL-KERNEL> 
+C34	byte kendali mentah (NUL, BEL, BS, DEL, ESC-A)	OK	bytes	8	 | ASL-KERNEL> 
+C35	rentetan cepat tanpa jeda (8 baris)	OK	burst	74	status | Status Cockpit Shell v1.0.2 |   Sistem berkas   : ramdisk |   Kapasitas       : 262144 byte |   Terpakai        : 75 byte |   Entri hidup     : 6 |   Ruang kerja     : / |   Perintah kanonik: 11 | ASL-KERNEL> where | / | ASL-KERNEL...[2541 byte]
+C36	rentetan cepat baris kosong x12	OK	burst	12	 | ASL-KERNEL>  | ASL-KERNEL>  | ASL-KERNEL>  | ASL-KERNEL>  | ASL-KERNEL>  | ASL-KERNEL>  | ASL-KERNEL>  | ASL-KERNEL>  | ASL-KERNEL>  | ASL-KERNEL>  | ASL-KERNEL>  | ASL-KERNEL> 
+S91	SISA: kembali ke akar	OK	line	7	open / | Ruang kerja: / | ASL-KERNEL> 
+S92	SISA: hapus direktori uji	OK	line	20	delete-folder e8uji | Galat: direktori masih berisi | ASL-KERNEL> 

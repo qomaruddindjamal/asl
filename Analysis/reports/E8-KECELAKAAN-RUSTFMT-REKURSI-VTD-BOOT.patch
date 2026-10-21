@@ -1,0 +1,148 @@
+diff --git a/asl-kernel/asl-kernel-core/src/vtd_boot.rs b/asl-kernel/asl-kernel-core/src/vtd_boot.rs
+index de39c3e..4833e25 100644
+--- a/asl-kernel/asl-kernel-core/src/vtd_boot.rs
++++ b/asl-kernel/asl-kernel-core/src/vtd_boot.rs
+@@ -48,9 +48,7 @@ static mut KERNEL_PHYS_BASE: u64 = 0;
+ fn image_vaddr_to_phys(vaddr: usize) -> u64 {
+     let vb = unsafe { KERNEL_VIRT_BASE };
+     let pb = unsafe { KERNEL_PHYS_BASE };
+-    (vaddr as u64)
+-        .wrapping_sub(vb)
+-        .wrapping_add(pb)
++    (vaddr as u64).wrapping_sub(vb).wrapping_add(pb)
+ }
+ 
+ #[inline(always)]
+@@ -93,9 +91,9 @@ pub fn qm01_vtd_boot_probe(kernel_virt_base: u64, kernel_phys_base: u64) {
+     // 1. RSDP di window BIOS 0xE0000..0xFFFFF (fallback: EBDA 1KiB).
+     let bios_window =
+         unsafe { core::slice::from_raw_parts((HHDM_OFFSET + 0x000E_0000) as *const u8, 0x2_0000) };
+-    let ebda_seg_phys = unsafe {
+-        (core::ptr::read_volatile((HHDM_OFFSET + 0x040E) as *const u16) as u32) << 4
+-    } as u64;
++    let ebda_seg_phys =
++        unsafe { (core::ptr::read_volatile((HHDM_OFFSET + 0x040E) as *const u16) as u32) << 4 }
++            as u64;
+     let ebda_window = unsafe {
+         core::slice::from_raw_parts((HHDM_OFFSET + ebda_seg_phys as usize) as *const u8, 1024)
+     };
+@@ -110,15 +108,20 @@ pub fn qm01_vtd_boot_probe(kernel_virt_base: u64, kernel_phys_base: u64) {
+     };
+ 
+     // 2. Root table pointer -> salin 512B -> cari DMAR.
+-    let rsdp_bytes = unsafe { core::slice::from_raw_parts((HHDM_OFFSET + rsdp_phys as usize) as *const u8, 36) };
++    let rsdp_bytes =
++        unsafe { core::slice::from_raw_parts((HHDM_OFFSET + rsdp_phys as usize) as *const u8, 36) };
+     let root_phys = match vtd::rsdp_root_table_ptr(rsdp_bytes) {
+         Some(p) => p,
+         None => {
+-            early_serial_write_str("[ASL-VTD] RSDP present but no root table ptr. Halting probe.\n");
++            early_serial_write_str(
++                "[ASL-VTD] RSDP present but no root table ptr. Halting probe.\n",
++            );
+             return;
+         }
+     };
+-    let root = unsafe { core::slice::from_raw_parts((HHDM_OFFSET + root_phys as usize) as *const u8, 512) };
++    let root = unsafe {
++        core::slice::from_raw_parts((HHDM_OFFSET + root_phys as usize) as *const u8, 512)
++    };
+     let dmar_phys = match vtd::find_acpi_table_with(root, b"DMAR", |p| unsafe { phys_slice8(p) }) {
+         Some(p) => p,
+         None => {
+@@ -128,7 +131,9 @@ pub fn qm01_vtd_boot_probe(kernel_virt_base: u64, kernel_phys_base: u64) {
+     };
+ 
+     // 3. Parse DMAR -> DRHD register base.
+-    let dmar = unsafe { core::slice::from_raw_parts((HHDM_OFFSET + dmar_phys as usize) as *const u8, 512) };
++    let dmar = unsafe {
++        core::slice::from_raw_parts((HHDM_OFFSET + dmar_phys as usize) as *const u8, 512)
++    };
+     early_serial_write_str("[ASL-VTD] DMAR @0x");
+     early_serial_write_hex64(dmar_phys);
+     early_serial_write_str(" hdr=0x");
+@@ -147,7 +152,14 @@ pub fn qm01_vtd_boot_probe(kernel_virt_base: u64, kernel_phys_base: u64) {
+         while k + 8 <= 120 {
+             early_serial_write_str(" ");
+             early_serial_write_hex64(u64::from_le_bytes([
+-                dmar[k], dmar[k + 1], dmar[k + 2], dmar[k + 3], dmar[k + 4], dmar[k + 5], dmar[k + 6], dmar[k + 7],
++                dmar[k],
++                dmar[k + 1],
++                dmar[k + 2],
++                dmar[k + 3],
++                dmar[k + 4],
++                dmar[k + 5],
++                dmar[k + 6],
++                dmar[k + 7],
+             ]));
+             k += 8;
+         }
+@@ -209,7 +221,10 @@ pub fn qm01_vtd_boot_probe(kernel_virt_base: u64, kernel_phys_base: u64) {
+ 
+     vtd::fill_contexts_passthrough(ctx_t);
+     // Rantai SL 3-level untuk window 0x10000000: PDP[0]->PD[128]->PT[0]->stash.
+-    sl_array[0] = vtd::sl_leaf(image_vaddr_to_phys(core::ptr::addr_of!(VTD_DMA_STASH) as usize), true);
++    sl_array[0] = vtd::sl_leaf(
++        image_vaddr_to_phys(core::ptr::addr_of!(VTD_DMA_STASH) as usize),
++        true,
++    );
+     pd_array[((QM01_IOVA_BASE >> 21) & 0x1FF) as usize] = vtd::sspt_nonleaf(pt_phys);
+     pdp_array[((QM01_IOVA_BASE >> 30) & 0x1FF) as usize] = vtd::sspt_nonleaf(pd_phys);
+     vtd::write_context_entry(ctx_t, 0x08, pdp_phys, vtd::CTX_TT_SECOND_LEVEL);
+@@ -258,7 +273,11 @@ pub fn qm01_vtd_boot_probe(kernel_virt_base: u64, kernel_phys_base: u64) {
+     let rtps_ok = gsts_val & vtd::VTD_GSTS_RTPS != 0;
+     let qies_ok = gsts_val & vtd::VTD_GSTS_QIES != 0;
+     early_serial_write_str("[ASL-VTD] Global TE (DMA remapping) ");
+-    early_serial_write_str(if te_ok { "ENABLED (GSSTS.TES=1)" } else { "NOT confirmed (GSSTS.TES=0) - platform/QEMU did not latch TE" });
++    early_serial_write_str(if te_ok {
++        "ENABLED (GSSTS.TES=1)"
++    } else {
++        "NOT confirmed (GSSTS.TES=0) - platform/QEMU did not latch TE"
++    });
+     early_serial_write_str("; RootPtr latched (RTPS)=");
+     early_serial_write_str(if rtps_ok { "1" } else { "0" });
+     early_serial_write_str("; QI enabled (QIES)=");
+@@ -290,14 +309,25 @@ pub fn qm01_vtd_boot_probe(kernel_virt_base: u64, kernel_phys_base: u64) {
+         spins2 += 1;
+     }
+     early_serial_write_str("[ASL-VTD] QI invalidation+wait ");
+-    early_serial_write_str(if qi_done { "DRAINED (IQH==tail)" } else { "NOT drained (timeout) - logged, model verified on host"});
++    early_serial_write_str(if qi_done {
++        "DRAINED (IQH==tail)"
++    } else {
++        "NOT drained (timeout) - logged, model verified on host"
++    });
+     early_serial_write_str(" - 2 descriptors pushed\n");
+ 
+     // 8. PREFLIGHT walk 3-level atas tabel SL yang BARULIA ditulis — fungsi
+     //    walk ini mirror semantik vtd_iova_to_sspte QEMU (indeks >>30|>>21|>>12,
+     //    R/W, PS large-page), sehingga bukti = format yang dibaca hardware.
+     let stashed_phys = image_vaddr_to_phys(core::ptr::addr_of!(VTD_DMA_STASH) as usize);
+-    match vtd::sl_walk_hw(&*pdp_array, &*pd_array, &*sl_array, QM01_IOVA_BASE, 4096, true) {
++    match vtd::sl_walk_hw(
++        &*pdp_array,
++        &*pd_array,
++        &*sl_array,
++        QM01_IOVA_BASE,
++        4096,
++        true,
++    ) {
+         Ok(phys) => {
+             early_serial_write_str("[ASL-VTD] PREFLIGHT-MAP OK: IOVA 0x");
+             early_serial_write_hex64(QM01_IOVA_BASE);
+@@ -331,7 +361,14 @@ pub fn qm01_vtd_boot_probe(kernel_virt_base: u64, kernel_phys_base: u64) {
+             early_serial_write_str("[ASL-VTD] PREFLIGHT-MAP FAIL: mapped IOVA rejected\n");
+         }
+     }
+-    match vtd::sl_walk_hw(&*pdp_array, &*pd_array, &*sl_array, QM01_IOVA_BASE + 0x8_0000, 64, false) {
++    match vtd::sl_walk_hw(
++        &*pdp_array,
++        &*pd_array,
++        &*sl_array,
++        QM01_IOVA_BASE + 0x8_0000,
++        64,
++        false,
++    ) {
+         Err(vtd::VtdWalkFault::NotPresent) => {
+             let rec = vtd::VtdFaultRecord {
+                 iova: QM01_IOVA_BASE + 0x8_0000,

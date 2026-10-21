@@ -1,0 +1,2 @@
+id	label	hasil_pokok	jenis_kirim	byte_kirim	detik_mm	kiriminput_terlihat	teks_balasan_terpotong
+V01	verifikasi satu token: test_task	OK	line	10	178779	test_task	test_task | [TEST-TASK] Starting Gate 3D 100,000 APIC Preemptive Tests... | [GATE-3D-REMEDIATION] Executing Gate 3D 100,000 APIC Interrupt Preemption Verification Suite... | [GATE-3D-TEST] TEST 1: Ring 0 Interrupt Frame Layout & Normalizati...[2841 byte]

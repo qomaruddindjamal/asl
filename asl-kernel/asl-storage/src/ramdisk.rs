@@ -726,6 +726,53 @@ mod fs_tests {
         );
     }
 
+    /// Ambil bilangan bulat pertama yang muncul sesudah penanda di dokumen.
+    /// Tanpa alokasi: angka dibaca langsung dari byte, lalu dibandingkan dengan
+    /// konstanta.
+    fn number_after(doc: &str, marker: &str) -> Option<usize> {
+        let mut bytes = doc.split(marker).nth(1)?.bytes();
+        let mut value = 0usize;
+        let mut digits = 0usize;
+        for b in bytes.by_ref() {
+            if b.is_ascii_digit() {
+                value = value * 10 + (b - b'0') as usize;
+                digits += 1;
+            } else if digits > 0 {
+                break;
+            }
+        }
+        if digits == 0 {
+            None
+        } else {
+            Some(value)
+        }
+    }
+
+    #[test]
+    fn test_docs_capacity_figures_match_constants() {
+        // Angka kapasitas yang dijanjikan ke pengguna pada berkas panduan
+        // dibandingkan dengan konstanta sumbernya, bukan dengan tebakan. Konstanta
+        // berubah tanpa dokumen diperbarui => test MERAH.
+        const DOC: &str = include_str!("../../../docs/PANDUAN/REFERENSI-PERINTAH.md");
+        assert_eq!(
+            number_after(DOC, "Kapasitas total "),
+            Some(RAMDISK_CAPACITY_DEFAULT_BYTES),
+            "Pasal 6 dokumen memuat kapasitas total yang bukan dari konstanta"
+        );
+        assert_eq!(
+            number_after(DOC, "satu slot berkas "),
+            Some(RAMDISK_FILE_SLOT_BYTES),
+            "Pasal 6 dokumen memuat ukuran slot yang bukan dari konstanta"
+        );
+        // Nilai yang sama harus tertulis konsisten di Pasal 2. Penanda dipilih
+        // supaya tahan terhadap pergantian baris saat dokumen di-wrap ulang.
+        assert_eq!(
+            number_after(DOC, "RAMDISK volatil "),
+            Some(RAMDISK_CAPACITY_DEFAULT_BYTES),
+            "Pasal 2 dokumen tidak sepaket dengan konstanta kapasitas"
+        );
+    }
+
     #[test]
     fn test_zeroed_static_requires_ensure_root() {
         // Jalur statis kernel: nilai awal seluruhnya nol agar `.bss`, dan akar

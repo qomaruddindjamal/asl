@@ -1143,6 +1143,211 @@ mod tests {
         assert_eq!(KERNEL_VERSION, "v1.0.2");
         assert!(KERNEL_VERSION.starts_with('v'));
     }
+
+    /// Ambil nilai dari satu baris dokumen berformat `- <prefix><nilai>`.
+    fn field<'a>(line: &'a str, prefix: &str) -> Option<&'a str> {
+        line.strip_prefix(prefix).map(|v| v.trim())
+    }
+
+    /// Lepaskan backtick pembungkus dan spasi: `ls` -> ls.
+    fn clean(value: &str) -> &str {
+        let mut v = value.trim();
+        if let Some(rest) = v.strip_prefix('`') {
+            v = rest;
+        }
+        if v.ends_with('`') {
+            v = &v[..v.len() - 1];
+        }
+        v.trim()
+    }
+
+    /// Ambil dua bilangan bulat pertama dari satu baris dokumen, berturut-turut.
+    /// Tanpa alokasi (modul tes `no_std`), jadi angka dibandingkan sebagai
+    /// `usize`, bukan sebagai teks yang diformat.
+    fn two_numbers(value: &str) -> Option<(usize, usize)> {
+        let mut nums = [0usize; 2];
+        let mut found = 0usize;
+        let mut cur = 0usize;
+        let mut in_digits = false;
+        for b in value.bytes() {
+            if b.is_ascii_digit() {
+                cur = cur * 10 + (b - b'0') as usize;
+                in_digits = true;
+            } else if in_digits {
+                if found == 1 {
+                    nums[found] = cur;
+                    return Some((nums[0], nums[1]));
+                }
+                nums[found] = cur;
+                found += 1;
+                cur = 0;
+                in_digits = false;
+            }
+        }
+        if in_digits && found == 1 {
+            nums[found] = cur;
+            return Some((nums[0], nums[1]));
+        }
+        None
+    }
+
+    /// Bandingkan satu blok dokumen dengan satu entri registry pada posisi yang
+    /// sama. Semua kegagalan menyebut bidang yang tidak sinkron, bukan sekadar
+    /// "dokumen berbeda", supaya penyebabnya terbaca dari nama test.
+    fn check_doc_block(
+        pos: usize,
+        heading: &str,
+        name: &str,
+        syntax: &str,
+        summary: &str,
+        alias_line: &str,
+        args_line: &str,
+        group_line: &str,
+    ) {
+        assert!(pos < REGISTRY.len(), "dokumen punya blok ke-{} melewati registry", pos + 1);
+        let entry = REGISTRY[pos];
+        assert_eq!(heading, entry.name(), "judul blok #{:?}", pos + 1);
+        assert_eq!(name, entry.name(), "bidang Nama pada {}", entry.name());
+        assert_eq!(syntax, entry.syntax(), "bidang Sintaks pada {}", entry.name());
+        assert_eq!(summary, entry.summary(), "bidang Ringkasan pada {}", entry.name());
+        // Bidang Argumen: urutan bilangan = (minimum, maksimum) registry.
+        assert_eq!(
+            two_numbers(args_line),
+            Some((entry.min_args(), entry.max_args())),
+            "bidang Argumen pada {} tidak sinkron: {:?}",
+            entry.name(),
+            args_line
+        );
+        assert_eq!(group_line, entry.category().label(), "bidang Kelompok pada {}", entry.name());
+        let wanted = entry.aliases();
+        if alias_line == "-" {
+            assert_eq!(
+                wanted.len(),
+                0,
+                "{}: dokumen menulis tanpa alias, registry punya {} alias",
+                entry.name(),
+                wanted.len()
+            );
+            return;
+        }
+        let mut seen = 0usize;
+        for part in alias_line.split(',') {
+            let alias = clean(part);
+            if alias.is_empty() {
+                continue;
+            }
+            assert!(
+                seen < wanted.len(),
+                "{}: dokumen mendaftarkan alias ke-{} yang tidak ada di registry",
+                entry.name(),
+                seen + 1
+            );
+            assert_eq!(alias, wanted[seen], "{}: alias ke-{} tidak sinkron", entry.name(), seen + 1);
+            seen += 1;
+        }
+        assert_eq!(
+            seen,
+            wanted.len(),
+            "{}: dokumen mendaftar {} alias, registry punya {}",
+            entry.name(),
+            seen,
+            wanted.len()
+        );
+    }
+
+    /// Gerbang sinkron dokumen (misi v1.0.2 Bagian 5 + 6, tahap P5): isi
+    /// docs/PANDUAN/REFERENSI-PERINTAH.md dibaca langsung dari berkas lewat
+    /// include_str! lalu dibandingkan dengan REGISTRY, satu-sumbernya. Registry
+    /// berubah tanpa dokumen diperbarui => test MERAH, bukan harapan.
+    #[test]
+    fn test_docs_command_reference_matches_registry() {
+        const DOC: &str = include_str!("../../../docs/PANDUAN/REFERENSI-PERINTAH.md");
+
+        // Nilai janji abadi yang juga harus tertulis di dokumen.
+        assert!(
+            DOC.contains(SHELL_PROMPT),
+            "dokumen tidak memuat prompt satu-sumber {:?}",
+            SHELL_PROMPT
+        );
+        assert!(
+            DOC.contains(KERNEL_VERSION),
+            "dokumen tidak memuat identitas rilis {:?}",
+            KERNEL_VERSION
+        );
+
+        let mut checked = 0usize;
+        let mut heading: Option<&str> = None;
+        let mut name = "";
+        let mut syntax = "";
+        let mut summary = "";
+        let mut alias_line = "";
+        let mut args_line = "";
+        let mut group_line = "";
+
+        for raw in DOC.lines() {
+            let line = raw.trim_end();
+            if let Some(h) = line.strip_prefix("### ") {
+                if let Some(prev) = heading {
+                    check_doc_block(
+                        checked,
+                        prev,
+                        name,
+                        syntax,
+                        summary,
+                        alias_line,
+                        args_line,
+                        group_line,
+                    );
+                    checked += 1;
+                }
+                heading = Some(h.trim());
+                name = "";
+                syntax = "";
+                summary = "";
+                alias_line = "";
+                args_line = "";
+                group_line = "";
+                continue;
+            }
+            if heading.is_none() {
+                continue;
+            }
+            if let Some(v) = field(line, "- Nama: ") {
+                name = clean(v);
+            } else if let Some(v) = field(line, "- Sintaks: ") {
+                syntax = clean(v);
+            } else if let Some(v) = field(line, "- Ringkasan: ") {
+                summary = clean(v);
+            } else if let Some(v) = field(line, "- Alias: ") {
+                alias_line = v;
+            } else if let Some(v) = field(line, "- Argumen: ") {
+                args_line = v;
+            } else if let Some(v) = field(line, "- Kelompok: ") {
+                group_line = v;
+            }
+        }
+        if let Some(prev) = heading {
+            check_doc_block(
+                checked,
+                prev,
+                name,
+                syntax,
+                summary,
+                alias_line,
+                args_line,
+                group_line,
+            );
+            checked += 1;
+        }
+
+        // Dokumen tidak boleh kurang ATAU lebih blok dari registry.
+        assert_eq!(
+            checked,
+            CANONICAL_COMMAND_COUNT,
+            "blok perintah di dokumen != jumlah registry"
+        );
+    }
+
     /// Bangun keluaran `help` (daftar atau detail) ke penyangga milik pemanggil.
     /// Modul tes tidak boleh menuntut `alloc`, jadi penampungnya array tetap.
     fn capture_help<'a>(token: Option<&str>, buf: &'a mut [u8; 8192]) -> &'a str {

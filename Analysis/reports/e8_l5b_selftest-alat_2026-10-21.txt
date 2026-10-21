@@ -1,0 +1,61 @@
+SELF-TEST e8_adversarial_run.ps1 - TIDAK menjalankan QEMU, TIDAK menulis artefak.
+  prompt satu-sumber : 'ASL-KERNEL> ' (dari lib.rs)
+  penanda crash      : ASL-CORE-PANIC | ASL EXCEPTION | FATAL
+  kasus              : daftar jalan = 43 (>=30 terpenuhi untuk daftar utama)
+    kumpulan utama   : 41 kasus + 2 sisa
+    diagnostik (B)   : 16 kasus (aktif: False)
+    suntikan fault(C): 4 kasus (aktif: False)
+    satu token       : '' (mode verifikasi per boot)
+    S01 [line] SIAP: buat direktori uji -> 'create-folder e8uji' (19 byte)
+    S02 [line] SIAP: masuk direktori uji -> 'open e8uji' (10 byte)
+    S03 [line] SIAP: buat berkas a.txt -> 'create-file a.txt' (17 byte)
+    S04 [line] SIAP: isi a.txt -> 'write-file a.txt isi awal e8' (28 byte)
+    C01 [line] baris kosong -> '' (0 byte)
+    C02 [line] hanya spasi -> '     ' (5 byte)
+    C03 [line] baris 512 karakter -> 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA...[512 byte]' (512 byte)
+    C04 [line] baris 1024 karakter -> 'BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB...[1024 byte]' (1024 byte)
+    C05 [line] baris 5000 karakter (>=4096) -> 'CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC...[5000 byte]' (5000 byte)
+    C06 [line] argumen '..' -> 'open ..' (7 byte)
+    C07 [line] argumen '//' -> 'open //' (7 byte)
+    C08 [line] trailing slash -> 'create-folder namaku/' (21 byte)
+    C09 [line] argumen titik -> 'open .' (6 byte)
+    C10 [line] argumen berkutip -> 'create-folder "nama bertanda"' (29 byte)
+    C11 [line] argumen hubung -> 'delete-file -' (13 byte)
+    C12 [line] open berkas yang ada -> 'open a.txt' (10 byte)
+    C13 [line] open jalur tidak ada -> 'open tidak-ada-e8-9' (19 byte)
+    C14 [line] open '/..' -> 'open /..' (8 byte)
+    C15 [line] up di akar -> 'up' (2 byte)
+    C16 [line] create-folder nama baru (siap kasus bertumpuk) -> 'create-folder sub' (17 byte)
+    C16B [line] create-folder nama sudah ada -> 'create-folder sub' (17 byte)
+    C17 [line] create-folder berisi garis miring -> 'create-folder luar/dalam' (24 byte)
+    C18 [line] create-folder tanpa nama -> 'create-folder' (13 byte)
+    C19 [line] create-file nama sudah ada -> 'create-file a.txt' (17 byte)
+    C20 [line] write-file ke folder tidak ada -> 'write-file tidak-ada-e8/x.txt isi' (33 byte)
+    C21 [line] write-file pada folder -> 'write-file sub isi' (18 byte)
+    C22 [line] write-file isi kosong (tanpa argumen isi) -> 'write-file a.txt' (16 byte)
+    C23 [line] write-file isi satu spasi -> 'write-file a.txt  ' (18 byte)
+    C24 [line] write-file tepat 8192 byte (di ujung baris) -> 'write-file a.txt DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD...[8209 byte]' (8209 byte)
+    C25 [line] write-file 8193 byte (di ujung baris) -> 'write-file a.txt EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE...[8210 byte]' (8210 byte)
+    C26 [line] rename ke nama sudah ada -> 'rename a.txt b.txt' (18 byte)
+    C27 [line] rename akar -> 'rename / /' (10 byte)
+    C28 [line] delete-file pada folder -> 'delete-file sub' (15 byte)
+    C29 [line] delete-folder pada berkas -> 'delete-folder a.txt' (19 byte)
+    C30 [line] delete akar -> 'delete-folder /' (15 byte)
+    C31 [line] perintah tak dikenal -> 'perintahane8takdikenal' (22 byte)
+    C32 [line] argumen berlebih -> 'list satu dua tiga empat lima enam tujuh delapan sembilan se...[65 byte]' (65 byte)
+    C33 [line] nama panjang 127 byte di ujung buffer -> 'ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff...[127 byte]' (127 byte)
+    C34 [bytes] byte kendali mentah (NUL, BEL, BS, DEL, ESC-A) -> bytes 00 07 08 127 27 91 65
+    C35 [burst] rentetan cepat tanpa jeda (8 baris) -> 8 baris
+    C36 [burst] rentetan cepat baris kosong x12 -> 12 baris
+    S91 [line] SISA: kembali ke akar -> 'open /' (6 byte)
+    S92 [line] SISA: hapus direktori uji -> 'delete-folder e8uji' (19 byte)
+  total payload      : 43
+  ISO yang di-boot   : C:\asl\asl-kernel\target\asl-core-kernel.iso
+    4200448 bytes SHA256=18f40d2d4e18c3b46a88c13090ac1f6fcce13b4d264a1d5b78b4d6e0a833fad0
+    cocok dengan sidik jari baseline E8 : True
+  mesin              : C:\Program Files\qemu\qemu-system-x86_64.exe
+  serial             : chardev socket TCP 127.0.0.1 (porta 14721 dan seterusnya), berjendela
+  kode keluar        : 0=tanpa panic, 1=prasyarat merah, 2=REPRODUKSI POSITIF, 3=QEMU keluar tanpa penanda
+  tombol penghenti   : -StopKeyDelaySeconds N menjalankan HANYA verifikasi perbaikan A4 pada boot segar
+                       (token 'test_task', lalu satu byte setelah N detik harus menghentikan loop 100.000
+                       tukar dan mengembalikan prompt dengan pesan operator)

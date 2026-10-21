@@ -1,0 +1,38 @@
+ASL E8 ADVERSARIAL INPUT RUN - 2026-10-21_23-18-46
+prompt satu-sumber : 'ASL-KERNEL> '
+penanda crash      : ASL-CORE-PANIC | ASL EXCEPTION | FATAL
+kasus              : 41 utama + 2 sisa; dijalankan 43 kasus (diagnostik=False faultDemo=False satuToken='')
+QEMU   : QEMU emulator version 10.2.50 (v10.2.0-14086-g840320663e)
+ISO    : C:\asl\asl-kernel\target\asl-core-kernel.iso
+ISO    : 4200448 bytes SHA256=18f40d2d4e18c3b46a88c13090ac1f6fcce13b4d264a1d5b78b4d6e0a833fad0
+PORTA  : 127.0.0.1:14721 (chardev socket dua arah, COM1)
+
+=== FASE 1 - cold boot 256M berjendela + koneksi serial ===
+CMDLINE: "C:\Program Files\qemu\qemu-system-x86_64.exe" -machine q35 -vga std -m 256M -cdrom C:\asl\asl-kernel\target\asl-core-kernel.iso -chardev socket,id=ser0,server=on,wait=on,host=127.0.0.1,port=14721 -serial chardev:ser0 -no-reboot -no-shutdown
+PID    : 8624  (tutup dengan: e8_adversarial_run.ps1 -StopQemu)
+SERIAL : terhubung, log byte-per-byte -> C:\asl\Analysis\reports\e8_adversarial_serial_2026-10-21_23-18-46.log
+Boot   : M6=True prompt=True crash=TIDAK
+
+=== FASE 2 - sesi masukan adversarial ===
+CATATAN bangun: pada ISO ini registry kanonik berisi 11 perintah; 'up' (C15) dan 'rename' (C26,C27)
+             BELUM ada, jadi kedua kasus itu menguji jalur 'perintah tak dikenal' - bukan jalur
+             aslinya. Jalur asli keduanya diuji lagi setelah F2/F6, dan jendela E8 diulang.
+
+=== FASE 1.5 - verifikasi tombol penghenti (perbaikan A4) ===
+  byte token   : 10; satu byte 'x' dikirim setelah 25 s; batas 345 s
+  prompt kembali=True elapsed_ms=25499 pesan_operator=True crash=TIDAK
+  [LULUS] loop dihentikan satu ketikan; prompt kembali; shell tetap hidup.
+
+=== Keadaan akhir sesi ===
+byte masuk (serial->alat)  : 3569
+byte keluar (alat->serial) : 11
+stderr QEMU                : 197 byte
+  isi stderr = pesan 'info: QEMU waiting for connection' dari chardev socket
+  (konsekuensi wait=on agar tidak ada byte boot yang hilang). Bukan galat mesin.
+  Gerbang 'stderr 0 byte' alat G9 tetap berlaku untuk alat itu; di sesi ini
+  jumlah byte ini dilaporkan terang, bukan disembunyikan.
+serial log                 : C:\asl\Analysis\reports\e8_adversarial_serial_2026-10-21_23-18-46.log (3569 byte)
+HASIL: TIDAK ADA kasus yang memicu panic/hang pada sesi ini.
+E8-STATUS: BELUM-TERREPRODUKSI lewat alat. Teks panic dari pemilik tetap diperlukan untuk menutup E8.
+tabel kasus disimpan     : C:\asl\Analysis\reports\e8_adversarial_cases_2026-10-21_23-18-46.tsv (2 baris)
+jendela QEMU ditutup alat (sesi selesai).

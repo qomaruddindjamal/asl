@@ -60,6 +60,11 @@ Artifak (waktu setempat pada saat tulis):
 `Analysis/reports/e8_adversarial_{summary,cases,serial,qemu_stderr}_2026-10-21_19-42-51.*`,
 `..._2026-10-21_20-00-37.*`, `..._2026-10-21_20-09-52.*`.
 
+Catatan satuan yang berlaku untuk SELURUH dokumen ini (dibuat eksplisit karena
+kolom waktu berkas TSV bernama `detik_mm` padahal isinya MILIDETIK): angka
+berpemis titik seperti `178.779 ms` adalah 178.779 milidetik = **178,8 detik**,
+bukan sepersekian detik. Bagian 5.3 menulis kedua bentuk berdampingan.
+
 Yang **tidak** dapat direproduksi: panic yang dilaporkan pemilik. Empat lokasi
 panic di Bagian 3 adalah temuan audit statis (kode benar-benar memakai
 `assert_eq!`/`unwrap()` pada keadaan yang bisa berbeda), bukan tangkapan layar.
@@ -169,7 +174,7 @@ CARGO_TARGET_DIR=<direktori-scratch> cargo build --package asl-kernel-bin --targ
 pwsh -File scripts/build_kernel.ps1 -Action iso                              # ISO + penanda waktu + GPT embedding
 pwsh -File scripts/test_ram_floor_3mb.ps1 -TimeoutSec 150                    # -m 3M lalu -m 3392K
 pwsh -File scripts/e8_adversarial_run.ps1 -StopKeyDelaySeconds 25
-pwsh -File scripts/e8_adversarial_run.ps1 -IncludeDiagnostics -CaseTimeoutSeconds 300 -BootTimeoutSeconds 240
+pwsh -File scripts/e8_adversarial_run.ps1 -IncludeDiagnostics -CaseTimeoutSeconds 600 -BootTimeoutSeconds 240
 pwsh -File scripts/e8_adversarial_run.ps1 -DemoCommand trap_de
 ```
 
@@ -182,6 +187,19 @@ itu tersimpan sebagai sesi 23-19-23 dan dilaporkan sebagai entri
 `ACCOUNTABILITY_FAULT_LOG` ke-36. Sejak commit `1e2035f` tiap artefak
 mencetak batas yang sedang berlaku pada baris kepala `batas`, jadi jalur
 invokasi dapat dibaca dari bukti, bukan dari ingatan.
+
+**Kenaikan batas 300 s -> 600 s (2026-10-22, jendela LANGKAH 6).** Angka 300 di
+atas diturunkan dari pengukuran D13 di TENGAH sesi penuh; pengukuran kasus yang
+sama pada BOOT SEGAR - kondisi yang diminta jendela G9-LITE - ternyata butuh
+**310.681 ms = 310,7 s**, sehingga sesi 2026-10-21_23-58-19 keluar 2 dengan V01
+[GANTUNG] pada 300.033 ms padahal serial masih mencetak 75.004/100.000 tukar.
+Resep pada blok di atas karena itu memakai 600 s; tabel kelima sesi dan
+perhitungan kisarannya ada di Bagian 5.3, dan kesalahannya dicatat sebagai entri
+ke-37 result CLOSED. Dua sebutan `-CaseTimeoutSeconds 300` yang MASIH terbaca di
+dokumen ini (satu pada paragraf di atas, satu pada Bagian 6) sengaja TIDAK
+ditulis ulang: keduanya melaporkan batas yang benar-benar berlaku pada sesi yang
+dilaporkan, dan mengubahnya menjadi angka hari ini akan membuat bukti invokasi
+tidak dapat dipercaya lagi.
 
 | Gerbang LANGKAH 5 | Hasil terukur | Kelas bukti | Artefak |
 |---|---|---|---|
@@ -250,6 +268,85 @@ pemilik belum diterima.
 
 ---
 
+### 5.3 Jendela LANGKAH 6: pemicu diulang pada boot segar dan hasilnya mencabut kata "nyaman"
+
+Sesi pertama jendela ini dijalankan persis seperti yang diminta misi: satu token
+`test_task` pada boot segar `-m 256M`, jendela terlihat, serial byte-per-byte.
+Hasilnya tidak cocok dengan angka yang saya publikasikan lebih dulu.
+
+| Sesi (cap berkas) | ISO | Cara | Batas kasus berlaku | Hasil | Waktu terukur |
+|---|---|---|---|---|---|
+| 2026-10-21_20-09-52 | `aa778060` (pra-perbaikan E8) | boot segar, satu token | tidak tercetak di kepala (format pra-`1e2035f`); waktu 178,8 s tercapai jadi batasnya lebih tinggi | OK | 178.779 ms = 178,8 s |
+| 2026-10-21_23-22-59 | `18f40d2d` | tengah sesi penuh (D13) | tidak tercetak di kepala (format pra-`1e2035f`); resep yang dilaporkan saat itu 300 s | OK | 272.600 ms = 272,6 s |
+| 2026-10-21_23-58-19 | `18f40d2d` | boot segar, satu token | 300 s (tercetak di baris kepala) | **GANTUNG** | 300.033 ms = 300,0 s; progres terakhir 75.004/100.000 tukar |
+| 2026-10-22_00-06-29 | `18f40d2d` | boot segar, satu token | 600 s (tercetak) | OK | 310.681 ms = 310,7 s; TEST 1..15 PASS, prompt kembali |
+| 2026-10-22_00-12-18 | `18f40d2d` | sesi penuh 59 kasus (D13) | 600 s (tercetak) | OK | 64.031 ms = 64,0 s; 59 dari 59 kasus OK, keluar alat 0 |
+
+Kolom "batas kasus berlaku" sengaja dibedakan: sejak commit `1e2035f` baris
+kepala `batas` pada berkas ringkasan mencetak angka yang sedang berlaku, jadi
+tiga sesi terbawah terbaca langsung dari artefak. Dua sesi teratas memakai format
+kepala yang belum mencetaknya, sehingga yang boleh dilaporkan hanyalah resep yang
+berlaku pada saat itu plus fakta bahwa waktu terukur berhasil dilampaui.
+
+Tiga fakta yang harus dibaca bersama, bukan dipilih satu:
+
+1. **Tidak ada panic.** Kelima sesi tidak memunculkan `ASL-CORE-PANIC`,
+   `ASL EXCEPTION`, maupun `FATAL`, dan proses QEMU tidak keluar sendiri. Yang
+   ter-reproduksi adalah **waktu jalan yang panjang**, bukan crash.
+2. **Bukan deadlock.** Pada 300 s pertama mesin sudah mencetak 75.004 dari
+   100.000 tukar dan terus mencetak; dengan batas 600 s rangkaian selesai,
+   TEST 1 sampai TEST 15 PASS, dan prompt kembali.
+3. **Durasi tidak stabil dan bergantung kondisi** pada ISO yang sama: 310,7 s
+   saat boot segar, 272,6 s dan 64,0 s di tengah sesi penuh, dan pemanggilan
+   KEDUA `test_task` dalam sesi yang sama kembali dalam 473-507 ms (D14).
+   Artinya setiap batas tetap untuk kasus ini adalah tebakan yang harus
+   dinyatakan sebagai tebakan.
+
+Label alat harus dibaca persis, tidak boleh dipilih-pilih. Sesi 23-58-19 keluar
+dengan kode 2 dan baris `HASIL: REPRODUKSI POSITIF - 1 kasus`, disusul
+`E8-STATUS: MODE VERIFIKASI token 'test_task' - crash terlihat`. Berdasarkan
+baris 27 `scripts/e8_adversarial_run.ps1`, kode 2 berarti "penanda crash ATAU
+shell tidak kembali ke prompt" — di sesi ini yang menyala adalah cabang kedua,
+karena nol baris `ASL-CORE-PANIC` / `ASL EXCEPTION` / `FATAL` terukur di seluruh
+berkas (satu-satunya kemunculan ketiga frasa itu adalah baris kepala
+`penanda crash` yang mencantumkan definisinya sendiri). Frasa "crash terlihat"
+pada baris 563 adalah teks tetap yang tidak dikondisikan pada penanda crash,
+sehingga membaca ringkasan tanpa membaca artefaknya dapat menyimpulkan panic yang
+tidak pernah terjadi. Alat tidak saya ubah pada unit ini supaya jendela pemilik
+berjalan di alat yang sama dengan bukti yang sudah ada; ketidaktepatan label ini
+dilaporkan ke pemilik bersama entri ke-38.
+
+Dua hal yang sengaja tidak disamakan. Perbaikan A4 (`suite_masukan_masuk()` di
+`asl-kernel/asl-kernel-core/src/lib.rs:2684`, dipakai loop di `:2918`) membaca
+dua port pada SETIAP iterasi supaya satu ketikan menghentikan rangkaian; harga
+fitur itu adalah waktu jalan rangkaian yang naik dari 178,8 s (pra-perbaikan) ke
+310,7 s (boot segar sesudah perbaikan). Kedua angka berasal dari ISO dan beban
+latar yang berbeda, jadi yang dilaporkan adalah **kisaran**, bukan satu angka
+sebab-akibat.
+
+**Kenapa operator melihat "shell dibekukan".** Seluruh kemajuan rangkaian ditulis
+dengan `early_serial_write_str` (`:2692` dan seterusnya) sehingga hanya muncul di
+berkas serial. Pada jendela yang dilihat manusia, layar tetap berisi banner boot
+dan prompt kosong selama 64 sampai 311 detik. Dua tangkapan layar disimpan sebagai bukti:
+`Analysis/reports/e8_l6_jendela-sesi-A-token_2026-10-21.png` (1040x832, gema
+`test_task` masih terlihat, diambil sebelum Enter) dan
+`Analysis/reports/e8_l6_jendela-sesi-A2-hidup_2026-10-22.png` (1040x832, diambil
+saat rangkaian sudah berjalan: prompt kosong, nol baris keluaran). Dari kursi
+operator kedua keadaan itu tidak dapat dibedakan dari hang.
+
+Tindakan yang diambil pada unit ini: batas kasus pada Bagian 5.1 dinaikkan ke
+600 s dengan alasan terukur, konversi detik ditulis berdampingan dengan setiap
+angka milidetik, dan temuan produk didaftarkan sebagai ACCOUNTABILITY_FAULT_LOG
+entri ke-38 result OPEN. Yang TIDAK saya lakukan: mengubah kode kernel untuk
+mempercepat rangkaian atau memindahkan keluarannya ke framebuffer (di luar
+cakupan E8 yang diizinkan misi R1; keputusan penerimaan ada pada pemilik), dan
+mengganti nama kolom `detik_mm` pada alat (akan membuat artefak lama dan baru
+berbeda skema; dicatat sebagai pekerjaan higiene, entri ke-37).
+
+Status jendela: **belum disahkan pemilik.** Sesi-sesi di atas berjendela dan
+berartefak, tetapi tidak ada pernyataan lulus dari pemilik, sehingga konter
+VERIFIED-ON-HARDWARE tetap 0 dan E8 tetap OPEN.
+
 ## 6. Kejadian akuntabilitas selama pekerjaan ini
 
 `rustfmt` yang dijalankan saya pada satu salinan berkas di dalam direktori
@@ -313,10 +410,16 @@ A3/A4/A5 di mesin di atas ISO final, dan pernyataan batas bukti untuk A6.
 
 Yang tersisa:
 
-1. **LANGKAH 6**: jendela G9-LITE disaksikan pemilik. Pemilik mengulang persis
-   pemicu (`test_task` tunggal pada boot segar, lalu sesi adversarial penuh),
-   tangkapan layar + berkas serial disimpan, dan pemilik menyatakan lulus.
-   **VERIFIED-ON-HARDWARE tetap 0** sampai jendela ini disaksikan. Alat
+1. **LANGKAH 6 (berjalan, belum disahkan)**: jendela G9-LITE. Sesi pemicu dan
+   sesi penuh sudah dijalankan berjendela di atas ISO `18f40d2d` dan hasilnya
+   tercatat di Bagian 5.3 - termasuk deviasi waktu jalan yang memaksa batas
+   kasus dinaikkan ke 600 s. Yang belum ada adalah **pengesahan pemilik**, jadi
+   langkah ini TIDAK tertutup dan **VERIFIED-ON-HARDWARE tetap 0**. Yang
+   dibutuhkan dari pemilik: (a) menyaksikan ulang `test_task` pada boot segar
+   dengan batas kasus 600 s, (b) menempelkan teks panic yang pernah dilihatnya
+   atau menyatakan tidak tersedia, (c) menyatakan lulus atau tidak, dan (d)
+   memutuskan nasib entri ke-38: diterima apa adanya sebagai biaya alat
+   diagnostik, atau dibuka pekerjaan terpisah. Alat
    `scripts/g9_final_p8_run.ps1` sengaja tidak diubah pada rantai R1.
 2. **Teks panic dari pemilik**: tanpa itu E8 berstatus
    BELUM-TERREPRODUKSI-SEBAGAI-PANIC dan **tidak boleh ditutup** (aturan
@@ -360,3 +463,10 @@ Yang tersisa:
    masih 11 perintah, jadi kasus C15 (`up`) dan C26/C27 (`rename`) pada Pass
    penuh masih menguji jalur "perintah tak dikenal"; jalur aslinya diuji lagi
    setelah F2 dan F6, dan jendela E8 diulang.
+6. **Entri ke-38 (temuan produk, result OPEN)**: `test_task` pada ISO ini
+   berjalan 64-311 s dan **senyap total pada konsol yang dilihat manusia**
+   karena seluruh kemajuannya hanya ditulis ke serial. Ini bukan panic dan
+   bukan deadlock. Butuh keputusan pemilik: diterima sebagai biaya alat
+   diagnostik, atau dibuka pekerjaan terpisah untuk memindahkan kemajuan ke
+   framebuffer dan/atau memangkas target 100.000 tukar. Tidak ada angka gerbang
+   yang diubah menjadi hijau karena entri ini.

@@ -1,0 +1,43 @@
+ASL CI LOCAL - 2026-10-21 08:08:30
+commit: ef8c1b4+dirty
+toolchain: rustc 1.99.0 (b940084d7 2026-09-28) / cargo 1.99.0 (5f94df478 2026-08-27)
+prompt satu-sumber: 'ASL-KERNEL> '
+
+=== [1/5] cargo test --workspace --lib ===
+[1/5] PASS - 194 host tests passed, 0 failed
+
+=== [2/5] cargo build --package asl-kernel-bin --target x86_64-unknown-none --release (0 error / 0 warning) ===
+[2/5] PASS - 0 error, 0 warning, ELF 325528 bytes
+
+=== [3/5] QEMU q35 cold-boot smoke (harus capai M6 + shell) ===
+ISO: 4200448 bytes SHA256=756B87B057EC2F7BE0617DA5B1CA463EB774E895B8AD44C8F45BF7DEA367F1E8
+[3/5] PASS - M6 tercapai + prompt shell (serial 55 baris, stderr QEMU 0 baris)
+
+=== [4/5] Gerbang regresi memori boot 3 MB (scripts\test_ram_floor_3mb.ps1) ===
+  prompt satu-sumber : 'ASL-KERNEL> '
+  ISO                : C:\asl\asl-kernel\target\asl-core-kernel.iso
+  SHA256             : 756B87B057EC2F7BE0617DA5B1CA463EB774E895B8AD44C8F45BF7DEA367F1E8
+  === [A] janji misi: -m 3M ===
+    reached=False m6=False crash=False serial=0 B stderr=0 B
+  === [B] ratchet regresi: -m 3392K ===
+    reached=True m6=True crash=False serial=2498 B stderr=0 B
+  KEPUTUSAN: 2 (DEVIASI TERCATAT) - ratchet 3392K lulus, janji misi 3M TIDAK.
+    Gerbang Bagian 5 'gerbang -m 3M lulus' berstatus MERAH pada tree ini.
+    Status merah TIDAK diubah menjadi hijau; deviasi dicatat di
+    ACCOUNTABILITY_FAULT_LOG dan diulang di LAPORAN-FINAL v1.0.2.
+    Bukti: 3M serial=0 B reached=False; 3392K lulus penuh.
+    artefak: C:\asl\logs\ram_floor_2026-10-21_08-08-37_m3M_serial.log
+[4/5] DEVIASI TERCATAT - ratchet lulus, janji misi -m 3M MERAH.
+        Status merah gerbang Bagian 5 TIDAK diubah menjadi hijau;
+        deviasi hidup dan wajib muncul di ACCOUNTABILITY_FAULT_LOG.
+
+=== [5/5] RINGKASAN PIPELINE ===
+  [1/5] tests: PASS (194 passed / 0 failed)
+  [2/5] bare-metal build: PASS (0 error / 0 warning, ELF 325528 B)
+  [3/5] QEMU smoke: PASS (M6 reached, serial 55 lines)
+  [4/5] gerbang memori: DEVIASI TERCATAT (3M merah, ratchet lulus, exit=2)
+  footprint: ELF=325528 B | ISO=4200448 B | commit=ef8c1b4+dirty
+  KEPUTUSAN: Pipeline HIJAU - 5/5 langkah dieksekusi, tidak ada REGRESI. Merge diizinkan sesuai aturan fase (G6: hanya setelah gerbang hijau).
+  DEVIASI TERBUKA: Gerbang Bagian 5 'qemu -m 3M' MERAH pada tree ini (ratchet regresi lulus). Keliru bila baris HIJAU di atas dibaca sebagai 'semua janji Bagian 5 lulus'.
+  Rujukan deviasi: ACCOUNTABILITY_FAULT_LOG + laporan akhir misi v1.0.2 bagian keputusan otonom.
+  artefak: C:\asl\Analysis\reports\ci_2026-10-21.log

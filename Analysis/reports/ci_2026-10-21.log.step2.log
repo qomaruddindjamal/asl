@@ -1,0 +1,7 @@
+cargo.exe :     Finished `release` profile [optimized] target(s) in 0.05s
+At C:\asl\scripts\ci_local.ps1:100 char:5
++     & cargo build --package asl-kernel-bin --target $TargetArch --rel ...
++     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (    Finished `r...get(s) in 0.05s:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 

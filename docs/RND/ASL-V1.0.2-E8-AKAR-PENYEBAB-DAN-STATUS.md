@@ -1,10 +1,12 @@
 # ASL v1.0.2 — E8: AKAR PENYEBAB DAN STATUS PEKERJAAN
 
-> **LABEL DOKUMEN: STATUS PEKERJAAN — BUKAN LAPORAN FINAL E8.**
-> E8 **belum ditutup**. Penutupan menuntut LANGKAH 6 (jendela G9-LITE disaksikan
-> pemilik) dan teks panic dari pemilik seperti yang diminta MASTER PROMPT
-> R1-REVISI Bagian 1. Angka di dokumen ini berasal dari artefak yang
-> tercantum di Bagian 6, bukan dari tebakan.
+> **LABEL DOKUMEN: STATUS PEKERJAAN — SUDAH DITUTUP, BUKAN LAGI DOKUMEN HIDUP.**
+> E8 **ditutup oleh pemilik pada 2026-10-22**: jendela G9-LITE disaksikan dan
+> dinyatakan LULUS, dan teks panic **dinyatakan tidak tersedia**. Laporan
+> penutupannya ada di `docs/RND/ASL-V1.0.2-E8-LAPORAN-PENUTUPAN.md`; dokumen ini
+> tetap dibiarkan apa adanya sebagai rekaman kerja (koreksi tidak dilakukan
+> dengan menghapus riwayat, hanya dengan catatan baru). Angka di dokumen ini
+> berasal dari artefak yang tercantum di Bagian 6, bukan dari tebakan.
 
 Tanggal kerja: 2026-10-21. Cabang: `feature/v1.0.2-r1`. Kelas bukti yang
 dipakai: VERIFIED-ON-HOST (kompilasi/unit test di mesin pengembangan),
@@ -19,7 +21,9 @@ Lampiran bukti pemilik untuk E8 kosong, jadi jalan resmi adalah reproduksi
 mandiri (LANGKAH 1). Hasil terukur: **tidak ada satu pun baris masukan
 pengguna yang menghasilkan panic pada jalur perintah kanonik**, tetapi ada
 **satu kegagalan yang ter-reproduksi dan ber-akar penyebab terverifikasi**,
-yaitu pembekuan shell selama **178.779 ms** akibat `test_task`. Di luar itu,
+yaitu pembekuan shell akibat `test_task` — **178.779 ms = 178,8 detik** pada ISO
+pra-perbaikan, dan **64,0 sampai 310,7 detik** pada ISO final tergantung kondisi
+(Bagian 5.3). Di luar itu,
 audit statis menemukan **empat lokasi panic yang dapat dipicu satu ketikan**
 di rangkaian Gate 3D dan **satu pemulihan keadaan yang bolong** di
 `test_apic`. Semuanya sudah diubah menjadi pesan galat + prompt kembali
@@ -32,12 +36,14 @@ lulus, build nol warning pada dua lingkungan, ISO `0391c411...` lalu **ISO baru
 diukur ulang pada kedua ISO (ratchet 3392K lulus, janji 3M tetap **MERAH**),
 prompt boot tampil pada tujuh sesi adversarial VM berjendela (empat di antaranya
 di atas ISO final), dan perbaikan A4/A5/A3 terbukti
-di mesin di atas ISO final. Yang belum adalah jendela yang disaksikan pemilik
-(LANGKAH 6) dan teks panic dari pemilik.
-
-**E8-STATUS: BELUM-TERREPRODUKSI-SEBAGAI-PANIC.** Pemilik diminta menempel
-teks panic yang dilihatnya (LANGKAH 6) supaya cocok dengan salah satu jalur
-di Bagian 3 atau membuka jalur baru.
+di mesin di atas ISO final. Yang belum pada saat dokumen ini ditulis: jendela yang disaksikan pemilik
+(LANGKAH 6) dan teks panic dari pemilik. **Keduanya sudah diselesaikan pada
+2026-10-22** — jendela disaksikan dan dinyatakan LULUS, teks panic dinyatakan
+TIDAK TERSEDIA — sehingga E8 berstatus TERTUTUP dengan label jujur
+`BELUM-TERREPRODUKSI-SEBAGAI-PANIC`: tidak ada masukan yang dapat diketik yang
+menghasilkan `[ASL-CORE-PANIC]`, dan tidak ada teks panic untuk dicocokkan dengan
+jalur di Bagian 3. Rincian putusan dan batas-bukti ada di
+`docs/RND/ASL-V1.0.2-E8-LAPORAN-PENUTUPAN.md`.
 
 ---
 
@@ -343,9 +349,14 @@ cakupan E8 yang diizinkan misi R1; keputusan penerimaan ada pada pemilik), dan
 mengganti nama kolom `detik_mm` pada alat (akan membuat artefak lama dan baru
 berbeda skema; dicatat sebagai pekerjaan higiene, entri ke-37).
 
-Status jendela: **belum disahkan pemilik.** Sesi-sesi di atas berjendela dan
-berartefak, tetapi tidak ada pernyataan lulus dari pemilik, sehingga konter
-VERIFIED-ON-HARDWARE tetap 0 dan E8 tetap OPEN.
+Status jendela: **DISAHKAN PEMILIK pada 2026-10-22** — pemilik menyaksikan
+pengulangan pemicu dan menyatakan **LULUS**, teks panic dinyatakan **tidak
+tersedia**, dan temuan ke-38 diterima sebagai temuan produk yang penanganannya
+digabung ke F5. Konter VERIFIED-ON-HARDWARE **tetap 0**: yang disaksikan
+berlangsung di emulator pada mesin pengembangan (kelasnya
+VERIFIED-ON-VM-VISIBLE), sehingga vonis LULUS ini menutup tuntutan jendela G9-LITE
+tanpa mengubah klaim perangkat keras. Rincian putusan: Bagian 1 laporan
+penutupan E8.
 
 ## 6. Kejadian akuntabilitas selama pekerjaan ini
 
@@ -410,45 +421,46 @@ A3/A4/A5 di mesin di atas ISO final, dan pernyataan batas bukti untuk A6.
 
 Yang tersisa:
 
-1. **LANGKAH 6 (berjalan, belum disahkan)**: jendela G9-LITE. Sesi pemicu dan
+1. **LANGKAH 6 (SELESAI — disahkan pemilik 2026-10-22)**: jendela G9-LITE. Sesi pemicu dan
    sesi penuh sudah dijalankan berjendela di atas ISO `18f40d2d` dan hasilnya
    tercatat di Bagian 5.3 - termasuk deviasi waktu jalan yang memaksa batas
    kasus dinaikkan ke 600 s. Yang belum ada adalah **pengesahan pemilik**, jadi
    langkah ini TIDAK tertutup dan **VERIFIED-ON-HARDWARE tetap 0**. Yang
-   dibutuhkan dari pemilik: (a) menyaksikan ulang `test_task` pada boot segar
-   dengan batas kasus 600 s, (b) menempelkan teks panic yang pernah dilihatnya
-   atau menyatakan tidak tersedia, (c) menyatakan lulus atau tidak, dan (d)
-   memutuskan nasib entri ke-38: diterima apa adanya sebagai biaya alat
-   diagnostik, atau dibuka pekerjaan terpisah. Alat
+   keempat permintaan itu sudah dijawab pemilik: jendela **disaksikan dan
+   dinyatakan LULUS**, teks panic **dinyatakan TIDAK TERSEDIA**, dan entri ke-38
+   **diterima sebagai temuan produk dengan penanganan digabung ke F5**. Alat
    `scripts/g9_final_p8_run.ps1` sengaja tidak diubah pada rantai R1.
-2. **Teks panic dari pemilik**: tanpa itu E8 berstatus
-   BELUM-TERREPRODUKSI-SEBAGAI-PANIC dan **tidak boleh ditutup** (aturan
+2. **Teks panic dari pemilik**: **dinyatakan TIDAK TERSEDIA oleh pemilik pada
+   2026-10-22**, dan dengan pernyataan itu E8 ditutup atas nama pemilik — label
+   sisanya tetap BELUM-TERREPRODUKSI-SEBAGAI-PANIC (aturan
    "DILARANG menutup E8 tanpa akar penyebab terverifikasi"; yang terverifikasi
    sekarang adalah akar penyebab pembekuan `test_task`, bukan panic yang
    dilaporkan).
 3. **Utang ekstrak hosted CI (G8)** — daftarnya dihitung ulang dari `gh api`
    dan `git ls-tree -r HEAD Analysis/reports`, bukan dari ingatan. Pada HEAD
-   `b17a175` terukur DUA PULUH DUA run = SEBELAS pasangan peristiwa atas
-   SEBELAS commit yang punya run, seluruhnya `conclusion=success`; SEPULUH
+   `4c3e0d2` terukur DUA PULUH EMPAT run = DUA BELAS pasangan peristiwa atas
+   DUA BELAS commit yang punya run, seluruhnya `conclusion=success`; SEPULUH
    commit cabang tidak pernah punya run sendiri (rincian di bawah). Audit
    per-commit tersimpan sebagai bukti di
-   `Analysis/reports/e8_l7_audit-utang-ekstrak_2026-10-22.txt` (pengganti
+   `Analysis/reports/e8_l7b_audit-utang-ekstrak_2026-10-22.txt` (pengganti
+   `e8_l7_audit-utang-ekstrak_2026-10-22.txt`,
    `e8_l6b_audit-utang-ekstrak_2026-10-22.txt` dan
    `e8_l5c_audit-utang-ekstrak_2026-10-21.txt`), dijalankan oleh
-   `scripts/r1_debt_audit.py` pada HEAD sebelum unit ini; empat baris `BELUM`
-   pada berkas itu adalah ekstrak yang ikut unit ini, bukan kegagalan.
-   *Sudah tertutup*: SEBELAS pasangan peristiwa — atas `17570f6`, `a141640`,
+   `scripts/r1_debt_audit.py` pada HEAD `4c3e0d2` sebelum unit penutupan ini;
+   dua baris `BELUM` pada berkas itu adalah ekstrak yang ikut unit ini, bukan
+   kegagalan.
+   *Sudah tertutup*: DUA BELAS pasangan peristiwa — atas `17570f6`, `a141640`,
    `97d1834`, `08ddd71`, `53e226f`, `1e2035f`, `8f56625`, `12adcf1`, `1f3e3c2`,
-   commit jendela `4de1dfb` dan commit unit 6b `b17a175` — = DUA PULUH DUA
+   commit jendela `4de1dfb`, commit unit 6b `b17a175` dan commit unit 7a `4c3e0d2` — = DUA PULUH EMPAT
    berkas `Analysis/reports/ci_hosted_<id>_*.log`, masing-masing membawa blok
    CATATAN PER-RUN. Total berkas `ci_hosted_*` yang ter-commit di
-   `Analysis/reports` menjadi 71. Empat ekstrak yang ikut unit ini (dua pasangan
-   terakhir) terukur identik di langkah [1/2] dan [2/2]: 202 lulus / 0 gagal pada
+   `Analysis/reports` menjadi 73. Dua ekstrak yang ikut unit penutupan ini (satu
+   pasangan terakhir, atas `4c3e0d2`) terukur identik di langkah [1/2] dan [2/2]: 202 lulus / 0 gagal pada
    30 suite, 19 baris `warning` profil test, 13 baris `Compiling` dengan 0
    `warning` / 0 `error`, ELF sisi runner CI 325.184 byte — keduanya commit
    bernol berkas `.rs`.
    *Masih terbuka*: hanya pasangan peristiwa atas commit yang menulis paragraf
-   ini sendiri. Aturan G8 melarang ekstrak sebuah run masuk commit milik run itu,
+   ini sendiri, yaitu commit-unit penutupan E8 ini. Aturan G8 melarang ekstrak sebuah run masuk commit milik run itu,
    jadi penutupnya wajib ada di unit BERIKUTNYA; itu konsekuensi aturan, bukan
    kekeliruan.
    *Satu kejadian higiene bukti, dilaporkan apa adanya*: unduhan pertama log
@@ -469,17 +481,21 @@ Yang tersisa:
    memuat `.rs` E8, sedangkan run atas `97d1834` dan seterusnya mengukur **202
    lulus / 0 gagal** karena perbaikan `.rs` E8 hidup sejak `6bbd77d` dan penjaga
    regresinya sejak `939cc95`.
-4. **Laporan E8 final (LANGKAH 7)**: dokumen ini berlabel STATUS PEKERJAAN;
-   laporan penutupan ditulis setelah jendela pemilik dan sesudah teks panic
-   pemilik ada atau dinyatakan tidak tersedia.
+4. **Laporan E8 final (LANGKAH 7)**: **sudah ditulis** di
+   `docs/RND/ASL-V1.0.2-E8-LAPORAN-PENUTUPAN.md` setelah jendela disahkan dan
+   setelah teks panic dinyatakan tidak tersedia. Dokumen ini tetap berlabel
+   STATUS PEKERJAAN sebagai rekaman kerja.
 5. Setelah E8 ditutup: BAGIAN 2 (F1-F7). Registry kanonik pada ISO yang di-boot
    masih 11 perintah, jadi kasus C15 (`up`) dan C26/C27 (`rename`) pada Pass
    penuh masih menguji jalur "perintah tak dikenal"; jalur aslinya diuji lagi
    setelah F2 dan F6, dan jendela E8 diulang.
-6. **Entri ke-38 (temuan produk, result OPEN)**: `test_task` pada ISO ini
+6. **Entri ke-38 (temuan produk; keputusan pemilik 2026-10-22: diterima,
+   penanganan digabung ke F5)**: `test_task` pada ISO ini
    berjalan 64-311 s dan **senyap total pada konsol yang dilihat manusia**
    karena seluruh kemajuannya hanya ditulis ke serial. Ini bukan panic dan
    bukan deadlock. Butuh keputusan pemilik: diterima sebagai biaya alat
    diagnostik, atau dibuka pekerjaan terpisah untuk memindahkan kemajuan ke
    framebuffer dan/atau memangkas target 100.000 tukar. Tidak ada angka gerbang
-   yang diubah menjadi hijau karena entri ini.
+   yang diubah menjadi hijau karena entri ini. Teks asli entri ke-38 tetap
+   tertulis OPEN pada berkas fault log (log ini append-only, entri lama tidak
+   diedit); disposition-nya dicatat pada entri ke-39.

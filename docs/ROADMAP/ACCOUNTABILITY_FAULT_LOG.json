@@ -977,6 +977,34 @@
         "(4) Test penjaga unit F4 tetap lulus tanpa disentuh, sehingga tidak ada perilaku yang dikorbankan untuk higiene."
       ],
       "notes": "Entri ini CLOSED: ketiganya sudah ditutup di sisi host sebelum commit. Yang TIDAK ditutup: (a) perbaikan alat agar artefak clippy terikat ke hash tree, dan (b) pembersihan 134 diagnostik warisan; keduanya masuk backlog R2 sesuai keputusan pemilik bahwa penyesuaian alat ditunda setelah fitur beku. Dua entri sebelumnya TETAP OPEN dan tetap menjadi sebab bagian VM dinyatakan TERBLOKIR: entri ke-50 (perkakas bootloader hilang dari pohon kerja, penguasaan ISO tidak dapat dijalankan) dan entri ke-49. Kelas VERIFIED-ON-HARDWARE tetap 0. violations_recorded_delta = 0 karena tidak ada aturan misi yang dilanggar: cakupan berkas dipatuhi, nol karakter CJK, nol nama sistem operasi, dan CI hosted tidak merah pada tip mana pun dalam rantai ini."
+    },
+    {
+      "date": "2026-10-22T20:14:25Z",
+      "actor": "QODER (agen) - lapor diri sendiri atas satu nilai waktu yang ditulis dari perkiraan dan dua commit yang membawanya",
+      "type": "F5_TIMESTAMP_HANOFF_STATE_DITULIS_DARI_PERKIRAAN_BUKAN_JAM_MESIN_SEHINGGA_DUA_COMMIT_TERAKHIR_MEMBAWA_NILAI_YANG_LEBIH_MUDA_DARI_JAM_COMMIT_ITU",
+      "gate_id": "MASTER PROMPT R1-REVISI BAGIAN 2, unit penutup rantai; aturan bukti 'setiap angka dan label waktu berasal dari artefak terukur pada hari dan mesin yang sama, tidak ada angka yang ditulis sebagai harapan'; kelas bukti unit ini VERIFIED-ON-HOST",
+      "result": "CLOSED",
+      "violations_recorded_delta": 0,
+      "root_cause": "Tiga hal, semuanya tentang pelaporan dan bukan tentang perilaku perangkat.\n(1) Naskah pembantu scratch (logs/handoff_status_bagian2.py, baris 78) menulis field timestamp sebagai string tetap yang saya karang dengan memperkirakan jam, bukan membaca jam mesin. Nilai 2026-10-22T20:25:00Z ditulis padahal berkas itu sendiri berubah pada 20:01:05Z.\n(2) Tidak pernah ada asersi pembanding timestamp terhadap waktu sistem sebelum menulis, sehingga kebiasaan itu lolos pada dua unit sebelumnya: field 2026-10-22T20:05:00Z ter-commit dua kali.\n(3) Tidak ada pembedaan yang dibuat antara 'waktu pengukuran' dan 'waktu penulisan dokumen', sehingga pembulatan menit dikarang tangan daripada diukur.\nAkar tunggal: angka waktu diperlakukan sebagai label bebas, padahal aturan bukti memperlakukannya sebagai hasil ukur.",
+      "evidence": [
+        "logs/r1_timestamp_ukur.py dijalankan tanpa perubahan dari akar repo: 38b3bcc commit 2026-10-23T02:56:36+07:00 (= 2026-10-22T19:56:36Z) membawa handoff timestamp 2026-10-22T20:05:00Z, selisih +8,40 menit LEBIH MUDA DARI COMMIT-NYA SENDIRI; 70431dd commit 2026-10-23T03:00:00+07:00 (= 20:00:00Z) membawa timestamp yang sama 20:05:00Z, selisih +5,00 menit.",
+        "Sumber kedua angka itu adalah git show -s --format=%cI dan git show <commit>:docs/ROADMAP/HANDOFF_STATE.json lalu field timestamp di dalam blob tersebut; tidak ada satu pun angka yang diperkirakan.",
+        "Sebelum koreksi, pohon kerja yang belum di-commit mengklaim 2026-10-22T20:25:00Z padahal waktu mtime berkas yang terukur pada saat pemeriksaan adalah 2026-10-22T20:01:05Z: selisih +23,92 menit.",
+        "Setelah koreksi: a0bbcd6 commit 2026-10-23T03:07:56+07:00 (= 20:07:56Z) membawa timestamp 2026-10-22T20:04:43Z, selisih -3,22 menit, yaitu ditulis SEBELUM commit sehingga konsisten.",
+        "Berkas fault log tidak terkena temuan ini: entri #52 ber-date 2026-10-22T19:56:00Z terhadap commit 19:56:36Z, selisih -0,60 menit.",
+        "Jam mesin lokal UTC+7: tanggal dokumen yang berlabel UTC bisa berbeda satu hari dari tanggal lokal (lokal 2026-10-23 03:00 = UTC 2026-10-22 20:00). Label 2026-10-22 pada berkas bukti unit ini adalah label UTC dan dinyatakan di sini supaya tidak dibaca sebagai salah ketik."
+      ],
+      "correction": [
+        "Sebelum commit penutup: field timestamp pada pohon kerja ditulis ulang dari jam mesin (datetime.now(timezone.utc)) menjadi 2026-10-22T20:04:43Z dan dibekukan di a0bbcd6; panjang nilainya sama (20 karakter) sehingga tidak ada byte lain yang bergeser, dan round-trip byte-exak tetap diuji sebelum dan sesudah tulis.",
+        "Dua nilai yang sudah ter-commit (20:05:00Z pada 38b3bcc dan pada 70431dd) TIDAK diubah: ZERO-AMEND dan append-only berarti nilai yang salah dibiarkan ada di sejarah dan dikoreksi dengan commit baru, bukan dengan menulis ulang sejarah.",
+        "Naskah pembantu scratch sekarang membaca jam mesin; bentuk pemeriksaan yang dipakai untuk membuktikan temuan ini ditinggalkan sebagai naskah ukur di logs (gitignored, tidak di-commit) supaya bisa diulang alatnya tanpa mengingat angkanya."
+      ],
+      "prevented_by": [
+        "Asersi yang kini dipakai sebelum setiap tulis berkas state: round-trip byte-exak terhadap isi nyata, tidak ada kunci lama yang berubah selain next_immediate_step dan timestamp, dan timestamp baru diambil dari jam mesin pada saat tulis, bukan dari string yang dikarang.",
+        "Seluruh pengukuran pada unit penutup ini diulang dengan alat di repo dan bukan diwarisi: 30 suite / 262 lulus / 0 gagal; fmt 0 deviasi BARU dan clippy 0 diagnostik BARU pada rentang 235d44b..HEAD maupun b47c24c..HEAD dengan 134 peringatan warisan; ELF rilis 312.912 B dengan SHA256 yang sama seperti unit gerbang akhir.",
+        "Yang TIDAK ditutup oleh entri ini: artefak clippy alat gerbang masih tanpa sidik jari hash tree (sudah tercatat di entri #52), dan tidak ada pemeriksaan otomatis lintas-commit untuk field waktu berkas state. Keduanya masuk backlog R2 dan menunggu keputusan pemilik."
+      ],
+      "notes": "Temuan ini tidak mengubah satu pun angka fitur: jumlah test, ukuran dan hash ELF, serta coverage yang dikutip pada tiga commit terakhir semuanya berasal dari pengukuran alat pada tree masing-masing. violations_recorded_delta 0 karena tidak ada gerbang G1 sampai G11 yang dilanggar; yang dilanggar adalah disiplin pelaporan waktu dan dilaporkan sendiri di sini. Kelas bukti tetap VERIFIED-ON-HOST: tidak ada ISO baru sejak F7, tidak ada sesi QEMU, tidak ada jendela yang disaksikan, dan bagian VM tetap dinyatakan TERBLOKIR, bukan lulus. Entri #49 dan #50 tetap OPEN. Empat keputusan yang diminta di docs/RND/ASL-V1.0.2-R1-STATUS-BAGIAN-2.md bagian 7 belum dijawab; rantai mandat R1 berhenti di sini dan agen menunggu."
     }
   ]
 }

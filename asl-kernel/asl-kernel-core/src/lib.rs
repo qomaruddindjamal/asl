@@ -1038,6 +1038,28 @@ impl ShellCwd {
         }
         self.len = n;
     }
+
+    /// Naik satu tingkat ke direktori induk (F2). Ibu dihitung oleh
+    /// `split_parent`, sumber satu-satunya pemisah jalur di berkas ini, supaya
+    /// aturan akar tidak tersalin ke tempat kedua. `false` berarti ruang kerja
+    /// sudah di akar dan sengaja tidak diubah.
+    fn parent(&mut self) -> bool {
+        // Salin posisi ke penyangga lokal agar `set_path` boleh meminjam self
+        // secara mutable sementara jalur lama masih dibutuhkan.
+        let mut lokal = [0u8; asl_storage::vfs::MAX_PATH_LEN];
+        let mut i = 0;
+        while i < self.len {
+            lokal[i] = self.buf[i];
+            i += 1;
+        }
+        let saat = core::str::from_utf8(&lokal[..self.len]).unwrap_or("/");
+        let (ibu, _) = split_parent(saat);
+        if ibu == saat {
+            return false;
+        }
+        self.set_path(ibu);
+        true
+    }
 }
 
 /// Satu tujuan tulis untuk kedua penampil (serial COM1 + framebuffer) sehingga
@@ -1243,6 +1265,17 @@ unsafe fn run_canonical_command(inv: &asl_cockpit_shell::Invocation, cwd: &mut S
                     }
                 }
                 Err(err) => print_vfs_error(&out, err),
+            }
+        }
+        CanonicalId::Up => {
+            if cwd.parent() {
+                out.text("Ruang kerja: ");
+                out.text(cwd.as_str());
+                out.text("\n");
+            } else {
+                out.text("Ruang kerja tetap di akar: ");
+                out.text(cwd.as_str());
+                out.text("\n");
             }
         }
         CanonicalId::CreateFolder => {
@@ -3299,6 +3332,35 @@ mod hardening_tests {
         // Isi penyangga tetap UTF-8: tidak pernah memotong di tengah byte multi-byte
         // karena seluruh jalur shell ASCII, dan `as_str` punya fallback "/".
         assert!(!cwd.as_str().is_empty());
+    }
+
+    /// F2: `parent` naik tepat satu tingkat dan diam-diam menolak naik dari akar.
+    #[test]
+    fn test_shell_cwd_parent_naik_satu_tingkat_dan_tetap_di_akar() {
+        let mut cwd = ShellCwd::root();
+        assert!(!cwd.parent(), "di akar tidak boleh berpindah");
+        assert_eq!(cwd.as_str(), "/");
+
+        cwd.set_path("/hello");
+        assert!(cwd.parent());
+        assert_eq!(cwd.as_str(), "/");
+        assert!(!cwd.parent(), "naik lagi dari akar harus tetap ditolak");
+        assert_eq!(cwd.as_str(), "/");
+
+        cwd.set_path("/a/b/c");
+        assert!(cwd.parent());
+        assert_eq!(cwd.as_str(), "/a/b");
+        assert!(cwd.parent());
+        assert_eq!(cwd.as_str(), "/a");
+        assert!(cwd.parent());
+        assert_eq!(cwd.as_str(), "/");
+
+        // Prompt ikut bergerak satu-sumber sesudah naik (F1 x F2).
+        let mut buf =
+            [0u8; asl_cockpit_shell::SHELL_PROMPT_FIXED_LEN + asl_storage::vfs::MAX_PATH_LEN];
+        cwd.set_path("/hello/world");
+        assert!(cwd.parent());
+        assert_eq!(cwd.prompt(&mut buf), "ASL-KERNEL /hello>_ ");
     }
 
     /// F1: prompt shell memuat posisi direktori kerja aktif pada kedua penampil.

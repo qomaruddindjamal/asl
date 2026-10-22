@@ -1,0 +1,46 @@
+ASL E8 ADVERSARIAL INPUT RUN - 2026-10-22_08-29-15
+prompt satu-sumber : 'ASL-KERNEL />_ '
+penanda crash      : ASL-CORE-PANIC | ASL EXCEPTION | FATAL
+kasus              : 41 utama + 2 sisa; dijalankan 59 kasus (diagnostik=True faultDemo=False satuToken='')
+batas              : boot=240s; per kasus=600s; fase penghenti tombol: jeda=0s batas=900s
+QEMU   : QEMU emulator version 10.2.50 (v10.2.0-14086-g840320663e)
+ISO    : C:\asl\asl-kernel\target\asl-core-kernel.iso
+ISO    : 4204544 bytes SHA256=5e5433f6816b55a1c757138db16e1705ebba1d976ec4b4a59bb345f9e512f46f
+PORTA  : 127.0.0.1:14721 (chardev socket dua arah, COM1)
+
+=== FASE 1 - cold boot 256M berjendela + koneksi serial ===
+CMDLINE: "C:\Program Files\qemu\qemu-system-x86_64.exe" -machine q35 -vga std -m 256M -cdrom C:\asl\asl-kernel\target\asl-core-kernel.iso -chardev socket,id=ser0,server=on,wait=on,host=127.0.0.1,port=14721 -serial chardev:ser0 -no-reboot -no-shutdown
+PID    : 10080  (tutup dengan: e8_adversarial_run.ps1 -StopQemu)
+SERIAL : terhubung, log byte-per-byte -> C:\asl\Analysis\reports\e8_adversarial_serial_2026-10-22_08-29-15.log
+Boot   : M6=True prompt=True crash=TIDAK
+
+=== FASE 2 - sesi masukan adversarial ===
+CATATAN bangun: pada ISO ini registry kanonik berisi 11 perintah; 'up' (C15) dan 'rename' (C26,C27)
+             BELUM ada, jadi kedua kasus itu menguji jalur 'perintah tak dikenal' - bukan jalur
+             aslinya. Jalur asli keduanya diuji lagi setelah F2/F6, dan jendela E8 diulang.
+  S01  [OK      ] SIAP: buat direktori uji                       kirim    20 byte dalam    453 ms -> prompt kembali :: create-folder e8uji | Direktori dibuat: /e8uji | ASL-KERNEL />_ 
+[GANTUNG] S02 'SIAP: masuk direktori uji' tidak mendapat prompt kembali dalam 600 s
+          balasan: open e8uji | Ruang kerja: /e8uji | ASL-KERNEL /e8uji>_ 
+  S02  [GANTUNG ] SIAP: masuk direktori uji                      kirim    11 byte dalam 600021 ms -> prompt tidak kembali :: open e8uji | Ruang kerja: /e8uji | ASL-KERNEL /e8uji>_ 
+[GANTUNG] S03 'SIAP: buat berkas a.txt' tidak mendapat prompt kembali dalam 600 s
+          balasan: create-file a.txt | Berkas dibuat: /e8uji/a.txt | ASL-KERNEL /e8uji>_ bj===<BS> <BS><BS> <BS><BS> <BS><BS> <BS><BS> <BS>
+  S03  [GANTUNG ] SIAP: buat berkas a.txt                        kirim    18 byte dalam 600010 ms -> prompt tidak kembali :: create-file a.txt | Berkas dibuat: /e8uji/a.txt | ASL-KERNEL /e8uji>_ bj===<BS> <BS><BS> <BS><BS> <BS><BS> <BS><BS> <BS>
+[PANIK] S04 'SIAP: isi a.txt': proses QEMU keluar - lihat balasan: write-file a.txt isi awal e8 | Tertulis 11 byte di /e8uji/a.txt | ASL-KERNEL /e8uji>_ t<BS> <BS>ls | Daftar isi /e8uji (1 entri): |   - a.txt  11 B | ASL-KERNEL /e8uji>_  | ASL-KERNEL /e8uji>_  | ASL-KERNEL /e8uji>_  | ASL-KERNEL /e8uji>_  | ASL-KERNEL /e8uji>_  | ASL-KERNEL /e8uji>_  | ASL-KERNEL /...[1771 byte]
+
+=== Keadaan akhir sesi ===
+byte masuk (serial->alat)  : 4461
+byte keluar (alat->serial) : 78
+stderr QEMU                : 197 byte
+  isi stderr = pesan 'info: QEMU waiting for connection' dari chardev socket
+  (konsekuensi wait=on agar tidak ada byte boot yang hilang). Bukan galat mesin.
+  Gerbang 'stderr 0 byte' alat G9 tetap berlaku untuk alat itu; di sesi ini
+  jumlah byte ini dilaporkan terang, bukan disembunyikan.
+serial log                 : C:\asl\Analysis\reports\e8_adversarial_serial_2026-10-22_08-29-15.log (4461 byte)
+CATATAN: sesi berhenti di kasus S04 - 55 kasus berikutnya TIDAK dijalankan,
+         termasuk pembersihan direktori uji. Setelah perbaikan, jalankan ulang dari awal.
+HASIL: REPRODUKSI POSITIF - 3 kasus:
+  - S02 shell tidak kembali ke prompt dalam 600 s
+  - S03 shell tidak kembali ke prompt dalam 600 s
+  - S04 QEMU keluar tanpa penanda crash (kemungkinan fault tingkat tiga)
+E8-STATUS: TERREPRODUKSI oleh alat. Ambil potongan panic di serial log sebagai akar bukti.
+tabel kasus disimpan     : C:\asl\Analysis\reports\e8_adversarial_cases_2026-10-22_08-29-15.tsv (4 baris)

@@ -103,7 +103,7 @@ dokumen kerja.
 | fmt/clippy | tidak hijau harfiah karena **140 blok deviasi** dan **137 diagnostik warisan** yang sudah ada sebelum E8; yang ditegakkan adalah **nol BARU** pada baris hasil kerja, dihitung `scripts/r1_new_only_gate_check.py` | VERIFIED-ON-HOST |
 | Lantai memori | ratchet **3392K lulus**; janji Bagian 5 **`-m 3M` tetap MERAH** (serial 0 byte) — deviasi tidak diubah menjadi hijau | VERIFIED-ON-VM |
 | Sesi adversarial | Pass A 43 payload keluar 0; Pass B 59/59 [OK] keluar 0; `trap_de` mencetak blok konteks lengkap; tujuh sesi berjendela | VERIFIED-ON-VM |
-| CI terkelola | **26 run** atas cabang R1, **13 pasangan** peristiwa, seluruhnya `conclusion=success`; tiap pasangan yang sudah terekstrak 202/0, 30 suite, 19 `warning` profil test, 13 `Compiling` 0/0, ELF runner 325.184 byte. Ekstrak: 26 berkas milik run cabang R1; total `ci_hosted_*` ter-commit 75. Angka ini disinkron dari audit `e8_l8_*` pada HEAD `5812c77` (unit F1), bukan dari ingatan; pasangan atas unit F1 belum terekstrak karena aturan G8 | VERIFIED-ON-CI / VERIFIED-ON-CI-API |
+| CI terkelola | **30 run** atas cabang R1, **15 pasangan** peristiwa, seluruhnya `conclusion=success`; tiap pasangan yang terekstrak 30 suite, 19 `warning` profil test, 13 `Compiling` 0/0 — lulusnya 202/0 untuk pasangan lama dan **205/0** untuk pasangan atas dua commit terakhir, ELF runner 325.184 byte lalu 329.360 byte. Ekstrak: 30 berkas milik run cabang R1; total `ci_hosted_*` ter-commit 79. Angka ini disinkron dari audit `e8_l9_*` pada HEAD `c94f8b0` (unit ekstrak pasca-F1), bukan dari ingatan; pasangan atas unit F2 belum bisa terekstrak karena aturan G8 | VERIFIED-ON-CI / VERIFIED-ON-CI-API |
 | Jendela LANGKAH 6 | Lima sesi terdokumentasi di Bagian 5.3; **disaksikan pemilik dan dinyatakan LULUS 2026-10-22** | VERIFIED-ON-VM-VISIBLE + kesaksian pemilik |
 
 ## 5. Batas bukti — yang TIDAK boleh dibaca sebagai sudah terbukti
@@ -124,14 +124,15 @@ dokumen kerja.
    `b9acd5b`, `ca582fa`) karena satu peristiwa push hanya memicu run untuk tip
    saat itu. Ini fakta cara kerja CI, bukan kelalaian.
 5. **Utang ekstrak G8 tidak pernah bisa nol pada commit terakhir rantai.** Yang
-   tertutup sampai unit ekstrak sesudah unit F1 = 13 pasangan (26 berkas milik run cabang R1, audit di
-   `Analysis/reports/e8_l8_audit-utang-ekstrak_2026-10-22.txt` pada HEAD `5812c77`).
+   tertutup sampai unit F2 = 15 pasangan (30 berkas milik run cabang R1, audit di
+   `Analysis/reports/e8_l9_audit-utang-ekstrak_2026-10-22.txt` pada HEAD `c94f8b0`).
    Yang diperkirakan pada laporan ini semula ("pasangan atas commit-unit ini masuk
    unit pertama BAGIAN 2") tidak terjadi apa adanya: commit-unit F1 `5812c77`
-   sengaja TIDAK memuat ekstrak itu agar satu commit satu logika, sehingga
-   penutupnya baru ada pada commit ekstrak berikutnya. Tidak ada angka yang
-   berubah karena penundaan ini; yang berubah hanyalah commit tempat bukti itu
-   mendarat.
+   sengaja TIDAK memuat ekstraknya sendiri agar satu commit satu logika, unit
+   ekstrak sesudahnya (`c94f8b0`) menutup pasangan atas `d8c002a`, dan pasangan
+   atas `5812c77` baru mendarat pada unit F2 — dua langkah setelah commit
+   pemiliknya, bukan satu. Tidak ada angka yang berubah karena penundaan ini;
+   yang berubah hanyalah commit tempat bukti itu mendarat.
 6. **Durasi `test_task` tidak stabil dan tidak dapat diprediksi dari dalam
    sesi** (64,0 s sampai 310,7 s). Setiap batas waktu untuk kasus ini adalah
    tebakan yang harus dinyatakan sebagai tebakan; resep resmi kini
@@ -148,6 +149,26 @@ dokumen kerja.
 8. **Kolom waktu berkas TSV alat bernama `detik_mm` padahal isinya
    milidetik.** Nama tidak diubah supaya artefak lama dan baru tidak beda
    skema; konversi detik kini ditulis berdampingan di dokumen.
+9. **Kelemahan alat ketiga, ditemukan pada pengulangan jendela sesudah F2
+   (2026-10-22):** `scripts/e8_adversarial_run.ps1:374` mengenali "shell sudah
+   kembali" dengan menghitung kemunculan literal `SHELL_PROMPT` dalam bentuk
+   AKAR (`"ASL-KERNEL />_ "`), padahal sejak F1 prompt dicetak berposisi.
+   Akibatnya terukur: pada ISO F2 kasus S02 dan S03 tercatat `GANTUNG` 600 s
+   walaupun kedua balasan tercetak penuh dan benar di serial
+   (`Ruang kerja: /e8uji` dan `Berkas dibuat: /e8uji/a.txt`, keduanya ditutup
+   `ASL-KERNEL /e8uji>_ `), dan sesi berhenti di S04 dengan label
+   `MESIN-KELUAR` yang tercatat "kemungkinan fault tingkat tiga" — padahal pada
+   4.461 byte serial tidak ada satu pun penanda crash dan byte terakhir adalah
+   prompt sehat. Selain itu sesi ini tidak terkendali: papan ketik pada jendela
+   yang terlihat mengirim masukan yang bukan dari alat (byte keluar alat 78 =
+   tepat empat baris setup), sehingga hasilnya tidak saya sahkan sebagai vonis
+   apa pun. Kelas kegagalan ini senyap terhadap test sisi host karena tidak
+   ada penjaga yang menyatakan bentuk prompt mana yang alat akui. Alat TIDAK
+   diubah pada R1 sesuai keputusan pemilik (penyesuaian alat ditunda ke R2);
+   akibatnya kewajiban "jendela E8 diulang setelah F2" **berpindah ke R2 dalam
+   keadaan belum terpenuhi**, tercatat sebagai entri ke-42 pada fault log.
+   Rincian lengkap dan pembuktian ada di bagian [9]
+   `Analysis/reports/f2_up_uji_2026-10-22.txt`.
 
 ## 6. Tindak lanjut yang diikat oleh keputusan pemilik
 
@@ -155,7 +176,14 @@ dokumen kerja.
   pekerjaan panjang, plus menyatakan varians durasi 64 s versus 310,7 s.
 - **F1-F7** mengubah registry kanonik dari 11 menjadi 13 perintah; sesudah F2
   (`up`) dan F6 (`rename`) hidup, kasus C15 dan C26/C27 pada Pass penuh menguji
-  jalur aslinya dan **jendela E8 diulang**.
+  jalur aslinya dan **jendela E8 diulang**. Sudah dijalankan untuk F2 dan
+  hasilnya TIDAK SAH: pemecah prompt alat hanya mengenali bentuk akar, jadi
+  setiap kasus yang ruang kerjanya bukan akar akan gantung sampai batas —
+  S02 dan S03 adalah dua contoh yang terukur sebelum sesi berhenti di S04.
+  Pengulangan yang sah menuntut satu suntingan kecil pada `e8_adversarial_run.ps1`
+  lebih dulu, dan penyesuaian alat itu ditunda ke R2 oleh keputusan pemilik; pengulangan
+  sesudah F2 karena itu MASIH TERBUKA pada R1, dan pengulangan sesudah F6
+  mengikuti dengan resep yang sama.
 - Janji `-m 3M` tetap MERAH dan menjadi pekerjaan terpisah; tidak ada angka
   gerbang yang diubah menjadi hijau karena penutupan ini.
 - Entri ke-38 pada `ACCOUNTABILITY_FAULT_LOG` tetap tertulis OPEN pada
@@ -167,10 +195,12 @@ dokumen kerja.
 - Dokumen kerja + tabel lengkap: `docs/RND/ASL-V1.0.2-E8-AKAR-PENYEBAB-DAN-STATUS.md`
   (Bagian 1-7, termasuk 5.1, 5.2, 5.3).
 - Accountability: `docs/ROADMAP/ACCOUNTABILITY_FAULT_LOG.json` entri ke-30
-  sampai ke-39; `violations_recorded` tetap 0.
+  sampai ke-42; `violations_recorded` tetap 0.
 - Bukti mentah: `Analysis/reports/e8_*` (tujuh sesi adversarial, tabel kasus,
   serial, stderr QEMU, kalibrasi batas, dua tangkapan layar, audit utang
-  ekstrak) dan `Analysis/reports/ci_hosted_*`.
+  ekstrak, dan sesi kedelapan `*_2026-10-22_08-29-15` yang menjadi dasar
+  Batas bukti butir 9), `Analysis/reports/f2_up_uji_2026-10-22.txt` bagian [8]
+  dan [9], serta `Analysis/reports/ci_hosted_*`.
 - Commit yang dirujuk laporan ini adalah commit sebelumnya pada rantai yang
   sama: `1f3e3c2` (unit 5c), `4de1dfb` (unit jendela LANGKAH 6), `b17a175`
   (unit 6b), `4c3e0d2` (unit 7a). Sesuai aturan, hash commit hanya dirujuk di

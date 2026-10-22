@@ -96,11 +96,13 @@ ASL-KERNEL />_ cd log
 ASL-KERNEL /log>_ create-file note.txt
 ASL-KERNEL /log>_ write-file note.txt halo dunia
 ASL-KERNEL /log>_ cat note.txt
-ASL-KERNEL /log>_ status
+ASL-KERNEL /log>_ up
+ASL-KERNEL />_ status
 ```
 
-Ruang kerja (`cd`, `ls`, `cat`) hanya melihat RAMDISK volatil; isi hilang ketika
-mesin dimatikan. Bentuk lengkap dan janji setiap perintah:
+Ruang kerja (`cd`, `ls`, `cat`) hanya melihat RAMDISK volatil; `up` menaiki satu
+tingkat dan tetap di akar bila sudah di akar. Isi hilang ketika mesin dimatikan.
+Bentuk lengkap dan janji setiap perintah:
 `docs/PANDUAN/REFERENSI-PERINTAH.md`.
 
 ## Pasal 5 - Pipeline lengkap sekali jalan

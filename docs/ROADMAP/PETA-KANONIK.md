@@ -17,8 +17,8 @@ dicetak atau nama konstanta adalah penanda yang stabil.
 | Fakta | Sumber satu-satunya | Yang menyusun dari sumber | Penjaga |
 | --- | --- | --- | --- |
 | Versi rilis `v1.0.2` | `KERNEL_VERSION` di `asl-kernel/asl-cockpit-shell/src/lib.rs` | banner, `uname`, `status`, prompt bantuan | `test_release_identity_single_source` |
-| Prompt `ASL-KERNEL />_ ` (akar) dan `ASL-KERNEL <posisi>>_ ` (subfolder) | `SHELL_PROMPT_PREFIX` + `SHELL_PROMPT_SUFFIX`, disusun `render_prompt`; `SHELL_PROMPT` adalah bentuk akar | seluruh situs tampil lewat `ShellCwd::prompt`; dibaca juga oleh skrip gerbang memori | `test_release_identity_single_source`, `test_f1_prompt_shows_active_position`, `test_f1_prompt_truncates_long_position_and_keeps_suffix`, `test_shell_prompt_shows_active_position`, parser `scripts/test_ram_floor_3mb.ps1` |
-| Daftar perintah kanonik | `REGISTRY` + `CANONICAL_COMMAND_COUNT` di berkas yang sama | keluaran `help`, jumlah pada `status`, `docs/PANDUAN/REFERENSI-PERINTAH.md` | `test_registry_has_eleven_canonical_commands`, `test_docs_command_reference_matches_registry` |
+| Prompt `ASL-KERNEL />_ ` (akar) dan `ASL-KERNEL <posisi>>_ ` (subfolder) | `SHELL_PROMPT_PREFIX` + `SHELL_PROMPT_SUFFIX`, disusun `render_prompt`; `SHELL_PROMPT` adalah bentuk akar | seluruh situs tampil lewat `ShellCwd::prompt`; dibaca juga oleh skrip gerbang memori | `test_release_identity_single_source`, `test_f1_prompt_shows_active_position`, `test_f1_prompt_truncates_long_position_and_keeps_suffix`, `test_shell_prompt_shows_active_position`, `test_shell_cwd_parent_naik_satu_tingkat_dan_tetap_di_akar`, parser `scripts/test_ram_floor_3mb.ps1` |
+| Daftar perintah kanonik | `REGISTRY` + `CANONICAL_COMMAND_COUNT` di berkas yang sama | keluaran `help`, jumlah pada `status`, `docs/PANDUAN/REFERENSI-PERINTAH.md` | `test_registry_has_twelve_canonical_commands`, `test_f2_up_command_is_canonical_and_takes_no_argument`, `test_docs_command_reference_matches_registry` |
 | Alias parser | `aliases()` tiap entri registry | resolusi parser, baris `alias:` pada `help` | `test_parser_resolves_every_documented_alias` |
 | Judul kelompok perintah | `CommandCategory::label()` | seksi pada keluaran `help`, kolom Kelompok pada dokumen panduan | `test_help_text_is_generated_from_registry` |
 | Batas baris input | `SHELL_BUFFER_MAX` | penyangga shell, uji limpahan | `test_shell_buffer_overflow_protection` |
@@ -56,7 +56,7 @@ smoke. `M6` plus prompt shell adalah syarat lulus smoke boot.
 
 | Area | Kelas bukti | Catatan |
 | --- | --- | --- |
-| 11 perintah kanonik + 9 alias, jembatan shell ke RAMDISK | `VERIFIED-ON-HOST` | test registry, parser, editor baris, dan sinkron dokumen |
+| 12 perintah kanonik + 9 alias, jembatan shell ke RAMDISK | `VERIFIED-ON-HOST` | test registry, parser, editor baris, dan sinkron dokumen |
 | Boot sampai prompt dan sesi shell di QEMU | `VERIFIED-ON-VM` | berkas log serial; sesi yang disaksikan pemilik dijadwalkan pada gerbang G9 |
 | Uji host dan build release di runner GitHub | `VERIFIED-ON-CI` | workflow hanya menempuh langkah uji host dan build; boot QEMU tidak berjalan di runner |
 | Gerbang boot `-m 3M` | MERAH, `DEVIASI TERCATAT` | lihat `docs/PANDUAN/KONFIGURASI-MEMORI.md` Pasal 4 dan `ACCOUNTABILITY_FAULT_LOG` entri ke-23 |

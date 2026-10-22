@@ -438,40 +438,38 @@ Yang tersisa:
    dilaporkan).
 3. **Utang ekstrak hosted CI (G8)** — daftarnya dihitung ulang dari `gh api`
    dan `git ls-tree -r HEAD Analysis/reports`, bukan dari ingatan. Pada HEAD
-   `5812c77` (commit-unit F1, unit pertama BAGIAN 2 yang mengubah `.rs`)
-   terukur DUA PULUH ENAM run = TIGA BELAS pasangan peristiwa atas TIGA BELAS
+   `c94f8b0` (commit-unit EKSTRAK pasca-F1, unit yang tidak menyentuh `.rs`)
+   terukur TIGA PULUH run = LIMABELAS pasangan peristiwa atas LIMABELAS
    commit yang punya run, seluruhnya `conclusion=success`; SEPULUH
    commit cabang tidak pernah punya run sendiri (rincian di bawah). Audit
    per-commit tersimpan sebagai bukti di
-   `Analysis/reports/e8_l8_audit-utang-ekstrak_2026-10-22.txt` (pengganti
+   `Analysis/reports/e8_l9_audit-utang-ekstrak_2026-10-22.txt` (pengganti
+   `e8_l8_audit-utang-ekstrak_2026-10-22.txt`,
    `e8_l7b_audit-utang-ekstrak_2026-10-22.txt`,
    `e8_l7_audit-utang-ekstrak_2026-10-22.txt` dan
    `e8_l6b_audit-utang-ekstrak_2026-10-22.txt`), dijalankan oleh
-   `scripts/r1_debt_audit.py` pada HEAD `5812c77` sebelum unit ekstrak ini;
+   `scripts/r1_debt_audit.py` pada HEAD `c94f8b0` sebelum unit F2 ini;
    EMPAT baris `BELUM` pada berkas itu adalah DUA pasangan dan bukan kegagalan:
-   yang atas `d8c002a` ikut commit-unit ekstrak ini, yang atas `5812c77`
-   ditutup pada unit BERIKUTNYA.
-   *Sudah tertutup*: TIGA BELAS pasangan peristiwa — atas `17570f6`, `a141640`,
+   yang atas `5812c77` dan yang atas `c94f8b0`, kedua-duanya ikut commit-unit F2.
+   *Sudah tertutup*: LIMABELAS pasangan peristiwa — atas `17570f6`, `a141640`,
    `97d1834`, `08ddd71`, `53e226f`, `1e2035f`, `8f56625`, `12adcf1`, `1f3e3c2`,
-   commit jendela `4de1dfb`, commit unit 6b `b17a175`, commit unit 7a `4c3e0d2`
-   dan commit unit 7b `d8c002a` — = DUA PULUH ENAM
+   commit jendela `4de1dfb`, commit unit 6b `b17a175`, commit unit 7a `4c3e0d2`,
+   commit unit 7b `d8c002a`, commit unit F1 `5812c77` dan commit unit ekstrak
+   `c94f8b0` — = TIGA PULUH
    berkas `Analysis/reports/ci_hosted_<id>_*.log`, masing-masing membawa blok
    CATATAN PER-RUN. Total berkas `ci_hosted_*` yang ter-commit di
-   `Analysis/reports` menjadi 75. Dua ekstrak yang ikut unit ekstrak ini (satu
-   pasangan terakhir, atas `d8c002a`) terukur identik di langkah [1/2] dan [2/2]: 202 lulus / 0 gagal pada
+   `Analysis/reports` menjadi 79. Empat ekstrak yang ikut unit F2 (dua pasangan
+   terakhir) terukur identik di langkah [1/2] dan [2/2]: 205 lulus / 0 gagal pada
    30 suite, 19 baris `warning` profil test, 13 baris `Compiling` dengan 0
-   `warning` / 0 `error`, ELF sisi runner CI 325.184 byte — keduanya commit
-   bernol berkas `.rs`.
-   *Masih terbuka*: pasangan peristiwa atas commit-unit F1 `5812c77` (run push
-   `39703399191` dan `pull_request` `39703405130`, kedua `conclusion=success`
-   terukur `gh api`) dan pasangan atas commit-unit ekstrak ini sendiri, yang
-   baru tercipta sesudah push. Aturan G8 melarang ekstrak sebuah run masuk
-   commit milik run itu, jadi penutupnya wajib ada di unit BERIKUTNYA; itu
-   konsekuensi aturan, bukan kekeliruan. Karena `5812c77` adalah commit-unit
-   pertama BAGIAN 2 yang menyentuh `.rs`, ekstraknya nanti menjadi pasangan
-   PERTAMA di cabang ini yang diukur pada tree dengan penjaga prompt berposisi;
-   angka yang diharapkan dari ukur sisi host adalah 205 lulus / 0 gagal, dan
-   angka itu HARUS dibaca dari log run, bukan ditulis lebih dulu dari tebakan.
+   `warning` / 0 `error`, ELF sisi runner CI 329.360 byte.
+   *Masih terbuka*: pasangan peristiwa atas commit-unit F2 ini sendiri dan atas
+   commit-unit berikutnya, yang baru tercipta sesudah push. Aturan G8 melarang
+   ekstrak sebuah run masuk commit milik run itu, jadi penutupnya wajib ada di
+   unit BERIKUTNYA; itu konsekuensi aturan, bukan kekeliruan. Run atas
+   commit-unit F2 menjadi pasangan PERTAMA di cabang ini yang diukur pada tree
+   dengan registry berposisi 12 perintah; angka lulus/gagal untuk pasangan itu
+   HARUS dibaca dari log run setelah ia ada, bukan ditulis lebih dulu dari
+   angka host.
    *Satu kejadian higiene bukti, dilaporkan apa adanya*: unduhan pertama log
    mentah run push `39644006778` mengembalikan 0 byte dan
    `scripts/ci_hosted_extract.py` tetap menulis ekstrak berisi `suite=0
@@ -497,10 +495,14 @@ Yang tersisa:
    `docs/RND/ASL-V1.0.2-E8-LAPORAN-PENUTUPAN.md` setelah jendela disahkan dan
    setelah teks panic dinyatakan tidak tersedia. Dokumen ini tetap berlabel
    STATUS PEKERJAAN sebagai rekaman kerja.
-5. Setelah E8 ditutup: BAGIAN 2 (F1-F7). Registry kanonik pada ISO yang di-boot
-   masih 11 perintah, jadi kasus C15 (`up`) dan C26/C27 (`rename`) pada Pass
-   penuh masih menguji jalur "perintah tak dikenal"; jalur aslinya diuji lagi
-   setelah F2 dan F6, dan jendela E8 diulang.
+5. Setelah E8 ditutup: BAGIAN 2 (F1-F7). Registry kanonik pada ISO F2 sudah
+   **12 perintah** karena `up` masuk pada unit ini, jadi kasus C15 (`up`) tidak
+   lagi menempuh jalur "perintah tak dikenal"; jalur aslinya terukur pada bagian
+   [7] `Analysis/reports/f2_up_uji_2026-10-22.txt` (sesi QEMU khusus `up`,
+   11 dari 11 deret prompt). Kasus C26/C27 (`rename`) MASIH menguji jalur
+   "perintah tak dikenal" sampai F6 menambahkan `rename` dan registry menjadi
+   13, dan pada F6 jendela E8 wajib diulang lagi — dengan catatan jendela itu
+   baru bisa sah setelah pemecah prompt alat disesuaikan (butir 7 di bawah).
 6. **Entri ke-38 (temuan produk; keputusan pemilik 2026-10-22: diterima,
    penanganan digabung ke F5)**: `test_task` pada ISO ini
    berjalan 64-311 s dan **senyap total pada konsol yang dilihat manusia**
@@ -511,3 +513,41 @@ Yang tersisa:
    yang diubah menjadi hijau karena entri ini. Teks asli entri ke-38 tetap
    tertulis OPEN pada berkas fault log (log ini append-only, entri lama tidak
    diedit); disposition-nya dicatat pada entri ke-39.
+7. **Jendela E8 yang diulang pada ISO F2 — TIDAK SAH, dan ini temuan alat**:
+   pemilik mewajibkan jendela G9-LITE/E8 diulang setelah F2 dan setelah F6
+   karena registry bertambah. Pengulangan setelah F2 sudah dijalankan pada ISO
+   F2 (sidik jari 4.204.544 byte `5E5433F6…` tercantum pada kepala summary dan
+   cocok dengan ISO yang dibangun unit ini) dan berhenti di kasus keempat dari
+   59: S01 OK, S02 `GANTUNG` 600.021 ms, S03 `GANTUNG` 600.010 ms, S04
+   `MESIN-KELUAR`, kode keluar alat 2.
+   *Akar penyebabnya di alat, bukan di shell*: `scripts/e8_adversarial_run.ps1:374`
+   menghitung kemunculan literal `SHELL_PROMPT` = `"ASL-KERNEL />_ "` — bentuk
+   akar yang sengaja saya pertahankan pada F1 agar keempat alat gerbang tetap
+   membaca konstanta yang sama. Sejak prompt berposisi, begitu ruang kerja
+   berpindah ke `/e8uji` bentuk akar tidak pernah muncul lagi sehingga alat
+   menunggu sampai batas, padahal kedua balasan tercetak penuh dan benar:
+   `Ruang kerja: /e8uji` dan `Berkas dibuat: /e8uji/a.txt`, masing-masing
+   ditutup `ASL-KERNEL /e8uji>_ `. Yang gagal adalah penglihatan alat, bukan
+   ketaatan shell.
+   *Label `MESIN-KELUAR` alat tidak terbukti*: pada seluruh 4.461 byte serial
+   tidak ada satu pun `ASL-CORE-PANIC`, `ASL EXCEPTION`, maupun `FATAL`; 136
+   byte terakhir adalah pesan `… kembali ke prompt, shell tetap hidup` diikuti
+   prompt sehat sebagai penutup berkas. Sebab berakhirnya proses emulator tidak
+   dapat disimpulkan dari arsip ini, dan saya tidak mengklaimnya.
+   *Sesi ini juga bukan sesi terkontrol*: byte keluar alat 78 = tepat empat baris
+   setup, tetapi serial memperlihatkan ketikan `clear`, `restart`, `shutdown`,
+   `test-task`, `task`, `test_task`, backspace, dan baris kosong berulang yang
+   masuk lewat papan ketik pada jendela yang terlihat. Shell menanggapi dengan
+   benar (`clear` membersihkan layar, empat token tak dikenal menjawab
+   `Unknown command`, `test_task` berjalan lalu berhenti oleh satu ketikan
+   dengan pesan operator), tetapi kenyataan itu dicatat, tidak dijadikan uji.
+   *Keputusan pemilik 2026-10-22* (ditanyakan dengan tiga opsi sebelum alat
+   disentuh): hentikan, catat, tunda penyesuaian alat ke R2. Berkas alat tidak
+   ada yang diubah; sesi sudah berakhir sendiri. Konsekuensinya saya tulis apa
+   adanya: **kewajiban "jendela diulang setelah F2" BELUM TERPENUHI dan
+   berpindah ke R2** dengan alasan tercatat (entri ke-42 pada fault log), bukan
+   hilang; penutupnya satu suntingan kecil pada pencocok prompt
+   `e8_adversarial_run.ps1` lalu jalankan ulang 59 kasus dari awal pada ISO yang
+   berlaku dengan pemilik menyaksikan. Kalimat statis `CATATAN bangun` pada alat
+   (baris 415-417) juga masih menyebut "11 perintah" dan "`up` BELUM ada" —
+   salah untuk ISO F2, dan ikut ditunda ke R2.

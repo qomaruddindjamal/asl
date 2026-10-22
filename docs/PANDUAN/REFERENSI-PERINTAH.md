@@ -15,7 +15,7 @@ menambahkan perintah yang tidak ada di registry.
 Memberi satu tempat baca bagi operator untuk mengetahui perintah apa yang
 dijanjikan shell pada konsol serial dan framebuffer, bagaimana bentuknya, dan
 apa yang dilakukan masing-masing. Lingkupnya hanya Cockpit Shell v1.0.2:
-sebelas perintah kanonik plus perintah lama yang tetap dikenali. Tidak ada
+dua belas perintah kanonik plus perintah lama yang tetap dikenali. Tidak ada
 skrip, tidak ada berkas di disk, tidak ada jaringan.
 
 ## Pasal 2 - Prasyarat
@@ -39,9 +39,10 @@ skrip, tidak ada berkas di disk, tidak ada jaringan.
 4. Bila jumlah argumen di luar yang diizinkan, shell mencetak baris `Sintaks:`
    yang diambil dari registry, bukan dari teks yang ditulis tangan.
 5. Ruang kerja (direktori saat ini) dipakai oleh perintah berkas relatif; jalur
-   mutlak diawali `/`.
+   mutlak diawali `/`. `up` menaiki satu tingkat ke direktori induk; di akar ia
+   tidak berpindah dan mengatakan begitu.
 
-## Pasal 4 - Perintah kanonik (sebelas, urutan registry)
+## Pasal 4 - Perintah kanonik (dua belas, urutan registry)
 
 Urutan di bawah sama dengan urutan tampil pada perintah `help`.
 
@@ -83,6 +84,14 @@ Urutan di bawah sama dengan urutan tampil pada perintah `help`.
 - Ringkasan: Masuk ke direktori bila tujuannya direktori, atau tampilkan isi berkas bila tujuannya berkas.
 - Alias: `cd`, `cat`, `type`, `read-file`, `open-file`
 - Argumen: paling sedikit 1, paling banyak 1
+- Kelompok: Ruang kerja
+
+### up
+- Nama: `up`
+- Sintaks: `up`
+- Ringkasan: Naik satu tingkat ke direktori induk; sudah di akar berarti tetap di akar.
+- Alias: -
+- Argumen: paling sedikit 0, paling banyak 0
 - Kelompok: Ruang kerja
 
 ### create-folder

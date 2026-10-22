@@ -257,7 +257,8 @@ impl CockpitShell {
 // ============================================================================
 
 /// Jumlah perintah kanonik yang dijanjikan misi v1.0.2 Bagian 1.2.
-pub const CANONICAL_COMMAND_COUNT: usize = 11;
+/// F1 menghitung 11; F2 menambahkan `up` sehingga menjadi 12.
+pub const CANONICAL_COMMAND_COUNT: usize = 12;
 
 /// Jumlah maksimum argumen yang bisa ditangkap satu baris perintah.
 pub const MAX_ARGS: usize = 2;
@@ -299,6 +300,7 @@ pub enum CanonicalId {
     Where,
     List,
     Open,
+    Up,
     CreateFolder,
     CreateFile,
     WriteFile,
@@ -472,6 +474,35 @@ impl ShellEntry for OpenCmd {
     }
     fn max_args(&self) -> usize {
         1
+    }
+}
+
+#[derive(Debug, Copy, Clone)]
+pub struct UpCmd;
+impl ShellEntry for UpCmd {
+    fn id(&self) -> CanonicalId {
+        CanonicalId::Up
+    }
+    fn name(&self) -> &'static str {
+        "up"
+    }
+    fn aliases(&self) -> &'static [&'static str] {
+        &[]
+    }
+    fn syntax(&self) -> &'static str {
+        "up"
+    }
+    fn summary(&self) -> &'static str {
+        "Naik satu tingkat ke direktori induk; sudah di akar berarti tetap di akar."
+    }
+    fn category(&self) -> CommandCategory {
+        CommandCategory::Workspace
+    }
+    fn min_args(&self) -> usize {
+        0
+    }
+    fn max_args(&self) -> usize {
+        0
     }
 }
 
@@ -659,6 +690,7 @@ pub static REGISTRY: [&dyn ShellEntry; CANONICAL_COMMAND_COUNT] = [
     &WhereCmd,
     &ListCmd,
     &OpenCmd,
+    &UpCmd,
     &CreateFolderCmd,
     &CreateFileCmd,
     &WriteFileCmd,
@@ -1465,9 +1497,9 @@ mod tests {
     }
 
     #[test]
-    fn test_registry_has_eleven_canonical_commands() {
+    fn test_registry_has_twelve_canonical_commands() {
         assert_eq!(REGISTRY.len(), CANONICAL_COMMAND_COUNT);
-        assert_eq!(CANONICAL_COMMAND_COUNT, 11);
+        assert_eq!(CANONICAL_COMMAND_COUNT, 12);
 
         let mut alias_total = 0usize;
         let mut i = 0;
@@ -1514,6 +1546,7 @@ mod tests {
             ("read-file", "open"),
             ("open-file", "open"),
             ("open", "open"),
+            ("up", "up"),
             ("mkdir", "create-folder"),
             ("create-folder", "create-folder"),
             ("rm", "delete-file"),
@@ -1568,6 +1601,27 @@ mod tests {
             }
             other => panic!("perlu Ready, dapat {:?}", other),
         }
+    }
+
+    #[test]
+    fn test_f2_up_command_is_canonical_and_takes_no_argument() {
+        // F2: `up` menjadi perintah kanonik ke-12, tanpa alias, tanpa argumen.
+        let e = find_entry("up").expect("`up` harus terurai lewat registry");
+        assert_eq!(e.id(), CanonicalId::Up);
+        assert_eq!(e.name(), "up");
+        assert_eq!(e.syntax(), "up");
+        assert_eq!(e.category(), CommandCategory::Workspace);
+        assert_eq!(e.aliases().len(), 0);
+        assert_eq!(e.min_args(), 0);
+        assert_eq!(e.max_args(), 0);
+
+        assert!(matches!(parse_line("up"), LineOutcome::Ready(_)));
+        match parse_line("up hello") {
+            LineOutcome::BadArity(s) => assert_eq!(s, "up"),
+            other => panic!("perlu BadArity, dapat {:?}", other),
+        }
+        // Nama lama tidak boleh direbut: `up` bukan nama yang sudah dipakai jalur lama.
+        assert_eq!(find_entry("cd").unwrap().id(), CanonicalId::Open);
     }
 
     #[test]

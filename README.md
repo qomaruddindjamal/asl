@@ -1,14 +1,5 @@
 # ASL CORE KERNEL: CANONICAL OS DEVELOPMENT ENTRY POINT
 ================================================================================
-**Project:** ASL Core Kernel
-**Repository Root:** `C:\asl`
-**Workspace:** `C:\asl\asl-kernel`
-**Git Remote:** `https://github.com/qomaruddindjamal/asl.git`
-**Audit Baseline Commit:** `5efedde`
-**Audit Verification Date:** 2026-10-13
-**Governing Standard:** DO-178C-aligned, ladder DAL-C->A (lihat ADR-002) / ARINC 653 Integrated Modular Avionics (IMA)
-
----
 
 ## 1. PROJECT IDENTITY & PURPOSE
 

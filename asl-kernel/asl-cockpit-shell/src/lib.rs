@@ -1863,9 +1863,9 @@ impl CockpitShell {
             0x1B => {
                 self.esc_state = ESC_GOT_ESC;
                 self.esc_param = 0;
-                return Edit::Ignored;
+                Edit::Ignored
             }
-            b'\n' | b'\r' => return Edit::Submitted,
+            b'\n' | b'\r' => Edit::Submitted,
             // Ctrl+C: baris dibuang, tidak pernah sampai ke parser.
             0x03 => {
                 self.buang_baris();

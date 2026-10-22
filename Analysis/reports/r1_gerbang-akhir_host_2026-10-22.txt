@@ -1,0 +1,240 @@
+BUKTI GERBANG AKHIR R1 (SISI HOST) - DIUKUR 2026-10-22
+=====================================================================================================
+Semua angka di bawah adalah hasil hitung dari keluaran alat pada hari dan mesin
+yang sama; berkas mentah pengukuran ada di direktori kerja sementara dan tidak
+di-commit. Tidak ada angka yang ditulis sebagai harapan. Yang tidak terukur
+ditulis tidak terukur. Kelas bukti berkas ini VERIFIED-ON-HOST dan
+VERIFIED-ON-CI-API. Kelas VERIFIED-ON-HARDWARE tetap 0.
+
+Tree yang diukur = HEAD `9750724` (unit ekstrak F7) plus suntingan unit ini:
+tiga baris pada dua berkas `.rs` (higiene compiler), dua berkas ekstrak hosted
+CI, berkas bukti ini, satu entri fault log, dan satu kunci handoff. Hash commit
+hasil unit ini TIDAK dikutip di sini karena satu hash hanya dirujuk pada commit
+berikutnya.
+
+0. APA YANG DILAKUKAN GERBANG INI, DAN APA YANG TIDAK
+------------------------------------------------------------------
+Gerbang per-unit mengukur baris milik unit itu sendiri. Gerbang akhir ini
+mengukur DUA rentang supaya tidak ada hasil kerja yang lolos tanpa dilihat:
+  - rentang unit terakhir: `235d44b..HEAD` (khusus unit F7);
+  - rentang seluruh R1: `b47c24c..HEAD` (E8, F1, F2, F3, F4, F5, F6, F7).
+Base `b47c24c` adalah commit terakhir sebelum cabang R1 yang menyimpan isi ketiga
+berkas cakupan, jadi selisihnya adalah seluruh hasil kerja R1.
+Gerbang ini TIDAK membuat ISO, TIDAK menjalankan QEMU, dan TIDAK membuka jendela
+apa pun; Bagian 4 menyatakan status TERBLOKIR beserta buktinya.
+
+1. TEMUAN GERBANG AKHIR: TIGA DIAGNOSTIK PADA BARIS HASIL KERJA R1
+------------------------------------------------------------------
+Pada pengukuran pertama, rentang unit F7 bersih tetapi rentang seluruh R1
+menemukan tiga diagnostik clippy berdiri di baris yang dihitung sebagai hasil
+kerja:
+
+  a) `asl-kernel/asl-kernel-core/src/lib.rs:1143` - "the following explicit
+     lifetimes could be elided: 'a" pada tanda tangan `pieces_galat_argumen`.
+     `git blame` menunjuk `a44fbaf`, yaitu commit unit F4. Ini diagnostik NYATA
+     milik baris yang ditulis unit F4, dan laporan unit F4
+     (`Analysis/reports/f4_argumen_terpotong_uji_2026-10-22.txt` bagian [4])
+     menyatakan "IRISAN BARU 0" untuk berkas yang sama. Artinya gerbang per-unit
+     F4 salah laporkan kondisi berkasnya sendiri. Penyebab salah lapor tidak dapat
+     direkonstruksi dari artefak yang tersisa; lihat Bagian 6.
+  b) dan c) `asl-kernel/asl-cockpit-shell/src/lib.rs:1866` dan `:1868` -
+     "unneeded `return` statement". `git blame` menunjuk `112fc38d` (unit P3
+     rantai v1.0.2, SEBELUM R1) untuk kedua baris, tetapi hunk
+     `@@ -929,16 +1705,185 @@` pada `git diff -U0 b47c24c..HEAD` menghitung ulang
+     blok `edit()` yang ditulis ulang R1, sehingga penghitung baris kerja
+     memasukkan kedua baris warisan itu. Ini batas metode pengukuran (Bagian 6),
+     bukan klaim bahwa R1 menulisnya.
+
+Ketiganya diperbaiki pada unit ini, semuanya higiene tanpa perubahan perilaku:
+  - `fn pieces_galat_argumen<'a>(arg0: &'a str) -> (&'static str, &'a str, &'static str, &'static str)`
+    menjadi `fn pieces_galat_argumen(arg0: &str) -> (&'static str, &str, &'static str, &'static str)`;
+  - lengan `0x1B => { ...; return Edit::Ignored; }` menjadi nilai blok `Edit::Ignored`;
+  - lengan `b'\\n' | b'\\r' => return Edit::Submitted,` menjadi `=> Edit::Submitted,`.
+Bukti bahwa ketiga suntingan tidak mengubah keluaran mesin ada di Bagian 3
+(`.text` byte-per-byte identik dengan tip sebelumnya). Tidak ada test yang
+ditambah atau diubah untuk menerima perbaikan ini; test penjaga F4
+(`test_f4_pieces_galat_argumen_menyebut_potongan`) tetap berjalan dan tetap lulus.
+Peristiwa ini dicatat sebagai satu entri fault log baru pada unit ini; tidak ada
+commit yang dibuang dan tidak ada commit yang diubah (ZERO-AMEND).
+
+2. GERBANG HOST SESUDAH PERBAIKAN
+------------------------------------------------------------------
+Perintah gerbang dijalankan dari akar repo `C:\\asl`, bukan dari `asl-kernel`,
+karena alat membaca berkas relatif terhadap akar.
+
+  a) Uji unit: `cargo test --workspace --lib`
+     30 baris `test result:`; TOTAL TERHITUNG = 262 lulus, 0 gagal.
+     Rincian yang bergerak pada cabang ini: `asl-cockpit-shell` 48,
+     `asl-kernel-core` 35, `asl-storage` 57. Baseline sebelum R1 = 249 lulus.
+  b) fmt hanya-baca pada baris hasil kerja
+     (`rustfmt --edition 2021 --check`, irisan dengan `git diff -U0 <rentang>`):
+        berkas                       baris kerja 235d44b   baris kerja b47c24c   ingin diubah rustfmt   IRISAN BARU
+        asl-kernel-core/src/lib.rs                 233                    1.809                     78             0
+        asl-cockpit-shell/src/lib.rs               918                    2.539                     28             0
+        asl-storage/src/ramdisk.rs                   0                      434                     19             0
+     TOTAL deviasi fmt BARU = 0 pada kedua rentang.
+     Angka "78 / 28 / 19" adalah deviasi warisan di luar baris hasil kerja dan
+     sengaja tidak disapu karena menyapunya berarti mengubah berkas di luar
+     cakupan.
+  c) clippy: `cargo clippy --workspace --lib --target x86_64-unknown-none
+     --message-format=short -- -A clippy::not_unsafe_ptr_arg_deref`
+     keluar 0, 0 baris `error`, 134 baris `warning` ber-nomor (sebelum unit ini
+     137; tiga hilangnya adalah tiga perbaikan di Bagian 1). Enam besar:
+     `asl-storage/src/fat32.rs` 16, `asl-kernel-core/src/lib.rs` 13,
+     `asl-memory/src/paging.rs` 11, `asl-storage/src/raid.rs` 8,
+     `asl-hal/src/x86_fault.rs` 7, `asl-cockpit-shell/src/lib.rs` 7.
+     IRISAN dengan baris kerja = 0 pada ketiga berkas cakupan, pada kedua rentang.
+     `not_unsafe_ptr_arg_deref` di-allow hanya agar crate luar cakupan mau
+     dikompilasi sehingga berkas kerja ikut ter-lint; angka warisan dilaporkan apa
+     adanya, tidak dikurangi.
+  d) Build host: `cargo build --workspace --lib` keluar 0, 0 baris `error`,
+     14 peringatan pada 4 crate LUAR cakupan (5 + 5 + 3 + 1). Nol peringatan
+     berasal dari tiga berkas cakupan.
+
+3. ELF RILIS: UKURAN, REPRODUKIBILITAS, DAN SELISIH BAGIAN
+------------------------------------------------------------------
+Build wajib: `cargo build --package asl-kernel-bin --target x86_64-unknown-none
+--release`. Perintah `cargo build --release` polos GAGAL pada target ini
+("unwinding panics are not supported without std") dan tidak dipakai.
+Environment RUSTFLAGS TIDAK dipasang: env menggantikan `rustflags` pada
+`asl-kernel/.cargo/config.toml` sehingga linking rusak.
+
+  - Build bersih pertama (setelah `cargo clean -p asl-kernel-bin -p
+    asl-kernel-core -p asl-cockpit-shell`): 312.912 B,
+    SHA256 FB4EEB31E26B1CF9A289E4C697E6CEA8230CD83A1AD45424CD2312EE5EEE5D59
+  - Build bersih kedua pada tree yang sama: ukuran dan SHA256 IDENTIK; `cmp`
+    kedua berkas = byte-identik.
+  - Perbandingan bagian dengan ELF tip `9750724` (312.896 B, SHA256
+    3ECC107D41D8D2757CCA85C58ABD4B31BD8E2A082010E7990C30396EE5A0390D):
+        .limine_requests    264 -> 264      isi identik
+        .got                176 -> 176      isi identik
+        .text           186.815 -> 186.815  isi identik (byte-per-byte)
+        .rodata          31.406 ->  31.406  isi identik
+        .data            41.888 ->  41.888  isi identik
+        .asl_secondary    4.096 ->   4.096  isi identik
+        .comment            153 ->     153  isi identik
+        .symtab           8.784 ->   8.784  isi BERBEDA, ukuran sama
+        .strtab          24.555 ->  24.567  BERBEDA (+12 B)
+    Kesimpulannya: suntingan higiene ini tidak mengubah satu pun byte kode
+    mesin maupun data; selisih berkas seluruhnya ada di tabel nama simbol.
+  - Catatan jujur tentang anomali yang sudah diketahui: dua build bersih pada
+    SATU tree yang sama (pasangan a/b dan c/d pada unit F7) menghasilkan
+    `.strtab` 24.569 B dan 24.555 B, selisih ukuran berkas 16 B. Karena itu
+    SELISIH UKURAN tidak boleh dibaca sebagai dampak suatu suntingan; hanya isi
+    `.text`/`.rodata`/`.data` yang boleh dibaca begitu. SHA256 mengidentifikasi
+    tree, bukan mengukur kemajuan.
+  - `.bss` (852.096 B) bertipe NOBITS: tidak punya byte di dalam berkas, jadi
+    perbandingan isinya tidak bermakna dan sengaja tidak dilaporkan sebagai
+    perbedaan.
+  - Angka runner hosted pada tip `9750724` = 312.968 B (dari ekstrak di Bagian
+    5). Tidak ada angka runner untuk tip ini karena pasangan ekstrak atas tip ini
+    adalah utang yang baru terbuka.
+
+4. BAGIAN VM: TERBLOKIR - BUKAN LULUS, BUKAN PENGGANTI
+------------------------------------------------------------------
+Keluaran persis pada unit ini:
+    ls: cannot access 'asl-kernel/target/limine_v8_binary': No such file or directory
+Alat penguasaan ISO menuntut berkas bootloader pada jalur itu:
+`scripts/build_kernel.ps1:100` dan `scripts/test_hv2_stack_overflow_qemu.ps1:28`
+menyusun jalur `target\\limine_v8_binary\\limine.exe`. Berkas itu tidak ada di
+pohon kerja, dan pembuatannya bukan bagian cakupan R1.
+
+Konsekuensi yang dinyatakan apa adanya:
+  - TIDAK ada ISO baru pada tip ini.
+  - TIDAK ada sesi QEMU, tidak ada layar yang disaksikan, tidak ada jendela
+    G9-LITE maupun E8 yang dibuka pada tip ini.
+  - TIDAK ada angka lantai memori `-m 3M` untuk tip ini. ISO yang masih ada di
+    disk adalah hasil unit F6, sehingga `scripts/test_ram_floor_3mb.ps1:47` tidak
+    dapat mengukur tree ini; angka lantai memori mana pun yang dikutip dari sana
+    adalah milik tree lain.
+  - Blokade ini tercatat sebagai entri fault log terbuka (entry #50) dan entry
+    #49 juga masih terbuka. Gerbang akhir TIDAK mengubah status keduanya.
+  - Kelas VERIFIED-ON-HARDWARE tetap 0 sampai satu jendela disaksikan pemilik.
+Keputusan scope pemilik atas F7 menerima konsekuensi ini, jadi keadaan "tanpa
+bukti VM" adalah hasil keputusan, bukan kelalaian yang ditutup-tutupi.
+
+5. HOSTED CI: UTANG ATAS TIP SEBELUMNYA DITUTUP, SATU UTANG TERBUKA
+------------------------------------------------------------------
+Dua peristiwa CI atas tip `9750724` (workflow `asl-ci-minimal`, keduanya
+conclusion=success) diekstrak dan di-commit pada unit ini:
+  - 39788285251 (push)          -> `Analysis/reports/ci_hosted_39788285251_2026-10-22.log`
+  - 39788292764 (pull_request)  -> `Analysis/reports/ci_hosted_39788292764_2026-10-22.log`
+Kedua ekstrak dihitung dari log mentah milik run itu sendiri: 30 suite, 262
+lulus, 0 gagal, 0 baris `error` pada langkah build rilis, footprint ELF runner
+312.968 B. Job coverage bersifat advisory (non-blocking) dan hanya berjalan di
+runner; tabel ringkasnya pada run push: TOTAL 7.938 region 802, lines 89,90%,
+regions 83,33%, branches 88,41%. Coverage TIDAK diukur ulang di host pada unit
+ini - angka di atas berasal dari runner, bukan dari pengukuran hari ini di mesin
+kerja.
+Metode ekstrak memakai generator rantai P7 (`##[group]Run` sebagai pemisah
+langkah), bukan kolom langkah, karena kolom itu pernah berisi 'UNKNOWN STEP' pada
+sebagian run v1.0.2.
+Status utang G8 setelah unit ini: pasangan atas `9750724` TUTUP; satu-satunya
+utang terbuka adalah pasangan atas tip unit ini, yang akan ditutup commit ekstrak
+berikutnya. Satu hash commit hanya dirujuk pada commit berikutnya, jadi kedua
+hash itu tidak disebut di berkas ini.
+
+6. KETERBATASAN METODE DAN LAPOR DIRI
+------------------------------------------------------------------
+  - Penghitung "baris hasil kerja" memakai nomor baris dari `git diff -U0`. Pada
+    blok yang ditulis ulang, baris yang teksnya diwarisi utuh dari sebelum R1
+    ikut terhitung sebagai baris kerja (kasus b dan c di Bagian 1). Batas metode
+    ini sekarang tercatat; akibatnya angka "baris kerja 2.539" pada berkas shell
+    adalah batas atas, bukan hitungan teks baru.
+  - Alat sementara yang saya pakai untuk mengukur gerbang pada rentang antar-commit
+    sempat memakai pencocokan nama berkas yang salah (`src/lib.rs` dipotong dari
+    jalur sehingga menangkap crate lain). Kesalahan itu menghasilkan tiga
+    diagnostik "baru" palsu di `asl-kernel-core` dan SUDAH dikoreksi sebelum
+    klaim apa pun dipublikasikan; koreksinya dan jejaknya dicatat di fault log.
+  - Gerbang per-unit membaca artefak clippy dari berkas kerja di direktori
+    sementara tanpa sidik jari tree, sehingga klaim "0 baru" sebuah unit tidak
+    dapat dibuktikan berasal dari tree yang sama dengan diff yang diukur. Ini
+    candukan penyebab paling mungkin lolosnya diagnostik Bagian 1(a), tetapi
+    bukan penyebab yang terbukti - artefak unit F4 sudah tertimpa. Perbaikan alat
+    (mengikat artefak ke hash tree) masuk backlog R2, sesuai keputusan pemilik
+    bahwa penyesuaian alat ditunda ke R2 setelah fitur beku.
+  - fmt atas seluruh repo tidak bersih (warisan) dan tidak disapu; yang ditegakkan
+    adalah "nol deviasi BARU pada baris hasil kerja".
+  - Tidak ada berkas di luar cakupan yang berubah: `scripts/ci_local.ps1`,
+    `scripts/g9_final_p8_run.ps1`, `CHECKLIST_STATE.json`, dan 20 artefak
+    `Analysis/reports/g9_final_p8_*` tanggal 2026-10-21 tidak disentuh; status
+    kerja hanya memuat dua berkas `.rs`, dokumen/ bukti, fault log, dan handoff.
+
+7. SISA MANDAT F7 DAN STATUS BERHENTI
+------------------------------------------------------------------
+Yang dikerjakan F7 parsial: riwayat baris (cincin 4), Tab satu-dua kali,
+Ctrl+C, Ctrl+L, Esc pembatalan, fallback Indonesia satu-sumber, plus dokumen
+sinkron dengan audit G11.
+Backlog jujur yang TIDAK dikerjakan dan TIDAK dijanjikan: PageUp/Down, Insert,
+F2-F12, penempelan (paste), timeout Esc, penanda kursor untuk panah
+kiri/kanan/Home/End, gambar ulang kolom untuk Delete maju, penguasaan scan code
+terextend pada galang PS/2, dan ukuran ~550 B struktur shell yang sampai kini
+tidak terukur di mesin.
+Rantai eksekusi berhenti di sini sesuai mandat: BAGIAN 0 -> BAGIAN 1 (E8) ->
+BAGIAN 2 (F1-F7) -> BERHENTI. Dokumen STATUS BAGIAN 2 menyusul sebagai commit
+tersendiri; LAPORAN-FINAL-v1.0.2 TIDAK ditulis, PR tidak di-merge, tag tidak
+dipotong dan tidak dihapus, menunggu keputusan pemilik.
+
+8. GANGGUAN SUMBER LISTRIK DAN PEMULIHAN (DIUKUR ULANG 2026-10-22 19:5x UTC)
+------------------------------------------------------------------
+Sumber listrik kerja terputus di tengah unit ini. Tidak ada commit yang hilang:
+HEAD masih `9750724` dan suntingan yang belum di-commit tetap tiga baris pada dua
+berkas `.rs`. Verifikasi pemulihan dijalankan ulang dari nol, seluruhnya memakai
+perintah yang sama seperti di atas:
+  - `git status` + `git diff --stat` = 3 insertions / 3 deletions pada dua berkas
+    cakupan; tidak ada berkas lain yang berubah.
+  - `cargo test --workspace --lib` = 30 baris `test result:`, 262 lulus, 0 gagal,
+    0 baris `error`.
+  - `cargo clippy ... --message-format=short` = keluar 0, 0 baris `error`,
+    134 peringatan ber-nomor (sama seperti pengukuran sebelum gangguan).
+  - Gerbang fmt dan clippy pada KEDUA rentang (unit F7 dan seluruh R1) = 0 baru.
+  - Build rilis bersih (`cargo clean -p asl-kernel-bin -p asl-kernel-core -p
+    asl-cockpit-shell` lalu build ulang): 312.912 B, SHA256
+    FB4EEB31E26B1CF9A289E4C697E6CEA8230CD83A1AD45424CD2312EE5EEE5D59, dan
+    byte-identik dengan berkas ELF yang diukur sebelum gangguan. Angka ini juga
+    menggenapi klaim reproduksibilitas di Bagian 3 menjadi tiga build bersih pada
+    tree ini.
+Berkas bukti ini sendiri diperiksa ulang: ASCII murni, nol karakter CJK, dan
+tidak memuat nama sistem operasi; jumlah barisnya sengaja tidak dikutip karena
+berkas ini masih disunting pada tahap ini. Kesimpulannya gangguan
+listrik tidak meninggalkan kerusakan pada pohon kerja maupun pada pengukuran.

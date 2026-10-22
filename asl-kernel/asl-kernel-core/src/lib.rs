@@ -1140,7 +1140,7 @@ fn byte_terpotong(ukuran_lama: u64, tertulis: u64) -> u64 {
 /// `(label, potongan-yang-sudah-sampai, keterangan-batas, penutup)`. Angka
 /// batas ditambahkan pemanggil dari [`asl_cockpit_shell::MAX_ARG_LEN`] supaya
 /// test dan keluaran memakai satu sumber angka.
-fn pieces_galat_argumen<'a>(arg0: &'a str) -> (&'static str, &'a str, &'static str, &'static str) {
+fn pieces_galat_argumen(arg0: &str) -> (&'static str, &str, &'static str, &'static str) {
     (
         asl_cockpit_shell::MSG_ERROR,
         arg0,

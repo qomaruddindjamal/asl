@@ -135,6 +135,72 @@ pub const MSG_ISI_CUT: &str = " - isi dipotong pada batas ";
 /// Penutup keterangan isi terpotong.
 pub const MSG_ISI_CUT_TAIL: &str = " byte; sisa tidak tertulis";
 
+/// Glif penanda kursor saat idle (F5). Baris kosong menampilkan karakter ini
+/// pada sel kursor; mesin pemindai serial tidak pernah menerimanya sebagai
+/// bagian prompt baru karena glif yang sama sudah hidup di akhiran prompt.
+pub const CURSOR_IDLE_GLYPH: u8 = b'_';
+
+/// Panjang satu siklus kursor dalam satuan detik jam perangkat keras (F5).
+/// Nilai dua berarti: satu detik nampak, satu detik padam.
+pub const CURSOR_BLINK_PERIODE: u64 = 2;
+
+/// Fase kursor pada detik jam ke-`detik` (F5). Murni dan dapat diuji dari sisi
+/// host; sumber detiknya (jam CMOS di kernel) hanya menghitung detik.
+pub const fn kursor_nyala(detik: u64) -> bool {
+    detik.is_multiple_of(CURSOR_BLINK_PERIODE)
+}
+
+/// Batas nama yang dikumpulkan mode berpanduan: sama dengan satu token argumen
+/// supaya jalur berpanduan tidak punya aturan panjang sendiri.
+pub const GUIDED_NAME_MAX: usize = MAX_ARG_LEN;
+
+/// Batas isi yang dikumpulkan mode berpanduan. Angka ini DIPEGANG oleh
+/// `test_f5_batas_pemanduan_sama_dengan_slot_ramdisk` di `asl-kernel-core`,
+/// yang mengikatnya ke `RAMDISK_FILE_SLOT_BYTES`; bila slot berubah tanpa
+/// menyunting konstanta ini, test itu menjadi MERAH.
+pub const GUIDED_ISI_MAKS: usize = 8192;
+
+/// Penyangga minimum untuk satu label mode berpanduan.
+pub const LABEL_BUF_MAX: usize = 112;
+
+/// Label permintaan nama direktori (F5): `Nama folder baru: `.
+pub const MSG_LABEL_FOLDER: &str = "Nama folder baru: ";
+
+/// Label permintaan nama berkas (F5): `Nama berkas: `.
+pub const MSG_LABEL_BERKAS: &str = "Nama berkas: ";
+
+/// Pembuka nomor baris pada label isi (F5), dipakai sebagai
+/// `Isi <nama> (baris <n>): `.
+pub const MSG_BARIS_OPEN: &str = " (baris ";
+
+/// Penutup label isi beserta satu spasi agar ketikan operator menempel rapi.
+pub const MSG_BARIS_TAIL: &str = "): ";
+
+/// Awalan baris galat nama terlalu panjang pada mode berpanduan (F5):
+/// `Kesalahan: nama lebih panjang dari batas <n> byte - perintah tidak
+/// dijalankan`.
+pub const MSG_LABEL_NAMA_PANJANG: &str = "nama lebih panjang dari batas ";
+
+/// Penutup baris galat nama terlalu panjang pada mode berpanduan.
+pub const MSG_LABEL_NAMA_PANJANG_TAIL: &str = " byte - perintah tidak dijalankan";
+
+/// Awalan baris pembatalan mode berpanduan (F5): `Dibatalkan: <keterangan>`.
+pub const MSG_BATAL: &str = "Dibatalkan: ";
+
+/// Akhiran pembatalan untuk mode nama direktori.
+pub const MSG_BATAL_FOLDER: &str = "nama folder kosong - direktori tidak dibuat";
+
+/// Akhiran pembatalan untuk mode nama dan isi berkas.
+pub const MSG_BATAL_BERKAS: &str = "nama berkas kosong - tidak ada yang ditulis";
+
+/// Awalan pengumuman isi berpanduan mencapai kapasitas satu slot (F4 memotong
+/// isi pada tulis; F5 berhenti menerima baris tambahan):
+/// `Isi berhenti pada kapasitas satu slot <n> byte; sisa baris tidak diterima`.
+pub const MSG_ISI_PENUH: &str = "Isi berhenti pada kapasitas satu slot ";
+
+/// Penutup pengumuman isi berpanduan penuh.
+pub const MSG_ISI_PENUH_TAIL: &str = " byte; sisa baris tidak diterima";
+
 /// Susun prompt berposisi ke penyangga pemberi panggilan: nol alokasi heap,
 /// nol `alloc`, target `no_std` (G1). Posisi yang tidak muat dipotong pada
 /// batas penyangga sementara akhiran tetap utuh; seluruh jalur shell ASCII
@@ -213,6 +279,11 @@ pub struct CockpitShell {
     /// Panjang baris aktif saat ini.
     pub line_len: usize,
     pub is_active: bool,
+    /// Salinan baris yang TERAKHIR diserahkan (ENTER). Mode berpanduan F5
+    /// membacanya setelah penyangga aktif dibersihkan; tanpa salinan ini
+    /// jembatan kernel harus menyunting ulang baris yang sudah hilang.
+    last_line: [u8; SHELL_BUFFER_MAX],
+    last_len: usize,
     /// Mesin sekuens escape: 0 = normal, 1 = ESC, 2 = ESC [, 3 = ESC [ <angka>.
     esc_state: u8,
     esc_digit: u8,
@@ -225,6 +296,8 @@ impl CockpitShell {
             cursor_pos: 0,
             line_len: 0,
             is_active: true,
+            last_line: [0u8; SHELL_BUFFER_MAX],
+            last_len: 0,
             esc_state: 0,
             esc_digit: 0,
         }
@@ -969,6 +1042,299 @@ pub fn parse_line(line: &str) -> LineOutcome {
     LineOutcome::Ready(inv)
 }
 
+// ============================================================================
+// MODE BERPANDUAN + PENANDA KURSOR (misi v1.0.2 F5)
+// ----------------------------------------------------------------------------
+// Keputusan pemilik: mode berpanduan HANYA terbuka sesudah baris galat arity
+// tercetak, jadi test penjaga arity yang lama tidak berubah dan operator yang
+// mengetik lengkap tetap memakai satu baris. Yang ditambah hanyalah label
+// konteks dan penerimaan baris berikutnya sebagai argumen yang hilang.
+//
+// Mesinnya murni (tanpa I/O, tanpa alokasi) supaya dapat diuji dari host; sisi
+// kernel yang mencetak label, membaca jam, dan menjalankan VFS.
+//
+// Lingkup sadar: hanya tiga perintah PEMBUATAN yang dibimbing
+// (`create-folder`, `create-file`, `write-file`). `open`, `delete-file`, dan
+// `delete-folder` tetap hanya mencetak galat arity, karena baris kosong pada
+// perintah penghapusan akan berarti "hapus tanpa sasaran".
+// ============================================================================
+
+/// Mode pengumpulan input berpanduan (F5).
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub enum ModeInput {
+    /// Shell sedang tidak menunggu baris panduan.
+    Tidak,
+    /// Menunggu nama direktori.
+    NamaFolder,
+    /// Menunggu nama berkas.
+    NamaBerkas,
+    /// Menunggu baris isi berkas, satu per satu sampai baris kosong.
+    IsiBerkas,
+}
+
+/// Perintah pembuatan yang argumennya sedang dikumpulkan (F5).
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub enum TujuanPemandu {
+    TidakAda,
+    BuatFolder,
+    BuatBerkas,
+    TulisBerkas,
+}
+
+impl TujuanPemandu {
+    /// Label pertama yang diminta mode ini.
+    pub const fn mode_pertama(self) -> ModeInput {
+        match self {
+            TujuanPemandu::BuatFolder => ModeInput::NamaFolder,
+            TujuanPemandu::BuatBerkas | TujuanPemandu::TulisBerkas => ModeInput::NamaBerkas,
+            TujuanPemandu::TidakAda => ModeInput::Tidak,
+        }
+    }
+}
+
+/// Tentukan mode berpanduan dari baris sintaks yang baru saja ditolak
+/// [`parse_line`]. `LineOutcome::BadArity` hanya membawa sintaks, jadi sintaks
+/// itulah kunci pencocokan dan registry tetap satu-sumber: bila sintaks sebuah
+/// perintah diubah, pemetaan ini ikut berpindah tanpa perlu suntingan kedua.
+pub fn resolusi_pemandu(sintaks: &str) -> TujuanPemandu {
+    let mut i = 0;
+    while i < REGISTRY.len() {
+        let e = REGISTRY[i];
+        if e.syntax() == sintaks {
+            return match e.id() {
+                CanonicalId::CreateFolder => TujuanPemandu::BuatFolder,
+                CanonicalId::CreateFile => TujuanPemandu::BuatBerkas,
+                CanonicalId::WriteFile => TujuanPemandu::TulisBerkas,
+                _ => TujuanPemandu::TidakAda,
+            };
+        }
+        i += 1;
+    }
+    TujuanPemandu::TidakAda
+}
+
+/// Hasil satu baris yang diterima mode berpanduan.
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub enum AksiPemandu {
+    /// Argumen belum lengkap: cetak label berikutnya dan tunggu satu baris lagi.
+    Lanjut,
+    /// Baris kosong pada mode nama: perintah TIDAK dijalankan.
+    Batal,
+    /// Nama lebih panjang dari satu token argumen: perintah TIDAK dijalankan
+    /// (F4 melarang potongan diam-diam, jadi mode berpanduan menolak, bukan
+    /// memotong).
+    NamaTerlaluPanjang,
+    /// Nama direktori terkumpul.
+    BuatFolder,
+    /// Nama berkas terkumpul; `create-file` tidak meminta isi.
+    BuatBerkas,
+    /// Baris isi terkumpul (nol baris juga sah) dan siap ditulis.
+    TulisBerkas,
+}
+
+/// State mode berpanduan: nol alokasi heap, penyangga tetap (G1).
+///
+/// Sisi kernel menyimpan satu-satunya nilai ini di `.bss` (`static mut
+/// PEMANDU`) karena penyangga isi selebar satu slot RAMDISK tidak boleh
+/// turun ke tumpuan saat boot.
+pub struct Pemandu {
+    tujuan: TujuanPemandu,
+    mode: ModeInput,
+    nama: [u8; GUIDED_NAME_MAX],
+    nama_len: usize,
+    isi: [u8; GUIDED_ISI_MAKS],
+    isi_len: usize,
+    baris: usize,
+    isi_penuh: bool,
+}
+
+impl Pemandu {
+    /// State kosong; dapat dipakai sebagai inisial `static mut`.
+    pub const fn kosong() -> Self {
+        Self {
+            tujuan: TujuanPemandu::TidakAda,
+            mode: ModeInput::Tidak,
+            nama: [0u8; GUIDED_NAME_MAX],
+            nama_len: 0,
+            isi: [0u8; GUIDED_ISI_MAKS],
+            isi_len: 0,
+            baris: 0,
+            isi_penuh: false,
+        }
+    }
+
+    /// Mulai mode berpanduan untuk satu perintah; state lama dibuang lebih
+    /// dulu supaya sisa baris dari mode sebelumnya tidak pernah ikut tertulis.
+    pub fn mulai(&mut self, tujuan: TujuanPemandu) {
+        *self = Self::kosong();
+        self.tujuan = tujuan;
+        self.mode = tujuan.mode_pertama();
+    }
+
+    /// Hentikan mode dan buang seluruh terkumpul.
+    pub fn berhenti(&mut self) {
+        *self = Self::kosong();
+    }
+
+    pub fn mode(&self) -> ModeInput {
+        self.mode
+    }
+
+    pub fn tujuan(&self) -> TujuanPemandu {
+        self.tujuan
+    }
+
+    /// `true` selama baris berikutnya masih menjadi milik mode berpanduan.
+    /// Aksi terminal menetapkan ini `false` tetapi menahan `nama()`/`isi()`
+    /// sampai jembatan kernel selesai memakai keduanya.
+    pub fn aktif(&self) -> bool {
+        self.mode != ModeInput::Tidak
+    }
+
+    pub fn nama(&self) -> &str {
+        core::str::from_utf8(&self.nama[..self.nama_len]).unwrap_or("")
+    }
+
+    pub fn isi(&self) -> &[u8] {
+        &self.isi[..self.isi_len]
+    }
+
+    /// Jumlah baris isi yang sudah diterima.
+    pub fn baris_terkumpul(&self) -> usize {
+        self.baris
+    }
+
+    /// `true` bila satu slot RAMDISK penuh dan baris sisa tidak diterima;
+    /// jembatan kernel memakainya untuk mencetak pengumuman.
+    pub fn isi_penuh(&self) -> bool {
+        self.isi_penuh
+    }
+
+    /// Label satu baris untuk state sekarang, atau `""` bila mode tidak aktif.
+    /// Label isi disusun dari potongan registry/konstanta yang sama dengan
+    /// keluaran `open`, jadi `Isi notes.txt (baris 2): ` memakai merek yang
+    /// sudah dikenal operator.
+    pub fn label<'b>(&self, buf: &'b mut [u8; LABEL_BUF_MAX]) -> &'b str {
+        match self.mode {
+            ModeInput::Tidak => "",
+            ModeInput::NamaFolder => MSG_LABEL_FOLDER,
+            ModeInput::NamaBerkas => MSG_LABEL_BERKAS,
+            ModeInput::IsiBerkas => {
+                let mut n = 0usize;
+                let angka = self.baris + 1;
+                let mut digit = [0u8; 8];
+                let mut i = digit.len();
+                let mut nilai = angka;
+                loop {
+                    i -= 1;
+                    digit[i] = b'0' + (nilai % 10) as u8;
+                    nilai /= 10;
+                    if nilai == 0 {
+                        break;
+                    }
+                }
+                let angka = core::str::from_utf8(&digit[i..]).unwrap_or("1");
+                let pieces = [
+                    MSG_CONTENT,
+                    self.nama(),
+                    MSG_BARIS_OPEN,
+                    angka,
+                    MSG_BARIS_TAIL,
+                ];
+                let mut k = 0;
+                while k < pieces.len() {
+                    let b = pieces[k].as_bytes();
+                    let mut t = 0;
+                    while t < b.len() && n < buf.len() {
+                        buf[n] = b[t];
+                        n += 1;
+                        t += 1;
+                    }
+                    k += 1;
+                }
+                match core::str::from_utf8(&buf[..n]) {
+                    Ok(s) => s,
+                    Err(_) => MSG_LABEL_BERKAS,
+                }
+            }
+        }
+    }
+
+    /// Terima satu baris yang baru saja diketik operator pada mode aktif.
+    pub fn terima(&mut self, baris_tulis: &str) -> AksiPemandu {
+        match self.mode {
+            ModeInput::Tidak => AksiPemandu::Batal,
+            ModeInput::NamaFolder | ModeInput::NamaBerkas => {
+                let nama = baris_tulis.trim();
+                if nama.is_empty() {
+                    self.mode = ModeInput::Tidak;
+                    return AksiPemandu::Batal;
+                }
+                let b = nama.as_bytes();
+                if b.len() > GUIDED_NAME_MAX {
+                    self.mode = ModeInput::Tidak;
+                    return AksiPemandu::NamaTerlaluPanjang;
+                }
+                let mut i = 0;
+                while i < b.len() {
+                    self.nama[i] = b[i];
+                    i += 1;
+                }
+                self.nama_len = i;
+                match self.tujuan {
+                    TujuanPemandu::BuatFolder => {
+                        self.mode = ModeInput::Tidak;
+                        AksiPemandu::BuatFolder
+                    }
+                    TujuanPemandu::BuatBerkas => {
+                        self.mode = ModeInput::Tidak;
+                        AksiPemandu::BuatBerkas
+                    }
+                    TujuanPemandu::TulisBerkas => {
+                        self.mode = ModeInput::IsiBerkas;
+                        self.baris = 0;
+                        AksiPemandu::Lanjut
+                    }
+                    TujuanPemandu::TidakAda => {
+                        self.mode = ModeInput::Tidak;
+                        AksiPemandu::Batal
+                    }
+                }
+            }
+            ModeInput::IsiBerkas => {
+                if baris_tulis.is_empty() {
+                    self.mode = ModeInput::Tidak;
+                    return AksiPemandu::TulisBerkas;
+                }
+                if self.isi_penuh {
+                    return AksiPemandu::Lanjut;
+                }
+                let b = baris_tulis.as_bytes();
+                let perlu_pisah = if self.isi_len > 0 { 1 } else { 0 };
+                let sisa = GUIDED_ISI_MAKS.saturating_sub(self.isi_len + perlu_pisah);
+                let ikut = if b.len() <= sisa { b.len() } else { sisa };
+                if ikut > 0 {
+                    if perlu_pisah == 1 {
+                        self.isi[self.isi_len] = b'\n';
+                        self.isi_len += 1;
+                    }
+                    let mut i = 0;
+                    while i < ikut {
+                        self.isi[self.isi_len] = b[i];
+                        self.isi_len += 1;
+                        i += 1;
+                    }
+                    self.baris += 1;
+                }
+                if ikut < b.len() {
+                    self.isi_penuh = true;
+                }
+                AksiPemandu::Lanjut
+            }
+        }
+    }
+}
+
 /// Bantalan spasi untuk kolom nama `help`.
 const HELP_PAD: &str = "                  ";
 
@@ -1111,13 +1477,26 @@ const ESC_GOT_BRACKET: u8 = 2;
 const ESC_GOT_PARAM: u8 = 3;
 
 impl CockpitShell {
-    /// Bersihkan baris setelah ENTER; status escape ikut direset.
+    /// Bersihkan baris setelah ENTER; status escape ikut direset. Baris yang
+    /// dibersihkan tersimpan sebagai [`CockpitShell::last_submitted`] sehingga
+    /// mode berpanduan F5 masih bisa membacanya.
     pub fn clear_line(&mut self) {
+        let mut i = 0;
+        while i < self.line_len && i < SHELL_BUFFER_MAX {
+            self.last_line[i] = self.line_buffer[i];
+            i += 1;
+        }
+        self.last_len = i;
         self.line_len = 0;
         self.cursor_pos = 0;
         self.esc_state = ESC_IDLE;
         self.esc_digit = 0;
         self.line_buffer[0] = 0;
+    }
+
+    /// Baris terakhir yang diserahkan ENTER, apa adanya (tanpa `trim`).
+    pub fn last_submitted(&self) -> &str {
+        core::str::from_utf8(&self.last_line[..self.last_len]).unwrap_or("")
     }
 
     /// Satu langkah penyuntingan baris: sisip di posisi kursor, hapus, dan
@@ -1584,9 +1963,9 @@ mod tests {
         );
     }
 
-    /// Semua label keluaran shell (F3, dua tambahan F4) sebagai pasangan
-    /// `(nama, teks)`.
-    fn f3_labels() -> [(&'static str, &'static str); 28] {
+    /// Semua label keluaran shell (F3, dua tambahan F4, sebelas tambahan F5)
+    /// sebagai pasangan `(nama, teks)`.
+    fn f3_labels() -> [(&'static str, &'static str); 39] {
         [
             ("MSG_ERROR", MSG_ERROR),
             ("MSG_BAD_ARITY", MSG_BAD_ARITY),
@@ -1616,6 +1995,17 @@ mod tests {
             ("MSG_ARG_CUT_TAIL", MSG_ARG_CUT_TAIL),
             ("MSG_ISI_CUT", MSG_ISI_CUT),
             ("MSG_ISI_CUT_TAIL", MSG_ISI_CUT_TAIL),
+            ("MSG_LABEL_FOLDER", MSG_LABEL_FOLDER),
+            ("MSG_LABEL_BERKAS", MSG_LABEL_BERKAS),
+            ("MSG_BARIS_OPEN", MSG_BARIS_OPEN),
+            ("MSG_BARIS_TAIL", MSG_BARIS_TAIL),
+            ("MSG_LABEL_NAMA_PANJANG", MSG_LABEL_NAMA_PANJANG),
+            ("MSG_LABEL_NAMA_PANJANG_TAIL", MSG_LABEL_NAMA_PANJANG_TAIL),
+            ("MSG_BATAL", MSG_BATAL),
+            ("MSG_BATAL_FOLDER", MSG_BATAL_FOLDER),
+            ("MSG_BATAL_BERKAS", MSG_BATAL_BERKAS),
+            ("MSG_ISI_PENUH", MSG_ISI_PENUH),
+            ("MSG_ISI_PENUH_TAIL", MSG_ISI_PENUH_TAIL),
         ]
     }
 
@@ -1629,7 +2019,7 @@ mod tests {
         let labels = f3_labels();
 
         // (1) Teks dipatok harfiah, berurutan sama dengan daftar di atas.
-        let hoped: [&str; 28] = [
+        let hoped: [&str; 39] = [
             "Kesalahan: ",
             "jumlah argumen tidak sesuai - ",
             "Sintaks: ",
@@ -1658,6 +2048,17 @@ mod tests {
             " byte, perintah tidak dijalankan",
             " - isi dipotong pada batas ",
             " byte; sisa tidak tertulis",
+            "Nama folder baru: ",
+            "Nama berkas: ",
+            " (baris ",
+            "): ",
+            "nama lebih panjang dari batas ",
+            " byte - perintah tidak dijalankan",
+            "Dibatalkan: ",
+            "nama folder kosong - direktori tidak dibuat",
+            "nama berkas kosong - tidak ada yang ditulis",
+            "Isi berhenti pada kapasitas satu slot ",
+            " byte; sisa baris tidak diterima",
         ];
         let mut i = 0;
         while i < labels.len() {
@@ -1853,8 +2254,8 @@ mod tests {
             i += 1;
         }
         assert_eq!(
-            ditagihkan, 26,
-            "jumlah label yang ditagihkan ke dokumen berubah (28 dikurangi 2 penghubung)"
+            ditagihkan, 37,
+            "jumlah label yang ditagihkan ke dokumen berubah (39 dikurangi 2 penghubung)"
         );
 
         // Pasal 7 harus memberi contoh baris UTUH, bukan daftar label saja.
@@ -2456,5 +2857,275 @@ mod tests {
             }
             other => panic!("perlu Ready, dapat {:?}", other),
         }
+    }
+
+    // ---------------------------------------------------------------------
+    // F5: indikator input. Dua hal diuji di sini: fase kursor yang murni, dan
+    // mesin mode berpanduan yang hanya terbuka SESUDAH baris galat arity
+    // (keputusan pemilik). Sisi kernel hanya mencetak dan menjalankan VFS.
+    // ---------------------------------------------------------------------
+
+    /// Penjaga F5 bagian kursor: glif penanda HARUS sudah hidup di dalam
+    /// prompt, karena blink hanya menggambar ulang sel framebuffer dan tidak
+    /// pernah menambah byte serial. Kalau akhiran prompt berubah sampai tidak
+    /// memuat glif ini, test ini merah dan blink harus dinyatakan ulang.
+    #[test]
+    fn test_f5_kursor_nyala_beralternasi() {
+        assert_eq!(CURSOR_IDLE_GLYPH, b'_');
+        assert!(SHELL_PROMPT_SUFFIX.as_bytes().contains(&CURSOR_IDLE_GLYPH));
+        assert!(SHELL_PROMPT.as_bytes().contains(&CURSOR_IDLE_GLYPH));
+
+        assert!(kursor_nyala(0));
+        assert!(!kursor_nyala(1));
+        assert!(kursor_nyala(2));
+        assert!(!kursor_nyala(3));
+        assert!(kursor_nyala(58));
+        assert!(!kursor_nyala(59));
+        assert_eq!(CURSOR_BLINK_PERIODE, 2);
+    }
+
+    /// Penjaga F5 bagian pintu masuk: hanya tiga perintah pembuatan yang
+    /// punya mode berpanduan, pemetaannya dibaca dari registry, dan baris
+    /// yang ditolak arity tetap menjadi `BadArity` apa adanya.
+    #[test]
+    fn test_f5_mode_hanya_masuk_setelah_galat_arity() {
+        assert_eq!(
+            resolusi_pemandu("create-folder <nama>"),
+            TujuanPemandu::BuatFolder
+        );
+        assert_eq!(
+            resolusi_pemandu("create-file <nama>"),
+            TujuanPemandu::BuatBerkas
+        );
+        assert_eq!(
+            resolusi_pemandu("write-file <nama> <teks>"),
+            TujuanPemandu::TulisBerkas
+        );
+        assert_eq!(resolusi_pemandu("open <jalan>"), TujuanPemandu::TidakAda);
+        assert_eq!(
+            resolusi_pemandu("delete-file <nama>"),
+            TujuanPemandu::TidakAda
+        );
+        assert_eq!(
+            resolusi_pemandu("delete-folder <nama>"),
+            TujuanPemandu::TidakAda
+        );
+        assert_eq!(
+            resolusi_pemandu("sintaks-asli-palsu"),
+            TujuanPemandu::TidakAda
+        );
+
+        // Registry tetap satu-sumber: tepat tiga entri yang terbimbing, dan
+        // tiap sintaks yang terbimbing memang menghasilkan BadArity tanpa
+        // argumen (jalur galat lama tidak berubah).
+        let mut terbimbing = 0usize;
+        let mut i = 0;
+        while i < REGISTRY.len() {
+            let e = REGISTRY[i];
+            let t = resolusi_pemandu(e.syntax());
+            if t != TujuanPemandu::TidakAda {
+                terbimbing += 1;
+                match parse_line(e.name()) {
+                    LineOutcome::BadArity(s) => assert_eq!(s, e.syntax()),
+                    other => panic!(
+                        "{} tanpa argumen harus BadArity, dapat {:?}",
+                        e.name(),
+                        other
+                    ),
+                }
+            }
+            i += 1;
+        }
+        assert_eq!(terbimbing, 3, "jumlah perintah berpanduan berubah");
+    }
+
+    /// Alur `create-folder` lewat: satu label, satu baris nama, selesai.
+    #[test]
+    fn test_f5_pemanduan_nama_folder() {
+        let mut p = Pemandu::kosong();
+        assert!(!p.aktif());
+        assert_eq!(p.mode(), ModeInput::Tidak);
+
+        p.mulai(TujuanPemandu::BuatFolder);
+        assert!(p.aktif());
+        let mut buf = [0u8; LABEL_BUF_MAX];
+        assert_eq!(p.label(&mut buf), "Nama folder baru: ");
+
+        assert_eq!(p.terima("laporan"), AksiPemandu::BuatFolder);
+        assert_eq!(p.nama(), "laporan");
+        assert_eq!(p.tujuan(), TujuanPemandu::BuatFolder);
+        assert!(!p.aktif(), "mode terminal harus berhenti sendiri");
+
+        // Spasi di ujung nama bukan bagian nama: dipangkas seperti token.
+        p.mulai(TujuanPemandu::BuatFolder);
+        assert_eq!(p.terima("  laporan 2026  "), AksiPemandu::BuatFolder);
+        assert_eq!(p.nama(), "laporan 2026");
+        assert!(!p.aktif());
+    }
+
+    /// Alur `write-file` lewat: nama, lalu baris isi bernomor, lalu baris
+    /// kosong menutup; baris joined dengan `\n` apa adanya.
+    #[test]
+    fn test_f5_pemanduan_isi_multi_baris_dan_nomor() {
+        let mut p = Pemandu::kosong();
+        p.mulai(TujuanPemandu::TulisBerkas);
+        let mut buf = [0u8; LABEL_BUF_MAX];
+        assert_eq!(p.label(&mut buf), "Nama berkas: ");
+
+        assert_eq!(p.terima("notes.txt"), AksiPemandu::Lanjut);
+        assert_eq!(p.mode(), ModeInput::IsiBerkas);
+        assert_eq!(p.label(&mut buf), "Isi notes.txt (baris 1): ");
+
+        assert_eq!(p.terima("satu"), AksiPemandu::Lanjut);
+        assert_eq!(p.label(&mut buf), "Isi notes.txt (baris 2): ");
+        assert_eq!(p.terima("dua tiga"), AksiPemandu::Lanjut);
+        assert_eq!(p.label(&mut buf), "Isi notes.txt (baris 3): ");
+        assert_eq!(p.baris_terkumpul(), 2);
+
+        assert_eq!(p.terima(""), AksiPemandu::TulisBerkas);
+        assert_eq!(p.isi(), b"satu\ndua tiga");
+        assert_eq!(p.nama(), "notes.txt");
+        assert!(!p.aktif());
+        assert!(!p.isi_penuh());
+
+        // Isi satu baris tidak boleh membawa pemisah.
+        p.mulai(TujuanPemandu::TulisBerkas);
+        p.terima("a.txt");
+        p.terima("hanya satu baris");
+        assert_eq!(p.terima(""), AksiPemandu::TulisBerkas);
+        assert_eq!(p.isi(), b"hanya satu baris");
+    }
+
+    /// Baris kosong berarti batal pada mode nama dan selesai pada mode isi
+    /// (keputusan pemilik: `write-file` tanpa isi boleh, pemangkasannya harus
+    /// diumumkan oleh sisi kernel).
+    #[test]
+    fn test_f5_pemanduan_batal_baris_kosong() {
+        let mut p = Pemandu::kosong();
+        p.mulai(TujuanPemandu::BuatFolder);
+        assert_eq!(p.terima(""), AksiPemandu::Batal);
+        assert!(!p.aktif());
+
+        p.mulai(TujuanPemandu::BuatBerkas);
+        assert_eq!(p.terima("   "), AksiPemandu::Batal);
+        assert!(!p.aktif());
+
+        p.mulai(TujuanPemandu::TulisBerkas);
+        assert_eq!(p.terima("kosong.txt"), AksiPemandu::Lanjut);
+        assert_eq!(p.terima(""), AksiPemandu::TulisBerkas);
+        assert_eq!(p.isi(), b"");
+        assert_eq!(p.baris_terkumpul(), 0);
+
+        // Mode tidak aktif tidak pernah menerima baris.
+        assert_eq!(p.terima("apa pun"), AksiPemandu::Batal);
+    }
+
+    /// Nama terlalu panjang DITOLAK, bukan dipotong diam-diam (akar F4 tidak
+    /// boleh hidup lagi di jalur panduan). Batasnya sama dengan satu token.
+    #[test]
+    fn test_f5_nama_panduan_terlalu_panjang_ditolak() {
+        assert_eq!(GUIDED_NAME_MAX, MAX_ARG_LEN);
+        let panjang = [b'x'; GUIDED_NAME_MAX + 1];
+        let pas = [b'x'; GUIDED_NAME_MAX];
+        let s_panjang = core::str::from_utf8(&panjang).unwrap();
+        let s_pas = core::str::from_utf8(&pas).unwrap();
+
+        let mut p = Pemandu::kosong();
+        p.mulai(TujuanPemandu::BuatFolder);
+        assert_eq!(p.terima(s_pas), AksiPemandu::BuatFolder);
+        assert_eq!(p.nama().len(), GUIDED_NAME_MAX);
+
+        p.mulai(TujuanPemandu::BuatFolder);
+        assert_eq!(p.terima(s_panjang), AksiPemandu::NamaTerlaluPanjang);
+        assert!(!p.aktif());
+        assert_eq!(p.nama(), "", "nama tertolak tidak boleh tertinggal");
+    }
+
+    /// Isi berpanduan berhenti pada satu slot RAMDISK dan menandai keadaannya
+    /// supaya sisi kernel mengumumkan; baris sesudahnya tidak diterima.
+    #[test]
+    fn test_f5_isi_panduan_berhenti_di_satu_slot() {
+        let baris = [b'y'; 100];
+        let s = core::str::from_utf8(&baris).unwrap();
+        let mut p = Pemandu::kosong();
+        p.mulai(TujuanPemandu::TulisBerkas);
+        p.terima("besar.bin");
+        let mut iter = 0usize;
+        while !p.isi_penuh() && iter < 200 {
+            assert_eq!(p.terima(s), AksiPemandu::Lanjut);
+            iter += 1;
+        }
+        assert!(p.isi_penuh(), "kapasitas satu slot tidak pernah tercapai");
+        assert_eq!(p.isi().len(), GUIDED_ISI_MAKS);
+
+        // Baris tambahan sesudah penuh tidak mengubah isi maupun nomor.
+        let sebelum = p.baris_terkumpul();
+        let panjang_sebelum = p.isi().len();
+        assert_eq!(p.terima(s), AksiPemandu::Lanjut);
+        assert_eq!(p.isi().len(), panjang_sebelum);
+        assert_eq!(p.baris_terkumpul(), sebelum);
+        assert_eq!(p.terima(""), AksiPemandu::TulisBerkas);
+    }
+
+    /// `create-file` terbimbing berhenti pada nama: perintah itu dibuat untuk
+    /// berkas kosong, jadi tidak layak meminta baris isi.
+    #[test]
+    fn test_f5_pemanduan_create_file_tanpa_isi() {
+        let mut p = Pemandu::kosong();
+        p.mulai(TujuanPemandu::BuatBerkas);
+        assert_eq!(p.mode(), ModeInput::NamaBerkas);
+        assert_eq!(p.terima("kosong.txt"), AksiPemandu::BuatBerkas);
+        assert_eq!(p.nama(), "kosong.txt");
+        assert_eq!(p.isi(), b"");
+    }
+
+    /// Baris yang diserahkan ENTER masih bisa dibaca setelah penyangga aktif
+    /// dibersihkan; inilah yang dipakai jembatan kernel untuk mode panduan.
+    #[test]
+    fn test_f5_baris_terakhir_tersimpan_setelah_submit() {
+        let mut shell = CockpitShell::new();
+        for b in b"create-folder" {
+            shell.handle_char(*b);
+        }
+        assert_eq!(
+            shell.handle_char(b'\n'),
+            Some(ShellCommand::Unknown),
+            "jalur enumerasi lama tidak berubah: create-folder bukan perintah lama"
+        );
+        assert_eq!(shell.current_line(), "");
+        assert_eq!(shell.last_submitted(), "create-folder");
+
+        for b in b"laporan" {
+            shell.handle_char(*b);
+        }
+        shell.handle_char(b'\n');
+        assert_eq!(shell.last_submitted(), "laporan");
+    }
+
+    /// Penjaga F5 bagian dokumen: label mode berpanduan tertulis apa adanya di
+    /// Pasal 7 `docs/PANDUAN/REFERENSI-PERINTAH.md`.
+    #[test]
+    fn test_f5_dokumen_memuat_label_mode() {
+        const DOC: &str = include_str!("../../../docs/PANDUAN/REFERENSI-PERINTAH.md");
+        assert!(
+            DOC.contains("Nama folder baru: "),
+            "dokumen tidak memuat label nama folder"
+        );
+        assert!(
+            DOC.contains("Isi notes.txt (baris 1): "),
+            "dokumen tidak memuat contoh label isi bernomor"
+        );
+        assert!(
+            DOC.contains("Dibatalkan: nama folder kosong - direktori tidak dibuat"),
+            "dokumen tidak memuat baris pembatalan"
+        );
+        assert!(
+            DOC.contains("MODE BERPANDUAN"),
+            "dokumen tidak menyatakan mode berpanduan sebagai seksi"
+        );
+        assert!(
+            DOC.contains("baris kosong"),
+            "dokumen tidak menjelaskan arti baris kosong"
+        );
     }
 }

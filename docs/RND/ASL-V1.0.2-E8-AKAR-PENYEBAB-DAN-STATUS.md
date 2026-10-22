@@ -350,6 +350,18 @@ dan prompt kosong selama 64 sampai 311 detik. Dua tangkapan layar disimpan sebag
 saat rangkaian sudah berjalan: prompt kosong, nol baris keluaran). Dari kursi
 operator kedua keadaan itu tidak dapat dibedakan dari hang.
 
+**Tutupan keadaan "nol baris di layar" terjadi pada unit F5, bukan pada unit
+E8.** Sesudah F5, satu jalur tulis `DualOut` (`asl-kernel/asl-kernel-core/src/lib.rs:1067`)
+menyalin setiap baris progres ke serial COM1 dan ke framebuffer sekaligus, dan
+`execute_gate3d_suite` (`:3148`) memakainya pada 58 keluaran teks serta 16
+keluaran angka. Buktinya perubahan piksel, bukan pembacaan teks: 202.788 piksel
+beda dengan 617 baris berubah isi (sesi 2026-10-22_08-13-46) dan 123.532 piksel
+beda dengan 509 baris berubah isi (sesi 2026-10-22_08-20-02). Durasi rangkaian
+pada tree yang sama tetap berada dalam kisaran yang sudah dinyatakan: 186,6 s
+dan 205,2 s, di samping 64,0 s sampai 310,7 s pada ISO `18f40d2d`. Cermin layar
+membuat progres terlihat; ia tidak membuatnya lebih cepat. Rincian:
+`Analysis/reports/f5_pemandu_uji_2026-10-22.txt`.
+
 Tindakan yang diambil pada unit ini: batas kasus pada Bagian 5.1 dinaikkan ke
 600 s dengan alasan terukur, konversi detik ditulis berdampingan dengan setiap
 angka milidetik, dan temuan produk didaftarkan sebagai ACCOUNTABILITY_FAULT_LOG

@@ -50,7 +50,7 @@ bukan klaim bahwa panic laporan pemilik pernah teramati.
 |---|---|
 | Pemicu | Satu ketikan `test_task` pada prompt `ASL-KERNEL> ` (boot segar, `-m 256M`) |
 | Waktu jalan | **64,0 s sampai 310,7 s** pada ISO yang sama, tergantung kondisi: 310.681 ms saat boot segar, 272.600 ms dan 64.031 ms di tengah sesi penuh, 507 ms pada pemanggilan kedua dalam sesi yang sama |
-| Keluaran ke layar | **Nol baris.** Seluruh progres ditulis `early_serial_write_str` dan hanya muncul di berkas serial |
+| Keluaran ke layar | **Nol baris** pada keadaan yang dilaporkan. Seluruh progres ditulis `early_serial_write_str` dan hanya muncul di berkas serial. Keadaan ini berubah oleh unit F5 (cermin `DualOut` ke framebuffer; lihat Bagian 6) |
 | Panic | **Nol.** Tidak ada `ASL-CORE-PANIC` / `ASL EXCEPTION` / `FATAL` di kelima sesi jendela; satu-satunya kemunculan ketiga frasa itu adalah baris kepala alat yang mendefinisikannya |
 | Deadlock | **Tidak.** Pada 300,0 s mesin sudah mencetak 75.004/100.000 tukar dan terus mencetak; dengan batas 600 s rangkaian selesai, TEST 1..15 PASS, prompt kembali |
 | Kenapa terasa seperti hang | Operator melihat banner boot + prompt kosong; dua tangkapan layar ter-commit (`Analysis/reports/e8_l6_jendela-sesi-A-token_2026-10-21.png`, `e8_l6_jendela-sesi-A2-hidup_2026-10-22.png`) |
@@ -142,7 +142,10 @@ dokumen kerja.
 6. **Durasi `test_task` tidak stabil dan tidak dapat diprediksi dari dalam
    sesi** (64,0 s sampai 310,7 s). Setiap batas waktu untuk kasus ini adalah
    tebakan yang harus dinyatakan sebagai tebakan; resep resmi kini
-   `-CaseTimeoutSeconds 600 -BootTimeoutSeconds 240`.
+   `-CaseTimeoutSeconds 600 -BootTimeoutSeconds 240`. Kisaran itu dikonfirmasi
+   ulang pada tree F5, ketika progres sudah bercermin ke layar: 186,6 s dan
+   205,2 s untuk dua suite penuh pada ISO yang sama di tengah sesi penuh —
+   jadi cermin layar membuat progres terlihat, tidak membuatnya lebih cepat.
 7. **Dua kelemahan alat dicatat, tidak diperbaiki diam-diam.** (a) Kode keluar
    2 `scripts/e8_adversarial_run.ps1` berarti "penanda crash ATAU shell tidak
    kembali", dan frasa tetap pada baris 563 mencetak "crash terlihat" tanpa
@@ -180,6 +183,17 @@ dokumen kerja.
 
 - **F5** menerima entri ke-38: umpan balik kemajuan di layar (framebuffer) untuk
   pekerjaan panjang, plus menyatakan varians durasi 64 s versus 310,7 s.
+  **Sudah dikerjakan pada unit F5 (tree sesudah `a44fbaf`).** Cermin layar
+  dibuat lewat satu jalur tulis `DualOut` yang menulis ke serial COM1 dan ke
+  `FB_CONSOLE` sekaligus; `execute_gate3d_suite` memakainya pada 58 keluaran
+  teks dan 16 keluaran angka, dengan snapshot `[PROGRESS-SNAPSHOT]` tiap 25.000
+  tukar. Buktinya perubahan piksel terukur pada dua sesi QEMU: 202.788 piksel
+  beda / 617 baris berubah isi (sesi 08-13-46) dan 123.532 piksel beda / 509
+  baris berubah isi (sesi 08-20-02). Varian durasi kini punya empat angka dari
+  dua ISO: 64,0 s dan 310,7 s pada ISO `18f40d2d`, lalu 186,6 s dan 205,2 s di
+  tengah sesi penuh pada ISO tree F5 — selisih yang tetap harus dilaporkan
+  sebagai kisaran, bukan sebagai satu kurva waktu. Rincian ada di
+  `Analysis/reports/f5_pemandu_uji_2026-10-22.txt`.
 - **F1-F7** mengubah registry kanonik dari 11 menjadi 13 perintah; sesudah F2
   (`up`) dan F6 (`rename`) hidup, kasus C15 dan C26/C27 pada Pass penuh menguji
   jalur aslinya dan **jendela E8 diulang**. Sudah dijalankan untuk F2 dan

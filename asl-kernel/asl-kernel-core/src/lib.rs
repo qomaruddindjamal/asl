@@ -1067,6 +1067,10 @@ impl ShellCwd {
 struct DualOut;
 
 impl DualOut {
+    // Satu salinan teks per pemanggil: tanpa penanda ini opt-level=3 menyalin
+    // badan ke 74 situs Gate 3D dan .text bertambah cukup untuk menaikkan
+    // lantai boot yang diukur scripts/test_ram_floor_3mb.ps1.
+    #[inline(never)]
     fn text(&self, s: &str) {
         early_serial_write_str(s);
         let fb = core::ptr::addr_of_mut!(FB_CONSOLE);
@@ -1076,6 +1080,7 @@ impl DualOut {
     }
 
     /// Angka desimal tanpa `alloc`: render ke penyangga lokal lalu kirim.
+    #[inline(never)]
     fn number(&self, n: u64) {
         let mut buf = [0u8; 24];
         let s = render_u64(n, &mut buf);
@@ -1202,6 +1207,346 @@ fn resolve_target<'a>(
             None
         }
     }
+}
+
+// =========================================================================
+// F5: MODE BERPANDUAN + PENANDA KURSOR
+// ---------------------------------------------------------------------------
+// Dua hal ditambahkan pada galang shell. (1) Sesudah SATU baris galat arity
+// tercetak, tiga perintah pembuatan membuka mode berpanduan: shell mencetak
+// label konteks dan memakai baris berikutnya sebagai argumen yang hilang.
+// Mesin state-nya murni dan berada di `asl-cockpit-shell` supaya dapat diuji
+// dari host; di sini hanya jembatan ke VFS dan ke kedua penampil. (2) Sel
+// tempat titik tulis di framebuffer diwarnai glif penanda kursor mengikuti
+// detik jam CMOS, tanpa satu byte pun tambahan ke serial.
+// =========================================================================
+
+/// Satu-satunya state mode berpanduan (F5). Disimpan di `.bss`, bukan di
+/// tumpuan: penyangga isinya selebar satu slot RAMDISK (8192 byte) dan
+/// galang boot berjalan pada tumpuan yang lantainya diukur oleh
+/// `scripts/test_ram_floor_3mb.ps1`.
+static mut PEMANDU: asl_cockpit_shell::Pemandu = asl_cockpit_shell::Pemandu::kosong();
+
+/// Sel framebuffer tempat penanda kursor digambar (F5) dan apakah sel itu
+/// masih berlaku (framebuffer dapat saja tidak tersedia).
+static mut KURSOR_SEL: (usize, usize) = (0, 0);
+static mut KURSOR_ADA: bool = false;
+
+/// Detik dari jam CMOS RTC (register 0x00). Register kontrol 0x0B bit 2
+/// menyatakan biner atau BCD, jadi kedua bentuk diterima; detik dipakai
+/// sebagai sumber berkedip karena pencacah tick APIC TIDAK naik saat galang
+/// shell idle dengan interrupt dimatikan.
+#[cfg(target_arch = "x86_64")]
+unsafe fn baca_detik_rtc() -> u64 {
+    let biner = read_cmos_reg(0x0B) & 0x04 != 0;
+    let mentah = read_cmos_reg(0x00);
+    if biner {
+        mentah as u64
+    } else {
+        (((mentah >> 4) & 0x0F) as u64) * 10 + ((mentah & 0x0F) as u64)
+    }
+}
+
+/// Catat titik tulis framebuffer sekarang sebagai sel penanda kursor (F5).
+unsafe fn catat_sel_kursor() {
+    let fb = core::ptr::addr_of_mut!(FB_CONSOLE);
+    KURSOR_SEL = ((*fb).cursor_x, (*fb).cursor_y);
+    KURSOR_ADA = (*fb).is_available();
+}
+
+/// Gambar (nyala) atau hapus (padam) penanda kursor pada sel yang tercatat,
+/// TANPA menggeser titik tulis dan TANPA menyentuh serial. Bila sel itu tidak
+/// mempunyai tempat lagi satu karakter ke kanan, tick ini dilewati supaya
+/// penanda tidak pernah memicu gulir layar.
+unsafe fn gambar_penanda_kursor(nyala: bool) {
+    if !KURSOR_ADA {
+        return;
+    }
+    let fb = core::ptr::addr_of_mut!(FB_CONSOLE);
+    let char_width = 8 * (*fb).scale;
+    if !(*fb).is_available() || KURSOR_SEL.0 + char_width > (*fb).width {
+        return;
+    }
+    let titik = ((*fb).cursor_x, (*fb).cursor_y);
+    let warna = (*fb).fg_color;
+    (*fb).cursor_x = KURSOR_SEL.0;
+    (*fb).cursor_y = KURSOR_SEL.1;
+    (*fb).set_fg_color(0x0000FF00); // Hijau, sama seperti prompt
+    let glif = if nyala {
+        asl_cockpit_shell::CURSOR_IDLE_GLYPH
+    } else {
+        b' '
+    };
+    (*fb).draw_char(glif);
+    (*fb).cursor_x = titik.0;
+    (*fb).cursor_y = titik.1;
+    (*fb).set_fg_color(warna);
+}
+
+/// Cetak prompt berposisi ke kedua penampil lalu catat titik tulis sebagai sel
+/// penanda kursor (F1 menyusun teksnya, F5 menjadikannya tempat berkedip).
+#[inline(never)]
+unsafe fn cetak_prompt(cwd: &ShellCwd, buf: &mut [u8]) {
+    let panjang = asl_cockpit_shell::SHELL_PROMPT_FIXED_LEN + asl_storage::vfs::MAX_PATH_LEN;
+    if buf.len() < panjang {
+        return;
+    }
+    let prompt = cwd.prompt(buf);
+    early_serial_write_str(prompt);
+    let fb = core::ptr::addr_of_mut!(FB_CONSOLE);
+    (*fb).set_fg_color(0x0000FF00); // Green
+    (*fb).write_str(prompt);
+    (*fb).set_fg_color(0x00FFFFFF);
+    catat_sel_kursor();
+}
+
+/// `true` selama mode berpanduan masih menunggu baris (F5).
+unsafe fn pemandu_aktif() -> bool {
+    (*core::ptr::addr_of_mut!(PEMANDU)).aktif()
+}
+
+/// Potongan baris galat nama panduan terlalu panjang (F5):
+/// `(label, keterangan, penutup)`. Angka batas ditambahkan pemanggil dari
+/// [`asl_cockpit_shell::GUIDED_NAME_MAX`], sama pola seperti F4.
+fn pieces_galat_nama_pemandu() -> (&'static str, &'static str, &'static str) {
+    (
+        asl_cockpit_shell::MSG_ERROR,
+        asl_cockpit_shell::MSG_LABEL_NAMA_PANJANG,
+        asl_cockpit_shell::MSG_LABEL_NAMA_PANJANG_TAIL,
+    )
+}
+
+/// Potongan baris pembatalan mode berpanduan (F5): `(awalan, akhiran)`;
+/// akhiran dipilih dari mode yang sedang berjalan, bukan dari aksi, karena
+/// mode nama berkas dipakai bersama `create-file` dan `write-file`.
+fn pieces_batal_pemandu(mode: asl_cockpit_shell::ModeInput) -> (&'static str, &'static str) {
+    (
+        asl_cockpit_shell::MSG_BATAL,
+        match mode {
+            asl_cockpit_shell::ModeInput::NamaFolder => asl_cockpit_shell::MSG_BATAL_FOLDER,
+            _ => asl_cockpit_shell::MSG_BATAL_BERKAS,
+        },
+    )
+}
+
+/// Buat direktori dari satu nama. Dipakai jalur kanonik DAN jalur panduan,
+/// sehingga tidak ada dua aturan pembuatan direktori.
+#[inline(never)]
+unsafe fn jalankan_buat_folder(
+    out: &DualOut,
+    vfs: &mut asl_storage::Vfs,
+    cwd: &ShellCwd,
+    path_buf: &mut [u8; asl_storage::vfs::MAX_PATH_LEN],
+    nama: &str,
+) {
+    let path = match resolve_target(cwd, nama, path_buf, out) {
+        Some(p) => p,
+        None => return,
+    };
+    let (parent, base) = split_parent(path);
+    match vfs.mkdir(parent, base) {
+        Ok(_) => {
+            out.text(asl_cockpit_shell::MSG_DIR_CREATED);
+            out.text(path);
+            out.text(asl_cockpit_shell::MSG_ZERO_ENTRIES);
+            out.text("\n");
+        }
+        Err(err) => print_vfs_error(out, path, err),
+    }
+}
+
+/// Buat berkas kosong dari satu nama (sama seperti di atas, untuk dua jalur).
+#[inline(never)]
+unsafe fn jalankan_buat_berkas(
+    out: &DualOut,
+    vfs: &mut asl_storage::Vfs,
+    cwd: &ShellCwd,
+    path_buf: &mut [u8; asl_storage::vfs::MAX_PATH_LEN],
+    nama: &str,
+) {
+    let path = match resolve_target(cwd, nama, path_buf, out) {
+        Some(p) => p,
+        None => return,
+    };
+    let (parent, base) = split_parent(path);
+    match vfs.touch(parent, base) {
+        Ok(_) => {
+            out.text(asl_cockpit_shell::MSG_FILE_CREATED);
+            out.text(path);
+            out.text(asl_cockpit_shell::MSG_ZERO_BYTES);
+            out.text("\n");
+        }
+        Err(err) => print_vfs_error(out, path, err),
+    }
+}
+
+/// Tulis `isi` ke berkas `nama`, membuat berkas bila belum ada, dan umumkan
+/// setiap byte lama yang hilang (F3) atau isi yang tidak tertulis (F4).
+/// `isi_terpotong` menandakan jalur ARGUMEN baris; jalur panduan memakai
+/// pengumumannya sendiri (`pemandu.isi_penuh()`), jadi tanda ini `false` di
+/// sana.
+#[inline(never)]
+unsafe fn jalankan_tulis_berkas(
+    out: &DualOut,
+    vfs: &mut asl_storage::Vfs,
+    cwd: &ShellCwd,
+    path_buf: &mut [u8; asl_storage::vfs::MAX_PATH_LEN],
+    nama: &str,
+    isi: &[u8],
+    isi_terpotong: bool,
+) {
+    let path = match resolve_target(cwd, nama, path_buf, out) {
+        Some(p) => p,
+        None => return,
+    };
+    let (parent, base) = split_parent(path);
+    let mut ukuran_lama: u64 = 0;
+    let mut berkas_baru = false;
+    match vfs.open(path) {
+        Ok(node) => ukuran_lama = node.size_bytes,
+        Err(_) => {
+            berkas_baru = true;
+            if let Err(err) = vfs.touch(parent, base) {
+                print_vfs_error(out, path, err);
+                return;
+            }
+        }
+    }
+    match vfs.write_file(path, isi) {
+        Ok(written) => {
+            out.text(asl_cockpit_shell::MSG_WRITTEN);
+            out.number(written as u64);
+            out.text(asl_cockpit_shell::MSG_WRITTEN_TO);
+            out.text(path);
+            if berkas_baru {
+                out.text(asl_cockpit_shell::MSG_NEW_FILE);
+            }
+            let hilang = byte_terpotong(ukuran_lama, written as u64);
+            if hilang > 0 {
+                out.text(asl_cockpit_shell::MSG_TRUNCATED);
+                out.number(hilang);
+                out.text(asl_cockpit_shell::MSG_TRUNCATED_END);
+            }
+            if isi_terpotong {
+                out.text(asl_cockpit_shell::MSG_ISI_CUT);
+                out.number(asl_cockpit_shell::MAX_ARG_LEN as u64);
+                out.text(asl_cockpit_shell::MSG_ISI_CUT_TAIL);
+            }
+            out.text("\n");
+        }
+        Err(err) => print_vfs_error(out, path, err),
+    }
+}
+
+/// Prolog RAMDISK yang sama untuk kedua jalur: mount ulang ke state global.
+unsafe fn vfs_untuk_perintah() -> asl_storage::Vfs<'static> {
+    let fs_ptr = core::ptr::addr_of_mut!(RAMDISK_FS);
+    (*fs_ptr).ensure_root();
+    let mut vfs = asl_storage::Vfs::new();
+    vfs.mount_root(&mut *fs_ptr);
+    vfs
+}
+
+/// Jalankan satu aksi terminal mode berpanduan pada VFS (F5). Nama dan isi
+/// dibaca lewat pointer mentah dari state global lalu mode diakhiri, sehingga
+/// tidak pernah ada dua pinjaman yang hidup bersamaan ke state yang sama.
+#[inline(never)]
+unsafe fn jalankan_aksi_pemandu(
+    out: &DualOut,
+    cwd: &mut ShellCwd,
+    aksi: asl_cockpit_shell::AksiPemandu,
+) {
+    use asl_cockpit_shell::AksiPemandu;
+    let p = core::ptr::addr_of_mut!(PEMANDU);
+    let nama = core::str::from_utf8(core::slice::from_raw_parts(
+        (*p).nama().as_ptr(),
+        (*p).nama().len(),
+    ))
+    .unwrap_or("");
+    let isi = core::slice::from_raw_parts((*p).isi().as_ptr(), (*p).isi().len());
+    let penuh = (*p).isi_penuh();
+
+    if aksi == AksiPemandu::TulisBerkas && penuh {
+        out.text(asl_cockpit_shell::MSG_ISI_PENUH);
+        out.number(asl_cockpit_shell::GUIDED_ISI_MAKS as u64);
+        out.text(asl_cockpit_shell::MSG_ISI_PENUH_TAIL);
+        out.text("\n");
+    }
+
+    let mut vfs = vfs_untuk_perintah();
+    let mut path_buf = [0u8; asl_storage::vfs::MAX_PATH_LEN];
+    match aksi {
+        AksiPemandu::BuatFolder => {
+            jalankan_buat_folder(out, &mut vfs, cwd, &mut path_buf, nama);
+        }
+        AksiPemandu::BuatBerkas => {
+            jalankan_buat_berkas(out, &mut vfs, cwd, &mut path_buf, nama);
+        }
+        AksiPemandu::TulisBerkas => {
+            jalankan_tulis_berkas(out, &mut vfs, cwd, &mut path_buf, nama, isi, false);
+        }
+        _ => {}
+    }
+    (*p).berhenti();
+}
+
+/// Satu baris ENTER pada saat mode berpanduan aktif: baris itu adalah
+/// argumen, bukan perintah (F5). Nilai balik `true` berarti mode yang
+/// menangani baris ini.
+#[inline(never)]
+unsafe fn terima_baris_panduan(out: &DualOut, cwd: &mut ShellCwd, baris: &str) -> bool {
+    use asl_cockpit_shell::AksiPemandu;
+    let p = core::ptr::addr_of_mut!(PEMANDU);
+    if !(*p).aktif() {
+        return false;
+    }
+    let mode_sebelum = (*p).mode();
+    match (*p).terima(baris) {
+        AksiPemandu::Lanjut => {
+            let mut lbuf = [0u8; asl_cockpit_shell::LABEL_BUF_MAX];
+            let label = (*p).label(&mut lbuf);
+            out.text(label);
+            catat_sel_kursor();
+        }
+        AksiPemandu::Batal => {
+            let (awalan, akhiran) = pieces_batal_pemandu(mode_sebelum);
+            out.text(awalan);
+            out.text(akhiran);
+            out.text("\n");
+            (*p).berhenti();
+        }
+        AksiPemandu::NamaTerlaluPanjang => {
+            let (label, keterangan, penutup) = pieces_galat_nama_pemandu();
+            out.text(label);
+            out.text(keterangan);
+            out.number(asl_cockpit_shell::GUIDED_NAME_MAX as u64);
+            out.text(penutup);
+            out.text("\n");
+            (*p).berhenti();
+        }
+        aksi @ (AksiPemandu::BuatFolder | AksiPemandu::BuatBerkas | AksiPemandu::TulisBerkas) => {
+            jalankan_aksi_pemandu(out, cwd, aksi);
+        }
+    }
+    true
+}
+
+/// Buka mode berpanduan sesudah satu baris galat arity (F5, keputusan pemilik:
+/// galat arity tercetak lebih dulu dan tidak berubah). Nilai balik `true`
+/// berarti label pertama sudah tercetak.
+#[inline(never)]
+unsafe fn buka_pemandu(out: &DualOut, sintaks: &str) -> bool {
+    let tujuan = asl_cockpit_shell::resolusi_pemandu(sintaks);
+    if tujuan == asl_cockpit_shell::TujuanPemandu::TidakAda {
+        return false;
+    }
+    let p = core::ptr::addr_of_mut!(PEMANDU);
+    (*p).mulai(tujuan);
+    let mut lbuf = [0u8; asl_cockpit_shell::LABEL_BUF_MAX];
+    let label = (*p).label(&mut lbuf);
+    out.text(label);
+    catat_sel_kursor();
+    true
 }
 
 /// Jalankan satu perintah kanonik terhadap RAMDISK dan kedua penampil.
@@ -1341,80 +1686,22 @@ unsafe fn run_canonical_command(inv: &asl_cockpit_shell::Invocation, cwd: &mut S
             }
         }
         CanonicalId::CreateFolder => {
-            let path = match resolve_target(cwd, inv.arg(0), &mut path_buf, &out) {
-                Some(p) => p,
-                None => return,
-            };
-            let (parent, base) = split_parent(path);
-            match vfs.mkdir(parent, base) {
-                Ok(_) => {
-                    out.text(asl_cockpit_shell::MSG_DIR_CREATED);
-                    out.text(path);
-                    out.text(asl_cockpit_shell::MSG_ZERO_ENTRIES);
-                    out.text("\n");
-                }
-                Err(err) => print_vfs_error(&out, path, err),
-            }
+            jalankan_buat_folder(&out, &mut vfs, cwd, &mut path_buf, inv.arg(0));
         }
         CanonicalId::CreateFile => {
-            let path = match resolve_target(cwd, inv.arg(0), &mut path_buf, &out) {
-                Some(p) => p,
-                None => return,
-            };
-            let (parent, base) = split_parent(path);
-            match vfs.touch(parent, base) {
-                Ok(_) => {
-                    out.text(asl_cockpit_shell::MSG_FILE_CREATED);
-                    out.text(path);
-                    out.text(asl_cockpit_shell::MSG_ZERO_BYTES);
-                    out.text("\n");
-                }
-                Err(err) => print_vfs_error(&out, path, err),
-            }
+            jalankan_buat_berkas(&out, &mut vfs, cwd, &mut path_buf, inv.arg(0));
         }
         CanonicalId::WriteFile => {
             let body = inv.arg(1);
-            let path = match resolve_target(cwd, inv.arg(0), &mut path_buf, &out) {
-                Some(p) => p,
-                None => return,
-            };
-            let (parent, base) = split_parent(path);
-            let mut ukuran_lama: u64 = 0;
-            let mut berkas_baru = false;
-            match vfs.open(path) {
-                Ok(node) => ukuran_lama = node.size_bytes,
-                Err(_) => {
-                    berkas_baru = true;
-                    if let Err(err) = vfs.touch(parent, base) {
-                        print_vfs_error(&out, path, err);
-                        return;
-                    }
-                }
-            }
-            match vfs.write_file(path, body.as_bytes()) {
-                Ok(written) => {
-                    out.text(asl_cockpit_shell::MSG_WRITTEN);
-                    out.number(written as u64);
-                    out.text(asl_cockpit_shell::MSG_WRITTEN_TO);
-                    out.text(path);
-                    if berkas_baru {
-                        out.text(asl_cockpit_shell::MSG_NEW_FILE);
-                    }
-                    let hilang = byte_terpotong(ukuran_lama, written as u64);
-                    if hilang > 0 {
-                        out.text(asl_cockpit_shell::MSG_TRUNCATED);
-                        out.number(hilang);
-                        out.text(asl_cockpit_shell::MSG_TRUNCATED_END);
-                    }
-                    if inv.isi_terpotong() {
-                        out.text(asl_cockpit_shell::MSG_ISI_CUT);
-                        out.number(asl_cockpit_shell::MAX_ARG_LEN as u64);
-                        out.text(asl_cockpit_shell::MSG_ISI_CUT_TAIL);
-                    }
-                    out.text("\n");
-                }
-                Err(err) => print_vfs_error(&out, path, err),
-            }
+            jalankan_tulis_berkas(
+                &out,
+                &mut vfs,
+                cwd,
+                &mut path_buf,
+                inv.arg(0),
+                body.as_bytes(),
+                inv.isi_terpotong(),
+            );
         }
         CanonicalId::DeleteFile => {
             let path = match resolve_target(cwd, inv.arg(0), &mut path_buf, &out) {
@@ -1889,11 +2176,12 @@ pub unsafe extern "C" fn _asl_kernel_entry(handover_ptr: *const AslBootHandover)
 
     // Ruang kerja perintah berkas kanonik: mulai dari akar RAMDISK. F1 membuat
     // prompt menampilkan posisi aktif, jadi cwd disusun sebelum prompt pertama
-    // dicetak ke kedua penampil.
+    // dicetak ke kedua penampil. F5 mencetak prompt lewat satu jembatan yang
+    // juga mencatat sel penanda kursor, karena blink membutuhkan alamat sel
+    // tempat glif `_` berada.
     let mut cwd = ShellCwd::root();
     let mut prompt_buf =
         [0u8; asl_cockpit_shell::SHELL_PROMPT_FIXED_LEN + asl_storage::vfs::MAX_PATH_LEN];
-    let boot_prompt = cwd.prompt(&mut prompt_buf);
 
     #[cfg(target_arch = "x86_64")]
     {
@@ -1909,15 +2197,12 @@ pub unsafe extern "C" fn _asl_kernel_entry(handover_ptr: *const AslBootHandover)
         (*fb).write_str("   [ OK ] ");
         (*fb).set_fg_color(0x00FFFFFF);
         (*fb).write_str("Secondary Failover Engine: Active-Standby Ready\n\n");
-
-        // Tampilkan prompt Cockpit Shell pertama kali (F1: berposisi aktif)
-        (*fb).set_fg_color(0x0000FF00); // Green
-        (*fb).write_str(boot_prompt);
-        (*fb).set_fg_color(0x00FFFFFF);
     }
 
     early_serial_write_str("\n");
-    early_serial_write_str(boot_prompt);
+    unsafe {
+        cetak_prompt(&cwd, &mut prompt_buf);
+    }
 
     #[cfg(feature = "test-gate3d")]
     #[cfg(target_arch = "x86_64")]
@@ -1931,6 +2216,9 @@ pub unsafe extern "C" fn _asl_kernel_entry(handover_ptr: *const AslBootHandover)
 
     // 4. Interactive Cockpit Shell & Deterministic Event Loop
     let mut _shell_ticks: u64 = 0;
+    // F5: detik jam CMOS terakhir yang sudah dilayani blink; nilai mustahil
+    // memaksa satu gambar ulang pada tick pertama.
+    let mut detik_terakhir: u64 = u64::MAX;
     loop {
         _shell_ticks = _shell_ticks.wrapping_add(1);
 
@@ -1985,6 +2273,8 @@ pub unsafe extern "C" fn _asl_kernel_entry(handover_ptr: *const AslBootHandover)
                     }
                     unsafe {
                         (*fb_echo).draw_char(c);
+                        // F5: penanda kursor mengikuti titik tulis terbaru.
+                        catat_sel_kursor();
                     }
                 }
                 asl_cockpit_shell::Echo::Backspace => {
@@ -1995,12 +2285,14 @@ pub unsafe extern "C" fn _asl_kernel_entry(handover_ptr: *const AslBootHandover)
                             (*fb_echo).draw_char(b' ');
                             (*fb_echo).cursor_x -= 8;
                         }
+                        catat_sel_kursor();
                     }
                 }
                 asl_cockpit_shell::Echo::Newline => {
                     early_serial_write_str("\n");
                     unsafe {
                         (*fb_echo).draw_char(b'\n');
+                        catat_sel_kursor();
                     }
                 }
                 asl_cockpit_shell::Echo::None => {}
@@ -2010,26 +2302,36 @@ pub unsafe extern "C" fn _asl_kernel_entry(handover_ptr: *const AslBootHandover)
             // dulu; perintah lama tetap utuh lewat enumerasi `ShellCommand`.
             let mut cmd = asl_cockpit_shell::ShellCommand::Empty;
             let mut submitted = false;
+            let mut biarkan_label = false;
             if let Some((legacy, outcome)) = submit {
                 submitted = true;
-                cmd = legacy;
-                match outcome {
-                    asl_cockpit_shell::LineOutcome::Ready(inv) => {
-                        unsafe {
-                            run_canonical_command(&inv, &mut cwd);
+                let out = DualOut;
+                // F5: selama mode berpanduan aktif, baris yang ENTER adalah
+                // ARGUMEN, bukan perintah; ia tidak pernah mencapai parser.
+                let dipandu =
+                    unsafe { terima_baris_panduan(&out, &mut cwd, shell.last_submitted()) };
+                if dipandu {
+                    biarkan_label = unsafe { pemandu_aktif() };
+                } else {
+                    cmd = legacy;
+                    match outcome {
+                        asl_cockpit_shell::LineOutcome::Ready(inv) => {
+                            unsafe {
+                                run_canonical_command(&inv, &mut cwd);
+                            }
+                            cmd = asl_cockpit_shell::ShellCommand::Empty;
                         }
-                        cmd = asl_cockpit_shell::ShellCommand::Empty;
+                        asl_cockpit_shell::LineOutcome::BadArity(syntax) => {
+                            out.text(asl_cockpit_shell::MSG_ERROR);
+                            out.text(asl_cockpit_shell::MSG_BAD_ARITY);
+                            out.text(asl_cockpit_shell::MSG_SYNTAX);
+                            out.text(syntax);
+                            out.text("\n");
+                            biarkan_label = unsafe { buka_pemandu(&out, syntax) };
+                            cmd = asl_cockpit_shell::ShellCommand::Empty;
+                        }
+                        asl_cockpit_shell::LineOutcome::NotCanonical => {}
                     }
-                    asl_cockpit_shell::LineOutcome::BadArity(syntax) => {
-                        let out = DualOut;
-                        out.text(asl_cockpit_shell::MSG_ERROR);
-                        out.text(asl_cockpit_shell::MSG_BAD_ARITY);
-                        out.text(asl_cockpit_shell::MSG_SYNTAX);
-                        out.text(syntax);
-                        out.text("\n");
-                        cmd = asl_cockpit_shell::ShellCommand::Empty;
-                    }
-                    asl_cockpit_shell::LineOutcome::NotCanonical => {}
                 }
             }
 
@@ -2494,13 +2796,29 @@ pub unsafe extern "C" fn _asl_kernel_entry(handover_ptr: *const AslBootHandover)
                 }
 
                 // F1: prompt disusun ulang setiap kali karena posisinya dapat
-                // berpindah oleh perintah ruang kerja.
-                let prompt = cwd.prompt(&mut prompt_buf);
-                early_serial_write_str(prompt);
+                // berpindah oleh perintah ruang kerja. F5: selama mode
+                // berpanduan masih menunggu baris, label yang sudah tercetak
+                // itulah baris inputnya, jadi prompt tidak boleh menimpanya.
+                if !biarkan_label {
+                    unsafe {
+                        cetak_prompt(&cwd, &mut prompt_buf);
+                    }
+                }
+            }
+        }
+
+        // F5: penanda kursor hanya berkedip saat idle (tidak ada byte masukan)
+        // dan hanya pada framebuffer, sehingga keluaran serial tetap
+        // byte-identik dengan sebelum F5. Sumber detiknya jam CMOS, bukan
+        // pencacah tick APIC, karena galang ini berjalan dengan interrupt
+        // dimatikan.
+        #[cfg(target_arch = "x86_64")]
+        if input_char.is_none() {
+            let detik = unsafe { baca_detik_rtc() };
+            if detik != detik_terakhir {
+                detik_terakhir = detik;
                 unsafe {
-                    (*fb).set_fg_color(0x0000FF00); // Green
-                    (*fb).write_str(prompt);
-                    (*fb).set_fg_color(0x00FFFFFF);
+                    gambar_penanda_kursor(asl_cockpit_shell::kursor_nyala(detik));
                 }
             }
         }
@@ -2828,7 +3146,14 @@ fn suite_masukan_masuk() -> bool {
 
 #[cfg(target_arch = "x86_64")]
 pub fn execute_gate3d_suite() {
-    early_serial_write_str("\n[GATE-3D-REMEDIATION] Executing Gate 3D 100,000 APIC Interrupt Preemption Verification Suite...\n");
+    // Entri #38 (keputusan pemilik, unit F5): suite ini dapat berjalan 64 s
+    // sampai 310,7 s dan sebelumnya hanya menulis ke serial, sehingga operator
+    // yang melihat layar tidak punya bukti pekerjaan masih berjalan. Semua
+    // tulisnya kini lewat satu tujuan ganda: byte serial tetap identik, layar
+    // menerima baris yang sama.
+    let out = DualOut;
+
+    out.text("\n[GATE-3D-REMEDIATION] Executing Gate 3D 100,000 APIC Interrupt Preemption Verification Suite...\n");
 
     // =========================================================================
     // TEST 1: Ring 0 Interrupt Frame Layout & Normalization Check (160B / 20 QWORDs)
@@ -2842,15 +3167,15 @@ pub fn execute_gate3d_suite() {
         && core::mem::size_of::<asl_sched::SamePrivilegeHardwareFrame>() == 40
         && core::mem::size_of::<asl_sched::NormalizedInterruptContext>() == 160;
     if !layout_ok {
-        early_serial_write_str("Kesalahan: tata letak frame interupsi tidak sesuai sangkaan - rangkaian Gate 3D dihentikan, shell tetap hidup\n");
+        out.text("Kesalahan: tata letak frame interupsi tidak sesuai sangkaan - rangkaian Gate 3D dihentikan, shell tetap hidup\n");
         return;
     }
-    early_serial_write_str("[GATE-3D-TEST] TEST 1: Ring 0 Interrupt Frame Layout & Normalization (160B / 20 QWORDs) -> PASS\n");
+    out.text("[GATE-3D-TEST] TEST 1: Ring 0 Interrupt Frame Layout & Normalization (160B / 20 QWORDs) -> PASS\n");
 
     // =========================================================================
     // TEST 2: Frame Offset Compile-Time & Runtime Assertions (All 20 Fields)
     // =========================================================================
-    early_serial_write_str("[GATE-3D-TEST] TEST 2: Frame Offset Compile-Time Assertions (All 20 Fields Verified) -> PASS\n");
+    out.text("[GATE-3D-TEST] TEST 2: Frame Offset Compile-Time Assertions (All 20 Fields Verified) -> PASS\n");
 
     // =========================================================================
     // PART F / TEST 9: Controlled Failure Injection - Corrupt Canary Isolation
@@ -2868,9 +3193,11 @@ pub fn execute_gate3d_suite() {
         let next_rsp = test_mgr.on_timer_tick(cur_rsp);
 
         if test_mgr.tasks[1].state == asl_sched::TaskState::Faulted && next_rsp == test_mgr.tasks[0].saved_rsp {
-            early_serial_write_str("[GATE-3D-TEST] TEST 9: Failure Injection - Corrupt Canary Isolation -> PASS\n");
+            out.text(
+                "[GATE-3D-TEST] TEST 9: Failure Injection - Corrupt Canary Isolation -> PASS\n",
+            );
         } else {
-            early_serial_write_str("[GATE-3D-TEST] TEST 9: FAILED corrupt canary isolation!\n");
+            out.text("[GATE-3D-TEST] TEST 9: FAILED corrupt canary isolation!\n");
         }
     }
 
@@ -2889,9 +3216,9 @@ pub fn execute_gate3d_suite() {
         let next_rsp = test_mgr.on_timer_tick(cur_rsp);
 
         if test_mgr.tasks[1].state == asl_sched::TaskState::Faulted && next_rsp == cur_rsp {
-            early_serial_write_str("[GATE-3D-TEST] TEST 10: Failure Injection - Invalid Target RSP Isolation -> PASS\n");
+            out.text("[GATE-3D-TEST] TEST 10: Failure Injection - Invalid Target RSP Isolation -> PASS\n");
         } else {
-            early_serial_write_str("[GATE-3D-TEST] TEST 10: FAILED invalid RSP isolation!\n");
+            out.text("[GATE-3D-TEST] TEST 10: FAILED invalid RSP isolation!\n");
         }
     }
 
@@ -2907,9 +3234,9 @@ pub fn execute_gate3d_suite() {
         let id_t2 = match test_mgr.spawn_task(0x2000) {
             Ok(id) => Some(id as usize),
             Err(sebab) => {
-                early_serial_write_str("Kesalahan: tugas uji kedua gagal dibuat (");
-                early_serial_write_str(sebab);
-                early_serial_write_str(") - TEST 11 dilewati, shell tetap hidup\n");
+                out.text("Kesalahan: tugas uji kedua gagal dibuat (");
+                out.text(sebab);
+                out.text(") - TEST 11 dilewati, shell tetap hidup\n");
                 None
             }
         };
@@ -2931,14 +3258,12 @@ pub fn execute_gate3d_suite() {
             let next_rsp = test_mgr.on_timer_tick(cur_rsp);
 
             if test_mgr.tasks[t2].state == asl_sched::TaskState::Faulted && next_rsp == cur_rsp {
-                early_serial_write_str("[GATE-3D-TEST] TEST 11: Failure Injection - Non-Canonical RIP Isolation -> PASS\n");
+                out.text("[GATE-3D-TEST] TEST 11: Failure Injection - Non-Canonical RIP Isolation -> PASS\n");
             } else {
-                early_serial_write_str(
-                    "[GATE-3D-TEST] TEST 11: FAILED non-canonical RIP isolation!\n",
-                );
+                out.text("[GATE-3D-TEST] TEST 11: FAILED non-canonical RIP isolation!\n");
             }
         } else if id_t2.is_some() {
-            early_serial_write_str("Kesalahan: indeks tugas uji berada di luar jangkauan - TEST 11 dilewati, shell tetap hidup\n");
+            out.text("Kesalahan: indeks tugas uji berada di luar jangkauan - TEST 11 dilewati, shell tetap hidup\n");
         }
     }
 
@@ -2956,9 +3281,9 @@ pub fn execute_gate3d_suite() {
         let next_rsp = test_mgr.on_timer_tick(cur_rsp);
 
         if next_rsp == cur_rsp && next_rsp != 0 {
-            early_serial_write_str("[GATE-3D-TEST] TEST 12: Failure Injection - No-Ready-Task Safe Fallback Path -> PASS\n");
+            out.text("[GATE-3D-TEST] TEST 12: Failure Injection - No-Ready-Task Safe Fallback Path -> PASS\n");
         } else {
-            early_serial_write_str("[GATE-3D-TEST] TEST 12: FAILED safe fallback path!\n");
+            out.text("[GATE-3D-TEST] TEST 12: FAILED safe fallback path!\n");
         }
     }
 
@@ -3017,32 +3342,32 @@ pub fn execute_gate3d_suite() {
         if !state_ok {
             (*mgr).preemptive_enabled = false;
             core::arch::asm!("cli", options(nomem, nostack, preserves_flags));
-            early_serial_write_str("Kesalahan: keadaan penjadwal global tidak bersih - uji praemption perangkat keras dilewati, shell tetap hidup\n");
+            out.text("Kesalahan: keadaan penjadwal global tidak bersih - uji praemption perangkat keras dilewati, shell tetap hidup\n");
             return;
         }
 
         if bounds_ok {
-            early_serial_write_str("[GATE-3D-TEST] TEST 6A: Pre-Stress Stack Bounds & Fresh State Isolation Verification -> PASS\n");
+            out.text("[GATE-3D-TEST] TEST 6A: Pre-Stress Stack Bounds & Fresh State Isolation Verification -> PASS\n");
         } else {
-            early_serial_write_str("[GATE-3D-TEST] TEST 6A: FAILED stack bounds check!\n");
+            out.text("[GATE-3D-TEST] TEST 6A: FAILED stack bounds check!\n");
         }
 
         // Enable Preemption
         (*mgr).preemptive_enabled = true;
 
-        early_serial_write_str("[GATE-3D-TEST] Starting True 100,000 Hardware APIC Preemption Run...\n");
+        out.text("[GATE-3D-TEST] Starting True 100,000 Hardware APIC Preemption Run...\n");
 
         let initial_apic_interrupts = asl_hal::APIC_INTERRUPT_COUNT.load(core::sync::atomic::Ordering::Relaxed);
         let initial_apic_switches = asl_hal::APIC_PREEMPTIVE_SWITCH_COUNT.load(core::sync::atomic::Ordering::Relaxed);
         let initial_eoi_writes = asl_hal::EOI_WRITE_COUNT.load(core::sync::atomic::Ordering::Relaxed);
 
-        early_serial_write_str("  [SNAPSHOT-0] APIC Interrupts: ");
-        early_serial_write_u64(initial_apic_interrupts);
-        early_serial_write_str(" | APIC Switches: ");
-        early_serial_write_u64(initial_apic_switches);
-        early_serial_write_str(" | EOI Writes: ");
-        early_serial_write_u64(initial_eoi_writes);
-        early_serial_write_str("\n");
+        out.text("  [SNAPSHOT-0] APIC Interrupts: ");
+        out.number(initial_apic_interrupts);
+        out.text(" | APIC Switches: ");
+        out.number(initial_apic_switches);
+        out.text(" | EOI Writes: ");
+        out.number(initial_eoi_writes);
+        out.text("\n");
 
         // Enable Hardware Interrupts
         core::arch::asm!("sti", options(nomem, nostack, preserves_flags));
@@ -3066,11 +3391,13 @@ pub fn execute_gate3d_suite() {
             // Print intermediate snapshots every 25,000 switches
             if current_switches >= last_milestone + 25_000 {
                 last_milestone = (current_switches / 25_000) * 25_000;
-                early_serial_write_str("  [PROGRESS-SNAPSHOT] APIC Preemptive Switches: ");
-                early_serial_write_u64(current_switches);
-                early_serial_write_str(" / 100000 | Total APIC Interrupts: ");
-                early_serial_write_u64(asl_hal::APIC_INTERRUPT_COUNT.load(core::sync::atomic::Ordering::Relaxed));
-                early_serial_write_str("\n");
+                out.text("  [PROGRESS-SNAPSHOT] APIC Preemptive Switches: ");
+                out.number(current_switches);
+                out.text(" / 100000 | Total APIC Interrupts: ");
+                out.number(
+                    asl_hal::APIC_INTERRUPT_COUNT.load(core::sync::atomic::Ordering::Relaxed),
+                );
+                out.text("\n");
             }
 
             core::hint::spin_loop();
@@ -3093,7 +3420,7 @@ pub fn execute_gate3d_suite() {
             if early_inb(asl_driver_ps2_keyboard::PS2_STATUS_PORT) & 0x01 != 0 {
                 let _ = early_inb(asl_driver_ps2_keyboard::PS2_DATA_PORT);
             }
-            early_serial_write_str("Kesalahan: uji praemption Gate 3D dihentikan operator sebelum 100.000 tukar - kembali ke prompt, shell tetap hidup\n");
+            out.text("Kesalahan: uji praemption Gate 3D dihentikan operator sebelum 100.000 tukar - kembali ke prompt, shell tetap hidup\n");
             return;
         }
 
@@ -3104,52 +3431,52 @@ pub fn execute_gate3d_suite() {
         let final_sim_cycles = asl_hal::SIMULATED_SCHEDULER_CYCLE_COUNT.load(core::sync::atomic::Ordering::Relaxed);
         let final_eoi_writes = asl_hal::EOI_WRITE_COUNT.load(core::sync::atomic::Ordering::Relaxed);
 
-        early_serial_write_str("\n=== [GATE-3D-FINAL-TELEMETRY] ===\n");
-        early_serial_write_str("  APIC Interrupts (Vector 32 Entry): ");
-        early_serial_write_u64(final_apic_interrupts);
-        early_serial_write_str("\n  APIC Preemptive Switches:          ");
-        early_serial_write_u64(final_apic_switches);
-        early_serial_write_str("\n  No-Switch Interrupts:              ");
-        early_serial_write_u64(final_no_switches);
-        early_serial_write_str("\n  Cooperative Switches:              ");
-        early_serial_write_u64(final_coop_switches);
-        early_serial_write_str("\n  Simulated Scheduler Cycles:        ");
-        early_serial_write_u64(final_sim_cycles);
-        early_serial_write_str("\n  EOI Writes:                        ");
-        early_serial_write_u64(final_eoi_writes);
-        early_serial_write_str("\n==================================\n");
+        out.text("\n=== [GATE-3D-FINAL-TELEMETRY] ===\n");
+        out.text("  APIC Interrupts (Vector 32 Entry): ");
+        out.number(final_apic_interrupts);
+        out.text("\n  APIC Preemptive Switches:          ");
+        out.number(final_apic_switches);
+        out.text("\n  No-Switch Interrupts:              ");
+        out.number(final_no_switches);
+        out.text("\n  Cooperative Switches:              ");
+        out.number(final_coop_switches);
+        out.text("\n  Simulated Scheduler Cycles:        ");
+        out.number(final_sim_cycles);
+        out.text("\n  EOI Writes:                        ");
+        out.number(final_eoi_writes);
+        out.text("\n==================================\n");
 
         // Fairness Telemetry per Task
         for i in 0..4 {
-            early_serial_write_str("  [TASK-METRICS] Task ");
-            early_serial_write_u64(i as u64);
-            early_serial_write_str(" -> Dispatches: ");
-            early_serial_write_u64((*mgr).tasks[i].dispatch_count);
-            early_serial_write_str(" | Preemptions: ");
-            early_serial_write_u64((*mgr).tasks[i].preemption_count);
-            early_serial_write_str(" | Runtime Ticks: ");
-            early_serial_write_u64((*mgr).tasks[i].runtime_ticks);
-            early_serial_write_str(" | Longest Wait: ");
-            early_serial_write_u64((*mgr).tasks[i].longest_wait_ticks);
-            early_serial_write_str("\n");
+            out.text("  [TASK-METRICS] Task ");
+            out.number(i as u64);
+            out.text(" -> Dispatches: ");
+            out.number((*mgr).tasks[i].dispatch_count);
+            out.text(" | Preemptions: ");
+            out.number((*mgr).tasks[i].preemption_count);
+            out.text(" | Runtime Ticks: ");
+            out.number((*mgr).tasks[i].runtime_ticks);
+            out.text(" | Longest Wait: ");
+            out.number((*mgr).tasks[i].longest_wait_ticks);
+            out.text("\n");
         }
 
         // =========================================================================
         // TEST 3: Preemptive Stress Target (Hardware Switches >= 100,000)
         // =========================================================================
         if final_apic_switches >= 100_000 && final_apic_switches <= final_apic_interrupts {
-            early_serial_write_str("[GATE-3D-TEST] TEST 3: True Hardware APIC Preemption Target (>= 100,000 Switches) -> PASS\n");
+            out.text("[GATE-3D-TEST] TEST 3: True Hardware APIC Preemption Target (>= 100,000 Switches) -> PASS\n");
         } else {
-            early_serial_write_str("[GATE-3D-TEST] TEST 3: FAILED APIC switch count target!\n");
+            out.text("[GATE-3D-TEST] TEST 3: FAILED APIC switch count target!\n");
         }
 
         // =========================================================================
         // TEST 4: EOI Invariant Verification (EOI == APIC_INTERRUPTS)
         // =========================================================================
         if final_eoi_writes == final_apic_interrupts && final_eoi_writes >= 100_000 {
-            early_serial_write_str("[GATE-3D-TEST] TEST 4: EOI Invariant Exactly Maintained (EOI_COUNT == APIC_INTERRUPT_COUNT) -> PASS\n");
+            out.text("[GATE-3D-TEST] TEST 4: EOI Invariant Exactly Maintained (EOI_COUNT == APIC_INTERRUPT_COUNT) -> PASS\n");
         } else {
-            early_serial_write_str("[GATE-3D-TEST] TEST 4: FAILED EOI invariant!\n");
+            out.text("[GATE-3D-TEST] TEST 4: FAILED EOI invariant!\n");
         }
 
         // =========================================================================
@@ -3162,11 +3489,11 @@ pub fn execute_gate3d_suite() {
         let max_d = d1.max(d2).max(d3);
 
         if min_d > 0 && (max_d - min_d) <= (max_d / 5).max(100) {
-            early_serial_write_str("[GATE-3D-TEST] TEST 5: Three-Task Fairness (Uniform Round-Robin Distribution, Zero Starvation) -> PASS\n");
+            out.text("[GATE-3D-TEST] TEST 5: Three-Task Fairness (Uniform Round-Robin Distribution, Zero Starvation) -> PASS\n");
         } else if min_d > 0 {
-            early_serial_write_str("[GATE-3D-TEST] TEST 5: Three-Task Fairness (All Tasks Active, Zero Starvation) -> PASS\n");
+            out.text("[GATE-3D-TEST] TEST 5: Three-Task Fairness (All Tasks Active, Zero Starvation) -> PASS\n");
         } else {
-            early_serial_write_str("[GATE-3D-TEST] TEST 5: FAILED fairness (starvation detected)!\n");
+            out.text("[GATE-3D-TEST] TEST 5: FAILED fairness (starvation detected)!\n");
         }
 
         // =========================================================================
@@ -3179,9 +3506,11 @@ pub fn execute_gate3d_suite() {
             }
         }
         if canaries_ok {
-            early_serial_write_str("[GATE-3D-TEST] TEST 6B: Stack Bounds & Canary Integrity Post-Stress -> PASS\n");
+            out.text(
+                "[GATE-3D-TEST] TEST 6B: Stack Bounds & Canary Integrity Post-Stress -> PASS\n",
+            );
         } else {
-            early_serial_write_str("[GATE-3D-TEST] TEST 6B: FAILED canary corruption detected!\n");
+            out.text("[GATE-3D-TEST] TEST 6B: FAILED canary corruption detected!\n");
         }
 
         // =========================================================================
@@ -3219,18 +3548,18 @@ pub fn execute_gate3d_suite() {
             && c_regs.r15 == 0xCCCC_1515_1515_1515;
 
         if a_ok && b_ok && c_ok {
-            early_serial_write_str("[GATE-3D-TEST] TEST 7: Full 15-GPR Register Integrity (All 15 GPRs distinct and preserved across 100k switches) -> PASS\n");
+            out.text("[GATE-3D-TEST] TEST 7: Full 15-GPR Register Integrity (All 15 GPRs distinct and preserved across 100k switches) -> PASS\n");
         } else {
-            early_serial_write_str("[GATE-3D-TEST] TEST 7: FAILED register integrity leakage!\n");
+            out.text("[GATE-3D-TEST] TEST 7: FAILED register integrity leakage!\n");
         }
 
         // =========================================================================
         // TEST 8: Counter Separation Validation (No Counter Mixing)
         // =========================================================================
         if final_coop_switches == 0 && final_sim_cycles == 0 {
-            early_serial_write_str("[GATE-3D-TEST] TEST 8: Counter Separation Verified (Cooperative=0, Simulated=0 during APIC run) -> PASS\n");
+            out.text("[GATE-3D-TEST] TEST 8: Counter Separation Verified (Cooperative=0, Simulated=0 during APIC run) -> PASS\n");
         } else {
-            early_serial_write_str("[GATE-3D-TEST] TEST 8: Counter Separation Recorded.\n");
+            out.text("[GATE-3D-TEST] TEST 8: Counter Separation Recorded.\n");
         }
 
         // =========================================================================
@@ -3240,13 +3569,13 @@ pub fn execute_gate3d_suite() {
         let hhdm_test_ptr = (HHDM_OFFSET + 0x1000) as *const u64;
         let _hhdm_val = core::ptr::read_volatile(hhdm_test_ptr);
         if current_cr3 != 0 {
-            early_serial_write_str("[GATE-3D-TEST] TEST 13: Paging & HHDM Regression Check -> PASS\n");
+            out.text("[GATE-3D-TEST] TEST 13: Paging & HHDM Regression Check -> PASS\n");
         }
 
         // =========================================================================
         // TEST 14: Minimal Fault Infrastructure Regression Check
         // =========================================================================
-        early_serial_write_str("[GATE-3D-TEST] TEST 14: Minimal Fault Infrastructure Regression Check -> PASS\n");
+        out.text("[GATE-3D-TEST] TEST 14: Minimal Fault Infrastructure Regression Check -> PASS\n");
 
         // =========================================================================
         // TEST 15: Cockpit Shell Responsiveness & Scheduler State Cleanup
@@ -3255,7 +3584,7 @@ pub fn execute_gate3d_suite() {
         (*mgr).current_task_idx = 0;
         (*mgr).tasks[0].state = asl_sched::TaskState::Running;
         (*mgr).preemptive_enabled = false;
-        early_serial_write_str("[GATE-3D-TEST] TEST 15: Cockpit Shell Responsiveness & Scheduler State Reset -> PASS\n");
+        out.text("[GATE-3D-TEST] TEST 15: Cockpit Shell Responsiveness & Scheduler State Reset -> PASS\n");
     }
 }
 
@@ -3607,6 +3936,140 @@ mod hardening_tests {
             asl_cockpit_shell::MAX_ARG_LEN,
             "baris MAX_ARG_LEN di PETA-KANONIK memuat angka lain: {:?}",
             baris
+        );
+    }
+
+    // ---------------------------------------------------------------------
+    // F5: jembatan mode berpanduan + penanda kursor.
+    // ---------------------------------------------------------------------
+
+    /// Penjaga lintas krates yang DIJANJIKAN komentar konstanta: batas isi
+    /// mode berpanduan harus tetap sama dengan satu slot RAMDISK. Dependensi
+    /// `asl-cockpit-shell` tidak boleh menyebut `asl-storage` (G1, nol
+    /// `Cargo.toml` berubah), jadi pengikatnya test ini, bukan tipe.
+    #[test]
+    fn test_f5_batas_pemanduan_sama_dengan_slot_ramdisk() {
+        assert_eq!(
+            asl_cockpit_shell::GUIDED_ISI_MAKS,
+            asl_storage::ramdisk::RAMDISK_FILE_SLOT_BYTES,
+            "kapasitas panduan tidak lagi sama dengan satu slot berkas"
+        );
+        assert_eq!(
+            asl_cockpit_shell::GUIDED_NAME_MAX,
+            asl_cockpit_shell::MAX_ARG_LEN,
+            "batas nama panduan tidak lagi sama dengan satu token argumen"
+        );
+        assert_eq!(
+            asl_cockpit_shell::GUIDED_NAME_MAX,
+            asl_storage::vfs::MAX_NAME_LEN,
+            "batas nama panduan tidak lagi sama dengan batas nama berkas RAMDISK"
+        );
+    }
+
+    /// State panduan sebesar satu slot berkas: inilah alasan ia disimpan di
+    /// `.bss`, bukan sebagai variabel lokal galang boot yang lantainya
+    /// diukur `scripts/test_ram_floor_3mb.ps1`.
+    #[test]
+    fn test_f5_state_pemandu_cukup_besar_untuk_diletakkan_di_bss() {
+        assert!(
+            core::mem::size_of::<asl_cockpit_shell::Pemandu>()
+                >= asl_storage::ramdisk::RAMDISK_FILE_SLOT_BYTES,
+            "state panduan mengecil; alasan penempatannya di .bss harus ditulis ulang"
+        );
+    }
+
+    /// Penjaga potongan baris yang dicetak jembatan panduan: label tetap dari
+    /// satu sumber, dan pembatalan dipilih menurut MODE yang sedang berjalan,
+    /// bukan menurut aksi (nama berkas dipakai bersama dua perintah).
+    #[test]
+    fn test_f5_pieces_panduan_memakai_label_satu_sumber() {
+        let (label, keterangan, penutup) = pieces_galat_nama_pemandu();
+        assert_eq!(label, asl_cockpit_shell::MSG_ERROR);
+        assert_eq!(keterangan, asl_cockpit_shell::MSG_LABEL_NAMA_PANJANG);
+        assert_eq!(penutup, asl_cockpit_shell::MSG_LABEL_NAMA_PANJANG_TAIL);
+
+        let (awal, akhir) = pieces_batal_pemandu(asl_cockpit_shell::ModeInput::NamaFolder);
+        assert_eq!(awal, asl_cockpit_shell::MSG_BATAL);
+        assert_eq!(akhir, asl_cockpit_shell::MSG_BATAL_FOLDER);
+
+        let (awal, akhir) = pieces_batal_pemandu(asl_cockpit_shell::ModeInput::NamaBerkas);
+        assert_eq!(awal, asl_cockpit_shell::MSG_BATAL);
+        assert_eq!(akhir, asl_cockpit_shell::MSG_BATAL_BERKAS);
+
+        // Isi yang ditinggalkan baris kosong bukan pembatalan: tidak ada
+        // pasangan label untuk mode isi.
+        let (_, akhir_isi) = pieces_batal_pemandu(asl_cockpit_shell::ModeInput::IsiBerkas);
+        assert_eq!(akhir_isi, asl_cockpit_shell::MSG_BATAL_BERKAS);
+    }
+
+    /// Penjaga F5 bagian dokumen: `PETA-KANONIK.md` memuat indeks label mode
+    /// berpanduan dan angka kapasitas yang sama dengan konstanta.
+    #[test]
+    fn test_f5_peta_memuat_indeks_label() {
+        const PETA: &str = include_str!("../../../docs/ROADMAP/PETA-KANONIK.md");
+        assert!(
+            PETA.contains("MODE BERPANDUAN"),
+            "PETA-KANONIK tidak memuat seksi mode berpanduan"
+        );
+        assert!(
+            PETA.contains("Nama folder baru: "),
+            "PETA-KANONIK tidak memuat label nama folder"
+        );
+        assert!(
+            PETA.contains("Isi <nama> (baris <n>): "),
+            "PETA-KANONIK tidak memuat label isi bernomor"
+        );
+        assert!(
+            PETA.contains("GUIDED_ISI_MAKS"),
+            "PETA-KANONIK tidak memuat batas isi panduan"
+        );
+        let baris = PETA
+            .lines()
+            .find(|l| l.contains("GUIDED_ISI_MAKS"))
+            .expect("PETA-KANONIK tidak memuat GUIDED_ISI_MAKS");
+        let ekor = baris.split("GUIDED_ISI_MAKS").nth(1).unwrap_or("");
+        let mut nilai = 0usize;
+        let mut digit = 0usize;
+        for b in ekor.bytes() {
+            if b.is_ascii_digit() {
+                nilai = nilai * 10 + (b - b'0') as usize;
+                digit += 1;
+            } else if digit > 0 {
+                break;
+            }
+        }
+        assert!(digit > 0, "baris GUIDED_ISI_MAKS tidak memuat angka");
+        assert_eq!(
+            nilai,
+            asl_cockpit_shell::GUIDED_ISI_MAKS,
+            "baris GUIDED_ISI_MAKS di PETA-KANONIK memuat angka lain: {:?}",
+            baris
+        );
+        assert!(
+            PETA.contains("kursor_nyala"),
+            "PETA-KANONIK tidak menyatakan sumber fase penanda kursor"
+        );
+
+        // Jumlah roster label pada baris PETA dibaca sebagai byte (tanpa
+        // alokasi); sisi kode sudah dipatok oleh tipe array `f3_labels()`.
+        let baris_label = PETA
+            .lines()
+            .find(|l| l.contains("konstanta `MSG_*`"))
+            .expect("PETA-KANONIK tidak memuat baris roster label");
+        let mut nilai = 0usize;
+        let mut ketemu = false;
+        for c in baris_label.chars() {
+            if c.is_ascii_digit() {
+                nilai = nilai * 10 + (c as usize - '0' as usize);
+                ketemu = true;
+            } else if ketemu {
+                break;
+            }
+        }
+        assert!(ketemu, "baris roster label PETA-KANONIK tidak memuat angka");
+        assert_eq!(
+            nilai, 39,
+            "roster label di PETA-KANONIK tidak sama dengan `f3_labels()`"
         );
     }
 }

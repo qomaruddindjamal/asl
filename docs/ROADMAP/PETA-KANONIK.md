@@ -21,9 +21,31 @@ dicetak atau nama konstanta adalah penanda yang stabil.
 | Daftar perintah kanonik | `REGISTRY` + `CANONICAL_COMMAND_COUNT` di berkas yang sama | keluaran `help`, jumlah pada `status`, `docs/PANDUAN/REFERENSI-PERINTAH.md` | `test_registry_has_twelve_canonical_commands`, `test_f2_up_command_is_canonical_and_takes_no_argument`, `test_docs_command_reference_matches_registry` |
 | Alias parser | `aliases()` tiap entri registry | resolusi parser, baris `alias:` pada `help` | `test_parser_resolves_every_documented_alias` |
 | Judul kelompok perintah | `CommandCategory::label()` | seksi pada keluaran `help`, kolom Kelompok pada dokumen panduan | `test_help_text_is_generated_from_registry` |
-| Label keluaran shell (28 konstanta `MSG_*`) | `MSG_*` di `asl-kernel/asl-cockpit-shell/src/lib.rs` | setiap baris galat dan baris sukses yang dicetak dispatch di `asl-kernel/asl-kernel-core/src/lib.rs`, `docs/PANDUAN/REFERENSI-PERINTAH.md` Pasal 7 | `test_f3_labels_keluaran_satu_sumber`, `test_f3_dokumen_memuat_setiap_label_keluaran` |
+| Label keluaran shell (39 konstanta `MSG_*`) | `MSG_*` di `asl-kernel/asl-cockpit-shell/src/lib.rs` | setiap baris galat dan baris sukses yang dicetak dispatch di `asl-kernel/asl-kernel-core/src/lib.rs`, `docs/PANDUAN/REFERENSI-PERINTAH.md` Pasal 7 | `test_f3_labels_keluaran_satu_sumber`, `test_f3_dokumen_memuat_setiap_label_keluaran` |
 | Batas baris input | `SHELL_BUFFER_MAX` | penyangga shell, uji limpahan | `test_shell_buffer_overflow_protection` |
 | Batas satu token argumen | `MAX_ARG_LEN` = 64 di `asl-kernel/asl-cockpit-shell/src/lib.rs` | penampung argumen parser, flag `Invocation::arg_cut`, penolakan nama terpotong dan pengumuman isi terpotong di dispatch, Pasal 6 dan 7 `docs/PANDUAN/REFERENSI-PERINTAH.md` | `test_f4_argumen_terpotong_ditandai_bukan_disembunyikan`, `test_f4_nama_sampai_batas_argumen_tetap_utuh`, `test_f4_dokumen_memuat_batas_argumen`, `test_f4_peta_memuat_batas_argumen` |
+
+## Pasal 2A - MODE BERPANDUAN dan penanda kursor (F5)
+
+Mesin state mode berpanduan hidup di `asl-cockpit-shell` (murni, dapat diuji
+dari host); jembatan yang mencetak label dan menyentuh VFS hidup di
+`asl-kernel-core`. Pintunya hanya satu: baris galat arity tercetak lebih dulu,
+lalu untuk tiga perintah pembuatan shell menerima baris berikutnya sebagai
+argumen yang hilang.
+
+| Fakta | Sumber satu-satunya | Yang menyusun dari sumber | Penjaga |
+| --- | --- | --- | --- |
+| Perintah yang boleh dibimbing | `resolusi_pemandu()` membaca `REGISTRY` (sintaks -> tujuan), bukan daftar tangan | jembatan `buka_pemandu` di `asl-kernel-core` | `test_f5_mode_hanya_masuk_setelah_galat_arity` |
+| Label `Nama folder baru: ` | `MSG_LABEL_FOLDER` | baris permintaan nama direktori pada kedua penampil | `test_f5_pemanduan_nama_folder`, `test_f3_dokumen_memuat_setiap_label_keluaran` |
+| Label `Isi <nama> (baris <n>): ` | `MSG_CONTENT` + `MSG_BARIS_OPEN` + nomor baris + `MSG_BARIS_TAIL`, disusun `Pemandu::label` | baris permintaan isi bernomor pada kedua penampil | `test_f5_pemanduan_isi_multi_baris_dan_nomor` |
+| Baris kosong berarti batal (mode nama) atau selesai (mode isi) | `Pemandu::terima` | `terima_baris_panduan` + `pieces_batal_pemandu` | `test_f5_pemanduan_batal_baris_kosong`, `test_f5_pieces_panduan_memakai_label_satu_sumber` |
+| Batas nama panduan = batas satu token | `GUIDED_NAME_MAX` (= `MAX_ARG_LEN`) | penampung nama dan penolakan `NamaTerlaluPanjang` | `test_f5_nama_panduan_terlalu_panjang_ditolak`, `test_f5_batas_pemanduan_sama_dengan_slot_ramdisk` |
+| Batas isi panduan = satu slot RAMDISK | `GUIDED_ISI_MAKS` = 8192 byte, diikat ke `RAMDISK_FILE_SLOT_BYTES` oleh test lintas krates | penampung isi dan pengumuman `Isi berhenti pada kapasitas satu slot ...` | `test_f5_batas_pemanduan_sama_dengan_slot_ramdisk`, `test_f5_isi_panduan_berhenti_di_satu_slot` |
+| State panduan satu-satu, di `.bss` | `static mut PEMANDU` di `asl-kernel-core` (bukan lokal: penyangganya selebar satu slot) | `terima_baris_panduan`, `jalankan_aksi_pemandu` | `test_f5_state_pemandu_cukup_besar_untuk_diletakkan_di_bss` |
+| Jalur pembuatan berkas SATU aturan | `jalankan_buat_folder`, `jalankan_buat_berkas`, `jalankan_tulis_berkas` dipakai dispatch kanonik DAN panduan | `run_canonical_command`, `jalankan_aksi_pemandu` | `test_f4_nama_sampai_batas_argumen_tetap_utuh` dan sesi QEMU F5 |
+| Glif penanda kursor | `CURSOR_IDLE_GLYPH` (sudah hidup di `SHELL_PROMPT_SUFFIX`) | `gambar_penanda_kursor` pada framebuffer saja | `test_f5_kursor_nyala_beralternasi` |
+| Fase penanda kursor | `kursor_nyala(detik)` dengan `CURSOR_BLINK_PERIODE` = 2 | galang shell idle membaca `read_cmos_reg(0)` lewat `baca_detik_rtc` | `test_f5_kursor_nyala_beralternasi`, `screendump` QEMU pada berkas bukti F5 |
+| Umpan balik kemajuan Gate 3D di layar | `DualOut` dipakai `execute_gate3d_suite` (entri #38) | setiap baris progres suite yang semula hanya serial | sesi QEMU F5; varians durasi 64,0 s sampai 310,7 s tercatat di `docs/RND/ASL-V1.0.2-E8-LAPORAN-PENUTUPAN.md` |
 
 ## Pasal 3 - Penyimpanan dan memori
 

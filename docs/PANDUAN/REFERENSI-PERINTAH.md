@@ -22,7 +22,11 @@ skrip, tidak ada berkas di disk, tidak ada jaringan.
 
 - Mesin berjalan dari ISO rilis pada QEMU (`q35`) atau perangkat yang didukung.
 - Konsol serial 115200 8N1 terhubung, atau keluaran framebuffer terlihat.
-- Prompt siap diterima: `ASL-KERNEL> ` (satu-sumber: konstanta `SHELL_PROMPT`).
+- Prompt siap diterima: `ASL-KERNEL />_ ` pada akar RAMDISK (satu-sumber:
+  konstanta `SHELL_PROMPT`, disusun oleh `render_prompt` dari
+  `SHELL_PROMPT_PREFIX` + posisi aktif + `SHELL_PROMPT_SUFFIX`). Prompt
+  bergerak bersama direktori kerja: sesudah `cd log` ia menjadi
+  `ASL-KERNEL /log>_ `.
 - Penyimpanan tempat perintah berkas bekerja adalah RAMDISK volatil berkapasitas
   262144 byte (256 KiB). Isi hilang ketika mesin dimatikan.
 
@@ -60,7 +64,7 @@ Urutan di bawah sama dengan urutan tampil pada perintah `help`.
 ### where
 - Nama: `where`
 - Sintaks: `where`
-- Ringkasan: Tampilkan direktori kerja saat ini; prompt sengaja polos tanpa posisi folder.
+- Ringkasan: Tampilkan direktori kerja aktif; posisi yang sama juga tampil pada prompt.
 - Alias: -
 - Argumen: paling sedikit 0, paling banyak 0
 - Kelompok: Ruang kerja

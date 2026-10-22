@@ -1018,6 +1018,12 @@ impl ShellCwd {
         }
     }
 
+    /// Prompt shell untuk posisi kerja ini (F1): 'ASL-KERNEL <posisi>>_ '.
+    /// Penyangga disediakan pemanggil supaya tetap nol alokasi heap (G1).
+    fn prompt<'b>(&self, buf: &'b mut [u8]) -> &'b str {
+        asl_cockpit_shell::render_prompt(self.as_str(), buf)
+    }
+
     /// Ganti ruang kerja; nama lebih panjang dari penyangga dipotong aman.
     fn set_path(&mut self, path: &str) {
         let bytes = path.as_bytes();
@@ -1759,6 +1765,14 @@ pub unsafe extern "C" fn _asl_kernel_entry(handover_ptr: *const AslBootHandover)
         vtd_boot::qm01_vtd_boot_probe(hv.kernel_virtual_base, hv.kernel_physical_base);
     }
 
+    // Ruang kerja perintah berkas kanonik: mulai dari akar RAMDISK. F1 membuat
+    // prompt menampilkan posisi aktif, jadi cwd disusun sebelum prompt pertama
+    // dicetak ke kedua penampil.
+    let mut cwd = ShellCwd::root();
+    let mut prompt_buf =
+        [0u8; asl_cockpit_shell::SHELL_PROMPT_FIXED_LEN + asl_storage::vfs::MAX_PATH_LEN];
+    let boot_prompt = cwd.prompt(&mut prompt_buf);
+
     #[cfg(target_arch = "x86_64")]
     {
         let fb = core::ptr::addr_of_mut!(FB_CONSOLE);
@@ -1774,14 +1788,14 @@ pub unsafe extern "C" fn _asl_kernel_entry(handover_ptr: *const AslBootHandover)
         (*fb).set_fg_color(0x00FFFFFF);
         (*fb).write_str("Secondary Failover Engine: Active-Standby Ready\n\n");
 
-        // Tampilkan prompt Cockpit Shell pertama kali
+        // Tampilkan prompt Cockpit Shell pertama kali (F1: berposisi aktif)
         (*fb).set_fg_color(0x0000FF00); // Green
-        (*fb).write_str(asl_cockpit_shell::SHELL_PROMPT);
+        (*fb).write_str(boot_prompt);
         (*fb).set_fg_color(0x00FFFFFF);
     }
 
     early_serial_write_str("\n");
-    early_serial_write_str(asl_cockpit_shell::SHELL_PROMPT);
+    early_serial_write_str(boot_prompt);
 
     #[cfg(feature = "test-gate3d")]
     #[cfg(target_arch = "x86_64")]
@@ -1792,8 +1806,6 @@ pub unsafe extern "C" fn _asl_kernel_entry(handover_ptr: *const AslBootHandover)
     // 3. Inisialisasi PS/2 Keyboard & Cockpit Shell Engine
     let mut keyboard = asl_driver_ps2_keyboard::Ps2Keyboard::new();
     let mut shell = asl_cockpit_shell::CockpitShell::new();
-    // Ruang kerja perintah berkas kanonik: mulai dari akar RAMDISK.
-    let mut cwd = ShellCwd::root();
 
     // 4. Interactive Cockpit Shell & Deterministic Event Loop
     let mut _shell_ticks: u64 = 0;
@@ -2357,10 +2369,13 @@ pub unsafe extern "C" fn _asl_kernel_entry(handover_ptr: *const AslBootHandover)
                     asl_cockpit_shell::ShellCommand::Empty => {}
                 }
 
-                early_serial_write_str(asl_cockpit_shell::SHELL_PROMPT);
+                // F1: prompt disusun ulang setiap kali karena posisinya dapat
+                // berpindah oleh perintah ruang kerja.
+                let prompt = cwd.prompt(&mut prompt_buf);
+                early_serial_write_str(prompt);
                 unsafe {
                     (*fb).set_fg_color(0x0000FF00); // Green
-                    (*fb).write_str(asl_cockpit_shell::SHELL_PROMPT);
+                    (*fb).write_str(prompt);
                     (*fb).set_fg_color(0x00FFFFFF);
                 }
             }
@@ -3284,6 +3299,23 @@ mod hardening_tests {
         // Isi penyangga tetap UTF-8: tidak pernah memotong di tengah byte multi-byte
         // karena seluruh jalur shell ASCII, dan `as_str` punya fallback "/".
         assert!(!cwd.as_str().is_empty());
+    }
+
+    /// F1: prompt shell memuat posisi direktori kerja aktif pada kedua penampil.
+    #[test]
+    fn test_shell_prompt_shows_active_position() {
+        let mut cwd = ShellCwd::root();
+        let mut buf =
+            [0u8; asl_cockpit_shell::SHELL_PROMPT_FIXED_LEN + asl_storage::vfs::MAX_PATH_LEN];
+        assert_eq!(cwd.prompt(&mut buf), asl_cockpit_shell::SHELL_PROMPT);
+        cwd.set_path("/hello");
+        assert_eq!(cwd.prompt(&mut buf), "ASL-KERNEL /hello>_ ");
+        // Posisi sepanjang-panjangnya tetap termuat tanpa membelah karakter.
+        let dalam = ["yyyyyyyyyy"; 30].join("/");
+        cwd.set_path(dalam.as_str());
+        let p = cwd.prompt(&mut buf);
+        assert!(p.starts_with(asl_cockpit_shell::SHELL_PROMPT_PREFIX));
+        assert!(p.ends_with(asl_cockpit_shell::SHELL_PROMPT_SUFFIX));
     }
 
     #[test]

@@ -17,7 +17,7 @@ dicetak atau nama konstanta adalah penanda yang stabil.
 | Fakta | Sumber satu-satunya | Yang menyusun dari sumber | Penjaga |
 | --- | --- | --- | --- |
 | Versi rilis `v1.0.2` | `KERNEL_VERSION` di `asl-kernel/asl-cockpit-shell/src/lib.rs` | banner, `uname`, `status`, prompt bantuan | `test_release_identity_single_source` |
-| Prompt `ASL-KERNEL> ` | `SHELL_PROMPT` di berkas yang sama | seluruh situs tampil; dibaca juga oleh skrip gerbang memori | `test_release_identity_single_source`, parser `scripts/test_ram_floor_3mb.ps1` |
+| Prompt `ASL-KERNEL />_ ` (akar) dan `ASL-KERNEL <posisi>>_ ` (subfolder) | `SHELL_PROMPT_PREFIX` + `SHELL_PROMPT_SUFFIX`, disusun `render_prompt`; `SHELL_PROMPT` adalah bentuk akar | seluruh situs tampil lewat `ShellCwd::prompt`; dibaca juga oleh skrip gerbang memori | `test_release_identity_single_source`, `test_f1_prompt_shows_active_position`, `test_f1_prompt_truncates_long_position_and_keeps_suffix`, `test_shell_prompt_shows_active_position`, parser `scripts/test_ram_floor_3mb.ps1` |
 | Daftar perintah kanonik | `REGISTRY` + `CANONICAL_COMMAND_COUNT` di berkas yang sama | keluaran `help`, jumlah pada `status`, `docs/PANDUAN/REFERENSI-PERINTAH.md` | `test_registry_has_eleven_canonical_commands`, `test_docs_command_reference_matches_registry` |
 | Alias parser | `aliases()` tiap entri registry | resolusi parser, baris `alias:` pada `help` | `test_parser_resolves_every_documented_alias` |
 | Judul kelompok perintah | `CommandCategory::label()` | seksi pada keluaran `help`, kolom Kelompok pada dokumen panduan | `test_help_text_is_generated_from_registry` |

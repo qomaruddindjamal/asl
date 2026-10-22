@@ -57,6 +57,19 @@ bukan klaim bahwa panic laporan pemilik pernah teramati.
 | Harga perbaikan A4 | Poll dua port tiap iterasi membuat satu ketikan menghentikan rangkaian, dan menaikkan waktu boot segar dari 178,8 s (ISO `aa778060`, pra-perbaikan) menjadi 310,7 s (ISO `18f40d2d`). Kedua angka berasal dari ISO dan beban berbeda, jadi yang dilaporkan adalah kisaran, bukan sebab-akibat tunggal |
 | Tombol penghenti | Terukur `elapsed_ms=25528` dengan prompt kembali dan `pesan_operator=True` pada sesi `2026-10-21_22-49-02` (Bagian 5.1) |
 
+Catatan untuk pembaca setelah unit F1 (BAGIAN 2 pada rantai yang sama): bentuk
+prompt pada tabel ini adalah bentuk **pra-F1** dan dibiarkan apa adanya karena
+itulah yang disaksikan pemilik pada jendela LANGKAH 6. Sesudah F1, prompt
+dibentuk dari satu sumber sebagai `ASL-KERNEL ` + posisi direktori + `>_ `,
+yaitu `ASL-KERNEL />_ ` di akar dan `ASL-KERNEL /hello>_ ` di subfolder, dan
+gerbang unit terukur **205 lulus / 0 gagal** pada 30 suite di tree itu (202
+ditambah tiga test F1) — lihat
+`Analysis/reports/f1_prompt-berposisi_uji_2026-10-22.txt`. Konsekuensi yang
+diikat: pencocokan harfiah konstanta `SHELL_PROMPT` oleh alat gerbang hanya sah
+pada direktori akar, sehingga jendela E8 yang diulang pasca-F2 dan F6 harus
+menjalankan ISO baru (`-ExpectedIsoSha`) dan membaca deret prompt dari berkas
+serial, bukan dari satu konstanta. Angka lain pada laporan ini tidak berubah.
+
 ## 3. Akar penyebab yang diverifikasi (LANGKAH 2)
 
 Enam lokasi, semuanya `asl-kernel/asl-kernel-core/src/lib.rs` kecuali penjaga

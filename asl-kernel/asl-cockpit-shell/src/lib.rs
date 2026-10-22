@@ -2,7 +2,9 @@
 //! =====================================================
 //! Standar DO-178C DAL-A & Allocation-Free Command Interpreter.
 //! Menghadirkan prompt interaktif:
-//! `ASL-KERNEL> ` (satu-sumber: konstanta `SHELL_PROMPT` di berkas ini)
+//! `ASL-KERNEL <posisi>>_ ` (satu-sumber: `SHELL_PROMPT_PREFIX` +
+//! `SHELL_PROMPT_SUFFIX` di berkas ini; `render_prompt` menyusunnya)
+//!
 //! Perintah bawaan:
 //! - `help`    : Menampilkan daftar perintah
 //! - `clear`   : Membersihkan layar
@@ -21,8 +23,64 @@ pub const SHELL_BUFFER_MAX: usize = 128;
 /// (logo, VGA, framebuffer, serial, uname) di asl-kernel-core.
 pub const KERNEL_VERSION: &str = "v1.0.2";
 
-/// Prompt shell: SATU-SUMBER untuk seluruh situs tampil. Tanpa posisi folder.
-pub const SHELL_PROMPT: &str = "ASL-KERNEL> ";
+/// Awalan prompt shell: SATU-SUMBER. Posisi direktori aktif ditulis setelahnya
+/// oleh [`render_prompt`], jadi awalan ini tidak pernah berubah sendiri.
+pub const SHELL_PROMPT_PREFIX: &str = "ASL-KERNEL ";
+
+/// Akhiran prompt shell: SATU-SUMBER, menandai tempat ketikan dimulai.
+pub const SHELL_PROMPT_SUFFIX: &str = ">_ ";
+
+/// Panjang prompt tanpa posisi: [`SHELL_PROMPT_PREFIX`] + [`SHELL_PROMPT_SUFFIX`].
+pub const SHELL_PROMPT_FIXED_LEN: usize = SHELL_PROMPT_PREFIX.len() + SHELL_PROMPT_SUFFIX.len();
+
+/// Prompt pada direktori AKAR, hasil [`render_prompt("/")`] yang dipromosikan
+/// menjadi konstanta karena perkakas gerbang membaca nilainya lewat pola
+/// `pub const SHELL_PROMPT : &str = "..."` dan memakainya untuk mengenali
+/// "shell sudah siap" pada keluaran serial.
+pub const SHELL_PROMPT: &str = "ASL-KERNEL />_ ";
+
+/// Susun prompt berposisi ke penyangga pemberi panggilan: nol alokasi heap,
+/// nol `alloc`, target `no_std` (G1). Posisi yang tidak muat dipotong pada
+/// batas penyangga sementara akhiran tetap utuh; seluruh jalur shell ASCII
+/// jadi pemotongan byte tidak pernah membelah karakter.
+///
+/// Penyangga harus sekurang-kurangnya [`SHELL_PROMPT_FIXED_LEN`] byte; bila
+/// lebih kecil, yang kembali adalah [`SHELL_PROMPT_PREFIX`] seadanya.
+pub fn render_prompt<'b>(position: &str, buf: &'b mut [u8]) -> &'b str {
+    let prefix = SHELL_PROMPT_PREFIX.as_bytes();
+    let suffix = SHELL_PROMPT_SUFFIX.as_bytes();
+    if buf.len() < prefix.len() + suffix.len() {
+        return SHELL_PROMPT_PREFIX;
+    }
+    let ruang = buf.len() - prefix.len() - suffix.len();
+    let posisi = position.as_bytes();
+    let ikut = if posisi.len() <= ruang {
+        posisi.len()
+    } else {
+        ruang
+    };
+    let mut i = 0;
+    while i < prefix.len() {
+        buf[i] = prefix[i];
+        i += 1;
+    }
+    let mut j = 0;
+    while j < ikut {
+        buf[i] = posisi[j];
+        i += 1;
+        j += 1;
+    }
+    let mut k = 0;
+    while k < suffix.len() {
+        buf[i] = suffix[k];
+        i += 1;
+        k += 1;
+    }
+    match core::str::from_utf8(&buf[..i]) {
+        Ok(s) => s,
+        Err(_) => SHELL_PROMPT,
+    }
+}
 
 /// Perintah Shell yang dikenali
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -346,7 +404,7 @@ impl ShellEntry for WhereCmd {
         "where"
     }
     fn summary(&self) -> &'static str {
-        "Tampilkan direktori kerja saat ini; prompt sengaja polos tanpa posisi folder."
+        "Tampilkan direktori kerja aktif; posisi yang sama juga tampil pada prompt."
     }
     fn category(&self) -> CommandCategory {
         CommandCategory::Workspace
@@ -1134,14 +1192,48 @@ mod tests {
 
     #[test]
     fn test_release_identity_single_source() {
-        // Janji misi v1.0.2 Bagian 1.1: prompt polos, TANPA posisi folder di prompt.
-        assert_eq!(SHELL_PROMPT, "ASL-KERNEL> ");
-        assert!(SHELL_PROMPT.ends_with("> "));
-        assert!(!SHELL_PROMPT.contains('/'));
+        // F1 (misi v1.0.2-R1 Bagian 2) menggantikan janji lama Bagian 1.1
+        // "prompt polos tanpa posisi folder": posisi aktif kini bagian dari
+        // prompt, dan keduanya tetap dibaca dari satu sumber.
+        assert_eq!(SHELL_PROMPT_PREFIX, "ASL-KERNEL ");
+        assert_eq!(SHELL_PROMPT_SUFFIX, ">_ ");
+        assert_eq!(SHELL_PROMPT_FIXED_LEN, SHELL_PROMPT.len() - 1);
+        let mut akar = [0u8; 64];
+        assert_eq!(render_prompt("/", &mut akar), SHELL_PROMPT);
+        assert!(SHELL_PROMPT.starts_with(SHELL_PROMPT_PREFIX));
+        assert!(SHELL_PROMPT.ends_with(SHELL_PROMPT_SUFFIX));
         assert!(!SHELL_PROMPT.contains('\\'));
         // Identitas rilis dibaca dari satu konstanta oleh seluruh situs tampil.
         assert_eq!(KERNEL_VERSION, "v1.0.2");
         assert!(KERNEL_VERSION.starts_with('v'));
+    }
+
+    /// Janji F1: prompt menunjuk direktori kerja aktif, bukan hanya nama kernel.
+    #[test]
+    fn test_f1_prompt_shows_active_position() {
+        let mut buf = [0u8; SHELL_PROMPT_FIXED_LEN + 128];
+        assert_eq!(render_prompt("/hello", &mut buf), "ASL-KERNEL /hello>_ ");
+        assert_eq!(
+            render_prompt("/log/note", &mut buf),
+            "ASL-KERNEL /log/note>_ "
+        );
+        // Penyangga yang sama dipakai ulang tanpa alokasi (G1).
+        assert_eq!(render_prompt("/", &mut buf), SHELL_PROMPT);
+    }
+
+    /// Posisi lebih panjang dari penyangga: dipotong aman, akhiran tidak hilang.
+    #[test]
+    fn test_f1_prompt_truncates_long_position_and_keeps_suffix() {
+        let posisi = [b'/'; 200];
+        let panjang = core::str::from_utf8(&posisi).unwrap();
+        let mut buf = [0u8; SHELL_PROMPT_FIXED_LEN + 128];
+        let p = render_prompt(panjang, &mut buf);
+        assert!(p.starts_with(SHELL_PROMPT_PREFIX));
+        assert!(p.ends_with(SHELL_PROMPT_SUFFIX));
+        assert_eq!(p.len(), SHELL_PROMPT_FIXED_LEN + 128);
+        // Penyangga terlalu kecil: tetap keluar awalan yang sah, bukan panic.
+        let mut kecil = [0u8; 4];
+        assert_eq!(render_prompt("/log", &mut kecil), SHELL_PROMPT_PREFIX);
     }
 
     /// Ambil nilai dari satu baris dokumen berformat `- <prefix><nilai>`.

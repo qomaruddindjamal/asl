@@ -2,7 +2,7 @@
 
 ## Pasal 1 - Tujuan
 
-Satu halaman untuk sampai pada prompt `ASL-KERNEL> ` dari repositori bersih:
+Satu halaman untuk sampai pada prompt `ASL-KERNEL />_ ` dari repositori bersih:
 uji unit di host, bangun ELF release, bangun ISO, lalu boot di QEMU. Setiap
 perintah di bawah adalah perintah yang benar-benar dipakai pipeline repo ini.
 
@@ -78,7 +78,9 @@ pola ini yang dipakai sesi shell terukur pada tahap P3 (`VERIFIED-ON-VM`):
 
 Urutan yang harus muncul di serial: `[ASL-LAUNCHER] M1`, `M2`, `M3`, lalu
 `[ASL-CORE] M0`, `M0+`, `M4`, `M4+`, `M5`, `M6: Kernel Cold Boot Complete`,
-banner, dan prompt `ASL-KERNEL> `. Daftar arti tiap tahap ada di
+banner, dan prompt `ASL-KERNEL />_ ` (akar RAMDISK). Prompt membawa posisi
+direktori kerja, jadi sesudah `cd log` ia berubah menjadi `ASL-KERNEL /log>_ `.
+Daftar arti tiap tahap ada di
 `docs/ROADMAP/PETA-KANONIK.md`.
 
 ## Pasal 4 - Lima menit pertama di shell
@@ -86,15 +88,15 @@ banner, dan prompt `ASL-KERNEL> `. Daftar arti tiap tahap ada di
 Perintah yang tersedia dibaca dari dalam shell sendiri, bukan dari hafalan:
 
 ```
-ASL-KERNEL> help
-ASL-KERNEL> help write-file
-ASL-KERNEL> where
-ASL-KERNEL> create-folder log
-ASL-KERNEL> cd log
-ASL-KERNEL> create-file note.txt
-ASL-KERNEL> write-file note.txt halo dunia
-ASL-KERNEL> cat note.txt
-ASL-KERNEL> status
+ASL-KERNEL />_ help
+ASL-KERNEL />_ help write-file
+ASL-KERNEL />_ where
+ASL-KERNEL />_ create-folder log
+ASL-KERNEL />_ cd log
+ASL-KERNEL /log>_ create-file note.txt
+ASL-KERNEL /log>_ write-file note.txt halo dunia
+ASL-KERNEL /log>_ cat note.txt
+ASL-KERNEL /log>_ status
 ```
 
 Ruang kerja (`cd`, `ls`, `cat`) hanya melihat RAMDISK volatil; isi hilang ketika

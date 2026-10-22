@@ -438,38 +438,50 @@ Yang tersisa:
    dilaporkan).
 3. **Utang ekstrak hosted CI (G8)** — daftarnya dihitung ulang dari `gh api`
    dan `git ls-tree -r HEAD Analysis/reports`, bukan dari ingatan. Pada HEAD
-   `4c3e0d2` terukur DUA PULUH EMPAT run = DUA BELAS pasangan peristiwa atas
-   DUA BELAS commit yang punya run, seluruhnya `conclusion=success`; SEPULUH
+   `5812c77` (commit-unit F1, unit pertama BAGIAN 2 yang mengubah `.rs`)
+   terukur DUA PULUH ENAM run = TIGA BELAS pasangan peristiwa atas TIGA BELAS
+   commit yang punya run, seluruhnya `conclusion=success`; SEPULUH
    commit cabang tidak pernah punya run sendiri (rincian di bawah). Audit
    per-commit tersimpan sebagai bukti di
-   `Analysis/reports/e8_l7b_audit-utang-ekstrak_2026-10-22.txt` (pengganti
-   `e8_l7_audit-utang-ekstrak_2026-10-22.txt`,
-   `e8_l6b_audit-utang-ekstrak_2026-10-22.txt` dan
-   `e8_l5c_audit-utang-ekstrak_2026-10-21.txt`), dijalankan oleh
-   `scripts/r1_debt_audit.py` pada HEAD `4c3e0d2` sebelum unit penutupan ini;
-   dua baris `BELUM` pada berkas itu adalah ekstrak yang ikut unit ini, bukan
-   kegagalan.
-   *Sudah tertutup*: DUA BELAS pasangan peristiwa — atas `17570f6`, `a141640`,
+   `Analysis/reports/e8_l8_audit-utang-ekstrak_2026-10-22.txt` (pengganti
+   `e8_l7b_audit-utang-ekstrak_2026-10-22.txt`,
+   `e8_l7_audit-utang-ekstrak_2026-10-22.txt` dan
+   `e8_l6b_audit-utang-ekstrak_2026-10-22.txt`), dijalankan oleh
+   `scripts/r1_debt_audit.py` pada HEAD `5812c77` sebelum unit ekstrak ini;
+   EMPAT baris `BELUM` pada berkas itu adalah DUA pasangan dan bukan kegagalan:
+   yang atas `d8c002a` ikut commit-unit ekstrak ini, yang atas `5812c77`
+   ditutup pada unit BERIKUTNYA.
+   *Sudah tertutup*: TIGA BELAS pasangan peristiwa — atas `17570f6`, `a141640`,
    `97d1834`, `08ddd71`, `53e226f`, `1e2035f`, `8f56625`, `12adcf1`, `1f3e3c2`,
-   commit jendela `4de1dfb`, commit unit 6b `b17a175` dan commit unit 7a `4c3e0d2` — = DUA PULUH EMPAT
+   commit jendela `4de1dfb`, commit unit 6b `b17a175`, commit unit 7a `4c3e0d2`
+   dan commit unit 7b `d8c002a` — = DUA PULUH ENAM
    berkas `Analysis/reports/ci_hosted_<id>_*.log`, masing-masing membawa blok
    CATATAN PER-RUN. Total berkas `ci_hosted_*` yang ter-commit di
-   `Analysis/reports` menjadi 73. Dua ekstrak yang ikut unit penutupan ini (satu
-   pasangan terakhir, atas `4c3e0d2`) terukur identik di langkah [1/2] dan [2/2]: 202 lulus / 0 gagal pada
+   `Analysis/reports` menjadi 75. Dua ekstrak yang ikut unit ekstrak ini (satu
+   pasangan terakhir, atas `d8c002a`) terukur identik di langkah [1/2] dan [2/2]: 202 lulus / 0 gagal pada
    30 suite, 19 baris `warning` profil test, 13 baris `Compiling` dengan 0
    `warning` / 0 `error`, ELF sisi runner CI 325.184 byte — keduanya commit
    bernol berkas `.rs`.
-   *Masih terbuka*: hanya pasangan peristiwa atas commit yang menulis paragraf
-   ini sendiri, yaitu commit-unit penutupan E8 ini. Aturan G8 melarang ekstrak sebuah run masuk commit milik run itu,
-   jadi penutupnya wajib ada di unit BERIKUTNYA; itu konsekuensi aturan, bukan
-   kekeliruan.
+   *Masih terbuka*: pasangan peristiwa atas commit-unit F1 `5812c77` (run push
+   `39703399191` dan `pull_request` `39703405130`, kedua `conclusion=success`
+   terukur `gh api`) dan pasangan atas commit-unit ekstrak ini sendiri, yang
+   baru tercipta sesudah push. Aturan G8 melarang ekstrak sebuah run masuk
+   commit milik run itu, jadi penutupnya wajib ada di unit BERIKUTNYA; itu
+   konsekuensi aturan, bukan kekeliruan. Karena `5812c77` adalah commit-unit
+   pertama BAGIAN 2 yang menyentuh `.rs`, ekstraknya nanti menjadi pasangan
+   PERTAMA di cabang ini yang diukur pada tree dengan penjaga prompt berposisi;
+   angka yang diharapkan dari ukur sisi host adalah 205 lulus / 0 gagal, dan
+   angka itu HARUS dibaca dari log run, bukan ditulis lebih dulu dari tebakan.
    *Satu kejadian higiene bukti, dilaporkan apa adanya*: unduhan pertama log
    mentah run push `39644006778` mengembalikan 0 byte dan
    `scripts/ci_hosted_extract.py` tetap menulis ekstrak berisi `suite=0
    passed=0` tanpa gagal keras. Berkas itu saya hapus sebelum di-stage; unduhan
    kedua menghasilkan 169.256 byte dan ekstrak yang sah. Generator blok kini
    menolak berkas yang tidak memuat baris `TOTAL TERHITUNG DARI 30 SUITE: 202
-   passed, 0 failed`. Kelemahan alat dicatat di laporan E8.
+   passed, 0 failed`. Pada unit ini kedua unduhan log langsung non-kosong dan
+   terukur (`gh run view --log` = 206.163 byte untuk `39698870788` dan 210.312
+   byte untuk `39698875695`), jadi guard itu tidak perlu menolah apa pun.
+   Kelemahan alat dicatat di laporan E8.
    *Tidak dapat ditutup, dan ini fakta cara kerja CI bukan kelalaian*: SEPULUH
    commit di cabang ini tidak pernah punya run sendiri, karena satu peristiwa
    push hanya memicu run untuk tip saat itu — `007d3dd`, `54abf73`, `4e865c0`

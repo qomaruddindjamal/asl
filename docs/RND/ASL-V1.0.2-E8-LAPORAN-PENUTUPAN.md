@@ -103,7 +103,7 @@ dokumen kerja.
 | fmt/clippy | tidak hijau harfiah karena **140 blok deviasi** dan **137 diagnostik warisan** yang sudah ada sebelum E8; yang ditegakkan adalah **nol BARU** pada baris hasil kerja, dihitung `scripts/r1_new_only_gate_check.py` | VERIFIED-ON-HOST |
 | Lantai memori | ratchet **3392K lulus**; janji Bagian 5 **`-m 3M` tetap MERAH** (serial 0 byte) — deviasi tidak diubah menjadi hijau | VERIFIED-ON-VM |
 | Sesi adversarial | Pass A 43 payload keluar 0; Pass B 59/59 [OK] keluar 0; `trap_de` mencetak blok konteks lengkap; tujuh sesi berjendela | VERIFIED-ON-VM |
-| CI terkelola | **24 run** atas cabang R1, **12 pasangan** peristiwa, seluruhnya `conclusion=success`; tiap run 202/0, 30 suite, 19 `warning` profil test, 13 `Compiling` 0/0, ELF runner 325.184 byte. Ekstrak: 24 berkas milik run cabang R1; total `ci_hosted_*` ter-commit 73 | VERIFIED-ON-CI / VERIFIED-ON-CI-API |
+| CI terkelola | **26 run** atas cabang R1, **13 pasangan** peristiwa, seluruhnya `conclusion=success`; tiap pasangan yang sudah terekstrak 202/0, 30 suite, 19 `warning` profil test, 13 `Compiling` 0/0, ELF runner 325.184 byte. Ekstrak: 26 berkas milik run cabang R1; total `ci_hosted_*` ter-commit 75. Angka ini disinkron dari audit `e8_l8_*` pada HEAD `5812c77` (unit F1), bukan dari ingatan; pasangan atas unit F1 belum terekstrak karena aturan G8 | VERIFIED-ON-CI / VERIFIED-ON-CI-API |
 | Jendela LANGKAH 6 | Lima sesi terdokumentasi di Bagian 5.3; **disaksikan pemilik dan dinyatakan LULUS 2026-10-22** | VERIFIED-ON-VM-VISIBLE + kesaksian pemilik |
 
 ## 5. Batas bukti — yang TIDAK boleh dibaca sebagai sudah terbukti
@@ -124,9 +124,14 @@ dokumen kerja.
    `b9acd5b`, `ca582fa`) karena satu peristiwa push hanya memicu run untuk tip
    saat itu. Ini fakta cara kerja CI, bukan kelalaian.
 5. **Utang ekstrak G8 tidak pernah bisa nol pada commit terakhir rantai.** Yang
-   tertutup sampai unit 7b = 12 pasangan (24 berkas milik run cabang R1, audit di
-   `Analysis/reports/e8_l7b_audit-utang-ekstrak_2026-10-22.txt`); pasangan atas
-   commit-unit ini baru bisa masuk commit berikutnya, yaitu unit pertama BAGIAN 2.
+   tertutup sampai unit ekstrak sesudah unit F1 = 13 pasangan (26 berkas milik run cabang R1, audit di
+   `Analysis/reports/e8_l8_audit-utang-ekstrak_2026-10-22.txt` pada HEAD `5812c77`).
+   Yang diperkirakan pada laporan ini semula ("pasangan atas commit-unit ini masuk
+   unit pertama BAGIAN 2") tidak terjadi apa adanya: commit-unit F1 `5812c77`
+   sengaja TIDAK memuat ekstrak itu agar satu commit satu logika, sehingga
+   penutupnya baru ada pada commit ekstrak berikutnya. Tidak ada angka yang
+   berubah karena penundaan ini; yang berubah hanyalah commit tempat bukti itu
+   mendarat.
 6. **Durasi `test_task` tidak stabil dan tidak dapat diprediksi dari dalam
    sesi** (64,0 s sampai 310,7 s). Setiap batas waktu untuk kasus ini adalah
    tebakan yang harus dinyatakan sebagai tebakan; resep resmi kini

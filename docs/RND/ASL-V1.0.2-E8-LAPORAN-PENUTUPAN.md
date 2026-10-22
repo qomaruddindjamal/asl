@@ -204,6 +204,15 @@ dokumen kerja.
   lebih dulu, dan penyesuaian alat itu ditunda ke R2 oleh keputusan pemilik; pengulangan
   sesudah F2 karena itu MASIH TERBUKA pada R1, dan pengulangan sesudah F6
   mengikuti dengan resep yang sama.
+  **Sesudah unit F6: registry 12 menjadi 13** (`rename` + alias `mv`), sehingga
+  kasus C26/C27 tidak lagi menguji jalur "perintah tak dikenal". Karena alat
+  jendela belum boleh disunting pada R1, pengulangan E8 pasca-F6 **tetap
+  TERBUKA** dan tidak dinyatakan lulus; bukti F6 yang ada adalah dua sesi QEMU
+  khusus pada ISO `6AF6D9F5…`: `Analysis/reports/f6_rename_uji_2026-10-22.txt`
+  (43 dari 43) dan `Analysis/reports/f5f6_kursor_posisi_uji_2026-10-22.txt`
+  (47 dari 47, posisi penanda kursor). Satu temuan masukan tercatat di dokumen
+  STATUS Bagian 3.2: byte asing `kjjl` satu-kali, tidak ter-reproduksi,
+  dimitigasi dengan `-display none` pada sesi bukti sesudahnya.
 - Janji `-m 3M` tetap MERAH dan menjadi pekerjaan terpisah; tidak ada angka
   gerbang yang diubah menjadi hijau karena penutupan ini.
 - Entri ke-38 pada `ACCOUNTABILITY_FAULT_LOG` tetap tertulis OPEN pada

@@ -125,6 +125,8 @@ nomor "sesudah" merujuk berkas kerja saat dokumen ini ditulis.
 | Isi `write-file` lebih dari 64 byte dipotong diam-diam; karena itu tepi 8192/8193 byte tidak dapat diketik dari shell | `asl-cockpit-shell/src/lib.rs:684-701` | Yang bisa dilakukan E8 adalah membuktikan tepi 8192/8193 di tingkat RAMDISK (dilakukan, lihat Bagian 4). Batas potong = keputusan F1-F7. **DITUTUP PADA F4**: pemotongan kini berlabel lewat bendera `Invocation::arg_cut` (`push_arg` menandai bit per argumen), nama terpotong DITOLAK sebelum VFS tersentuh, dan isi terpotong diumumkan pada baris `write-file`. Tepi 8192/8193 tetap tidak dapat diketik dari shell karena satu token terbatas 64 byte - dan kini batas itu tertulis serta dijaga test, bukan tersirat. |
 | RAMDISK menerima nama berisi byte NUL | `asl-storage/src/ramdisk.rs:331-336` | Validasi tambahan di luar cakupan E8; tercatat sebagai keputusan terbuka untuk F2/F3. |
 | Teks balasan lama masih berbahasa Inggris (`Unknown command. Type 'help' ...`) | `asl-cockpit-shell` jalur lama | Aturan G10 (100% bahasa Indonesia) ditegakkan pada F1-F7, bukan pada E8. |
+| Baris Inggris yang sama MUNCUL KEMBALI di layar pada sesi rename: satu ketikan tak dikenal menghasilkan `Unknown command. Type 'help' for available commands.` | `asl-kernel-core/src/lib.rs:3060-3066` (fallback `ShellCommand::Unknown`) | Bukan regresi F6; jalur lama itu belum dipindah ke registry. Didaftarkan ulang supaya penutupannya diuji, bukan diasumsikan: target F7 (audit G11/G10 pada dokumen dan sisa jalur lama). |
+| Satu insiden sisip byte asing pada galang masukan: empat karakter `kjjl` muncul pada prompt padahal harness tidak pernah mengirimnya (huruf `j` tidak ada di string mana pun yang dikirim; ketiganya adalah kode make PS/2 yang bersebelahan, `0x24`/`0x25`/`0x26`) | `asl-driver-ps2-keyboard/src/lib.rs:224-245` (`poll_hardware` dibaca lebih dulu) dan `asl-kernel-core/src/lib.rs:2496-2514` (COM1 hanya diperiksa bila PS/2 kosong) — kedua sumber masuk ke SATU penyangga baris tanpa penanda asal | **TIDAK TER-REPRODUKSI.** Probe khusus (`logs/f6_input_probe.py`, artefak `Analysis/reports/f6_sidik_masukan_*`) mengukur: 0 byte asing pada 45 detik diam, 0 dari 8 baris menyimpang pada kirim biasa, 0 dari 8 pada kirim sambil mengambil tangkapan layar. Mitigasi yang dipakai pada sesi bukti berikutnya: `-display none` pada QEMU (diverifikasi framebuffer/LFB tetap hidup, baris glif 157 dari 1024x768). Hipotesis yang belum terbukti: tetikus PS/2 yang diemulasikan menyuntik saat aktivitas display. Kelas: temuan satu-kali, BUKAN bug yang dipastikan. |
 
 ---
 
@@ -573,6 +575,16 @@ Yang tersisa:
    "perintah tak dikenal" sampai F6 menambahkan `rename` dan registry menjadi
    13, dan pada F6 jendela E8 wajib diulang lagi — dengan catatan jendela itu
    baru bisa sah setelah pemecah prompt alat disesuaikan (butir 7 di bawah).
+   **Status sesudah unit F6 (tree ini):** registry kini **13 perintah** dengan
+   `rename` + alias `mv` (`asl-cockpit-shell/src/lib.rs:814`, penjaga
+   `test_registry_has_thirteen_canonical_commands`), jadi `rename` tidak lagi
+   lewat jalur "perintah tak dikenal". Buktinya dua sesi QEMU pada ISO
+   4.184.064 byte `6AF6D9F5…`: `Analysis/reports/f6_rename_uji_2026-10-22.txt`
+   (43 dari 43 periksa, termasuk empat penolakan sebelum VFS disentuh dan subtree
+   2 entri ikut bergeser) dan `Analysis/reports/f5f6_kursor_posisi_uji_2026-10-22.txt`
+   (47 dari 47 periksa; 15 keadaan posisi penanda kursor, kalibrasi 8 piksel per
+   kolom, x0 = 0). Jendela E8 yang SAH sesudah F6 tetap belum dijalankan: lihat
+   butir 7.
 6. **Entri ke-38 (temuan produk; keputusan pemilik 2026-10-22: diterima,
    penanganan digabung ke F5)**: `test_task` pada ISO ini
    berjalan 64-311 s dan **senyap total pada konsol yang dilihat manusia**

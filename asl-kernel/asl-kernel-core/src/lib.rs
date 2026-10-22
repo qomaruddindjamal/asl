@@ -1199,14 +1199,20 @@ fn resolve_target<'a>(
     match asl_storage::vfs::resolve_path(cwd.as_str(), arg, buf) {
         Some(path) => Some(path),
         None => {
-            out.text(asl_cockpit_shell::MSG_ERROR);
-            out.text(arg);
-            out.text(" - path hasil normalisasi melebihi batas ");
-            out.number(asl_storage::vfs::MAX_PATH_LEN as u64);
-            out.text(" byte\n");
+            print_galat_path_terlalu_panjang(out, arg);
             None
         }
     }
+}
+
+/// Baris galat hasil normalisasi path (F3): dipakai `resolve_target` dan jalur
+/// rename (F6), supaya teks dan angka batasnya hanya punya satu sumber.
+fn print_galat_path_terlalu_panjang(out: &DualOut, arg: &str) {
+    out.text(asl_cockpit_shell::MSG_ERROR);
+    out.text(arg);
+    out.text(" - path hasil normalisasi melebihi batas ");
+    out.number(asl_storage::vfs::MAX_PATH_LEN as u64);
+    out.text(" byte\n");
 }
 
 // =========================================================================
@@ -1435,6 +1441,265 @@ unsafe fn jalankan_tulis_berkas(
             out.text("\n");
         }
         Err(err) => print_vfs_error(out, path, err),
+    }
+}
+
+// =========================================================================
+// F6: RENAME SATU BERKAS ATAU SATU DIREKTORI
+// ---------------------------------------------------------------------------
+// `rename <lama> <baru>` bekerja di SATU direktori: `<baru>` adalah nama, bukan
+// path, sehingga perintah ini tidak pernah memindahkan objek diam-diam.
+// Penggantian nama direktori menggeser seluruh subtree karena RAMDISK menunjuk
+// induk lewat inode, jadi tidak ada path anak yang perlu ditulis ulang; yang
+// perlu dijaga justru ruang kerja shell, karena posisi aktif bisa ikut berpindah
+// lewat satu operasi yang datanya tidak berubah.
+// =========================================================================
+
+/// Tiga alasan rename ditolak SEBELUM VFS disentuh (F6). Dipisah supaya tiap
+/// baris penolakan bisa diuji dari sisi host tanpa menyiapkan RAMDISK.
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+enum AlasanRenameGalat {
+    /// Sasaran atau basisnya adalah akar RAMDISK.
+    Akar,
+    /// Nama tujuan identik dengan basis nama sumber.
+    Sama,
+    /// Nama tujuan memuat garis miring: perpindahan bukan bagian perintah ini.
+    Miring,
+}
+
+/// Potongan satu baris penolakan rename (F6): `(label galat, keterangan)`.
+fn pieces_rename_ditolak(alasan: AlasanRenameGalat) -> (&'static str, &'static str) {
+    (
+        asl_cockpit_shell::MSG_ERROR,
+        match alasan {
+            AlasanRenameGalat::Akar => asl_cockpit_shell::MSG_RENAME_AKAR,
+            AlasanRenameGalat::Sama => asl_cockpit_shell::MSG_RENAME_SAMA,
+            AlasanRenameGalat::Miring => asl_cockpit_shell::MSG_RENAME_MIRING,
+        },
+    )
+}
+
+/// Cetak satu baris penolakan rename. Perintah berhenti di sini: tidak ada
+/// simpul yang tersentuh, jadi sumber tetap seperti semula.
+fn print_rename_ditolak(out: &DualOut, alasan: AlasanRenameGalat) {
+    let (label, keterangan) = pieces_rename_ditolak(alasan);
+    out.text(label);
+    out.text(keterangan);
+    out.text("\n");
+}
+
+/// Potongan baris sukses rename (F6): `(label objek, panah)`. Label dipilih dari
+/// jenis simpul hasil `lookup`, bukan dari asumsi operator.
+fn pieces_rename(kinds: asl_storage::VfsNodeType) -> (&'static str, &'static str) {
+    (
+        if kinds == asl_storage::VfsNodeType::Directory {
+            asl_cockpit_shell::MSG_RENAMED_FOLDER
+        } else {
+            asl_cockpit_shell::MSG_RENAMED_FILE
+        },
+        asl_cockpit_shell::MSG_RENAME_ARROW,
+    )
+}
+
+/// Potongan baris galat rename yang nama tujuannya sudah ada (F6): `(label,
+/// path-tujuan, penjelasan, penutup)`. Penjelasan diambil dari
+/// [`vfs_error_message`] supaya kata "sudah ada" tidak ditulis dua kali, dan
+/// penutup menegaskan sumber tidak ikut berubah - mandat F6 melarang penimpaan.
+fn pieces_rename_sudah_ada(path: &str) -> (&'static str, &str, &'static str, &'static str) {
+    (
+        asl_cockpit_shell::MSG_ERROR,
+        path,
+        vfs_error_message(asl_storage::VfsError::AlreadyExists),
+        asl_cockpit_shell::MSG_RENAME_KEKAL,
+    )
+}
+
+/// Hasil tulis-ulang ruang kerja sesudah satu rename (F6).
+enum GeserCwd {
+    /// Ruang kerja tidak berada di dalam subtree yang bergeser.
+    TidakPerlu,
+    /// Ruang kerja ditulis ulang; pemanggil wajib mengumumkan posisi baru.
+    Bergeser,
+    /// Posisi baru tidak muat dalam penyangga path; ruang kerja TIDAK diubah.
+    TerlaluPanjang,
+}
+
+/// Geser ruang kerja bila rename menyentuh direktori tempat operator berada
+/// (F6). Tanpa langkah ini prompt masih menunjuk path yang sudah hilang - kelas
+/// bug makna-diam yang sama dengan yang ditutup F4.
+fn geser_cwd_rename(cwd: &mut ShellCwd, path_lama: &str, path_baru: &str) -> GeserCwd {
+    // Salin posisi ke penyangga lokal supaya `set_path` boleh meminjam self
+    // secara mutable sementara teks lama masih dibaca (pola `ShellCwd::parent`).
+    let mut salinan = [0u8; asl_storage::vfs::MAX_PATH_LEN];
+    let mut n = 0usize;
+    while n < cwd.len {
+        salinan[n] = cwd.buf[n];
+        n += 1;
+    }
+    let posisi = match core::str::from_utf8(&salinan[..n]) {
+        Ok(s) => s,
+        Err(_) => return GeserCwd::TidakPerlu,
+    };
+    if posisi == "/" || path_lama == "/" {
+        return GeserCwd::TidakPerlu;
+    }
+    let batas = path_lama.len();
+    let ekor = if posisi == path_lama {
+        ""
+    } else if posisi.len() > batas
+        && &posisi[..batas] == path_lama
+        && posisi.as_bytes()[batas] == b'/'
+    {
+        &posisi[batas + 1..]
+    } else {
+        return GeserCwd::TidakPerlu;
+    };
+    // Susun ulang `path_baru` + sisa posisi byte demi byte. Batas penyangga
+    // diperiksa sebelum menulis, jadi tidak ada pemotongan diam-diam: bila tidak
+    // muat, ruang kerja sengaja TIDAK diubah dan pemanggil mengumumkannya.
+    let mut baru = [0u8; asl_storage::vfs::MAX_PATH_LEN];
+    let mut t = 0usize;
+    let sumber = path_baru.as_bytes();
+    let mut i = 0;
+    while i < sumber.len() {
+        if t >= baru.len() {
+            return GeserCwd::TerlaluPanjang;
+        }
+        baru[t] = sumber[i];
+        t += 1;
+        i += 1;
+    }
+    if !ekor.is_empty() {
+        if t >= baru.len() {
+            return GeserCwd::TerlaluPanjang;
+        }
+        baru[t] = b'/';
+        t += 1;
+        let b = ekor.as_bytes();
+        i = 0;
+        while i < b.len() {
+            if t >= baru.len() {
+                return GeserCwd::TerlaluPanjang;
+            }
+            baru[t] = b[i];
+            t += 1;
+            i += 1;
+        }
+    }
+    match core::str::from_utf8(&baru[..t]) {
+        Ok(teks) => {
+            cwd.set_path(teks);
+            GeserCwd::Bergeser
+        }
+        Err(_) => GeserCwd::TerlaluPanjang,
+    }
+}
+
+/// `rename` memakai DUA nama, dan keduanya nama - bukan isi. Potongan hasil
+/// tokenisasi pada posisi mana pun karenanya ditolak, bukan dipakai diam-diam:
+/// mengganti nama dengan 64 byte pertama dari ketikan operator bisa menimpa
+/// entri lain (F6, kelanjutan akar F4).
+fn rename_argumen_terpotong(inv: &asl_cockpit_shell::Invocation) -> Option<&str> {
+    if inv.arg_terpotong(1) {
+        return Some(inv.arg(1));
+    }
+    None
+}
+
+/// Ganti nama satu berkas atau direktori relatif terhadap ruang kerja (F6).
+/// Keluarnya mengikuti pola F3: satu label galat, path yang dimaksud selalu
+/// disebut, dan angka hasil operasi (ukuran isi ATAU jumlah turunan) diumumkan
+/// agar operator tahu apa yang ikut bergerak.
+#[inline(never)]
+unsafe fn jalankan_rename(
+    out: &DualOut,
+    vfs: &mut asl_storage::Vfs,
+    cwd: &mut ShellCwd,
+    path_buf: &mut [u8; asl_storage::vfs::MAX_PATH_LEN],
+    lama: &str,
+    baru: &str,
+) {
+    use asl_storage::VfsNodeType;
+    // (1) Nama tujuan tidak boleh berupa path.
+    if baru.contains('/') {
+        print_rename_ditolak(out, AlasanRenameGalat::Miring);
+        return;
+    }
+    let path_lama = match resolve_target(cwd, lama, path_buf, out) {
+        Some(p) => p,
+        None => return,
+    };
+    let (parent, basis) = split_parent(path_lama);
+    // (2) Akar (`split_parent("/")` memberi basis kosong) tidak punya nama.
+    if basis.is_empty() {
+        print_rename_ditolak(out, AlasanRenameGalat::Akar);
+        return;
+    }
+    // (3) Nama tujuan sama dengan nama sumber: tidak ada yang bisa diganti.
+    if basis == baru {
+        print_rename_ditolak(out, AlasanRenameGalat::Sama);
+        return;
+    }
+    // Sumber dibaca lebih dulu: jenisnya menentukan label dan angkanya, dan
+    // inode-nya dipakai untuk menghitung turunan sesudah rename.
+    let sumber = match vfs.open(path_lama) {
+        Ok(node) => node,
+        Err(err) => {
+            print_vfs_error(out, path_lama, err);
+            return;
+        }
+    };
+    let direktori = sumber.node_type == VfsNodeType::Directory;
+    let mut buf_baru = [0u8; asl_storage::vfs::MAX_PATH_LEN];
+    let path_baru = match asl_storage::vfs::resolve_path(parent, baru, &mut buf_baru) {
+        Some(p) => p,
+        None => {
+            print_galat_path_terlalu_panjang(out, baru);
+            return;
+        }
+    };
+    match vfs.rename(parent, basis, baru) {
+        Ok(hasil) => {
+            let (label, panah) = pieces_rename(hasil.node_type);
+            out.text(label);
+            out.text(path_lama);
+            out.text(panah);
+            out.text(path_baru);
+            out.text(asl_cockpit_shell::MSG_PAREN_OPEN);
+            if direktori {
+                out.number(vfs.subtree_count(hasil.inode) as u64);
+                out.text(asl_cockpit_shell::MSG_RENAME_SUBTREE);
+            } else {
+                out.number(hasil.size_bytes);
+                out.text(asl_cockpit_shell::MSG_RENAME_BYTES);
+            }
+            out.text("\n");
+            match geser_cwd_rename(cwd, path_lama, path_baru) {
+                GeserCwd::Bergeser => {
+                    out.text(asl_cockpit_shell::MSG_WORKDIR);
+                    out.text(cwd.as_str());
+                    out.text("\n");
+                }
+                GeserCwd::TerlaluPanjang => {
+                    out.text(asl_cockpit_shell::MSG_ERROR);
+                    out.text(path_baru);
+                    out.text(" - ruang kerja melebihi batas ");
+                    out.number(asl_storage::vfs::MAX_PATH_LEN as u64);
+                    out.text(" byte - ruang kerja tidak diubah\n");
+                }
+                GeserCwd::TidakPerlu => {}
+            }
+        }
+        Err(asl_storage::VfsError::AlreadyExists) => {
+            let (label, sasaran, penjelasan, penutup) = pieces_rename_sudah_ada(path_baru);
+            out.text(label);
+            out.text(sasaran);
+            out.text(" ");
+            out.text(penjelasan);
+            out.text(penutup);
+            out.text("\n");
+        }
+        Err(err) => print_vfs_error(out, path_lama, err),
     }
 }
 
@@ -1702,6 +1967,13 @@ unsafe fn run_canonical_command(inv: &asl_cockpit_shell::Invocation, cwd: &mut S
                 body.as_bytes(),
                 inv.isi_terpotong(),
             );
+        }
+        CanonicalId::Rename => {
+            if let Some(potongan) = rename_argumen_terpotong(inv) {
+                print_galat_argumen_terpotong(&out, potongan);
+                return;
+            }
+            jalankan_rename(&out, &mut vfs, cwd, &mut path_buf, inv.arg(0), inv.arg(1));
         }
         CanonicalId::DeleteFile => {
             let path = match resolve_target(cwd, inv.arg(0), &mut path_buf, &out) {
@@ -4068,8 +4340,227 @@ mod hardening_tests {
         }
         assert!(ketemu, "baris roster label PETA-KANONIK tidak memuat angka");
         assert_eq!(
-            nilai, 39,
+            nilai, 48,
             "roster label di PETA-KANONIK tidak sama dengan `f3_labels()`"
         );
+    }
+
+    // ---------------------------------------------------------------------
+    // F6: jembatan rename - potongan baris dan pergeseran ruang kerja.
+    // ---------------------------------------------------------------------
+
+    /// Label baris sukses dipilih dari jenis simpul, bukan dari tebakan:
+    /// berkas mengumumkan byte yang TETAP, direktori mengumumkan turunan yang
+    /// BERGESER. Dua hal berbeda itu tidak boleh memakai kalimat yang sama.
+    #[test]
+    fn test_f6_pieces_rename_membedakan_berkas_dan_direktori() {
+        let (label_berkas, panah) = pieces_rename(asl_storage::VfsNodeType::File);
+        assert_eq!(label_berkas, asl_cockpit_shell::MSG_RENAMED_FILE);
+        assert_eq!(panah, asl_cockpit_shell::MSG_RENAME_ARROW);
+        let (label_folder, _) = pieces_rename(asl_storage::VfsNodeType::Directory);
+        assert_eq!(label_folder, asl_cockpit_shell::MSG_RENAMED_FOLDER);
+        assert_ne!(label_berkas, label_folder);
+        assert_eq!(
+            asl_cockpit_shell::MSG_RENAME_BYTES,
+            " byte tetap tersimpan)"
+        );
+        assert_eq!(
+            asl_cockpit_shell::MSG_RENAME_SUBTREE,
+            " entri subtree ikut bergeser)"
+        );
+    }
+
+    /// Tiga penolakan pra-VFS memakai SATU label galat (F3) dengan keterangan
+    /// yang berbeda, dan tidak ada duanya yang berarti "berhasil".
+    #[test]
+    fn test_f6_pieces_tolakan_rename_pakai_satu_label_galat() {
+        let alasan = [
+            AlasanRenameGalat::Akar,
+            AlasanRenameGalat::Sama,
+            AlasanRenameGalat::Miring,
+        ];
+        let mut i = 0;
+        while i < alasan.len() {
+            let (label, keterangan) = pieces_rename_ditolak(alasan[i]);
+            assert_eq!(label, asl_cockpit_shell::MSG_ERROR, "label galat kedua");
+            assert!(!keterangan.is_empty());
+            assert!(
+                !keterangan.starts_with(asl_cockpit_shell::MSG_ERROR),
+                "keterangan mengulang label galat"
+            );
+            let mut j = i + 1;
+            while j < alasan.len() {
+                assert_ne!(
+                    keterangan,
+                    pieces_rename_ditolak(alasan[j]).1,
+                    "dua alasan rename memakai kalimat yang sama"
+                );
+                j += 1;
+            }
+            i += 1;
+        }
+        assert_eq!(
+            pieces_rename_ditolak(AlasanRenameGalat::Miring).1,
+            asl_cockpit_shell::MSG_RENAME_MIRING
+        );
+        assert_eq!(
+            pieces_rename_ditolak(AlasanRenameGalat::Akar).1,
+            asl_cockpit_shell::MSG_RENAME_AKAR
+        );
+        assert_eq!(
+            pieces_rename_ditolak(AlasanRenameGalat::Sama).1,
+            asl_cockpit_shell::MSG_RENAME_SAMA
+        );
+    }
+
+    /// Baris "nama tujuan sudah ada" wajib menyebut path TUJUAN (objek yang
+    /// dilindungi) dan menutupnya dengan keterangan bahwa sumber tidak berubah,
+    /// sesuai larangan menimpa pada mandat F6.
+    #[test]
+    fn test_f6_pieces_rename_sudah_ada_menyebut_tujuan_dan_sumber_kekal() {
+        let (label, sasaran, penjelasan, penutup) = pieces_rename_sudah_ada("/log/b.txt");
+        assert_eq!(label, asl_cockpit_shell::MSG_ERROR);
+        assert_eq!(sasaran, "/log/b.txt");
+        assert_eq!(penjelasan, "sudah ada");
+        assert_eq!(
+            penjelasan,
+            vfs_error_message(asl_storage::VfsError::AlreadyExists)
+        );
+        assert_eq!(penutup, asl_cockpit_shell::MSG_RENAME_KEKAL);
+    }
+
+    /// Ruang kerja hanya bergeser bila benar-benar berada di dalam (atau tepat
+    /// sama dengan) objek yang diganti nama. Kasus `/logo` vs `/log` adalah
+    /// jebakan awalan: pencocokan harus pada batas pemisah, bukan awalan byte.
+    #[test]
+    fn test_f6_geser_cwd_hanya_bila_posisi_terkena() {
+        let mut cwd = ShellCwd::root();
+        assert!(matches!(
+            geser_cwd_rename(&mut cwd, "/log", "/catatan"),
+            GeserCwd::TidakPerlu
+        ));
+        assert_eq!(cwd.as_str(), "/");
+
+        cwd.set_path("/log");
+        assert!(matches!(
+            geser_cwd_rename(&mut cwd, "/log", "/catatan"),
+            GeserCwd::Bergeser
+        ));
+        assert_eq!(cwd.as_str(), "/catatan");
+
+        cwd.set_path("/log/bulan/2026");
+        assert!(matches!(
+            geser_cwd_rename(&mut cwd, "/log", "/catatan"),
+            GeserCwd::Bergeser
+        ));
+        assert_eq!(cwd.as_str(), "/catatan/bulan/2026");
+
+        cwd.set_path("/logo");
+        assert!(matches!(
+            geser_cwd_rename(&mut cwd, "/log", "/catatan"),
+            GeserCwd::TidakPerlu
+        ));
+        assert_eq!(cwd.as_str(), "/logo");
+
+        cwd.set_path("/tmp");
+        assert!(matches!(
+            geser_cwd_rename(&mut cwd, "/log", "/catatan"),
+            GeserCwd::TidakPerlu
+        ));
+        assert_eq!(cwd.as_str(), "/tmp");
+    }
+
+    /// Rename direktori SEMUA tidak menyentuh ruang kerja: posisi aktif adalah
+    /// direktori induknya, bukan turunannya.
+    #[test]
+    fn test_f6_geser_cwd_tidak_terkena_rename_berkas() {
+        let mut cwd = ShellCwd::root();
+        cwd.set_path("/log");
+        assert!(matches!(
+            geser_cwd_rename(&mut cwd, "/log/a.txt", "/log/b.txt"),
+            GeserCwd::TidakPerlu
+        ));
+        assert_eq!(cwd.as_str(), "/log");
+    }
+
+    /// Bila posisi baru tidak muat dalam penyangga path, ruang kerja TIDAK
+    /// diubah dan pemanggil mendapat tanda explisit. Pilihan lainnya adalah
+    /// memotong posisi diam-diam, yaitu kelas bug makna-diam yang ditutup F4.
+    #[test]
+    fn test_f6_geser_cwd_menolak_memotong_diam_diam() {
+        let mut cwd = ShellCwd::root();
+        let mut dasar = [0u8; asl_storage::vfs::MAX_PATH_LEN];
+        dasar[0] = b'/';
+        dasar[1] = b'a';
+        dasar[2] = b'/';
+        let mut i = 3;
+        while i < dasar.len() {
+            dasar[i] = b'x';
+            i += 1;
+        }
+        let posisi = core::str::from_utf8(&dasar).unwrap_or("/");
+        cwd.set_path(posisi);
+        assert_eq!(
+            cwd.as_str().len(),
+            asl_storage::vfs::MAX_PATH_LEN,
+            "penyangga posisi tidak terisi penuh"
+        );
+
+        let mut target = [0u8; asl_storage::vfs::MAX_NAME_LEN + 1];
+        target[0] = b'/';
+        let mut k = 1;
+        while k < target.len() {
+            target[k] = b'b';
+            k += 1;
+        }
+        let path_baru = core::str::from_utf8(&target).unwrap_or("/b");
+        assert!(matches!(
+            geser_cwd_rename(&mut cwd, "/a", path_baru),
+            GeserCwd::TerlaluPanjang
+        ));
+        assert_eq!(cwd.as_str(), posisi, "ruang kerja berubah diam-diam");
+    }
+
+    /// `rename` bukan perintah berpanduan (F5): mode nama hanya untuk tiga
+    /// perintah pembuatan. Baris kosong pada rename akan berarti mengganti nama
+    /// tanpa sumber, jadi `rename` tetap menuntut satu baris argumen lengkap.
+    #[test]
+    fn test_f6_rename_tidak_dibimbing_mode_panduan() {
+        use asl_cockpit_shell::ShellEntry;
+        assert_eq!(
+            asl_cockpit_shell::resolusi_pemandu(asl_cockpit_shell::RenameCmd.syntax()),
+            asl_cockpit_shell::TujuanPemandu::TidakAda
+        );
+    }
+
+    /// Kelanjutan akar F4 pada F6: `rename` memakai DUA nama. Penjaga F4 hanya
+    /// melihat posisi pertama, jadi posisi kedua butuh kebijakan sendiri -
+    /// kalau tidak, nama tujuan 74 byte berganti menjadi nama 64 byte tanpa
+    /// pengumuman dan bisa menimpa entri lain.
+    #[test]
+    fn test_f6_rename_argumen_kedua_terpotong_punya_kebijakan_sendiri() {
+        const TUJUAN: &str = "tujuan-ganti-nama-yang-sangat-panjang-melewati-batas-token-argumen";
+        const BARIS: &str =
+            "rename sumber.txt tujuan-ganti-nama-yang-sangat-panjang-melewati-batas-token-argumen";
+        assert_eq!(TUJUAN.len(), 66);
+        match asl_cockpit_shell::parse_line(BARIS) {
+            asl_cockpit_shell::LineOutcome::Ready(inv) => {
+                assert!(!inv.nama_terpotong(), "sumber pendek ditandai terpotong");
+                let potongan = rename_argumen_terpotong(&inv);
+                assert!(potongan.is_some(), "tujuan terpotong lolos ke VFS");
+                assert_eq!(potongan.unwrap(), inv.arg(1));
+                assert_eq!(inv.arg(1).len(), asl_cockpit_shell::MAX_ARG_LEN);
+            }
+            other => panic!("baris rename seharusnya Ready, dapat {:?}", other),
+        }
+        match asl_cockpit_shell::parse_line("rename a.txt b.txt") {
+            asl_cockpit_shell::LineOutcome::Ready(inv) => {
+                assert!(
+                    rename_argumen_terpotong(&inv).is_none(),
+                    "dua nama pendek tidak boleh ditolak"
+                );
+            }
+            other => panic!("baris rename seharusnya Ready, dapat {:?}", other),
+        }
     }
 }

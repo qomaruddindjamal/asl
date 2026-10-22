@@ -99,7 +99,14 @@ CERITA GERBANG LANTAI MEMORI (laporan sebab, bukan pengubahan angka):
 -----------------------------------------------------------
 Sesi pertama  : Analysis/reports/f5_pemandu_serial_2026-10-22_08-13-46.log (17.416 B)
 Sesi kedua    : Analysis/reports/f5_pemandu_serial_2026-10-22_08-20-02.log (17.416 B)
-Kedua vonis per pemeriksaan (28 pemeriksaan fungsional):
+Kedua sesi memuat 27 vonis LULUS yang sama untuk pemeriksaan fungsional di
+bawah; beda jumlah periksa ada pada assertion alat (sesi pertama 31 periksa,
+sesi kedua 28 periksa - lihat Bagian 5). Vonis utuh tiap sesi disalin apa
+adanya dari keluaran konsol alat dan kini menjadi artefak:
+Analysis/reports/f5_pemandu_harness_vonis_2026-10-22_08-13-46.txt
+(TOTAL 27 LULUS / 31 periksa) dan
+Analysis/reports/f5_pemandu_harness_vonis_2026-10-22_08-20-02.txt
+(TOTAL 27 LULUS / 28 periksa).
 
   galat arity tercetak         LULUS  Kesalahan: jumlah argumen tidak sesuai - Sintaks: create-folder <nama>
   label Nama folder baru       LULUS  Nama folder baru:

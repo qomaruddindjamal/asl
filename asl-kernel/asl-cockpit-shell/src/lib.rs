@@ -201,6 +201,40 @@ pub const MSG_ISI_PENUH: &str = "Isi berhenti pada kapasitas satu slot ";
 /// Penutup pengumuman isi berpanduan penuh.
 pub const MSG_ISI_PENUH_TAIL: &str = " byte; sisa baris tidak diterima";
 
+/// Awalan baris sukses rename satu berkas (F6): `Berkas diganti nama: `.
+pub const MSG_RENAMED_FILE: &str = "Berkas diganti nama: ";
+
+/// Awalan baris sukses rename satu direktori (F6): `Direktori diganti nama: `.
+pub const MSG_RENAMED_FOLDER: &str = "Direktori diganti nama: ";
+
+/// Pemisah path lama dan path baru pada baris rename (F6).
+pub const MSG_RENAME_ARROW: &str = " -> ";
+
+/// Penutup baris rename direktori beserta jumlah turunannya (F6), dipakai
+/// sesudah `(` dan angka: `(12 entri subtree ikut bergeser)`.
+pub const MSG_RENAME_SUBTREE: &str = " entri subtree ikut bergeser)";
+
+/// Penjelasan galat rename karena nama tujuan sama dengan nama sumber (F6).
+pub const MSG_RENAME_SAMA: &str = "nama tujuan sama dengan nama sumber - tidak ada yang diganti";
+
+/// Penjelasan galat rename karena nama tujuan memuat garis miring (F6):
+/// `rename` hanya bekerja di satu direktori, jadi memindahkan adalah wilayah
+/// lain dan tidak dilakukan diam-diam.
+pub const MSG_RENAME_MIRING: &str =
+    "nama tujuan rename tidak boleh memuat garis miring - perintah ini tidak memindahkan objek";
+
+/// Ekoran galat rename yang ditolak karena nama tujuan sudah ada (F6):
+/// menegaskan bahwa sumber tidak ikut berubah.
+pub const MSG_RENAME_KEKAL: &str = " - sumber tidak diubah";
+
+/// Penutup baris rename berkas beserta ukuran isinya (F6), dipakai sesudah
+/// `(` dan angka: `(17 byte tetap tersimpan)`. Ganti nama tidak menyentuh isi,
+/// jadi angka inilah yang diumumkan agar operator tahu isinya tidak hilang.
+pub const MSG_RENAME_BYTES: &str = " byte tetap tersimpan)";
+
+/// Penjelasan galat rename yang sasaran atau basisnya adalah akar RAMDISK (F6).
+pub const MSG_RENAME_AKAR: &str = "objek akar tidak dapat diganti nama";
+
 /// Susun prompt berposisi ke penyangga pemberi panggilan: nol alokasi heap,
 /// nol `alloc`, target `no_std` (G1). Posisi yang tidak muat dipotong pada
 /// batas penyangga sementara akhiran tetap utuh; seluruh jalur shell ASCII
@@ -426,8 +460,9 @@ impl CockpitShell {
 // ============================================================================
 
 /// Jumlah perintah kanonik yang dijanjikan misi v1.0.2 Bagian 1.2.
-/// F1 menghitung 11; F2 menambahkan `up` sehingga menjadi 12.
-pub const CANONICAL_COMMAND_COUNT: usize = 12;
+/// F1 menghitung 11; F2 menambahkan `up` sehingga menjadi 12; F6 menambahkan
+/// `rename` sehingga menjadi 13 - daftar final yang dijanjikan R1.
+pub const CANONICAL_COMMAND_COUNT: usize = 13;
 
 /// Jumlah maksimum argumen yang bisa ditangkap satu baris perintah.
 pub const MAX_ARGS: usize = 2;
@@ -473,6 +508,7 @@ pub enum CanonicalId {
     CreateFolder,
     CreateFile,
     WriteFile,
+    Rename,
     DeleteFile,
     DeleteFolder,
     Status,
@@ -766,6 +802,35 @@ impl ShellEntry for WriteFileCmd {
 }
 
 #[derive(Debug, Copy, Clone)]
+pub struct RenameCmd;
+impl ShellEntry for RenameCmd {
+    fn id(&self) -> CanonicalId {
+        CanonicalId::Rename
+    }
+    fn name(&self) -> &'static str {
+        "rename"
+    }
+    fn aliases(&self) -> &'static [&'static str] {
+        &["mv"]
+    }
+    fn syntax(&self) -> &'static str {
+        "rename <lama> <baru>"
+    }
+    fn summary(&self) -> &'static str {
+        "Ganti nama satu berkas atau direktori di direktori kerja saat ini; nama tujuan yang sudah ada ditolak."
+    }
+    fn category(&self) -> CommandCategory {
+        CommandCategory::File
+    }
+    fn min_args(&self) -> usize {
+        2
+    }
+    fn max_args(&self) -> usize {
+        2
+    }
+}
+
+#[derive(Debug, Copy, Clone)]
 pub struct DeleteFileCmd;
 impl ShellEntry for DeleteFileCmd {
     fn id(&self) -> CanonicalId {
@@ -863,6 +928,7 @@ pub static REGISTRY: [&dyn ShellEntry; CANONICAL_COMMAND_COUNT] = [
     &CreateFolderCmd,
     &CreateFileCmd,
     &WriteFileCmd,
+    &RenameCmd,
     &DeleteFileCmd,
     &DeleteFolderCmd,
     &StatusCmd,
@@ -906,15 +972,22 @@ pub struct Invocation {
 }
 
 impl Invocation {
+    /// Argumen ke-`i` DIPOTONG oleh tokenisasi, jadi isinya bukan input
+    /// operator. Kebijakan perintah yang memutuskan apakah potongan boleh
+    /// dipakai atau harus ditolak (F4 untuk satu nama, F6 untuk dua nama).
+    pub fn arg_terpotong(&self, i: usize) -> bool {
+        i < MAX_ARGS && self.arg_cut & (1u8 << i) != 0
+    }
+
     /// Argumen pertama (nama/path) terpotong, jadi tidak boleh dipakai.
     pub fn nama_terpotong(&self) -> bool {
-        self.arg_cut & 0b01 != 0
+        self.arg_terpotong(0)
     }
 
     /// Argumen isi `write-file` terpotong; bagian yang muat tetap sah ditulis,
     /// sisa wajib diumumkan.
     pub fn isi_terpotong(&self) -> bool {
-        self.arg_cut & 0b10 != 0
+        self.arg_terpotong(1)
     }
 
     /// Isi argumen ke-`i` sebagai `&str`; `""` bila indeks di luar argc.
@@ -1963,9 +2036,9 @@ mod tests {
         );
     }
 
-    /// Semua label keluaran shell (F3, dua tambahan F4, sebelas tambahan F5)
-    /// sebagai pasangan `(nama, teks)`.
-    fn f3_labels() -> [(&'static str, &'static str); 39] {
+    /// Semua label keluaran shell (F3, dua tambahan F4, sebelas tambahan F5,
+    /// sembilan tambahan F6) sebagai pasangan `(nama, teks)`.
+    fn f3_labels() -> [(&'static str, &'static str); 48] {
         [
             ("MSG_ERROR", MSG_ERROR),
             ("MSG_BAD_ARITY", MSG_BAD_ARITY),
@@ -2006,6 +2079,15 @@ mod tests {
             ("MSG_BATAL_BERKAS", MSG_BATAL_BERKAS),
             ("MSG_ISI_PENUH", MSG_ISI_PENUH),
             ("MSG_ISI_PENUH_TAIL", MSG_ISI_PENUH_TAIL),
+            ("MSG_RENAMED_FILE", MSG_RENAMED_FILE),
+            ("MSG_RENAMED_FOLDER", MSG_RENAMED_FOLDER),
+            ("MSG_RENAME_ARROW", MSG_RENAME_ARROW),
+            ("MSG_RENAME_SUBTREE", MSG_RENAME_SUBTREE),
+            ("MSG_RENAME_BYTES", MSG_RENAME_BYTES),
+            ("MSG_RENAME_AKAR", MSG_RENAME_AKAR),
+            ("MSG_RENAME_SAMA", MSG_RENAME_SAMA),
+            ("MSG_RENAME_MIRING", MSG_RENAME_MIRING),
+            ("MSG_RENAME_KEKAL", MSG_RENAME_KEKAL),
         ]
     }
 
@@ -2019,7 +2101,7 @@ mod tests {
         let labels = f3_labels();
 
         // (1) Teks dipatok harfiah, berurutan sama dengan daftar di atas.
-        let hoped: [&str; 39] = [
+        let hoped: [&str; 48] = [
             "Kesalahan: ",
             "jumlah argumen tidak sesuai - ",
             "Sintaks: ",
@@ -2059,6 +2141,15 @@ mod tests {
             "nama berkas kosong - tidak ada yang ditulis",
             "Isi berhenti pada kapasitas satu slot ",
             " byte; sisa baris tidak diterima",
+            "Berkas diganti nama: ",
+            "Direktori diganti nama: ",
+            " -> ",
+            " entri subtree ikut bergeser)",
+            " byte tetap tersimpan)",
+            "objek akar tidak dapat diganti nama",
+            "nama tujuan sama dengan nama sumber - tidak ada yang diganti",
+            "nama tujuan rename tidak boleh memuat garis miring - perintah ini tidak memindahkan objek",
+            " - sumber tidak diubah",
         ];
         let mut i = 0;
         while i < labels.len() {
@@ -2254,8 +2345,8 @@ mod tests {
             i += 1;
         }
         assert_eq!(
-            ditagihkan, 37,
-            "jumlah label yang ditagihkan ke dokumen berubah (39 dikurangi 2 penghubung)"
+            ditagihkan, 46,
+            "jumlah label yang ditagihkan ke dokumen berubah (48 dikurangi 2 penghubung)"
         );
 
         // Pasal 7 harus memberi contoh baris UTUH, bukan daftar label saja.
@@ -2341,6 +2432,45 @@ mod tests {
         }
     }
 
+    /// Penjaga F6 bagian parser: `rename` memakai dua nama, jadi tanda
+    /// pemotongan harus bisa dibaca per posisi. Tanpa flag per posisi, sisi
+    /// dispatch hanya melihat argumen pertama dan nama tujuan yang terpotong
+    /// akan dipakai diam-diam sebagai nama 64 byte.
+    #[test]
+    fn test_f6_rename_argumen_terpotong_dapat_dibaca_per_posisi() {
+        const TUJUAN: &str = "tujuan-ganti-nama-yang-sangat-panjang-melewati-batas-token-argumen";
+        const BARIS: &str =
+            "rename sumber.txt tujuan-ganti-nama-yang-sangat-panjang-melewati-batas-token-argumen";
+        assert_eq!(TUJUAN.len(), 66);
+        assert!(BARIS.ends_with(TUJUAN), "BARIS bukan tujuan yang diuji");
+        match parse_line(BARIS) {
+            LineOutcome::Ready(inv) => {
+                assert_eq!(inv.id, CanonicalId::Rename);
+                assert!(!inv.arg_terpotong(0), "sumber pendek tidak boleh ditandai");
+                assert!(inv.arg_terpotong(1), "tujuan 66 byte tidak ditandai");
+                assert_eq!(inv.arg(1).len(), MAX_ARG_LEN);
+                assert!(
+                    TUJUAN.starts_with(inv.arg(1)),
+                    "arg(1) bukan awalan nama tujuan yang diketik"
+                );
+                assert_eq!(inv.arg_cut, 0b10);
+            }
+            other => panic!("baris rename seharusnya Ready, dapat {:?}", other),
+        }
+        // Posisi pertama tetap punya tanda sendiri, jadi penolakan F4 untuk
+        // sumber yang terpotong tidak berubah makna.
+        const BARIS_SUMBER: &str =
+            "rename tujuan-ganti-nama-yang-sangat-panjang-melewati-batas-token-argumen sasaran.txt";
+        match parse_line(BARIS_SUMBER) {
+            LineOutcome::Ready(inv) => {
+                assert!(inv.arg_terpotong(0), "sumber terpotong tidak ditandai");
+                assert!(!inv.arg_terpotong(1), "sasaran pendek tidak boleh ditandai");
+                assert_eq!(inv.arg_cut, 0b01);
+            }
+            other => panic!("baris sumber panjang seharusnya Ready, dapat {:?}", other),
+        }
+    }
+
     /// Penjaga F4 bagian janji misi: nama berkas sampai batas argumen tetap
     /// utuh dan tidak ditandai terpotong.
     #[test]
@@ -2406,9 +2536,9 @@ mod tests {
     }
 
     #[test]
-    fn test_registry_has_twelve_canonical_commands() {
+    fn test_registry_has_thirteen_canonical_commands() {
         assert_eq!(REGISTRY.len(), CANONICAL_COMMAND_COUNT);
-        assert_eq!(CANONICAL_COMMAND_COUNT, 12);
+        assert_eq!(CANONICAL_COMMAND_COUNT, 13);
 
         let mut alias_total = 0usize;
         let mut i = 0;
@@ -2427,8 +2557,9 @@ mod tests {
             }
             i += 1;
         }
-        // Empat perintah ber-alias: list(2), open(5), create-folder(1), delete-file(1).
-        assert_eq!(alias_total, 9);
+        // Lima perintah ber-alias: list(2), open(5), create-folder(1),
+        // delete-file(1), rename(1).
+        assert_eq!(alias_total, 10);
 
         // Nama dan identitas kanonik tidak boleh kembar.
         let mut j = 0;
@@ -2462,6 +2593,8 @@ mod tests {
             ("delete-file", "delete-file"),
             ("create-file", "create-file"),
             ("write-file", "write-file"),
+            ("mv", "rename"),
+            ("rename", "rename"),
             ("delete-folder", "delete-folder"),
             ("where", "where"),
             ("status", "status"),

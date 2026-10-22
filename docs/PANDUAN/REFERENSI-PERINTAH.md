@@ -15,7 +15,7 @@ menambahkan perintah yang tidak ada di registry.
 Memberi satu tempat baca bagi operator untuk mengetahui perintah apa yang
 dijanjikan shell pada konsol serial dan framebuffer, bagaimana bentuknya, dan
 apa yang dilakukan masing-masing. Lingkupnya hanya Cockpit Shell v1.0.2:
-dua belas perintah kanonik plus perintah lama yang tetap dikenali. Tidak ada
+tiga belas perintah kanonik plus perintah lama yang tetap dikenali. Tidak ada
 skrip, tidak ada berkas di disk, tidak ada jaringan.
 
 ## Pasal 2 - Prasyarat
@@ -43,7 +43,7 @@ skrip, tidak ada berkas di disk, tidak ada jaringan.
    mutlak diawali `/`. `up` menaiki satu tingkat ke direktori induk; di akar ia
    tidak berpindah dan mengatakan begitu.
 
-## Pasal 4 - Perintah kanonik (dua belas, urutan registry)
+## Pasal 4 - Perintah kanonik (tiga belas, urutan registry)
 
 Urutan di bawah sama dengan urutan tampil pada perintah `help`.
 
@@ -119,6 +119,14 @@ Urutan di bawah sama dengan urutan tampil pada perintah `help`.
 - Argumen: paling sedikit 1, paling banyak 2
 - Kelompok: Berkas dan direktori (RAMDISK volatil)
 
+### rename
+- Nama: `rename`
+- Sintaks: `rename <lama> <baru>`
+- Ringkasan: Ganti nama satu berkas atau direktori di direktori kerja saat ini; nama tujuan yang sudah ada ditolak.
+- Alias: `mv`
+- Argumen: paling sedikit 2, paling banyak 2
+- Kelompok: Berkas dan direktori (RAMDISK volatil)
+
 ### delete-file
 - Nama: `delete-file`
 - Sintaks: `delete-file <nama>`
@@ -145,7 +153,7 @@ Urutan di bawah sama dengan urutan tampil pada perintah `help`.
 
 ## Pasal 5 - Perintah lama yang tetap dikenali
 
-Dua belas perintah kanonik di atas dibangun di atas kerangka registry baru.
+Tiga belas perintah kanonik di atas dibangun di atas kerangka registry baru.
 Perintah warisan TIDAK diubah dan TIDAK dihapus pada v1.0.2; keduanya tetap
 bekerja lewat jalur pengalihan lama: `meminfo`, `cpuinfo`, `uname`, `lspci`,
 `lsblk`, `fdisk`, `mount`, `failover`, `reboot`, `halt`, `wfi`, `hlt`,
@@ -198,9 +206,13 @@ penjelasan. Tidak ada lagi label kedua (`Galat:` sudah hilang dari shell).
 | Path tidak sah | `Kesalahan: <jalan> path tidak sah` |
 | Perangkat penyimpanan gagal | `Kesalahan: <jalan> galat perangkat penyimpanan` |
 | Hasil normalisasi path terlalu panjang | `Kesalahan: <argumen> - path hasil normalisasi melebihi batas 128 byte` |
-| Argumen nama terpotong saat pembacaan baris | `Kesalahan: <64 byte pertama>... - argumen melebihi batas 64 byte, perintah tidak dijalankan` |
+| Argumen nama terpotong saat pembacaan baris — di posisi mana pun sebuah nama dipakai, termasuk nama tujuan `rename` | `Kesalahan: <64 byte pertama>... - argumen melebihi batas 64 byte, perintah tidak dijalankan` |
 | Jumlah argumen tidak sesuai | `Kesalahan: jumlah argumen tidak sesuai - Sintaks: <sintaks registry>` |
 | Nama perintah tidak dikenal (`help <nama>`) | `Kesalahan: perintah tidak dikenal: <nama>` |
+| Nama tujuan rename memuat garis miring | `Kesalahan: nama tujuan rename tidak boleh memuat garis miring - perintah ini tidak memindahkan objek` |
+| Sasaran rename adalah akar RAMDISK | `Kesalahan: objek akar tidak dapat diganti nama` |
+| Nama tujuan rename sama dengan nama sumber | `Kesalahan: nama tujuan sama dengan nama sumber - tidak ada yang diganti` |
+| Nama tujuan rename sudah ada | `Kesalahan: <jalan-tujuan> sudah ada - sumber tidak diubah` |
 
 Sasaran (`<jalan>`) adalah jalur hasil normalisasi yang benar-benar dipakai ke
 VFS, jadi operator tahu objek mana yang gagal tanpa mengingat ketikannya.
@@ -223,6 +235,82 @@ VFS, jadi operator tahu objek mana yang gagal tanpa mengingat ketikannya.
 | `write-file` dengan teks melebihi batas argumen | `Tertulis 64 byte di <jalan> - isi dipotong pada batas 64 byte; sisa tidak tertulis` |
 | `delete-file` | `Berkas dihapus: <jalan> (<n> byte dibebaskan)` |
 | `delete-folder` | `Direktori dihapus: <jalan> (0 entri)` |
+| `rename` berkas | `Berkas diganti nama: <jalan-lama> -> <nama-baru> (<n> byte tetap tersimpan)` |
+| `rename` direktori | `Direktori diganti nama: <jalan-lama> -> <nama-baru> (<n> entri subtree ikut bergeser)` |
+| `rename` direktori yang memuat ruang kerja | baris `rename` di atas disusul `Ruang kerja: <jalan-baru>` |
+
+#### RENAME: satu direktori, subtree bergeser (F6)
+
+`rename <lama> <baru>` (alias `mv`) hanya MENGGANTI NAMA. Argumen kedua adalah
+nama, bukan path: bila memuat garis miring perintahnya ditolak, jadi tidak ada
+perpindahan antar direktori yang terjadi diam-diam. Sumber boleh ditulis dengan
+path (`rename catatan/lama baru`), dan nama tujuan selalu berlaku di direktori
+induk sumber yang sama.
+
+Mandat F6 melarang menimpa: bila nama tujuan sudah dipakai, barisnya
+`Kesalahan: <jalan-tujuan> sudah ada - sumber tidak diubah` dan simpul sumber
+tetap seperti semula. Nama tujuan yang sama dengan nama sumber juga ditolak,
+bukan diterima sebagai keberhasilan kosong.
+
+Rename direktori menggeser SELURUH subtree. RAMDISK menyimpan anak sebagai
+rujukan ke inode induk, jadi path setiap turunan disusun ulang saat dicari: satu
+penggantian nama mengubah path semua anak, cucu, dan seterusnya tanpa menyentuh
+satu byte pun isi mereka. Jumlah turunan itulah yang diumumkan sebagai
+`<n> entri subtree ikut bergeser`. Rename direktori yang berisi adalah sah —
+berbeda dari `delete-folder` yang menuntut direktori kosong.
+
+Ruang kerja ikut dijaga. Bila direktori yang diganti nama adalah direktori
+tempat operator berada, atau salah satu leluhurnya, posisi aktif ditulis ulang
+ke path baru dan diumumkan pada baris berikutnya (`Ruang kerja: <jalan-baru>`);
+tanpa langkah ini prompt akan tetap menunjuk path yang sudah tidak ada. Bila posisi
+baru tidak muat dalam penyangga path, ruang kerja sengaja TIDAK diubah dan
+shell mencetak `Kesalahan: <jalan-baru> - ruang kerja melebihi batas 128 byte -
+ruang kerja tidak diubah`.
+
+Contoh satu sesi (dimulai dari akar, `/log` berisi `a.txt` dan subdirektori
+`bulan`):
+
+```
+ASL-KERNEL />_ create-folder log
+Direktori dibuat: /log (0 entri)
+ASL-KERNEL />_ cd log
+Ruang kerja: /log
+ASL-KERNEL /log>_ create-file a.txt
+Berkas dibuat: /log/a.txt (0 byte)
+ASL-KERNEL /log>_ create-folder bulan
+Direktori dibuat: /log/bulan (0 entri)
+ASL-KERNEL /log>_ rename a.txt b.txt
+Berkas diganti nama: /log/a.txt -> /log/b.txt (0 byte tetap tersimpan)
+ASL-KERNEL /log>_ rename b.txt a.txt
+Berkas diganti nama: /log/b.txt -> /log/a.txt (0 byte tetap tersimpan)
+ASL-KERNEL /log>_ rename a.txt bulan
+Kesalahan: /log/bulan sudah ada - sumber tidak diubah
+ASL-KERNEL /log>_ rename bulan catatan
+Direktori diganti nama: /log/bulan -> /log/catatan (0 entri subtree ikut bergeser)
+ASL-KERNEL /log>_
+```
+
+Bila ruang kerja ikut bergerak, baris tambahan menyusul:
+
+```
+ASL-KERNEL /log/catatan>_ up
+Ruang kerja: /log
+ASL-KERNEL /log>_ cd catatan
+Ruang kerja: /log/catatan
+ASL-KERNEL /log/catatan>_ rename /log/catatan katalog
+Direktori diganti nama: /log/catatan -> /log/katalog (0 entri subtree ikut bergeser)
+Ruang kerja: /log/katalog
+ASL-KERNEL /log/katalog>_
+```
+
+Batas yang berlaku sama seperti perintah berkas lain: satu token nama paling
+panjang 64 byte (Pasal 6), dan nama hasil normalisasi tidak boleh melebihi 128
+byte. `rename` memeriksa BATAS SATU NAMA PADA KEDUA argumennya: nama tujuan yang
+terpotong akan berganti menjadi nama 64 byte tanpa persetujuan operator, jadi
+perintahnya ditolak sebelum RAMDISK disentuh. Mode berpanduan F5 TIDAK mencakup
+`rename`: perintah ini selalu butuh dua nama sekaligus, dan baris kosong pada mode
+nama akan berarti mengganti nama tanpa sumber, jadi `rename` tetap memakai satu
+baris argumen lengkap.
 
 #### Batas panjang argumen dan nama berkas (F4)
 

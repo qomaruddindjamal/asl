@@ -125,6 +125,22 @@ pub trait FileSystem {
         Err(VfsError::ReadOnly)
     }
 
+    /// Ganti nama satu entri (berkas ATAU direktori) di dalam direktori induk,
+    /// dari `old_name` menjadi `new_name`. Standar = `ReadOnly`; lihat catatan
+    /// `delete_file`.
+    ///
+    /// Backend yang menyimpan anak dengan rujukan `parent` berbasis inode tidak
+    /// perlu menyentuh subtree: path setiap turunan disusun ulang dari rantai
+    /// induk saat `lookup`, jadi satu penggantian nama menggeser seluruh subtree.
+    fn rename(
+        &mut self,
+        _parent: &VfsNode,
+        _old_name: &str,
+        _new_name: &str,
+    ) -> VfsResult<VfsNode> {
+        Err(VfsError::ReadOnly)
+    }
+
     /// Potong berkas menjadi `new_len` byte. Standar = `ReadOnly` (lihat `delete_file`).
     fn truncate(&mut self, _node: &VfsNode, _new_len: usize) -> VfsResult<()> {
         Err(VfsError::ReadOnly)
@@ -143,6 +159,14 @@ pub trait FileSystem {
     /// Jumlah entri hidup (direktori + berkas) termasuk akar;
     /// `0` = backend tidak melaporkannya.
     fn entry_count(&self) -> usize {
+        0
+    }
+
+    /// Jumlah turunan `inode` (anak, cucu, dan seterusnya) tanpa menghitung
+    /// simpulnya sendiri; `0` = backend tidak melaporkannya. Dipakai
+    /// pengumuman rename direktori (F6) supaya operator melihat seberapa luas
+    /// pergeseran path yang baru saja terjadi.
+    fn subtree_count(&self, _inode: u64) -> usize {
         0
     }
 }
@@ -210,6 +234,29 @@ impl<'a> Vfs<'a> {
         let fs = self.root_fs.as_mut().ok_or(VfsError::NotFound)?;
         let parent = fs.lookup(parent_path)?;
         fs.delete_dir(&parent, name)
+    }
+
+    /// Ganti nama satu entri (berkas atau direktori) lewat jalur induk-oleh-nama,
+    /// sama seperti `rm`/`rmdir`, sehingga `rename <lama> <baru>` hanya bekerja
+    /// di SATU direktori dan `baru` adalah nama, bukan path.
+    pub fn rename(
+        &mut self,
+        parent_path: &str,
+        old_name: &str,
+        new_name: &str,
+    ) -> VfsResult<VfsNode> {
+        let fs = self.root_fs.as_mut().ok_or(VfsError::NotFound)?;
+        let parent = fs.lookup(parent_path)?;
+        fs.rename(&parent, old_name, new_name)
+    }
+
+    /// Jumlah turunan satu inode pada sistem berkas terpasang (0 bila belum
+    /// terpasang atau backend tidak melaporkannya).
+    pub fn subtree_count(&self, inode: u64) -> usize {
+        match &self.root_fs {
+            Some(fs) => fs.subtree_count(inode),
+            None => 0,
+        }
     }
 
     /// Listing satu direktori berdasarkan path (kombinasi `lookup` + `read_dir`).

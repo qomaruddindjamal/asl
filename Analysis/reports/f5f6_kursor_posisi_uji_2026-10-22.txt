@@ -1,0 +1,114 @@
+framebuffer hidup dengan -display none               LULUS  baris glif 157 dari 1024x768
+  ukur idle-akar        sel=(120, 302) toggle=3 piksel=[8, 8, 8] konflik=0
+idle: ada sel yang berkedip minimal dua kali         LULUS  toggle 3 konflik 0
+  ukur ketik-11         sel=(208, 302) toggle=3 piksel=[8, 8, 8] konflik=0
+kalibrasi: geser 11 karakter habis terbagi 11        LULUS  geser 88 px
+kalibrasi: lebar sel satu glif (8-16 px)             LULUS  cw=8 px, x0=0
+duga: sel sesudah 11 ketikan ada di kolom 26         LULUS  ukur (208,302) kolom 26 -> prediksi x=208 | cw=8 x0=0 | konflik 
+galat arity create-folder                            LULUS  Kesalahan: jumlah argumen tidak sesuai - Sintaks: create-folder 
+label Nama folder baru                               LULUS  Nama folder baru: 
+serial: enam ketikan pertama menempel pada label     LULUS  harap b'pandua' dapat b'pandua'
+  ukur label-6ketik     sel=(192, 334) toggle=3 piksel=[8, 8, 8] konflik=0
+posisi: label + 6 karakter                           LULUS  ukur (192,334) kolom 24 -> prediksi x=192 | cw=8 x0=0 | konflik 
+serial: gema backspace `BS spasi BS`                 LULUS  harap b'\x08 \x08' dapat b'\x08 \x08'
+  ukur hapus-1          sel=(184, 334) toggle=3 piksel=[8, 8, 8] konflik=0
+posisi: sesudah backspace sel mundur satu sel        LULUS  ukur (184,334) kolom 23 -> prediksi x=184 | cw=8 x0=0 | konflik 
+create-folder panduan selesai                        LULUS  Direktori dibuat: /panduan (0 entri)
+  ukur sesudah-submit   sel=(120, 366) toggle=4 piksel=[8, 8, 8, 8] konflik=0
+sesudah submit: sel tidak tertinggal di baris terkirim LULUS  baris label (192, 334) -> baris kini (120, 366)
+sesudah submit: baris berpindah DAN kolom kembali ke ujung prompt LULUS  x=120 prediksi=120
+sesudah submit: tidak ada sel lain yang ikut berkedip LULUS  konflik 0
+masuk /panduan                                       LULUS  Ruang kerja: /panduan
+  ukur prompt-panduan   sel=(176, 398) toggle=4 piksel=[8, 8, 8, 8] konflik=0
+posisi: prompt berposisi /panduan                    LULUS  ukur (176,398) kolom 22 -> prediksi x=176 | cw=8 x0=0 | konflik 
+galat arity write-file                               LULUS  Kesalahan: jumlah argumen tidak sesuai - Sintaks: write-file <na
+label Nama berkas                                    LULUS  Nama berkas: 
+  ukur label-berkas     sel=(104, 430) toggle=4 piksel=[8, 8, 8, 8] konflik=0
+posisi: ujung label Nama berkas                      LULUS  ukur (104,430) kolom 13 -> prediksi x=104 | cw=8 x0=0 | konflik 
+serial: nama berkas menempel pada label              LULUS  harap b'catat.txt' dapat b'catat.txt'
+serial: satu CRLF antara nama terkirim dan label isi LULUS  harap b'\r\nIsi catat.txt (baris 1): ' dapat b'\r\nIsi catat.txt
+  ukur label-isi-1      sel=(200, 446) toggle=3 piksel=[8, 8, 8] konflik=0
+posisi: ujung label isi baris 1                      LULUS  ukur (200,446) kolom 25 -> prediksi x=200 | cw=8 x0=0 | konflik 
+serial: isi menempel pada label isi                  LULUS  harap b'satu dua tiga' dapat b'satu dua tiga'
+Isi catat.txt (baris 2):                             LULUS  Isi catat.txt (baris 2): 
+  ukur label-isi-2      sel=(200, 462) toggle=3 piksel=[8, 8, 8] konflik=0
+posisi: ujung label isi baris 2                      LULUS  ukur (200,462) kolom 25 -> prediksi x=200 | cw=8 x0=0 | konflik 
+tulis selesai 13 byte                                LULUS  Tertulis 13 byte di /panduan/catat.txt (berkas baru)
+  ukur kembali-panduan  sel=(176, 494) toggle=3 piksel=[8, 8, 8] konflik=0
+sesudah submit isi: sel di ujung prompt /panduan     LULUS  ukur (176,494) kolom 22 -> prediksi x=176 | cw=8 x0=0 | konflik 
+  ukur setelah-clear    sel=(176, 30) toggle=4 piksel=[8, 8, 8, 8] konflik=0
+clear menyisakan layar hampir kosong                 LULUS  baris glif 13
+posisi sesudah clear: ujung prompt baris pertama     LULUS  ukur (176,30) kolom 22 -> prediksi x=176 | cw=8 x0=0 | konflik 0
+posisi sesudah clear: baris ikut naik ke atas layar  LULUS  y=30
+  ukur rename-ketik     sel=(376, 30) toggle=4 piksel=[8, 8, 8, 8] konflik=0
+posisi: tengah baris rename (25 ketikan)             LULUS  ukur (376,30) kolom 47 -> prediksi x=376 | cw=8 x0=0 | konflik 0
+rename berkas 13 byte                                LULUS  Berkas diganti nama: /panduan/catat.txt -> /panduan/catatan.txt 
+  ukur rename-selesai   sel=(176, 62) toggle=4 piksel=[8, 8, 8, 8] konflik=0
+sesudah rename: sel kembali ke ujung prompt          LULUS  ukur (176,62) kolom 22 -> prediksi x=176 | cw=8 x0=0 | konflik 0
+buat /panduan/bulan                                  LULUS  Direktori dibuat: /panduan/bulan (0 entri)
+masuk /panduan/bulan                                 LULUS  Ruang kerja: /panduan/bulan
+  ukur dalam-bulan      sel=(240, 126) toggle=4 piksel=[8, 8, 8, 8] konflik=0
+posisi: dua ketikan di dalam /panduan/bulan          LULUS  ukur (240,126) kolom 30 -> prediksi x=240 | cw=8 x0=0 | konflik 
+rename sambil berdiri di dalamnya                    LULUS  Direktori diganti nama: /panduan/bulan -> /panduan/purnama (0 en
+ruang kerja diumumkan ulang                          LULUS  Ruang kerja: /panduan/purnama
+prompt ikut bergeser                                 LULUS  ASL-KERNEL /panduan/purnama>_
+  ukur sesudah-rename-cwd sel=(240, 190) toggle=3 piksel=[8, 8, 8] konflik=0
+sesudah rename cwd: sel di ujung prompt path baru    LULUS  ukur (240,190) kolom 30 -> prediksi x=240 | cw=8 x0=0 | konflik 
+beres catatan.txt                                    LULUS  Berkas dihapus: /panduan/catatan.txt (13 byte dibebaskan)
+naik ke /panduan                                     LULUS  Ruang kerja: /panduan
+beres purnama                                        LULUS  Direktori dihapus: /panduan/purnama (0 entri)
+naik ke akar                                         LULUS  Ruang kerja: /
+beres panduan                                        LULUS  Direktori dihapus: /panduan (0 entri)
+RAMDISK kembali satu entri                           LULUS  Entri hidup     : 1
+serial: 4145 byte -> Analysis\reports\f5f6_kursor_posisi_serial_2026-10-22_10-13-04.log
+keadaan terukur: 15 (lihat ringkasan)
+
+=== RINGKASAN ===
+LULUS  framebuffer hidup dengan -display none  (baris glif 157 dari 1024x768)
+LULUS  idle: ada sel yang berkedip minimal dua kali  (toggle 3 konflik 0)
+LULUS  kalibrasi: geser 11 karakter habis terbagi 11  (geser 88 px)
+LULUS  kalibrasi: lebar sel satu glif (8-16 px)  (cw=8 px, x0=0)
+LULUS  duga: sel sesudah 11 ketikan ada di kolom 26  (ukur (208,302) kolom 26 -> prediksi x=208 | cw=8 x0=0 | konflik 0)
+LULUS  galat arity create-folder  (Kesalahan: jumlah argumen tidak sesuai - Sintaks: create-folder )
+LULUS  label Nama folder baru  (Nama folder baru: )
+LULUS  serial: enam ketikan pertama menempel pada label  (harap b'pandua' dapat b'pandua')
+LULUS  posisi: label + 6 karakter  (ukur (192,334) kolom 24 -> prediksi x=192 | cw=8 x0=0 | konflik 0)
+LULUS  serial: gema backspace `BS spasi BS`  (harap b'\x08 \x08' dapat b'\x08 \x08')
+LULUS  posisi: sesudah backspace sel mundur satu sel  (ukur (184,334) kolom 23 -> prediksi x=184 | cw=8 x0=0 | konflik 0)
+LULUS  create-folder panduan selesai  (Direktori dibuat: /panduan (0 entri))
+LULUS  sesudah submit: sel tidak tertinggal di baris terkirim  (baris label (192, 334) -> baris kini (120, 366))
+LULUS  sesudah submit: baris berpindah DAN kolom kembali ke ujung prompt  (x=120 prediksi=120)
+LULUS  sesudah submit: tidak ada sel lain yang ikut berkedip  (konflik 0)
+LULUS  masuk /panduan  (Ruang kerja: /panduan)
+LULUS  posisi: prompt berposisi /panduan  (ukur (176,398) kolom 22 -> prediksi x=176 | cw=8 x0=0 | konflik 0)
+LULUS  galat arity write-file  (Kesalahan: jumlah argumen tidak sesuai - Sintaks: write-file <na)
+LULUS  label Nama berkas  (Nama berkas: )
+LULUS  posisi: ujung label Nama berkas  (ukur (104,430) kolom 13 -> prediksi x=104 | cw=8 x0=0 | konflik 0)
+LULUS  serial: nama berkas menempel pada label  (harap b'catat.txt' dapat b'catat.txt')
+LULUS  serial: satu CRLF antara nama terkirim dan label isi  (harap b'\r\nIsi catat.txt (baris 1): ' dapat b'\r\nIsi catat.txt (bari)
+LULUS  posisi: ujung label isi baris 1  (ukur (200,446) kolom 25 -> prediksi x=200 | cw=8 x0=0 | konflik 0)
+LULUS  serial: isi menempel pada label isi  (harap b'satu dua tiga' dapat b'satu dua tiga')
+LULUS  Isi catat.txt (baris 2):   (Isi catat.txt (baris 2): )
+LULUS  posisi: ujung label isi baris 2  (ukur (200,462) kolom 25 -> prediksi x=200 | cw=8 x0=0 | konflik 0)
+LULUS  tulis selesai 13 byte  (Tertulis 13 byte di /panduan/catat.txt (berkas baru))
+LULUS  sesudah submit isi: sel di ujung prompt /panduan  (ukur (176,494) kolom 22 -> prediksi x=176 | cw=8 x0=0 | konflik 0)
+LULUS  clear menyisakan layar hampir kosong  (baris glif 13)
+LULUS  posisi sesudah clear: ujung prompt baris pertama  (ukur (176,30) kolom 22 -> prediksi x=176 | cw=8 x0=0 | konflik 0)
+LULUS  posisi sesudah clear: baris ikut naik ke atas layar  (y=30)
+LULUS  posisi: tengah baris rename (25 ketikan)  (ukur (376,30) kolom 47 -> prediksi x=376 | cw=8 x0=0 | konflik 0)
+LULUS  rename berkas 13 byte  (Berkas diganti nama: /panduan/catat.txt -> /panduan/catatan.txt )
+LULUS  sesudah rename: sel kembali ke ujung prompt  (ukur (176,62) kolom 22 -> prediksi x=176 | cw=8 x0=0 | konflik 0)
+LULUS  buat /panduan/bulan  (Direktori dibuat: /panduan/bulan (0 entri))
+LULUS  masuk /panduan/bulan  (Ruang kerja: /panduan/bulan)
+LULUS  posisi: dua ketikan di dalam /panduan/bulan  (ukur (240,126) kolom 30 -> prediksi x=240 | cw=8 x0=0 | konflik 0)
+LULUS  rename sambil berdiri di dalamnya  (Direktori diganti nama: /panduan/bulan -> /panduan/purnama (0 en)
+LULUS  ruang kerja diumumkan ulang  (Ruang kerja: /panduan/purnama)
+LULUS  prompt ikut bergeser  (ASL-KERNEL /panduan/purnama>_)
+LULUS  sesudah rename cwd: sel di ujung prompt path baru  (ukur (240,190) kolom 30 -> prediksi x=240 | cw=8 x0=0 | konflik 0)
+LULUS  beres catatan.txt  (Berkas dihapus: /panduan/catatan.txt (13 byte dibebaskan))
+LULUS  naik ke /panduan  (Ruang kerja: /panduan)
+LULUS  beres purnama  (Direktori dihapus: /panduan/purnama (0 entri))
+LULUS  naik ke akar  (Ruang kerja: /)
+LULUS  beres panduan  (Direktori dihapus: /panduan (0 entri))
+LULUS  RAMDISK kembali satu entri  (Entri hidup     : 1)
+TOTAL 47 LULUS / 47 periksa

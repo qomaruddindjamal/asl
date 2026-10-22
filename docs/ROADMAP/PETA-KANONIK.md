@@ -18,12 +18,12 @@ dicetak atau nama konstanta adalah penanda yang stabil.
 | --- | --- | --- | --- |
 | Versi rilis `v1.0.2` | `KERNEL_VERSION` di `asl-kernel/asl-cockpit-shell/src/lib.rs` | banner, `uname`, `status`, prompt bantuan | `test_release_identity_single_source` |
 | Prompt `ASL-KERNEL />_ ` (akar) dan `ASL-KERNEL <posisi>>_ ` (subfolder) | `SHELL_PROMPT_PREFIX` + `SHELL_PROMPT_SUFFIX`, disusun `render_prompt`; `SHELL_PROMPT` adalah bentuk akar | seluruh situs tampil lewat `ShellCwd::prompt`; dibaca juga oleh skrip gerbang memori | `test_release_identity_single_source`, `test_f1_prompt_shows_active_position`, `test_f1_prompt_truncates_long_position_and_keeps_suffix`, `test_shell_prompt_shows_active_position`, `test_shell_cwd_parent_naik_satu_tingkat_dan_tetap_di_akar`, parser `scripts/test_ram_floor_3mb.ps1` |
-| Daftar perintah kanonik | `REGISTRY` + `CANONICAL_COMMAND_COUNT` di berkas yang sama | keluaran `help`, jumlah pada `status`, `docs/PANDUAN/REFERENSI-PERINTAH.md` | `test_registry_has_twelve_canonical_commands`, `test_f2_up_command_is_canonical_and_takes_no_argument`, `test_docs_command_reference_matches_registry` |
+| Daftar perintah kanonik | `REGISTRY` + `CANONICAL_COMMAND_COUNT` di berkas yang sama | keluaran `help`, jumlah pada `status`, `docs/PANDUAN/REFERENSI-PERINTAH.md` | `test_registry_has_thirteen_canonical_commands`, `test_f2_up_command_is_canonical_and_takes_no_argument`, `test_docs_command_reference_matches_registry` |
 | Alias parser | `aliases()` tiap entri registry | resolusi parser, baris `alias:` pada `help` | `test_parser_resolves_every_documented_alias` |
 | Judul kelompok perintah | `CommandCategory::label()` | seksi pada keluaran `help`, kolom Kelompok pada dokumen panduan | `test_help_text_is_generated_from_registry` |
-| Label keluaran shell (39 konstanta `MSG_*`) | `MSG_*` di `asl-kernel/asl-cockpit-shell/src/lib.rs` | setiap baris galat dan baris sukses yang dicetak dispatch di `asl-kernel/asl-kernel-core/src/lib.rs`, `docs/PANDUAN/REFERENSI-PERINTAH.md` Pasal 7 | `test_f3_labels_keluaran_satu_sumber`, `test_f3_dokumen_memuat_setiap_label_keluaran` |
+| Label keluaran shell (48 konstanta `MSG_*`) | `MSG_*` di `asl-kernel/asl-cockpit-shell/src/lib.rs` | setiap baris galat dan baris sukses yang dicetak dispatch di `asl-kernel/asl-kernel-core/src/lib.rs`, `docs/PANDUAN/REFERENSI-PERINTAH.md` Pasal 7 | `test_f3_labels_keluaran_satu_sumber`, `test_f3_dokumen_memuat_setiap_label_keluaran` |
 | Batas baris input | `SHELL_BUFFER_MAX` | penyangga shell, uji limpahan | `test_shell_buffer_overflow_protection` |
-| Batas satu token argumen | `MAX_ARG_LEN` = 64 di `asl-kernel/asl-cockpit-shell/src/lib.rs` | penampung argumen parser, flag `Invocation::arg_cut`, penolakan nama terpotong dan pengumuman isi terpotong di dispatch, Pasal 6 dan 7 `docs/PANDUAN/REFERENSI-PERINTAH.md` | `test_f4_argumen_terpotong_ditandai_bukan_disembunyikan`, `test_f4_nama_sampai_batas_argumen_tetap_utuh`, `test_f4_dokumen_memuat_batas_argumen`, `test_f4_peta_memuat_batas_argumen` |
+| Batas satu token argumen | `MAX_ARG_LEN` = 64 di `asl-kernel/asl-cockpit-shell/src/lib.rs` | penampung argumen parser, flag `Invocation::arg_cut`, penolakan nama terpotong dan pengumuman isi terpotong di dispatch, Pasal 6 dan 7 `docs/PANDUAN/REFERENSI-PERINTAH.md` | `test_f4_argumen_terpotong_ditandai_bukan_disembunyikan`, `test_f4_nama_sampai_batas_argumen_tetap_utuh`, `test_f4_dokumen_memuat_batas_argumen`, `test_f4_peta_memuat_batas_argumen`, `test_f6_rename_argumen_terpotong_dapat_dibaca_per_posisi` |
 
 ## Pasal 2A - MODE BERPANDUAN dan penanda kursor (F5)
 
@@ -46,6 +46,26 @@ argumen yang hilang.
 | Glif penanda kursor | `CURSOR_IDLE_GLYPH` (sudah hidup di `SHELL_PROMPT_SUFFIX`) | `gambar_penanda_kursor` pada framebuffer saja | `test_f5_kursor_nyala_beralternasi` |
 | Fase penanda kursor | `kursor_nyala(detik)` dengan `CURSOR_BLINK_PERIODE` = 2 | galang shell idle membaca `read_cmos_reg(0)` lewat `baca_detik_rtc` | `test_f5_kursor_nyala_beralternasi`, `screendump` QEMU pada berkas bukti F5 |
 | Umpan balik kemajuan Gate 3D di layar | `DualOut` dipakai `execute_gate3d_suite` (entri #38) | setiap baris progres suite yang semula hanya serial | sesi QEMU F5; varians durasi 64,0 s sampai 310,7 s tercatat di `docs/RND/ASL-V1.0.2-E8-LAPORAN-PENUTUPAN.md` |
+
+## Pasal 2B - Ganti nama (F6)
+
+Ganti nama adalah satu operasi pada satu direktori: sumber dan tujuan berbagi
+direktori induk. Penolakan terjadi penuh sebelum VFS disentuh, jadi tidak ada
+keadaan setengah terganti. `rename` sengaja BUKAN perintah berpanduan - perintah
+ini butuh dua argumen sekaligus dan tidak ada baris yang boleh ditafsirkan
+setelahnya.
+
+| Fakta | Sumber satu-satunya | Yang menyusun dari sumber | Penjaga |
+| --- | --- | --- | --- |
+| Entri registry `rename <lama> <baru>` + alias `mv` | `RenameCmd` di `REGISTRY` (`CANONICAL_COMMAND_COUNT` = 13) | keluaran `help`, jumlah pada `status`, blok `### rename` di `docs/PANDUAN/REFERENSI-PERINTAH.md` | `test_registry_has_thirteen_canonical_commands`, `test_docs_command_reference_matches_registry`, `test_parser_resolves_every_documented_alias` |
+| Satu perubahan nama di tingkat VFS | `FileSystem::rename` (bawaan `ReadOnly`) di `asl-kernel/asl-storage/src/vfs.rs`, diimplementasikan `RamFileSystem::rename`; jembatan `Vfs::rename` memanggil lewat induk-oleh-nama | dispatch `jalankan_rename` di `asl-kernel/asl-kernel-core/src/lib.rs` | `test_f6_rename_berkas_mengganti_nama_saja`, `test_f6_rename_lewat_jembatan_vfs` |
+| Nama tujuan tidak boleh menimpa | `rename` mengembalikan `AlreadyExists` untuk nama tujuan yang sudah dipakai maupun nama yang sama dengan sumber | baris galat `... sudah ada - sumber tidak diubah` | `test_f6_rename_dilarang_menimpa_nama_yang_sudah_ada`, `test_f6_rename_nama_sama_dengan_sumber_ditolak` |
+| Nama tujuan harus satu nama, bukan jalur | `rename` menolak `new_name` yang memuat `/` (plus `""`, `.`, `..`, di atas `MAX_NAME_LEN`) | `AlasanRenameGalat::Miring` + label `MSG_RENAME_MIRING` | `test_f6_rename_menolak_nama_tujuan_tidak_sah`, `test_f6_pieces_tolakan_rename_pakai_satu_label_galat` |
+| Kedua nama rename dijaga dari pemotongan | `Invocation::arg_terpotong(i)` (flag per posisi) + kebijakan `rename_argumen_terpotong` di `asl-kernel-core`; posisi pertama sudah dijaga penolakan F4 | baris galat `MSG_ARG_CUT` yang sama, dengan potongan argumen kedua sebagai teks yang disebut | `test_f6_rename_argumen_terpotong_dapat_dibaca_per_posisi`, `test_f6_rename_argumen_kedua_terpotong_punya_kebijakan_sendiri` |
+| Subtree anak ikut bergeser tanpa sentuhan | anak menunjuk induk lewat inode, sehingga hanya byte nama induk yang berubah; jumlah turunan dilaporkan `FileSystem::subtree_count` (bawaan `0`) | baris sukses direktori `... (<n> entri subtree ikut bergeser)` | `test_f6_rename_direktori_yang_berisi_sah`, `test_f6_rename_direktori_menggeser_seluruh_subtree` |
+| Ruang kerja ditulis ulang bila terdampak | `geser_cwd_rename` di `asl-kernel-core` (cocok tepat atau awalan `<sumber>/`) | prompt sesudah rename, pengumuman `MSG_WORKDIR` | `test_f6_geser_cwd_hanya_bila_posisi_terkena`, `test_f6_geser_cwd_tidak_terkena_rename_berkas`, `test_f6_geser_cwd_menolak_memotong_diam_diam` |
+| Objek akar tidak dapat diganti nama | basis kosong pada jalur hasil normalisasi di `jalankan_rename` | label `MSG_RENAME_AKAR` | `test_f6_pieces_tolakan_rename_pakai_satu_label_galat` + sesi QEMU F6 |
+| rename tidak masuk mode berpanduan | `resolusi_pemandu()` hanya memetakan tiga perintah pembuatan; `rename` -> `TujuanPemandu::TidakAda` | jembatan `buka_pemandu` di `asl-kernel-core` berhenti sebelum mode terbuka | `test_f6_rename_tidak_dibimbing_mode_panduan` |
 
 ## Pasal 3 - Penyimpanan dan memori
 
@@ -82,7 +102,7 @@ smoke. `M6` plus prompt shell adalah syarat lulus smoke boot.
 
 | Area | Kelas bukti | Catatan |
 | --- | --- | --- |
-| 12 perintah kanonik + 9 alias, jembatan shell ke RAMDISK | `VERIFIED-ON-HOST` | test registry, parser, editor baris, dan sinkron dokumen |
+| 13 perintah kanonik + 10 alias, jembatan shell ke RAMDISK | `VERIFIED-ON-HOST` | test registry, parser, editor baris, dan sinkron dokumen |
 | Keluaran shell eksplisit: satu label `Kesalahan:`, jalur yang gagal disebut, jumlah byte/entri diumumkan | `VERIFIED-ON-HOST` untuk teks label dan susunan baris; `VERIFIED-ON-VM` untuk baris yang sungguh tercetak | dua test penjaga label dan satu test angka path di sisi host; sesi QEMU 256M pada `Analysis/reports/f3_keluaran_uji_2026-10-22.txt` bagian [7] |
 | Boot sampai prompt dan sesi shell di QEMU | `VERIFIED-ON-VM` | berkas log serial; sesi yang disaksikan pemilik dijadwalkan pada gerbang G9 |
 | Uji host dan build release di runner GitHub | `VERIFIED-ON-CI` | workflow hanya menempuh langkah uji host dan build; boot QEMU tidak berjalan di runner |

@@ -96,12 +96,17 @@ ASL-KERNEL />_ cd log
 ASL-KERNEL /log>_ create-file note.txt
 ASL-KERNEL /log>_ write-file note.txt halo dunia
 ASL-KERNEL /log>_ cat note.txt
+ASL-KERNEL /log>_ rename note.txt catatan.txt
 ASL-KERNEL /log>_ up
 ASL-KERNEL />_ status
 ```
 
 Ruang kerja (`cd`, `ls`, `cat`) hanya melihat RAMDISK volatil; `up` menaiki satu
 tingkat dan tetap di akar bila sudah di akar. Isi hilang ketika mesin dimatikan.
+`rename` hanya menerima satu nama tujuan tanpa garis miring: ia memindah nama,
+bukan isi, dan menolak menimpa nama yang sudah ada. Mengganti nama folder
+menggeser seluruh subtree di bawahnya, termasuk ruang kerja bila operator
+berdiri di dalamnya — posisi baru itu diumumkan dan tampil pada prompt.
 Setiap kegagalan memakai satu label `Kesalahan: ` yang menyebut jalur yang
 gagal, dan setiap `write-file` yang memangkas isi lama mengumumkannya dengan
 jumlah byte. Bentuk lengkap dan janji setiap perintah:

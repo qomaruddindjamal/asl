@@ -317,6 +317,30 @@ impl<const SLOTS: usize, const SLOT_BYTES: usize> RamFileSystem<SLOTS, SLOT_BYTE
         c
     }
 
+    /// Seluruh turunan `root_inode` (anak, cucu, dan seterusnya), TIDAK termasuk
+    /// simpul itu sendiri. Dipakai pengumuman rename direktori (F6) karena path
+    /// turunan disusun ulang dari rantai induk, bukan disimpan sebagai teks.
+    pub fn subtree_count(&self, root_inode: u64) -> usize {
+        let mut tumpuk = [0u64; SLOTS];
+        let mut puncak = 1usize;
+        tumpuk[0] = root_inode;
+        let mut total = 0usize;
+        while puncak > 0 {
+            puncak -= 1;
+            let inode = tumpuk[puncak];
+            let mut i = 1;
+            while i < SLOTS {
+                if self.nodes[i].in_use && self.nodes[i].parent == inode && puncak < SLOTS {
+                    total += 1;
+                    tumpuk[puncak] = self.nodes[i].inode;
+                    puncak += 1;
+                }
+                i += 1;
+            }
+        }
+        total
+    }
+
     /// Buat satu entri (berkas atau direktori) di bawah `parent`.
     fn create_entry(
         &mut self,
@@ -502,6 +526,46 @@ impl<const SLOTS: usize, const SLOT_BYTES: usize> FileSystem for RamFileSystem<S
         Ok(())
     }
 
+    /// Ganti nama satu entri langsung di bawah `parent`, berkas ATAU direktori.
+    ///
+    /// Tidak ada satupun anak yang disentuh, dan itu bukan jalan pintas:
+    /// `RamNode` menunjuk induk lewat inode, sehingga `lookup` menyusun ulang
+    /// path turunan setiap kali. Satu penggantian nama direktori karena itu
+    /// menggeser seluruh subtree (mandat F6), dan `rename` direktori berisi pun
+    /// sah - berbeda dari `delete_dir` yang menuntut direktori kosong.
+    fn rename(&mut self, parent: &VfsNode, old_name: &str, new_name: &str) -> VfsResult<VfsNode> {
+        let pidx = self
+            .index_of_inode(parent.inode)
+            .ok_or(VfsError::NotFound)?;
+        if self.nodes[pidx].kind != VfsNodeType::Directory {
+            return Err(VfsError::NotADirectory);
+        }
+        if new_name.is_empty() || new_name == "." || new_name == ".." {
+            return Err(VfsError::InvalidPath);
+        }
+        if new_name.len() > MAX_NAME_LEN || new_name.contains('/') {
+            return Err(VfsError::InvalidPath);
+        }
+        let parent_inode = self.nodes[pidx].inode;
+        let idx = self
+            .find_child(parent_inode, old_name)
+            .ok_or(VfsError::NotFound)?;
+        if new_name == old_name || self.find_child(parent_inode, new_name).is_some() {
+            return Err(VfsError::AlreadyExists);
+        }
+        let mut i = 0;
+        while i < new_name.len() {
+            self.nodes[idx].name[i] = new_name.as_bytes()[i];
+            i += 1;
+        }
+        while i < MAX_NAME_LEN {
+            self.nodes[idx].name[i] = 0;
+            i += 1;
+        }
+        self.nodes[idx].name_len = new_name.len();
+        Ok(self.node_view(idx))
+    }
+
     fn truncate(&mut self, node: &VfsNode, new_len: usize) -> VfsResult<()> {
         let idx = self.index_of_inode(node.inode).ok_or(VfsError::NotFound)?;
         if self.nodes[idx].kind != VfsNodeType::File {
@@ -537,6 +601,12 @@ impl<const SLOTS: usize, const SLOT_BYTES: usize> FileSystem for RamFileSystem<S
 
     fn entry_count(&self) -> usize {
         self.total_entries()
+    }
+
+    fn subtree_count(&self, inode: u64) -> usize {
+        // Panggil eksplisit ke versi inherent: nama method-nya sama, jadi
+        // jalur pemanggilan harus tertulis agar tidak terlihat rekursif.
+        RamFileSystem::subtree_count(self, inode)
     }
 }
 
@@ -964,5 +1034,201 @@ mod fs_tests {
         );
         assert_eq!(vfs.open("/isi.txt").unwrap_err(), VfsError::NotFound);
         assert_eq!(vfs.entry_count(), 2);
+    }
+
+    // ---------------------------------------------------------------------
+    // F6: rename berkas, rename direktori, dan subtree yang ikut bergeser.
+    // ---------------------------------------------------------------------
+
+    /// Ganti nama berkas hanya menulis ulang byte nama: inode, induk, dan
+    /// ukuran tetap. Kalau salah satu dari ini berubah, `rename` diam-diam
+    /// melakukan operasi yang lebih besar dari yang dijanjikan.
+    #[test]
+    fn test_f6_rename_berkas_mengganti_nama_saja() {
+        let mut fs = TinyFs::new();
+        let root = root_node(&mut fs);
+        let berkas = fs.create_file(&root, "lama.txt").expect("buat");
+        fs.write(&berkas, 0, b"isi asli").expect("tulis");
+        let hasil = fs
+            .rename(&root, "lama.txt", "baru.txt")
+            .expect("rename berkas");
+        assert_eq!(hasil.inode, berkas.inode, "inode berubah");
+        assert_eq!(hasil.size_bytes, 8, "ukuran isi berubah");
+        assert_eq!(fs.lookup("/baru.txt").expect("path baru"), hasil);
+        assert_eq!(fs.lookup("/lama.txt").unwrap_err(), VfsError::NotFound);
+        let mut isi = [0u8; 16];
+        assert_eq!(fs.read(&hasil, 0, &mut isi).expect("baca"), 8);
+        assert_eq!(&isi[..8], b"isi asli");
+        assert_eq!(fs.total_entries(), 2, "rename menambah/mengurang entri");
+    }
+
+    /// Direktori boleh diganti nama meski berisi - berbeda dari `delete_dir`
+    /// yang menuntut direktori kosong.
+    #[test]
+    fn test_f6_rename_direktori_yang_berisi_sah() {
+        let mut fs = TinyFs::new();
+        let root = root_node(&mut fs);
+        let log = fs.create_dir(&root, "log").expect("mkdir");
+        let anak = fs.create_file(&log, "a.txt").expect("buat di dalam log");
+        let hasil = fs
+            .rename(&root, "log", "catatan")
+            .expect("rename direktori berisi");
+        assert_eq!(hasil.node_type, VfsNodeType::Directory);
+        assert_eq!(
+            fs.lookup("/catatan/a.txt")
+                .expect("turunan ikut bergerak")
+                .inode,
+            anak.inode
+        );
+        assert_eq!(
+            fs.lookup("/log/a.txt").unwrap_err(),
+            VfsError::NotFound,
+            "path lama masih dikenal sesudah rename"
+        );
+    }
+
+    /// Inti mandat F6: path turunan disusun ulang dari rantai induk, jadi satu
+    /// penggantian nama menggeser seluruh subtree tanpa menyentuh satu anak pun.
+    /// Isi turunan tetap terbaca lewat path yang baru.
+    #[test]
+    fn test_f6_rename_direktori_menggeser_seluruh_subtree() {
+        let mut fs = TinyFs::new();
+        let root = root_node(&mut fs);
+        let log = fs.create_dir(&root, "log").expect("mkdir");
+        let vdata = fs.create_dir(&log, "data").expect("mkdir dalam");
+        let txt = fs.create_file(&vdata, "a.txt").expect("buat");
+        fs.write(&txt, 0, b"halo").expect("tulis");
+        assert_eq!(fs.subtree_count(log.inode), 2, "dua turunan /log");
+        assert_eq!(fs.subtree_count(txt.inode), 0, "berkas tidak punya turunan");
+
+        fs.rename(&root, "log", "catatan")
+            .expect("rename akar subtree");
+        let pindah = fs.lookup("/catatan/data/a.txt").expect("path baru");
+        assert_eq!(pindah.inode, txt.inode, "turunan berganti inode");
+        let mut isi = [0u8; 8];
+        assert_eq!(fs.read(&pindah, 0, &mut isi).expect("baca"), 4);
+        assert_eq!(&isi[..4], b"halo");
+        assert_eq!(
+            fs.lookup("/log/data/a.txt").unwrap_err(),
+            VfsError::NotFound,
+            "path lama masih dikenal"
+        );
+        assert_eq!(fs.total_entries(), 4, "rename mengubah jumlah entri");
+        assert_eq!(fs.subtree_count(root.inode), 3, "tiga turunan akar");
+    }
+
+    /// Mandat F6: dilarang menimpa nama yang sudah ada, dan sumber harus tetap
+    /// utuh ketika penolakan terjadi.
+    #[test]
+    fn test_f6_rename_dilarang_menimpa_nama_yang_sudah_ada() {
+        let mut fs = TinyFs::new();
+        let root = root_node(&mut fs);
+        let satu = fs.create_file(&root, "satu.txt").expect("buat satu");
+        let dua = fs.create_file(&root, "dua.txt").expect("buat dua");
+        assert_eq!(
+            fs.rename(&root, "dua.txt", "satu.txt").unwrap_err(),
+            VfsError::AlreadyExists
+        );
+        assert_eq!(
+            fs.lookup("/satu.txt").expect("sasaran tetap").inode,
+            satu.inode
+        );
+        assert_eq!(
+            fs.lookup("/dua.txt").expect("sumber tidak diubah").inode,
+            dua.inode
+        );
+        assert_eq!(fs.total_entries(), 3, "penolakan mengubah isi direktori");
+    }
+
+    /// Nama tujuan yang sama dengan nama sumber bukan "berhasil": tidak ada
+    /// yang berubah, dan perintah harus mengatakan begitu.
+    #[test]
+    fn test_f6_rename_nama_sama_dengan_sumber_ditolak() {
+        let mut fs = TinyFs::new();
+        let root = root_node(&mut fs);
+        let berkas = fs.create_file(&root, "a.txt").expect("buat");
+        assert_eq!(
+            fs.rename(&root, "a.txt", "a.txt").unwrap_err(),
+            VfsError::AlreadyExists
+        );
+        assert_eq!(fs.lookup("/a.txt").expect("tetap ada").inode, berkas.inode);
+    }
+
+    /// Aturan nama tujuan sama dengan aturan pembuatan entri: kosong, `.`,
+    /// `..`, memuat garis miring, atau lebih panjang dari batas nama tidak
+    /// mungkin menjadi satu entri baru, jadi ditolak. Nama berspasi TIDAK
+    /// termasuk daftar itu: batas spasi ada pada satu token baris perintah,
+    /// bukan pada nama, dan jalur panduan F5 mengirim nama berspasi ke fungsi
+    /// ini.
+    #[test]
+    fn test_f6_rename_menolak_nama_tujuan_tidak_sah() {
+        let mut fs = TinyFs::new();
+        let root = root_node(&mut fs);
+        let berkas = fs.create_file(&root, "a.txt").expect("buat");
+        for nama in [
+            "",
+            ".",
+            "..",
+            "dengan/spasi",
+            "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        ] {
+            assert_eq!(
+                fs.rename(&root, "a.txt", nama).unwrap_err(),
+                VfsError::InvalidPath,
+                "nama tujuan {:?} seharusnya ditolak",
+                nama
+            );
+        }
+        assert_eq!(
+            fs.lookup("/a.txt").expect("sumber utuh").inode,
+            berkas.inode
+        );
+        assert_eq!(fs.total_entries(), 2, "penolakan menyisakan entri");
+        let laporan = fs
+            .rename(&root, "a.txt", "laporan tahunan 2026")
+            .expect("rename berspasi");
+        assert_eq!(
+            fs.lookup("/laporan tahunan 2026")
+                .expect("path berspasi")
+                .inode,
+            laporan.inode
+        );
+    }
+
+    /// Sumber yang tidak ada menghasilkan NotFound, bukan entri baru.
+    #[test]
+    fn test_f6_rename_sumber_tidak_ditemukan() {
+        let mut fs = TinyFs::new();
+        let root = root_node(&mut fs);
+        assert_eq!(
+            fs.rename(&root, "tiada.txt", "jadi.txt").unwrap_err(),
+            VfsError::NotFound
+        );
+        assert_eq!(fs.lookup("/jadi.txt").unwrap_err(), VfsError::NotFound);
+        assert_eq!(fs.total_entries(), 1, "hanya akar");
+    }
+
+    /// rename lewat jembatan `Vfs` memakai jalur induk-oleh-nama seperti
+    /// `rm`/`rmdir`, jadi `rename <lama> <baru>` hanya berlaku di satu
+    /// direktori. Jumlah turunan juga dilaporkan lewat trait, bukan hanya
+    /// method inherent, karena dispatch shell hanya memegang `Vfs`.
+    #[test]
+    fn test_f6_rename_lewat_jembatan_vfs() {
+        let mut fs = TinyFs::new();
+        let mut vfs = Vfs::new();
+        vfs.mount_root(&mut fs);
+        vfs.mkdir("/", "log").expect("mkdir");
+        let sumber = vfs.touch("/log", "s.txt").expect("touch");
+        let hasil = vfs.rename("/log", "s.txt", "b.txt").expect("rename");
+        assert_eq!(hasil.inode, sumber.inode, "jembatan mengganti inode");
+        assert_eq!(vfs.open("/log/b.txt").expect("path baru").size_bytes, 0);
+        assert_eq!(vfs.open("/log/s.txt").unwrap_err(), VfsError::NotFound);
+        // Nama tujuan berupa path tetap ditolak lewat jembatan.
+        assert_eq!(
+            vfs.rename("/log", "b.txt", "x/y.txt").unwrap_err(),
+            VfsError::InvalidPath
+        );
+        let log = vfs.open("/log").expect("log");
+        assert_eq!(vfs.subtree_count(log.inode), 1, "satu turunan /log");
     }
 }

@@ -408,6 +408,27 @@ langsung bagi sesi 23-22-59 yang menjalankan 59 kasus sampai selesai.
 Sesudah kejadian ini, setiap kali alat dijalankan dengan kasus berat, baris
 `batas` pada artefak diperiksa lebih dahulu sebelum keluarannya dibaca.
 
+Kejadian keempat (unit F2, lapor diri sendiri). Butir `Dokumen` pada pesan commit
+`c3a9f2e` menulis bahwa blok `### up` ada di `REFERENSI-PENUTUP... (lihat rincian
+berkas)`. Berkas bernama itu tidak ada: `git ls-files | grep -i PENUTUP` hanya
+mengembalikan `docs/RND/ASL-V1.0.2-E8-LAPORAN-PENUTUPAN.md`, sedangkan yang saya
+ubah pada unit itu adalah `docs/PANDUAN/REFERENSI-PERINTAH.md` (15 baris),
+`docs/PANDUAN/MULAI-CEPAT.md` (8 baris) dan `docs/ROADMAP/PETA-KANONIK.md`
+(6 baris) — terukur dari `git show --stat c3a9f2e`. Isi commit tidak terpengaruh
+dan tidak ada angka yang salah di dalamnya: penjaga sinkron dokumen hijau pada
+tree itu, dan setiap butir yang saya sebut memang berubah — hanya nama berkas
+tempat butir itu berada yang saya salah tulis. Akarnya sama dengan kejadian
+kedua, yaitu kalimat yang dibangun dari ingatan alih-alih dari berkas, dan
+gejalanya ikut tercetak: placeholder `...` diikuti `(lihat rincian berkas)`,
+tanda penulis tahu kalimatnya belum selesai lalu menyerahkan penyelesaiannya
+kepada pembaca. Riwayat tidak ditulis ulang (aturan G6/G8, nol-amend); koreksinya
+entri ke-43 `ACCOUNTABILITY_FAULT_LOG` plus paragraf ini, sehingga pembaca
+riwayat melihat kalimat yang salah dan koreksinya bersebelahan. Pencegahan yang
+berlaku untuk sisa rantai R1 adalah perluasan dari aturan kejadian kedua: setelah
+setiap commit, `git log -1 --format=%B` dibaca ulang DAN setiap jalur berkas yang
+disebut diuji keberadaannya dengan `git ls-files <jalur>` sebelum unit dianggap
+tercatat.
+
 ---
 
 ## 7. Yang belum selesai (jangan dibaca sebagai selesai)

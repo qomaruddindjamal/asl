@@ -36,8 +36,9 @@ skrip, tidak ada berkas di disk, tidak ada jaringan.
 2. Tekan ENTER (`\r` atau `\n` keduanya diterima).
 3. Baris dipecah menjadi maksimal dua argumen; argumen terakhir pada
    `write-file` menangkap seluruh sisa baris apa adanya.
-4. Bila jumlah argumen di luar yang diizinkan, shell mencetak baris `Sintaks:`
-   yang diambil dari registry, bukan dari teks yang ditulis tangan.
+4. Bila jumlah argumen di luar yang diizinkan, shell mencetak baris galat berlabel
+   `Kesalahan:` yang memuat sintaks dari registry (`Sintaks: ...`), bukan teks yang
+   ditulis tangan. Bentuk lengkapnya ada di Pasal 7.
 5. Ruang kerja (direktori saat ini) dipakai oleh perintah berkas relatif; jalur
    mutlak diawali `/`. `up` menaiki satu tingkat ke direktori induk; di akar ia
    tidak berpindah dan mengatakan begitu.
@@ -144,7 +145,7 @@ Urutan di bawah sama dengan urutan tampil pada perintah `help`.
 
 ## Pasal 5 - Perintah lama yang tetap dikenali
 
-Sebelas perintah kanonik di atas dibangun di atas kerangka registry baru.
+Dua belas perintah kanonik di atas dibangun di atas kerangka registry baru.
 Perintah warisan TIDAK diubah dan TIDAK dihapus pada v1.0.2; keduanya tetap
 bekerja lewat jalur pengalihan lama: `meminfo`, `cpuinfo`, `uname`, `lspci`,
 `lsblk`, `fdisk`, `mount`, `failover`, `reboot`, `halt`, `wfi`, `hlt`,
@@ -163,3 +164,62 @@ bekerja lewat jalur pengalihan lama: `meminfo`, `cpuinfo`, `uname`, `lspci`,
   pengiriman sekuens.
 - Riwayat baris (panah atas/bawah) sengaja tidak dijanjikan dan tidak
   diimplementasikan.
+
+## Pasal 7 - Keluaran shell: satu label galat dan jumlah yang diumumkan
+
+Prinsip (unit F3): operator tidak boleh menebak apa yang barusan terjadi.
+Setiap baris keluaran kanonik disusun dari konstanta teks satu-sumber di
+`asl-kernel/asl-cockpit-shell/src/lib.rs` (`MSG_*`), dan teks yang sama
+tercatat di bawah ini; test `test_f3_labels_keluaran_satu_sumber` dan
+`test_f3_dokumen_memuat_setiap_label_keluaran` menjadi MERAH bila kode dan
+dokumen berpisah.
+
+#### Aturan galat
+
+Satu label untuk semua kegagalan: `Kesalahan: ` disusul sasaran lalu
+penjelasan. Tidak ada lagi label kedua (`Galat:` sudah hilang dari shell).
+
+| Keadaan | Baris yang tercetak |
+| --- | --- |
+| Tujuan tidak ada | `Kesalahan: <jalan> tidak ditemukan` |
+| Tujuan sudah ada | `Kesalahan: <jalan> sudah ada` |
+| Berkas diperlakukan sebagai direktori | `Kesalahan: <jalan> objek ini bukan direktori` |
+| Direktori diperlakukan sebagai berkas | `Kesalahan: <jalan> objek ini direktori` |
+| Direktori masih berisi | `Kesalahan: <jalan> direktori masih berisi` |
+| RAMDISK penuh | `Kesalahan: <jalan> ruang RAMDISK habis` |
+| Sistem berkas hanya-baca | `Kesalahan: <jalan> sistem berkas hanya-baca` |
+| Path tidak sah | `Kesalahan: <jalan> path tidak sah` |
+| Perangkat penyimpanan gagal | `Kesalahan: <jalan> galat perangkat penyimpanan` |
+| Hasil normalisasi path terlalu panjang | `Kesalahan: <argumen> - path hasil normalisasi melebihi batas 128 byte` |
+| Jumlah argumen tidak sesuai | `Kesalahan: jumlah argumen tidak sesuai - Sintaks: <sintaks registry>` |
+| Nama perintah tidak dikenal (`help <nama>`) | `Kesalahan: perintah tidak dikenal: <nama>` |
+
+Sasaran (`<jalan>`) adalah jalur hasil normalisasi yang benar-benar dipakai ke
+VFS, jadi operator tahu objek mana yang gagal tanpa mengingat ketikannya.
+
+#### Keluaran sukses
+
+| Perintah | Baris yang tercetak |
+| --- | --- |
+| `where` | `Ruang kerja: <jalan>` |
+| `up` (berhasil) | `Ruang kerja: <jalan>` |
+| `up` di akar | `Ruang kerja tetap di akar: /` |
+| `open <direktori>` | `Ruang kerja: <jalan>` |
+| `open <berkas>` | `Isi <jalan> (<n> byte):` lalu isi; berkas nol byte mencetak `(kosong)` |
+| `list` | `Daftar isi <jalan> (<n> entri):` lalu satu baris per entri |
+| `create-folder` | `Direktori dibuat: <jalan> (0 entri)` |
+| `create-file` | `Berkas dibuat: <jalan> (0 byte)` |
+| `write-file` berkas baru | `Tertulis <n> byte di <jalan> (berkas baru)` |
+| `write-file` menimpa, isi lama lebih panjang | `Tertulis <n> byte di <jalan> - <m> byte isi lama dihapus` |
+| `write-file` menimpa, isi lama tidak dipotong | `Tertulis <n> byte di <jalan>` |
+| `delete-file` | `Berkas dihapus: <jalan> (<n> byte dibebaskan)` |
+| `delete-folder` | `Direktori dihapus: <jalan> (0 entri)` |
+
+#### Janji `write-file` tanpa argumen teks
+
+`write-file <nama>` tanpa teks SAH: berkas (dibuat bila belum ada) ditulis
+dengan nol byte, sehingga isi lama hilang. Karena pemangkasan itu tidak dapat
+diambil kembali, shell mengumumkannya pada baris yang sama: angka `<m> byte
+isi lama dihapus` hanya muncul bila tulisan lebih pendek daripada isi lama,
+dan `write-file` tanpa teks pada berkas berisi selalu mencetaknya.
+

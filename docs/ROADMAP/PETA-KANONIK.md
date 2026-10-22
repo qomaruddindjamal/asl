@@ -21,6 +21,7 @@ dicetak atau nama konstanta adalah penanda yang stabil.
 | Daftar perintah kanonik | `REGISTRY` + `CANONICAL_COMMAND_COUNT` di berkas yang sama | keluaran `help`, jumlah pada `status`, `docs/PANDUAN/REFERENSI-PERINTAH.md` | `test_registry_has_twelve_canonical_commands`, `test_f2_up_command_is_canonical_and_takes_no_argument`, `test_docs_command_reference_matches_registry` |
 | Alias parser | `aliases()` tiap entri registry | resolusi parser, baris `alias:` pada `help` | `test_parser_resolves_every_documented_alias` |
 | Judul kelompok perintah | `CommandCategory::label()` | seksi pada keluaran `help`, kolom Kelompok pada dokumen panduan | `test_help_text_is_generated_from_registry` |
+| Label keluaran shell (24 konstanta `MSG_*`) | `MSG_*` di `asl-kernel/asl-cockpit-shell/src/lib.rs` | setiap baris galat dan baris sukses yang dicetak dispatch di `asl-kernel/asl-kernel-core/src/lib.rs`, `docs/PANDUAN/REFERENSI-PERINTAH.md` Pasal 7 | `test_f3_labels_keluaran_satu_sumber`, `test_f3_dokumen_memuat_setiap_label_keluaran` |
 | Batas baris input | `SHELL_BUFFER_MAX` | penyangga shell, uji limpahan | `test_shell_buffer_overflow_protection` |
 
 ## Pasal 3 - Penyimpanan dan memori
@@ -30,6 +31,7 @@ dicetak atau nama konstanta adalah penanda yang stabil.
 | Kapasitas RAMDISK 262.144 byte | `RAMDISK_CAPACITY_DEFAULT_BYTES` di `asl-kernel/asl-storage/src/ramdisk.rs` | keluaran `status`, angka pada `docs/PANDUAN/REFERENSI-PERINTAH.md` dan `KONFIGURASI-MEMORI.md` | `test_ram_filesystem_capacity_bounds`, `test_docs_capacity_figures_match_constants` |
 | Ukuran slot berkas 8.192 byte | `RAMDISK_FILE_SLOT_BYTES` | batas tulis `write-file`, dokumen | dua test di atas |
 | Batas bawah/atas kapasitas | `RAMDISK_CAPACITY_MIN_BYTES`, `RAMDISK_CAPACITY_MAX_BYTES` | keputusan konfigurasi misi | `test_ram_filesystem_capacity_bounds` |
+| Batas panjang path 128 byte | `MAX_PATH_LEN` di `asl-kernel/asl-storage/src/vfs.rs` | penyangga normalisasi jalur dan pemotongan posisi prompt di `asl-kernel-core`, baris galat batas pada Pasal 7 `docs/PANDUAN/REFERENSI-PERINTAH.md` | `test_f3_dokumen_memuat_batas_panjang_path`, `test_f1_prompt_truncates_long_position_and_keeps_suffix` |
 | Instance yang dipakai kernel | `RAMDISK_FS` (statis `.bss`, `new_bss_zeroed()` + `ensure_root()`) di `asl-kernel/asl-kernel-core/src/lib.rs` | jembatan shell ke VFS | `test_zeroed_static_requires_ensure_root` |
 | Antarmuka berkas | `trait FileSystem` di `asl-kernel/asl-storage/src/vfs.rs` | implementasi ramdisk dan jembatan shell | test ramdisk + test jalur ganda shell |
 | Ambang gerbang memori | `-MissionRam 3M`, `-RatchetRam 3392K` di `scripts/test_ram_floor_3mb.ps1` | langkah `[4/5]` `scripts/ci_local.ps1` | kode keluar 0/1/2 skrip |
@@ -57,6 +59,7 @@ smoke. `M6` plus prompt shell adalah syarat lulus smoke boot.
 | Area | Kelas bukti | Catatan |
 | --- | --- | --- |
 | 12 perintah kanonik + 9 alias, jembatan shell ke RAMDISK | `VERIFIED-ON-HOST` | test registry, parser, editor baris, dan sinkron dokumen |
+| Keluaran shell eksplisit: satu label `Kesalahan:`, jalur yang gagal disebut, jumlah byte/entri diumumkan | `VERIFIED-ON-HOST` untuk teks label dan susunan baris; `VERIFIED-ON-VM` untuk baris yang sungguh tercetak | dua test penjaga label dan satu test angka path di sisi host; sesi QEMU 256M pada `Analysis/reports/f3_keluaran_uji_2026-10-22.txt` bagian [7] |
 | Boot sampai prompt dan sesi shell di QEMU | `VERIFIED-ON-VM` | berkas log serial; sesi yang disaksikan pemilik dijadwalkan pada gerbang G9 |
 | Uji host dan build release di runner GitHub | `VERIFIED-ON-CI` | workflow hanya menempuh langkah uji host dan build; boot QEMU tidak berjalan di runner |
 | Gerbang boot `-m 3M` | MERAH, `DEVIASI TERCATAT` | lihat `docs/PANDUAN/KONFIGURASI-MEMORI.md` Pasal 4 dan `ACCOUNTABILITY_FAULT_LOG` entri ke-23 |

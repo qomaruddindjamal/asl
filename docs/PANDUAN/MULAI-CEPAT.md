@@ -102,8 +102,10 @@ ASL-KERNEL />_ status
 
 Ruang kerja (`cd`, `ls`, `cat`) hanya melihat RAMDISK volatil; `up` menaiki satu
 tingkat dan tetap di akar bila sudah di akar. Isi hilang ketika mesin dimatikan.
-Bentuk lengkap dan janji setiap perintah:
-`docs/PANDUAN/REFERENSI-PERINTAH.md`.
+Setiap kegagalan memakai satu label `Kesalahan: ` yang menyebut jalur yang
+gagal, dan setiap `write-file` yang memangkas isi lama mengumumkannya dengan
+jumlah byte. Bentuk lengkap dan janji setiap perintah:
+`docs/PANDUAN/REFERENSI-PERINTAH.md` (label keluaran: Pasal 7).
 
 ## Pasal 5 - Pipeline lengkap sekali jalan
 

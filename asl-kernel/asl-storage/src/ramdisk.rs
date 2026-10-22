@@ -773,6 +773,20 @@ mod fs_tests {
         );
     }
 
+    /// Penjaga F3: angka batas panjang path yang shell umumkan pada baris
+    /// `Kesalahan: <argumen> - path hasil normalisasi melebihi batas N byte`
+    /// dibaca dari konstanta yang sama dengan yang dipakai `resolve_path`,
+    /// bukan dari teks yang ditulis tangan di dokumen.
+    #[test]
+    fn test_f3_dokumen_memuat_batas_panjang_path() {
+        const DOC: &str = include_str!("../../../docs/PANDUAN/REFERENSI-PERINTAH.md");
+        assert_eq!(
+            number_after(DOC, "path hasil normalisasi melebihi batas "),
+            Some(MAX_PATH_LEN),
+            "Pasal 7 dokumen memuat batas panjang path yang bukan dari konstanta"
+        );
+    }
+
     #[test]
     fn test_zeroed_static_requires_ensure_root() {
         // Jalur statis kernel: nilai awal seluruhnya nol agar `.bss`, dan akar

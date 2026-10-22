@@ -429,6 +429,33 @@ setiap commit, `git log -1 --format=%B` dibaca ulang DAN setiap jalur berkas yan
 disebut diuji keberadaannya dengan `git ls-files <jalur>` sebelum unit dianggap
 tercatat.
 
+Kejadian kelima (unit F3, lapor diri sendiri). Kejadian ini dua lapis dan keduanya
+salah saya, bukan salah produk. Lapis pertama: alat scratch saya menjalankan 25
+langkah sesi QEMU untuk keluaran F3, dan sesi pertama (stamp `02-45-57`) berhenti
+di langkah 16 karena saya menuntut baris `Kesalahan: /f3 direktori masih berisi`
+untuk `delete-folder f3` yang dijalankan dari dalam `/f3`; produk benar memetakan
+jalur relatif ke `/f3/f3` dan menjawab `Kesalahan: /f3/f3 tidak ditemukan`. Setelah
+penyebabnya terbukti saya **menghapus artefak sesi pertama itu**. Preseden yang saya
+langgar tertulis di dokumen ini sendiri: pada kejadian ketiga artefak sesi keliru
+`2026-10-21_23-19-23` justru dinyatakan tidak dibuang dan dijadikan bukti. Lapis
+kedua: sesudah menghapus, saya menulis di laporan bagian [7] kalimat "artefak sesi
+pertama (5.511 byte pada stamp 02-45-57) saya hapus" — angka 5.511 byte adalah
+ukuran artefak sesi **kedua** yang ter-commit (`ls -l` = 5511 byte), bukan ukuran
+sesi pertama, yang tidak pernah saya ukur dan tidak dapat diukur lagi. Angka itu
+ketahuan oleh pemeriksaan saya sendiri saat menyiapkan entri: dua sesi dengan jumlah
+langkah berbeda (16 sebelum berhenti versus 25 selesai) tidak mungkin menghasilkan
+panjang byte yang sama, jadi kecocokan itu bukan kebetulan melainkan salinan. Yang
+saya lakukan: angka dicabut dari kalimat dan diganti pernyataan "tidak terukur",
+kenyataan yang hilang dipulihkan lewat **sesi ulang terbatas** pada ISO F3 dengan
+sidik jari yang sama (8 perintah, 9 dari 9 deret prompt, 8 dari 8 penanda teks, nol
+penanda crash) yang ditulis sebagai bagian [7b] dengan label jujur "bukan rekaman
+sesi pertama", dan keduanya menjadi entri ke-45 `ACCOUNTABILITY_FAULT_LOG`. Tidak
+ada `.rs` dan tidak ada angka gerbang yang berubah karena kejadian ini. Pencegahan
+yang berlaku sekarang: setiap artefak sesi diukur dan dicatat ukuran serta
+SHA256-nya SEBELUM dibuang, angka yang tidak terukur ditulis sebagai "tidak
+terukur", dan setiap pola "<angka> byte" di berkas bukti diuji ulang terhadap
+`ls -l` sebelum unit di-commit.
+
 ---
 
 ## 7. Yang belum selesai (jangan dibaca sebagai selesai)
@@ -572,3 +599,47 @@ Yang tersisa:
    berlaku dengan pemilik menyaksikan. Kalimat statis `CATATAN bangun` pada alat
    (baris 415-417) juga masih menyebut "11 perintah" dan "`up` BELUM ada" —
    salah untuk ISO F2, dan ikut ditunda ke R2.
+
+8. **Unit F3 (keluaran eksplisit) dan alasan kedua mengapa jendela tidak bisa sah
+   pada R1**: F3 selesai dan terukur pada 2026-10-22 — 212 lulus / 0 gagal pada
+   30 suite (+5 atas 207 baseline F2), fmt dan clippy IRISAN BARU 0 dengan warisan
+   clippy 137 diagnostik utuh, build rilis dari nol 13 `Compiling` 0 `warning`
+   0 `error` dengan SHA256 ELF sama pada tiga direktori build (337.792 byte
+   `A950FD78…`), ISO 4.212.736 byte `8BC56058A88A49BBB85C8A7100C07A2E9CACEDC6B1738E7FED068C158900F841`
+   byte-identik pada dua mastering, lantai memori KEPUTUSAN 2 (ratchet 3392K
+   lulus dengan serial 2.499 byte, janji misi 3 M tetap MERAH), sesi QEMU 25
+   perintah dengan 26 dari 26 deret prompt dan 27 dari 27 penanda teks, plus sesi
+   ulang terbatas 8 perintah (9 dari 9 prompt, 8 dari 8 penanda) di bagian [7b]
+   `Analysis/reports/f3_keluaran_uji_2026-10-22.txt`. Rinciannya di berkas itu.
+   *Kenapa jendela masih belum bisa sah*: F3 menyatukan label galat menjadi
+   `Kesalahan: perintah tidak dikenal: <token>`, sedangkan roster penanda
+   `scripts/g9_final_p8_run.ps1` baris 118 menuntut `Perintah tidak dikenal: `
+   dengan huruf P besar dan alat membandingkan secara peka huruf (baris 235).
+   Sensus terukur pada tree F3: dari dua belas penanda bersumber kernel, SEBELAS
+   tetap cocok harfiah dan SATU putus. Aturan pemilik melarang saya menyentuh alat
+   pada R1, jadi penanda itu tidak saya perbaiki; ia menjadi **alasan kedua**
+   selain pemecah prompt (butir 7) mengapa setiap jendela berjendela pada ISO
+   pasca-F3 akan MERAH pada satu penanda kalau alat dijalankan apa adanya.
+   Catatan: nomor baris pada komentar alat (baris 93-95) sudah bergeser SEBELUM
+   F3 dan itu bukan akibat unit ini — terukur pada HEAD pra-F3.
+   *Utang ekstrak bergerak dua langkah pada langkah ini*: ekstrak atas run
+   `c3a9f2e` (pasangan `39710147801` + `39710152877`) masuk commit-unit ekstrak
+   `c3a8343`, dan ekstrak atas run `c3a8343` (pasangan `39714508881` +
+   `39714514694`, keempatnya `conclusion=success`, terukur 207 lulus / 0 gagal
+   pada 30 suite, 19 `warning` langkah uji, 13 `Compiling` 0/0, ELF sisi runner CI
+   329.664 byte) masuk unit F3. Audit per-commit
+   `Analysis/reports/f3_audit-utang-ekstrak_2026-10-22.txt` dijalankan pada HEAD
+   `c3a8343`: DUA PULUH TUJUH commit cabang, SEPULUH tanpa run sendiri, 81 berkas
+   ekstrak ter-commit sebelum unit ini (menjadi 83 sesudahnya), dan `utang terbuka`
+   hanya pasangan atas commit-unit F3 sendiri — aturan G8, bukan kekeliruan.
+   Jumlah run cabang terukur 34 dengan `per_page=100` dan halaman kedua kosong,
+   jadi paginasi `gh api` belum menyamarkan apa pun pada audit ini; itu kelemahan
+   yang harus dicek ulang bila jumlah run melewati 100.
+   *Tiga entri fault log lahir dari pekerjaan ini*: ke-43 (pesan commit `c3a9f2e`
+   menyebut nama berkas dokumen yang tidak ada, koreksi append-only), ke-44
+   (putusnya satu penanda alat jendela karena label baru, `result OPEN`, dan
+   transkrip jendela yang disaksikan pemilik tidak lagi sah sebagai pencocokan
+   keluaran pada tree pasca-F3), ke-45 (artefak sesi pertama F3 saya hapus dan
+   satu angka byte tidak terukur sempat masuk laporan; pemulihan lewat sesi ulang
+   terbatas, `result CLOSED`). VERIFIED-ON-HARDWARE tetap 0; yang tersisa pada
+   BAGIAN 2 adalah F4, F5, F6, F7, GERBANG AKHIR R1, dan laporan BAGIAN 2.

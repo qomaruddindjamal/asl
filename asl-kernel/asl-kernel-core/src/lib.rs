@@ -1113,10 +1113,30 @@ fn vfs_error_message(err: asl_storage::VfsError) -> &'static str {
     }
 }
 
-/// Cetak satu galat VFS dengan label seragam.
-fn print_vfs_error(out: &DualOut, err: asl_storage::VfsError) {
-    out.text("Galat: ");
-    out.text(vfs_error_message(err));
+/// Bagian-bagian satu baris galat (F3): `(label, path, penjelasan)`.
+///
+/// Dipisah supaya barisnya bisa diuji dari sisi host tanpa menulis ke penampil:
+/// `print_vfs_error` hanya menyusun potongan ini dengan satu spasi di antaranya.
+fn error_pieces(path: &str, err: asl_storage::VfsError) -> (&'static str, &str, &'static str) {
+    (asl_cockpit_shell::MSG_ERROR, path, vfs_error_message(err))
+}
+
+/// Jumlah byte isi lama yang hilang oleh satu tulis (F3). `write_file` di
+/// asl-storage memotong sisa isi lama bila tulisannya lebih pendek, jadi
+/// angka inilah yang boleh diumumkan ke operator; nol berarti tidak ada yang
+/// hilang dan baris keluaran tidak perlu menambahkan keterangan.
+fn byte_terpotong(ukuran_lama: u64, tertulis: u64) -> u64 {
+    ukuran_lama.saturating_sub(tertulis)
+}
+
+/// Cetak satu galat VFS dengan label seragam DAN path yang gagal (F3), sehingga
+/// operator tahu objek mana yang dimaksud tanpa menebak dari urutan perintah.
+fn print_vfs_error(out: &DualOut, path: &str, err: asl_storage::VfsError) {
+    let (label, sasaran, penjelasan) = error_pieces(path, err);
+    out.text(label);
+    out.text(sasaran);
+    out.text(" ");
+    out.text(penjelasan);
     out.text("\n");
 }
 
@@ -1149,7 +1169,11 @@ fn resolve_target<'a>(
     match asl_storage::vfs::resolve_path(cwd.as_str(), arg, buf) {
         Some(path) => Some(path),
         None => {
-            out.text("Galat: path terlalu panjang\n");
+            out.text(asl_cockpit_shell::MSG_ERROR);
+            out.text(arg);
+            out.text(" - path hasil normalisasi melebihi batas ");
+            out.number(asl_storage::vfs::MAX_PATH_LEN as u64);
+            out.text(" byte\n");
             None
         }
     }
@@ -1174,7 +1198,8 @@ unsafe fn run_canonical_command(inv: &asl_cockpit_shell::Invocation, cwd: &mut S
             if inv.argc == 0 {
                 asl_cockpit_shell::write_help(|s| out.text(s));
             } else if !asl_cockpit_shell::write_help_for(inv.arg(0), |s| out.text(s)) {
-                out.text("Perintah tidak dikenal: ");
+                out.text(asl_cockpit_shell::MSG_ERROR);
+                out.text(asl_cockpit_shell::MSG_UNKNOWN);
                 out.text(inv.arg(0));
                 out.text("\n");
             }
@@ -1185,6 +1210,7 @@ unsafe fn run_canonical_command(inv: &asl_cockpit_shell::Invocation, cwd: &mut S
             early_serial_write_str("\x1B[2J\x1B[H");
         }
         CanonicalId::Where => {
+            out.text(asl_cockpit_shell::MSG_WORKDIR);
             out.text(cwd.as_str());
             out.text("\n");
         }
@@ -1198,11 +1224,12 @@ unsafe fn run_canonical_command(inv: &asl_cockpit_shell::Invocation, cwd: &mut S
                 [asl_storage::DirectoryEntry::empty(); asl_storage::vfs::MAX_DIR_ENTRIES];
             match vfs.list_dir(path, &mut entries) {
                 Ok(count) => {
-                    out.text("Daftar isi ");
+                    out.text(asl_cockpit_shell::MSG_LIST);
                     out.text(path);
-                    out.text(" (");
+                    out.text(asl_cockpit_shell::MSG_PAREN_OPEN);
                     out.number(count as u64);
-                    out.text(" entri):\n");
+                    out.text(asl_cockpit_shell::MSG_LIST_TAIL);
+                    out.text("\n");
                     let mut i = 0;
                     while i < count {
                         let entry = &entries[i];
@@ -1218,7 +1245,7 @@ unsafe fn run_canonical_command(inv: &asl_cockpit_shell::Invocation, cwd: &mut S
                         i += 1;
                     }
                 }
-                Err(err) => print_vfs_error(&out, err),
+                Err(err) => print_vfs_error(&out, path, err),
             }
         }
         CanonicalId::Open => {
@@ -1230,12 +1257,16 @@ unsafe fn run_canonical_command(inv: &asl_cockpit_shell::Invocation, cwd: &mut S
                 Ok(node) => {
                     if node.node_type == asl_storage::VfsNodeType::Directory {
                         cwd.set_path(path);
-                        out.text("Ruang kerja: ");
+                        out.text(asl_cockpit_shell::MSG_WORKDIR);
                         out.text(cwd.as_str());
                         out.text("\n");
                     } else {
+                        out.text(asl_cockpit_shell::MSG_CONTENT);
                         out.text(path);
-                        out.text(":\n");
+                        out.text(asl_cockpit_shell::MSG_PAREN_OPEN);
+                        out.number(node.size_bytes);
+                        out.text(asl_cockpit_shell::MSG_CONTENT_TAIL);
+                        out.text("\n");
                         let mut chunk = [0u8; 256];
                         let mut offset: u64 = 0;
                         let mut total: u64 = 0;
@@ -1253,27 +1284,27 @@ unsafe fn run_canonical_command(inv: &asl_cockpit_shell::Invocation, cwd: &mut S
                                     }
                                 }
                                 Err(err) => {
-                                    print_vfs_error(&out, err);
+                                    print_vfs_error(&out, path, err);
                                     break;
                                 }
                             }
                         }
                         if total == 0 {
-                            out.text("(kosong)");
+                            out.text(asl_cockpit_shell::MSG_EMPTY);
                         }
                         out.text("\n");
                     }
                 }
-                Err(err) => print_vfs_error(&out, err),
+                Err(err) => print_vfs_error(&out, path, err),
             }
         }
         CanonicalId::Up => {
             if cwd.parent() {
-                out.text("Ruang kerja: ");
+                out.text(asl_cockpit_shell::MSG_WORKDIR);
                 out.text(cwd.as_str());
                 out.text("\n");
             } else {
-                out.text("Ruang kerja tetap di akar: ");
+                out.text(asl_cockpit_shell::MSG_WORKDIR_AT_ROOT);
                 out.text(cwd.as_str());
                 out.text("\n");
             }
@@ -1286,11 +1317,12 @@ unsafe fn run_canonical_command(inv: &asl_cockpit_shell::Invocation, cwd: &mut S
             let (parent, base) = split_parent(path);
             match vfs.mkdir(parent, base) {
                 Ok(_) => {
-                    out.text("Direktori dibuat: ");
+                    out.text(asl_cockpit_shell::MSG_DIR_CREATED);
                     out.text(path);
+                    out.text(asl_cockpit_shell::MSG_ZERO_ENTRIES);
                     out.text("\n");
                 }
-                Err(err) => print_vfs_error(&out, err),
+                Err(err) => print_vfs_error(&out, path, err),
             }
         }
         CanonicalId::CreateFile => {
@@ -1301,11 +1333,12 @@ unsafe fn run_canonical_command(inv: &asl_cockpit_shell::Invocation, cwd: &mut S
             let (parent, base) = split_parent(path);
             match vfs.touch(parent, base) {
                 Ok(_) => {
-                    out.text("Berkas dibuat: ");
+                    out.text(asl_cockpit_shell::MSG_FILE_CREATED);
                     out.text(path);
+                    out.text(asl_cockpit_shell::MSG_ZERO_BYTES);
                     out.text("\n");
                 }
-                Err(err) => print_vfs_error(&out, err),
+                Err(err) => print_vfs_error(&out, path, err),
             }
         }
         CanonicalId::WriteFile => {
@@ -1315,21 +1348,36 @@ unsafe fn run_canonical_command(inv: &asl_cockpit_shell::Invocation, cwd: &mut S
                 None => return,
             };
             let (parent, base) = split_parent(path);
-            if vfs.open(path).is_err() {
-                if let Err(err) = vfs.touch(parent, base) {
-                    print_vfs_error(&out, err);
-                    return;
+            let mut ukuran_lama: u64 = 0;
+            let mut berkas_baru = false;
+            match vfs.open(path) {
+                Ok(node) => ukuran_lama = node.size_bytes,
+                Err(_) => {
+                    berkas_baru = true;
+                    if let Err(err) = vfs.touch(parent, base) {
+                        print_vfs_error(&out, path, err);
+                        return;
+                    }
                 }
             }
             match vfs.write_file(path, body.as_bytes()) {
                 Ok(written) => {
-                    out.text("Tertulis ");
+                    out.text(asl_cockpit_shell::MSG_WRITTEN);
                     out.number(written as u64);
-                    out.text(" byte di ");
+                    out.text(asl_cockpit_shell::MSG_WRITTEN_TO);
                     out.text(path);
+                    if berkas_baru {
+                        out.text(asl_cockpit_shell::MSG_NEW_FILE);
+                    }
+                    let hilang = byte_terpotong(ukuran_lama, written as u64);
+                    if hilang > 0 {
+                        out.text(asl_cockpit_shell::MSG_TRUNCATED);
+                        out.number(hilang);
+                        out.text(asl_cockpit_shell::MSG_TRUNCATED_END);
+                    }
                     out.text("\n");
                 }
-                Err(err) => print_vfs_error(&out, err),
+                Err(err) => print_vfs_error(&out, path, err),
             }
         }
         CanonicalId::DeleteFile => {
@@ -1338,13 +1386,17 @@ unsafe fn run_canonical_command(inv: &asl_cockpit_shell::Invocation, cwd: &mut S
                 None => return,
             };
             let (parent, base) = split_parent(path);
+            let ukuran = vfs.open(path).map(|node| node.size_bytes).unwrap_or(0);
             match vfs.rm(parent, base) {
                 Ok(_) => {
-                    out.text("Berkas dihapus: ");
+                    out.text(asl_cockpit_shell::MSG_FILE_DELETED);
                     out.text(path);
+                    out.text(asl_cockpit_shell::MSG_PAREN_OPEN);
+                    out.number(ukuran);
+                    out.text(asl_cockpit_shell::MSG_FREED_TAIL);
                     out.text("\n");
                 }
-                Err(err) => print_vfs_error(&out, err),
+                Err(err) => print_vfs_error(&out, path, err),
             }
         }
         CanonicalId::DeleteFolder => {
@@ -1355,11 +1407,12 @@ unsafe fn run_canonical_command(inv: &asl_cockpit_shell::Invocation, cwd: &mut S
             let (parent, base) = split_parent(path);
             match vfs.rmdir(parent, base) {
                 Ok(_) => {
-                    out.text("Direktori dihapus: ");
+                    out.text(asl_cockpit_shell::MSG_DIR_DELETED);
                     out.text(path);
+                    out.text(asl_cockpit_shell::MSG_ZERO_ENTRIES);
                     out.text("\n");
                 }
-                Err(err) => print_vfs_error(&out, err),
+                Err(err) => print_vfs_error(&out, path, err),
             }
         }
         CanonicalId::Status => {
@@ -1933,7 +1986,9 @@ pub unsafe extern "C" fn _asl_kernel_entry(handover_ptr: *const AslBootHandover)
                     }
                     asl_cockpit_shell::LineOutcome::BadArity(syntax) => {
                         let out = DualOut;
-                        out.text("Sintaks: ");
+                        out.text(asl_cockpit_shell::MSG_ERROR);
+                        out.text(asl_cockpit_shell::MSG_BAD_ARITY);
+                        out.text(asl_cockpit_shell::MSG_SYNTAX);
                         out.text(syntax);
                         out.text("\n");
                         cmd = asl_cockpit_shell::ShellCommand::Empty;
@@ -3406,5 +3461,55 @@ mod hardening_tests {
             }
             i += 1;
         }
+    }
+
+    /// Penjaga F3: satu baris galat selalu terdiri atas label satu-sumber,
+    /// jalur yang gagal, dan penjelasan dari konstanta galat VFS. Path tidak
+    /// boleh hilang, karena itulah yang membedakan "mana yang gagal".
+    #[test]
+    fn test_f3_error_pieces_selalu_label_path_penjelasan() {
+        let kasus = [
+            asl_storage::VfsError::NotFound,
+            asl_storage::VfsError::AlreadyExists,
+            asl_storage::VfsError::IsADirectory,
+            asl_storage::VfsError::NotADirectory,
+            asl_storage::VfsError::DirectoryNotEmpty,
+            asl_storage::VfsError::NoSpaceLeft,
+            asl_storage::VfsError::ReadOnly,
+            asl_storage::VfsError::InvalidPath,
+            asl_storage::VfsError::Storage(asl_storage::StorageError::IoError),
+        ];
+        let mut i = 0;
+        while i < kasus.len() {
+            let (label, jalan, penjelasan) = error_pieces("/log/note.txt", kasus[i]);
+            assert_eq!(label, asl_cockpit_shell::MSG_ERROR);
+            assert_eq!(
+                jalan, "/log/note.txt",
+                "path sasaran hilang dari baris galat"
+            );
+            assert_eq!(penjelasan, vfs_error_message(kasus[i]));
+            assert!(!penjelasan.is_empty());
+            assert!(!penjelasan.contains('\n'));
+            i += 1;
+        }
+        // Akar jalur pun disebut apa adanya, tidak diganti teks lain.
+        let (_, jalan, _) = error_pieces("/", asl_storage::VfsError::ReadOnly);
+        assert_eq!(jalan, "/");
+    }
+
+    /// Penjaga F3: jumlah byte isi lama yang hilang akibat satu tulis.
+    /// Nol berarti tidak ada yang dipangkas dan baris keluaran tidak boleh
+    /// menambahkan keterangan pemangkasan.
+    #[test]
+    fn test_f3_byte_terpotong_hanya_saat_tulisan_lebih_pendek() {
+        assert_eq!(byte_terpotong(0, 0), 0);
+        assert_eq!(byte_terpotong(0, 5), 0);
+        assert_eq!(byte_terpotong(10, 10), 0);
+        assert_eq!(byte_terpotong(10, 17), 0);
+        assert_eq!(byte_terpotong(17, 5), 12);
+        assert_eq!(byte_terpotong(1, 0), 1);
+        // Batas bawah nol: tulisan yang lebih panjang tidak pernah
+        // "menghapus" dan angkanya tidak boleh berputar.
+        assert_eq!(byte_terpotong(u64::MAX, u64::MAX), 0);
     }
 }

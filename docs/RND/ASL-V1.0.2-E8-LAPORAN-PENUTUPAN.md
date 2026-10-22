@@ -103,7 +103,7 @@ dokumen kerja.
 | fmt/clippy | tidak hijau harfiah karena **140 blok deviasi** dan **137 diagnostik warisan** yang sudah ada sebelum E8; yang ditegakkan adalah **nol BARU** pada baris hasil kerja, dihitung `scripts/r1_new_only_gate_check.py` | VERIFIED-ON-HOST |
 | Lantai memori | ratchet **3392K lulus**; janji Bagian 5 **`-m 3M` tetap MERAH** (serial 0 byte) — deviasi tidak diubah menjadi hijau | VERIFIED-ON-VM |
 | Sesi adversarial | Pass A 43 payload keluar 0; Pass B 59/59 [OK] keluar 0; `trap_de` mencetak blok konteks lengkap; tujuh sesi berjendela | VERIFIED-ON-VM |
-| CI terkelola | **30 run** atas cabang R1, **15 pasangan** peristiwa, seluruhnya `conclusion=success`; tiap pasangan yang terekstrak 30 suite, 19 `warning` profil test, 13 `Compiling` 0/0 — lulusnya 202/0 untuk pasangan lama dan **205/0** untuk pasangan atas dua commit terakhir, ELF runner 325.184 byte lalu 329.360 byte. Ekstrak: 30 berkas milik run cabang R1; total `ci_hosted_*` ter-commit 79. Angka ini disinkron dari audit `e8_l9_*` pada HEAD `c94f8b0` (unit ekstrak pasca-F1), bukan dari ingatan; pasangan atas unit F2 belum bisa terekstrak karena aturan G8 | VERIFIED-ON-CI / VERIFIED-ON-CI-API |
+| CI terkelola | **34 run** atas cabang R1 pada saat audit, **17 pasangan** peristiwa, seluruhnya `conclusion=success`; tiap pasangan yang terekstrak 30 suite, 19 `warning` profil test, 13 `Compiling` 0/0 — lulusnya 202/0 untuk pasangan lama, **205/0** untuk pasangan atas unit F1 dan unit ekstrak, **207/0** untuk pasangan atas unit F2 dan unit ekstrak `c3a8343`; ELF runner 325.184 byte lalu 329.360 byte lalu 329.664 byte. Ekstrak: 34 berkas milik run cabang R1; total `ci_hosted_*` ter-commit 83. Angka ini disinkron dari audit `f3_audit-utang-ekstrak_2026-10-22.txt` pada HEAD `c3a8343` (dijalankan sebelum unit F3), bukan dari ingatan; jumlah run diperiksa pada dua halaman `gh api` (34 lalu 0) sehingga pembatas 100 tidak menyamarkan apa pun. Pasangan atas unit F3 belum bisa terekstrak karena aturan G8 | VERIFIED-ON-CI / VERIFIED-ON-CI-API |
 | Jendela LANGKAH 6 | Lima sesi terdokumentasi di Bagian 5.3; **disaksikan pemilik dan dinyatakan LULUS 2026-10-22** | VERIFIED-ON-VM-VISIBLE + kesaksian pemilik |
 
 ## 5. Batas bukti — yang TIDAK boleh dibaca sebagai sudah terbukti
@@ -124,15 +124,18 @@ dokumen kerja.
    `b9acd5b`, `ca582fa`) karena satu peristiwa push hanya memicu run untuk tip
    saat itu. Ini fakta cara kerja CI, bukan kelalaian.
 5. **Utang ekstrak G8 tidak pernah bisa nol pada commit terakhir rantai.** Yang
-   tertutup sampai unit F2 = 15 pasangan (30 berkas milik run cabang R1, audit di
-   `Analysis/reports/e8_l9_audit-utang-ekstrak_2026-10-22.txt` pada HEAD `c94f8b0`).
+   tertutup sampai unit F3 = 17 pasangan (34 berkas milik run cabang R1, audit di
+   `Analysis/reports/f3_audit-utang-ekstrak_2026-10-22.txt` pada HEAD `c3a8343`).
    Yang diperkirakan pada laporan ini semula ("pasangan atas commit-unit ini masuk
    unit pertama BAGIAN 2") tidak terjadi apa adanya: commit-unit F1 `5812c77`
    sengaja TIDAK memuat ekstraknya sendiri agar satu commit satu logika, unit
    ekstrak sesudahnya (`c94f8b0`) menutup pasangan atas `d8c002a`, dan pasangan
    atas `5812c77` baru mendarat pada unit F2 — dua langkah setelah commit
-   pemiliknya, bukan satu. Tidak ada angka yang berubah karena penundaan ini;
-   yang berubah hanyalah commit tempat bukti itu mendarat.
+   pemiliknya, bukan satu. Pola itu berulang dua kali lagi dan kini terukur
+   sebagai aturan, bukan kebetulan: pasangan atas `c3a9f2e` mendarat di unit
+   ekstrak `c3a8343`, dan pasangan atas `c3a8343` mendarat di unit F3. Tidak ada
+   angka yang berubah karena penundaan ini; yang berubah hanyalah commit tempat
+   bukti itu mendarat.
 6. **Durasi `test_task` tidak stabil dan tidak dapat diprediksi dari dalam
    sesi** (64,0 s sampai 310,7 s). Setiap batas waktu untuk kasus ini adalah
    tebakan yang harus dinyatakan sebagai tebakan; resep resmi kini

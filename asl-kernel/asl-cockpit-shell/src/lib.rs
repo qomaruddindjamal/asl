@@ -39,6 +39,85 @@ pub const SHELL_PROMPT_FIXED_LEN: usize = SHELL_PROMPT_PREFIX.len() + SHELL_PROM
 /// "shell sudah siap" pada keluaran serial.
 pub const SHELL_PROMPT: &str = "ASL-KERNEL />_ ";
 
+/// Label galat SATU-SUMBER untuk semua keluaran kesalahan perintah (F3):
+/// galat VFS, galat normalisasi path, jumlah argumen tidak sesuai, dan perintah
+/// tak dikenal. Jalur perbaikan E8 sudah memakai teks yang sama, jadi operator
+/// hanya mengenali satu merek kesalahan.
+pub const MSG_ERROR: &str = "Kesalahan: ";
+
+/// Bagian tengah baris galat argumen: `Kesalahan: <ini><sintaks-asli>`.
+pub const MSG_BAD_ARITY: &str = "jumlah argumen tidak sesuai - ";
+
+/// Awalan keterangan sintaks pada baris galat argumen, sehingga barisnya
+/// berbunyi `Kesalahan: jumlah argumen tidak sesuai - Sintaks: <sintaks>`.
+pub const MSG_SYNTAX: &str = "Sintaks: ";
+
+/// Penghubung label galat dengan keterangan perintah tak dikenal, sehingga
+/// barisnya berbunyi `Kesalahan: perintah tidak dikenal: <nama>`.
+pub const MSG_UNKNOWN: &str = "perintah tidak dikenal: ";
+
+/// Awalan baris ruang kerja aktif (`where`, `open` direktori, `up`).
+pub const MSG_WORKDIR: &str = "Ruang kerja: ";
+
+/// Baris `up` ketika ruang kerja sudah di akar dan sengaja tidak berpindah.
+pub const MSG_WORKDIR_AT_ROOT: &str = "Ruang kerja tetap di akar: ";
+
+/// Awalan baris hasil `create-folder`.
+pub const MSG_DIR_CREATED: &str = "Direktori dibuat: ";
+
+/// Awalan baris hasil `create-file`.
+pub const MSG_FILE_CREATED: &str = "Berkas dibuat: ";
+
+/// Awalan baris hasil `delete-file`.
+pub const MSG_FILE_DELETED: &str = "Berkas dihapus: ";
+
+/// Awalan baris hasil `delete-folder`.
+pub const MSG_DIR_DELETED: &str = "Direktori dihapus: ";
+
+/// Awalan angka pada baris hasil `write-file`.
+pub const MSG_WRITTEN: &str = "Tertulis ";
+
+/// Penghubung antara jumlah byte dan path pada baris hasil `write-file`.
+pub const MSG_WRITTEN_TO: &str = " byte di ";
+
+/// Awalan keterangan pemangkasan: ` - <n> byte isi lama dihapus` (F3; keputusan
+/// pemilik: `write-file` tanpa argumen isi boleh dan pemangkasannya HARUS
+/// diumumkan, begitu juga pemangkasan tulis yang lebih pendek dari isi lama).
+pub const MSG_TRUNCATED: &str = " - ";
+
+/// Penutup keterangan pemangkasan.
+pub const MSG_TRUNCATED_END: &str = " byte isi lama dihapus";
+
+/// Penanda bahwa `write-file` membuat berkas lebih dulu sebelum menulis.
+pub const MSG_NEW_FILE: &str = " (berkas baru)";
+
+/// Awalan kepala daftar hasil `list` dan kepala isi hasil `open`.
+pub const MSG_LIST: &str = "Daftar isi ";
+
+/// Kurung buka bersama untuk semua keterangan jumlah di akhir baris.
+pub const MSG_PAREN_OPEN: &str = " (";
+
+/// Penutup kepala daftar hasil `list`.
+pub const MSG_LIST_TAIL: &str = " entri):";
+
+/// Awalan kepala isi berkas hasil `open` pada berkas.
+pub const MSG_CONTENT: &str = "Isi ";
+
+/// Penutup kepala isi berkas, setelah jumlah byte.
+pub const MSG_CONTENT_TAIL: &str = " byte):";
+
+/// Penanda keluaran kosong (`list` nol entri, `open` berkas nol byte).
+pub const MSG_EMPTY: &str = "(kosong)";
+
+/// Penanda jumlah nol pada keterangan kurung (`(0 byte)`, `(0 entri)`).
+pub const MSG_ZERO_BYTES: &str = " (0 byte)";
+
+/// Salinan [`MSG_ZERO_BYTES`] untuk hitungan entri.
+pub const MSG_ZERO_ENTRIES: &str = " (0 entri)";
+
+/// Penutup jumlah byte yang dibebaskan `delete-file`.
+pub const MSG_FREED_TAIL: &str = " byte dibebaskan)";
+
 /// Susun prompt berposisi ke penyangga pemberi panggilan: nol alokasi heap,
 /// nol `alloc`, target `no_std` (G1). Posisi yang tidak muat dipotong pada
 /// batas penyangga sementara akhiran tetap utuh; seluruh jalur shell ASCII
@@ -1469,6 +1548,259 @@ mod tests {
             checked,
             CANONICAL_COMMAND_COUNT,
             "blok perintah di dokumen != jumlah registry"
+        );
+    }
+
+    /// Semua label keluaran shell (F3) sebagai pasangan `(nama, teks)`.
+    fn f3_labels() -> [(&'static str, &'static str); 24] {
+        [
+            ("MSG_ERROR", MSG_ERROR),
+            ("MSG_BAD_ARITY", MSG_BAD_ARITY),
+            ("MSG_SYNTAX", MSG_SYNTAX),
+            ("MSG_UNKNOWN", MSG_UNKNOWN),
+            ("MSG_WORKDIR", MSG_WORKDIR),
+            ("MSG_WORKDIR_AT_ROOT", MSG_WORKDIR_AT_ROOT),
+            ("MSG_DIR_CREATED", MSG_DIR_CREATED),
+            ("MSG_FILE_CREATED", MSG_FILE_CREATED),
+            ("MSG_FILE_DELETED", MSG_FILE_DELETED),
+            ("MSG_DIR_DELETED", MSG_DIR_DELETED),
+            ("MSG_WRITTEN", MSG_WRITTEN),
+            ("MSG_WRITTEN_TO", MSG_WRITTEN_TO),
+            ("MSG_TRUNCATED", MSG_TRUNCATED),
+            ("MSG_TRUNCATED_END", MSG_TRUNCATED_END),
+            ("MSG_NEW_FILE", MSG_NEW_FILE),
+            ("MSG_LIST", MSG_LIST),
+            ("MSG_PAREN_OPEN", MSG_PAREN_OPEN),
+            ("MSG_LIST_TAIL", MSG_LIST_TAIL),
+            ("MSG_CONTENT", MSG_CONTENT),
+            ("MSG_CONTENT_TAIL", MSG_CONTENT_TAIL),
+            ("MSG_EMPTY", MSG_EMPTY),
+            ("MSG_ZERO_BYTES", MSG_ZERO_BYTES),
+            ("MSG_ZERO_ENTRIES", MSG_ZERO_ENTRIES),
+            ("MSG_FREED_TAIL", MSG_FREED_TAIL),
+        ]
+    }
+
+    /// Penjaga F3 bagian kode: teks tiap label dipatok harfiah (mengganti
+    /// merek keluaran harus lewat suntingan test ini, bukan diam-diam di
+    /// dispatch), tidak ada label kosong, tidak ada dua label dengan teks
+    /// sama, dan seluruhnya ASCII murni sehingga pemotongan penyangga
+    /// tidak pernah membelah karakter (G10 juga melarang CJK di sini).
+    #[test]
+    fn test_f3_labels_keluaran_satu_sumber() {
+        let labels = f3_labels();
+
+        // (1) Teks dipatok harfiah, berurutan sama dengan daftar di atas.
+        let hoped: [&str; 24] = [
+            "Kesalahan: ",
+            "jumlah argumen tidak sesuai - ",
+            "Sintaks: ",
+            "perintah tidak dikenal: ",
+            "Ruang kerja: ",
+            "Ruang kerja tetap di akar: ",
+            "Direktori dibuat: ",
+            "Berkas dibuat: ",
+            "Berkas dihapus: ",
+            "Direktori dihapus: ",
+            "Tertulis ",
+            " byte di ",
+            " - ",
+            " byte isi lama dihapus",
+            " (berkas baru)",
+            "Daftar isi ",
+            " (",
+            " entri):",
+            "Isi ",
+            " byte):",
+            "(kosong)",
+            " (0 byte)",
+            " (0 entri)",
+            " byte dibebaskan)",
+        ];
+        let mut i = 0;
+        while i < labels.len() {
+            assert_eq!(labels[i].1, hoped[i], "{} teks berubah", labels[i].0);
+            assert!(!labels[i].1.is_empty(), "{} kosong", labels[i].0);
+            let b = labels[i].1.as_bytes();
+            let mut k = 0;
+            while k < b.len() {
+                assert!(
+                    b[k] < 0x80,
+                    "{} memuat byte non-ASCII (G10 nol CJK, pemotongan byte tidak aman)",
+                    labels[i].0
+                );
+                k += 1;
+            }
+            // Label tidak membawa ganti baris: dispatch yang mencetak "\n"
+            // sendiri, jadi satu baris bisa disusun dari beberapa potongan.
+            assert!(
+                !labels[i].1.contains('\n'),
+                "{} memuat ganti baris",
+                labels[i].0
+            );
+            let mut j = i + 1;
+            while j < labels.len() {
+                assert_ne!(
+                    labels[i].1, labels[j].1,
+                    "dua label memakai teks sama: {} dan {}",
+                    labels[i].0, labels[j].0
+                );
+                j += 1;
+            }
+            i += 1;
+        }
+
+        // (2) Satu label galat. Potongan galat lain tidak boleh mengulang
+        // mereknya, dan tidak boleh berdiri sendiri sebagai galat.
+        assert!(!MSG_BAD_ARITY.starts_with(MSG_ERROR));
+        assert!(!MSG_UNKNOWN.starts_with(MSG_ERROR));
+        assert!(!MSG_SYNTAX.starts_with(MSG_ERROR));
+        let mut ganda = 0usize;
+        let mut n = 0;
+        while n < labels.len() {
+            if labels[n].1.starts_with(MSG_ERROR) {
+                ganda += 1;
+            }
+            n += 1;
+        }
+        assert_eq!(ganda, 1, "lebih dari satu label galat di satu-sumber");
+
+        // (3) Bentuk baris utuh yang DIJANJIKAN Pasal 7, disusun dari potongan
+        // dengan urutan yang sama seperti dispatch. Test ini mengunci janji dan
+        // urutan antarpotongan; ia tidak menangkap jalur tulis kernel.
+        let mut buf = [0u8; 128];
+        assert_eq!(
+            rangkai(
+                &[MSG_ERROR, MSG_BAD_ARITY, MSG_SYNTAX, "open <jalan>"],
+                &mut buf
+            ),
+            "Kesalahan: jumlah argumen tidak sesuai - Sintaks: open <jalan>"
+        );
+        assert_eq!(
+            rangkai(&[MSG_ERROR, MSG_UNKNOWN, "zzz"], &mut buf),
+            "Kesalahan: perintah tidak dikenal: zzz"
+        );
+        assert_eq!(
+            rangkai(
+                &[
+                    MSG_WRITTEN,
+                    "5",
+                    MSG_WRITTEN_TO,
+                    "/log/note.txt",
+                    MSG_NEW_FILE,
+                    MSG_TRUNCATED,
+                    "12",
+                    MSG_TRUNCATED_END,
+                ],
+                &mut buf
+            ),
+            "Tertulis 5 byte di /log/note.txt (berkas baru) - 12 byte isi lama dihapus"
+        );
+        assert_eq!(
+            rangkai(
+                &[
+                    MSG_FILE_DELETED,
+                    "/log/note.txt",
+                    MSG_PAREN_OPEN,
+                    "5",
+                    MSG_FREED_TAIL
+                ],
+                &mut buf
+            ),
+            "Berkas dihapus: /log/note.txt (5 byte dibebaskan)"
+        );
+        assert_eq!(
+            rangkai(
+                &[MSG_LIST, "/log", MSG_PAREN_OPEN, "0", MSG_LIST_TAIL],
+                &mut buf
+            ),
+            "Daftar isi /log (0 entri):"
+        );
+        assert_eq!(
+            rangkai(
+                &[
+                    MSG_CONTENT,
+                    "/log/note.txt",
+                    MSG_PAREN_OPEN,
+                    "5",
+                    MSG_CONTENT_TAIL
+                ],
+                &mut buf
+            ),
+            "Isi /log/note.txt (5 byte):"
+        );
+        assert_eq!(
+            rangkai(&[MSG_WORKDIR_AT_ROOT, "/"], &mut buf),
+            "Ruang kerja tetap di akar: /"
+        );
+    }
+
+    /// Rakit potongan menjadi satu baris ke penyangga pemberi panggilan:
+    /// nol alokasi, seperti shell yang memakai `out.text()` berulang.
+    fn rangkai<'b>(pieces: &[&str], buf: &'b mut [u8]) -> &'b str {
+        let mut n = 0usize;
+        let mut i = 0;
+        while i < pieces.len() {
+            let b = pieces[i].as_bytes();
+            let mut k = 0;
+            while k < b.len() {
+                buf[n] = b[k];
+                n += 1;
+                k += 1;
+            }
+            i += 1;
+        }
+        core::str::from_utf8(&buf[..n]).unwrap_or("")
+    }
+
+    /// Penjaga F3 bagian dokumen: semua label keluaran harus tertulis apa
+    /// adanya di Pasal 7 `docs/PANDUAN/REFERENSI-PERINTAH.md`. Dua penghubung
+    /// murni (`MSG_TRUNCATED` dan `MSG_PAREN_OPEN`) dikecualikan karena teksnya
+    /// ("- " dan " (") muncul di mana saja sehingga pemeriksaan itu tidak
+    /// membuktikan apa pun; teks keduanya tetap dipatok oleh test di atas.
+    #[test]
+    fn test_f3_dokumen_memuat_setiap_label_keluaran() {
+        const DOC: &str = include_str!("../../../docs/PANDUAN/REFERENSI-PERINTAH.md");
+        let labels = f3_labels();
+        let mut i = 0;
+        let mut ditagihkan = 0usize;
+        while i < labels.len() {
+            let nama = labels[i].0;
+            let teks = labels[i].1;
+            if nama == "MSG_TRUNCATED" || nama == "MSG_PAREN_OPEN" {
+                i += 1;
+                continue;
+            }
+            assert!(
+                DOC.contains(teks),
+                "dokumen tidak memuat label {} {:?}",
+                nama,
+                teks
+            );
+            ditagihkan += 1;
+            i += 1;
+        }
+        assert_eq!(
+            ditagihkan, 22,
+            "jumlah label yang ditagihkan ke dokumen berubah (24 dikurangi 2 penghubung)"
+        );
+
+        // Pasal 7 harus memberi contoh baris UTUH, bukan daftar label saja.
+        assert!(
+            DOC.contains("Kesalahan: <jalan> tidak ditemukan"),
+            "dokumen tidak memberi contoh baris galat VFS dengan path"
+        );
+        assert!(
+            DOC.contains("(berkas baru)"),
+            "dokumen tidak menjelaskan penanda berkas baru `write-file`"
+        );
+        assert!(
+            DOC.contains("byte isi lama dihapus"),
+            "dokumen tidak mengumumkan pemangkasan isi lama"
+        );
+        assert!(
+            DOC.contains("path hasil normalisasi melebihi batas "),
+            "dokumen tidak memuat galat normalisasi path (angkanya dijaga asl-storage)"
         );
     }
 

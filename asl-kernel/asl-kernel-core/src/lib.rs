@@ -769,7 +769,9 @@ unsafe fn hv2_stack_overflow_injection_probe() -> ! {
     early_serial_write_hex64(write_target);
     early_serial_write_str(" (di dalam guard; expected #PF + STACK OVERFLOW).\n");
     core::ptr::write_volatile(write_target as *mut u64, 0xDEAD_BEEF_CAFE_B000);
-    early_serial_write_str("[ASL-HV2] UNEXPECTED: store ke guard page LOLOS (tanpa #PF) - protection gap nyata.\n");
+    early_serial_write_str(
+        "[ASL-HV2] UNEXPECTED: store ke guard page LOLOS (tanpa #PF) - protection gap nyata.\n",
+    );
     controlled_halt();
 }
 
@@ -1311,6 +1313,88 @@ unsafe fn pemandu_aktif() -> bool {
     (*core::ptr::addr_of_mut!(PEMANDU)).aktif()
 }
 
+/// Satu langkah gema hapus pada kedua penampil (F7): dipakai `Echo::Backspace`
+/// dan penghapusan baris oleh riwayat/Tab/Esc. Byte serialnya identik dengan
+/// jalur backspace lama: `08 20 08`.
+#[inline(never)]
+unsafe fn gema_hapus(fb: &mut FbConsole) {
+    early_serial_write_str("\x08 \x08");
+    if fb.cursor_x >= 8 {
+        fb.cursor_x -= 8;
+        fb.draw_char(b' ');
+        fb.cursor_x -= 8;
+    }
+}
+
+/// Satu langkah gema cetak pada kedua penampil (F7).
+#[inline(never)]
+unsafe fn gema_char(fb: &mut FbConsole, c: u8) {
+    let byte = [c];
+    if let Ok(s) = core::str::from_utf8(&byte) {
+        early_serial_write_str(s);
+    }
+    fb.draw_char(c);
+}
+
+/// Hapus `jumlah` byte yang sudah tercetak pada kedua penampil (F7) sehingga
+/// titik tulis kembali persis sesudah prompt. `jumlah` dihitung shell dari
+/// langkah sunting yang nyata, bukan dari panjang penyangga.
+#[inline(never)]
+unsafe fn buang_tampilan(fb: &mut FbConsole, jumlah: usize) {
+    let mut i = 0;
+    while i < jumlah {
+        gema_hapus(fb);
+        i += 1;
+    }
+}
+
+/// Nama perintah pada satu baris yang ditolak: token pertama, tanpa argumen
+/// (F7). Dipakai label `perintah tidak dikenal:` supaya yang dibaca operator
+/// adalah kata yang ia ketik, bukan seluruh barisnya.
+fn nama_perintah(baris: &str) -> &str {
+    let baris = baris.trim_start();
+    let mut i = 0;
+    while i < baris.len() && !baris.as_bytes()[i].is_ascii_whitespace() {
+        i += 1;
+    }
+    &baris[..i]
+}
+
+/// Cetak ulang isi baris yang sedang diedit apa adanya (F7).
+#[inline(never)]
+unsafe fn cetak_baris(fb: &mut FbConsole, baris: &str) {
+    let mut i = 0;
+    while i < baris.len() {
+        gema_char(fb, baris.as_bytes()[i]);
+        i += 1;
+    }
+}
+
+/// Bersihkan kedua penampil: satu salinan untuk perintah `clear` (jalur kanonik
+/// dan jalur lama) dan untuk Ctrl+L (F7).
+#[inline(never)]
+unsafe fn bersihkan_layar() {
+    let fb = core::ptr::addr_of_mut!(FB_CONSOLE);
+    (*fb).clear();
+    (*fb).cursor_y = 16;
+    early_serial_write_str("\x1B[2J\x1B[H");
+}
+
+/// Cetak ulang prompt dan baris yang masih sedang diketik (F7): dipakai sesudah
+/// layar dibersihkan, sesudah daftar kandidat, dan sesudah blok bantuan, supaya
+/// operator selalu kembali ke titik mengetik yang utuh.
+#[inline(never)]
+unsafe fn susun_ulang_titik_ketik(
+    cwd: &ShellCwd,
+    shell: &asl_cockpit_shell::CockpitShell,
+    prompt_buf: &mut [u8],
+) {
+    cetak_prompt(cwd, prompt_buf);
+    let fb = core::ptr::addr_of_mut!(FB_CONSOLE);
+    cetak_baris(&mut *fb, shell.current_line());
+    catat_sel_kursor();
+}
+
 /// Potongan baris galat nama panduan terlalu panjang (F5):
 /// `(label, keterangan, penutup)`. Angka batas ditambahkan pemanggil dari
 /// [`asl_cockpit_shell::GUIDED_NAME_MAX`], sama pola seperti F4.
@@ -1846,9 +1930,7 @@ unsafe fn run_canonical_command(inv: &asl_cockpit_shell::Invocation, cwd: &mut S
             }
         }
         CanonicalId::Clear => {
-            (*core::ptr::addr_of_mut!(FB_CONSOLE)).clear();
-            (*core::ptr::addr_of_mut!(FB_CONSOLE)).cursor_y = 16;
-            early_serial_write_str("\x1B[2J\x1B[H");
+            bersihkan_layar();
         }
         CanonicalId::Where => {
             out.text(asl_cockpit_shell::MSG_WORKDIR);
@@ -2539,27 +2621,16 @@ pub unsafe extern "C" fn _asl_kernel_entry(handover_ptr: *const AslBootHandover)
             let fb_echo = core::ptr::addr_of_mut!(FB_CONSOLE);
             match echo {
                 asl_cockpit_shell::Echo::Char(c) => {
-                    let byte = [c];
-                    if let Ok(s) = core::str::from_utf8(&byte) {
-                        early_serial_write_str(s);
-                    }
                     unsafe {
-                        (*fb_echo).draw_char(c);
+                        gema_char(&mut *fb_echo, c);
                         // F5: penanda kursor mengikuti titik tulis terbaru.
                         catat_sel_kursor();
                     }
                 }
-                asl_cockpit_shell::Echo::Backspace => {
-                    early_serial_write_str("\x08 \x08");
-                    unsafe {
-                        if (*fb_echo).cursor_x >= 8 {
-                            (*fb_echo).cursor_x -= 8;
-                            (*fb_echo).draw_char(b' ');
-                            (*fb_echo).cursor_x -= 8;
-                        }
-                        catat_sel_kursor();
-                    }
-                }
+                asl_cockpit_shell::Echo::Backspace => unsafe {
+                    gema_hapus(&mut *fb_echo);
+                    catat_sel_kursor();
+                },
                 asl_cockpit_shell::Echo::Newline => {
                     early_serial_write_str("\n");
                     unsafe {
@@ -2567,6 +2638,52 @@ pub unsafe extern "C" fn _asl_kernel_entry(handover_ptr: *const AslBootHandover)
                         catat_sel_kursor();
                     }
                 }
+                asl_cockpit_shell::Echo::Rewrite(hapus) => unsafe {
+                    let fb = &mut *fb_echo;
+                    buang_tampilan(fb, hapus);
+                    cetak_baris(fb, shell.current_line());
+                    catat_sel_kursor();
+                },
+                asl_cockpit_shell::Echo::Candidates => unsafe {
+                    let fb = &mut *fb_echo;
+                    let out = DualOut;
+                    buang_tampilan(fb, shell.echoed_len());
+                    early_serial_write_str("\n");
+                    (*fb).draw_char(b'\n');
+                    let baris = shell.current_line();
+                    let mut buf = [""; asl_cockpit_shell::CANONICAL_COMMAND_COUNT];
+                    let jumlah = asl_cockpit_shell::kandidat_perintah(baris, &mut buf);
+                    out.text(asl_cockpit_shell::MSG_KANDIDAT);
+                    let mut i = 0;
+                    while i < jumlah {
+                        out.text("  ");
+                        out.text(buf[i]);
+                        out.text("\n");
+                        i += 1;
+                    }
+                    susun_ulang_titik_ketik(&cwd, &shell, &mut prompt_buf);
+                },
+                asl_cockpit_shell::Echo::Cancel => unsafe {
+                    let fb = &mut *fb_echo;
+                    let out = DualOut;
+                    buang_tampilan(fb, shell.echoed_len());
+                    out.text(asl_cockpit_shell::MSG_CTRL_C);
+                    out.text("\n");
+                    cetak_prompt(&cwd, &mut prompt_buf);
+                },
+                asl_cockpit_shell::Echo::ClearScreen => unsafe {
+                    bersihkan_layar();
+                    cetak_prompt(&cwd, &mut prompt_buf);
+                },
+                asl_cockpit_shell::Echo::Help => unsafe {
+                    let fb = &mut *fb_echo;
+                    let out = DualOut;
+                    buang_tampilan(fb, shell.echoed_len());
+                    early_serial_write_str("\n");
+                    (*fb).draw_char(b'\n');
+                    asl_cockpit_shell::write_help(|s| out.text(s));
+                    susun_ulang_titik_ketik(&cwd, &shell, &mut prompt_buf);
+                },
                 asl_cockpit_shell::Echo::None => {}
             }
 
@@ -2585,6 +2702,9 @@ pub unsafe extern "C" fn _asl_kernel_entry(handover_ptr: *const AslBootHandover)
                 if dipandu {
                     biarkan_label = unsafe { pemandu_aktif() };
                 } else {
+                    // F7: hanya baris perintah yang masuk ke riwayat; baris
+                    // argumen mode berpanduan sudah keluar lewat cabang `dipandu`.
+                    shell.catat_riwayat_terakhir();
                     cmd = legacy;
                     match outcome {
                         asl_cockpit_shell::LineOutcome::Ready(inv) => {
@@ -2618,13 +2738,9 @@ pub unsafe extern "C" fn _asl_kernel_entry(handover_ptr: *const AslBootHandover)
                             (*fb).write_str(msg);
                         }
                     }
-                    asl_cockpit_shell::ShellCommand::Clear => {
-                        unsafe {
-                            (*fb).clear();
-                            (*fb).cursor_y = 16;
-                        }
-                        early_serial_write_str("\x1B[2J\x1B[H");
-                    }
+                    asl_cockpit_shell::ShellCommand::Clear => unsafe {
+                        bersihkan_layar();
+                    },
                     asl_cockpit_shell::ShellCommand::MemInfo => {
                         let installed_mb = if !handover_ptr.is_null() {
                             unsafe { (*handover_ptr).calculate_installed_memory() / (1024 * 1024) }
@@ -2843,7 +2959,9 @@ pub unsafe extern "C" fn _asl_kernel_entry(handover_ptr: *const AslBootHandover)
                         }
                     }
                     asl_cockpit_shell::ShellCommand::TrapBp => {
-                        early_serial_write_str("[TEST-TRIGGER] Triggering Vector 3 (#BP - Breakpoint / INT3)...\n");
+                        early_serial_write_str(
+                            "[TEST-TRIGGER] Triggering Vector 3 (#BP - Breakpoint / INT3)...\n",
+                        );
                         #[cfg(target_arch = "x86_64")]
                         unsafe {
                             core::arch::asm!("int3", options(nomem, nostack));
@@ -2885,7 +3003,9 @@ pub unsafe extern "C" fn _asl_kernel_entry(handover_ptr: *const AslBootHandover)
                             early_serial_write_str(" -> PASS (HHDM Valid)\n");
 
                             // Test 2: Virtual Mapping
-                            early_serial_write_str("  [TEST 2] Dynamic Virtual Mapping (4KB Page)...\n");
+                            early_serial_write_str(
+                                "  [TEST 2] Dynamic Virtual Mapping (4KB Page)...\n",
+                            );
                             let mut space = asl_memory::AddressSpace::from_pml4_phys(
                                 current_cr3 & asl_memory::PHYSICAL_ADDRESS_MASK,
                                 HHDM_OFFSET as u64,
@@ -2921,7 +3041,9 @@ pub unsafe extern "C" fn _asl_kernel_entry(handover_ptr: *const AslBootHandover)
                                 early_serial_write_str("  [TEST 3] Unmapping Virtual Page...\n");
                                 let unmap_res = unsafe { space.unmap_page(test_virt) };
                                 if unmap_res.is_ok() {
-                                    early_serial_write_str("  [TEST 3] Page unmapped successfully -> PASS\n");
+                                    early_serial_write_str(
+                                        "  [TEST 3] Page unmapped successfully -> PASS\n",
+                                    );
                                 }
                             } else {
                                 early_serial_write_str("  [TEST 2] Dynamic map failed: already mapped or allocation error.\n");
@@ -2974,7 +3096,8 @@ pub unsafe extern "C" fn _asl_kernel_entry(handover_ptr: *const AslBootHandover)
                                     sample_loops += 1;
                                     core::hint::spin_loop();
                                 }
-                                let end_ticks = asl_hal::GLOBAL_TICK_COUNTER.load(core::sync::atomic::Ordering::Relaxed);
+                                let end_ticks = asl_hal::GLOBAL_TICK_COUNTER
+                                    .load(core::sync::atomic::Ordering::Relaxed);
 
                                 early_serial_write_str("  [TEST 4-6] Observed Ticks: Start=");
                                 early_serial_write_u64(start_ticks);
@@ -3011,13 +3134,16 @@ pub unsafe extern "C" fn _asl_kernel_entry(handover_ptr: *const AslBootHandover)
                         {
                             execute_gate3d_suite();
                             unsafe {
-                                (*fb).write_str("Gate 3D APIC Preemption Tests: PASS. See serial COM1 log.\n");
+                                (*fb).write_str(
+                                    "Gate 3D APIC Preemption Tests: PASS. See serial COM1 log.\n",
+                                );
                             }
                         }
                     }
                     asl_cockpit_shell::ShellCommand::Uname => {
                         let uname_head = "ASL Core Kernel ";
-                        let uname_tail = " (x86_64-unknown-none) [DO-178C-inspired deterministic engineering]\n";
+                        let uname_tail =
+                            " (x86_64-unknown-none) [DO-178C-inspired deterministic engineering]\n";
                         early_serial_write_str(uname_head);
                         early_serial_write_str(asl_cockpit_shell::KERNEL_VERSION);
                         early_serial_write_str(uname_tail);
@@ -3058,11 +3184,12 @@ pub unsafe extern "C" fn _asl_kernel_entry(handover_ptr: *const AslBootHandover)
                         }
                     }
                     asl_cockpit_shell::ShellCommand::Unknown => {
-                        let unk_msg = "Unknown command. Type 'help' for available commands.\n";
-                        early_serial_write_str(unk_msg);
-                        unsafe {
-                            (*fb).write_str(unk_msg);
-                        }
+                        let out = DualOut;
+                        out.text(asl_cockpit_shell::MSG_ERROR);
+                        out.text(asl_cockpit_shell::MSG_UNKNOWN);
+                        out.text(nama_perintah(shell.last_submitted()));
+                        out.text(asl_cockpit_shell::MSG_UNKNOWN_PANDUAN);
+                        out.text("\n");
                     }
                     asl_cockpit_shell::ShellCommand::Empty => {}
                 }
@@ -3164,8 +3291,8 @@ extern "C" fn preempt_worker_task_a() -> ! {
         rsi: 0xAAAA_0505_0505_0505,
         rdi: 0xAAAA_0606_0606_0606,
         rbp: 0xAAAA_0707_0707_0707,
-        r8:  0xAAAA_0808_0808_0808,
-        r9:  0xAAAA_0909_0909_0909,
+        r8: 0xAAAA_0808_0808_0808,
+        r9: 0xAAAA_0909_0909_0909,
         r10: 0xAAAA_1010_1010_1010,
         r11: 0xAAAA_1111_1111_1111,
         r12: 0xAAAA_1212_1212_1212,
@@ -3880,12 +4007,7 @@ mod hardening_tests {
     fn test_carveout_valid_layout() {
         // kernel image [0, 2MB), carve-out [1MB, 1MB+4K), stack [1MB+4K, 1MB+4K+512K+pad]
         assert!(validate_secondary_carveout(
-            0x10_0000,
-            0x10_1000,
-            0x10_1000,
-            0x18_1000,
-            0,
-            0x20_0000
+            0x10_0000, 0x10_1000, 0x10_1000, 0x18_1000, 0, 0x20_0000
         ));
     }
 
@@ -3900,15 +4022,21 @@ mod hardening_tests {
     #[test]
     fn test_carveout_rejects_outside_kernel_image() {
         // carve-out di atas kernel image
-        assert!(!validate_secondary_carveout(0x30_0000, 0x30_1000, 0x10_1000, 0x18_1000, 0, 0x20_0000));
+        assert!(!validate_secondary_carveout(
+            0x30_0000, 0x30_1000, 0x10_1000, 0x18_1000, 0, 0x20_0000
+        ));
         // stack menembus batas akhir image
-        assert!(!validate_secondary_carveout(0x10_0000, 0x10_1000, 0x18_1000, 0x20_1000, 0, 0x20_0000));
+        assert!(!validate_secondary_carveout(
+            0x10_0000, 0x10_1000, 0x18_1000, 0x20_1000, 0, 0x20_0000
+        ));
     }
 
     #[test]
     fn test_carveout_rejects_stack_overlap() {
         // carve-out menindih stack
-        assert!(!validate_secondary_carveout(0x12_0000, 0x13_0000, 0x10_1000, 0x18_1000, 0, 0x20_0000));
+        assert!(!validate_secondary_carveout(
+            0x12_0000, 0x13_0000, 0x10_1000, 0x18_1000, 0, 0x20_0000
+        ));
     }
 
     #[test]
@@ -3982,14 +4110,22 @@ mod hardening_tests {
             desc(0x10_0000, 0x20_0000, MemoryRegionType::KernelImage),
             desc(0x20_0000, 0x20_0000, MemoryRegionType::FrameBuffer),
         ];
-        assert!(!validate_framebuffer_memmap(&map3, 0x1_0000, 0x40_0000, 0, 0));
+        assert!(!validate_framebuffer_memmap(
+            &map3, 0x1_0000, 0x40_0000, 0, 0
+        ));
     }
 
     #[test]
     fn test_fb_arithmetic_edge_cases_fail_closed() {
         let map = [desc(0x800_0000, 0x20_0000, MemoryRegionType::FrameBuffer)];
         assert!(!validate_framebuffer_memmap(&map, 0x800_0000, 0, 0, 0));
-        assert!(!validate_framebuffer_memmap(&map, u64::MAX - 0x100, 0x1_0000, 0, 0));
+        assert!(!validate_framebuffer_memmap(
+            &map,
+            u64::MAX - 0x100,
+            0x1_0000,
+            0,
+            0
+        ));
         // region descriptor malformed (overflow base+len) -> fail closed
         let bad_map = [desc(u64::MAX - 0xFF, 0x1_0000, MemoryRegionType::FrameBuffer)];
         assert!(!validate_framebuffer_memmap(&bad_map, 0x800_0000, 0x1000, 0, 0));
@@ -4078,8 +4214,14 @@ mod hardening_tests {
             (asl_storage::VfsError::NotFound, "tidak ditemukan"),
             (asl_storage::VfsError::AlreadyExists, "sudah ada"),
             (asl_storage::VfsError::IsADirectory, "objek ini direktori"),
-            (asl_storage::VfsError::NotADirectory, "objek ini bukan direktori"),
-            (asl_storage::VfsError::DirectoryNotEmpty, "direktori masih berisi"),
+            (
+                asl_storage::VfsError::NotADirectory,
+                "objek ini bukan direktori",
+            ),
+            (
+                asl_storage::VfsError::DirectoryNotEmpty,
+                "direktori masih berisi",
+            ),
             (asl_storage::VfsError::NoSpaceLeft, "ruang RAMDISK habis"),
             (asl_storage::VfsError::ReadOnly, "sistem berkas hanya-baca"),
             (asl_storage::VfsError::InvalidPath, "path tidak sah"),
@@ -4340,7 +4482,7 @@ mod hardening_tests {
         }
         assert!(ketemu, "baris roster label PETA-KANONIK tidak memuat angka");
         assert_eq!(
-            nilai, 48,
+            nilai, 51,
             "roster label di PETA-KANONIK tidak sama dengan `f3_labels()`"
         );
     }
@@ -4562,5 +4704,42 @@ mod hardening_tests {
             }
             other => panic!("baris rename seharusnya Ready, dapat {:?}", other),
         }
+    }
+
+    // ---------------------------------------------------------------------
+    // F7: jembatan navigasi keyboard - nama yang disebut dan penutup kalimat
+    // Inggris warisan.
+    // ---------------------------------------------------------------------
+
+    /// Nama yang disebut pada baris tak dikenal adalah token pertama, bukan
+    /// seluruh baris: operator membaca ulang kata yang ia ketik tanpa diseret
+    /// argumennya.
+    #[test]
+    fn test_f7_nama_perintah_hanya_token_pertama() {
+        assert_eq!(nama_perintah("ps aux"), "ps");
+        assert_eq!(nama_perintah("   ps   aux"), "ps");
+        assert_eq!(nama_perintah("ps"), "ps");
+        assert_eq!(nama_perintah("ps\taux"), "ps");
+        assert_eq!(nama_perintah(""), "");
+        // Baris yang HANYA spasi tidak menghasilkan indeks di luar string.
+        assert_eq!(nama_perintah("   "), "");
+    }
+
+    /// Penutup temuan E8 (Bagian 3.2): kalimat Inggris warisan pada fallback
+    /// `ShellCommand::Unknown` tidak boleh kembali. Berkas sumber dibaca apa
+    /// adanya, jadi penjaga ini tidak bergantung pada ingatan penulisnya.
+    #[test]
+    fn test_f7_tidak_ada_kalimat_inggris_asing() {
+        const SUMBER: &str = include_str!("lib.rs");
+        // Ditulis sebagai `concat!` supaya berkas ini tidak memuat kalimat utuh
+        // yang sedang dicari - kalau tidak, penjaga ini menolak dirinya sendiri.
+        const LARANG: &str = concat!("Unknown command. ", "Type 'help' for available commands.");
+        assert!(
+            !SUMBER.contains(LARANG),
+            "kalimat Inggris warisan kembali muncul di sumber kernel"
+        );
+        // Sisi positifnya: fallback Indonesia memang disusun dari label
+        // satu-sumber, bukan kalimat baru yang lupa dicatat di dokumen.
+        assert!(SUMBER.contains("MSG_UNKNOWN_PANDUAN"));
     }
 }

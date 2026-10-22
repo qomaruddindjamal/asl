@@ -213,6 +213,14 @@ dokumen kerja.
   (47 dari 47, posisi penanda kursor). Satu temuan masukan tercatat di dokumen
   STATUS Bagian 3.2: byte asing `kjjl` satu-kali, tidak ter-reproduksi,
   dimitigasi dengan `-display none` pada sesi bukti sesudahnya.
+  **Sesudah unit F7 (parsial): sisa kalimat Inggris pada jalur lama ditutup di
+  sisi host**, sehingga STATUS Bagian 3.2 dua baris terakhir berlabel
+  DITUTUP-PADA-F7; test `test_f7_tidak_ada_kalimat_inggris_asing` menjaga ia
+  tidak kembali. Pengulangan E8 dengan jendela TETAP TERBUKA dan tidak diubah
+  menjadi lulus: F7 menambah penyangga riwayat yang ukurannya sekitar 550 byte
+  pada struktur shell - angka itu hitungan ukuran struktur di host, BUKAN
+  pengukuran di mesin, karena tidak ada ISO yang dapat dibentuk pada unit ini
+  (`target/limine_v8_binary/limine.exe` tidak ada di pohon kerja).
 - Janji `-m 3M` tetap MERAH dan menjadi pekerjaan terpisah; tidak ada angka
   gerbang yang diubah menjadi hijau karena penutupan ini.
 - Entri ke-38 pada `ACCOUNTABILITY_FAULT_LOG` tetap tertulis OPEN pada

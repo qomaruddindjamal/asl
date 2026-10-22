@@ -21,7 +21,7 @@ dicetak atau nama konstanta adalah penanda yang stabil.
 | Daftar perintah kanonik | `REGISTRY` + `CANONICAL_COMMAND_COUNT` di berkas yang sama | keluaran `help`, jumlah pada `status`, `docs/PANDUAN/REFERENSI-PERINTAH.md` | `test_registry_has_thirteen_canonical_commands`, `test_f2_up_command_is_canonical_and_takes_no_argument`, `test_docs_command_reference_matches_registry` |
 | Alias parser | `aliases()` tiap entri registry | resolusi parser, baris `alias:` pada `help` | `test_parser_resolves_every_documented_alias` |
 | Judul kelompok perintah | `CommandCategory::label()` | seksi pada keluaran `help`, kolom Kelompok pada dokumen panduan | `test_help_text_is_generated_from_registry` |
-| Label keluaran shell (48 konstanta `MSG_*`) | `MSG_*` di `asl-kernel/asl-cockpit-shell/src/lib.rs` | setiap baris galat dan baris sukses yang dicetak dispatch di `asl-kernel/asl-kernel-core/src/lib.rs`, `docs/PANDUAN/REFERENSI-PERINTAH.md` Pasal 7 | `test_f3_labels_keluaran_satu_sumber`, `test_f3_dokumen_memuat_setiap_label_keluaran` |
+| Label keluaran shell (51 konstanta `MSG_*`) | `MSG_*` di `asl-kernel/asl-cockpit-shell/src/lib.rs` | setiap baris galat dan baris sukses yang dicetak dispatch di `asl-kernel/asl-kernel-core/src/lib.rs`, `docs/PANDUAN/REFERENSI-PERINTAH.md` Pasal 7 | `test_f3_labels_keluaran_satu_sumber`, `test_f3_dokumen_memuat_setiap_label_keluaran` |
 | Batas baris input | `SHELL_BUFFER_MAX` | penyangga shell, uji limpahan | `test_shell_buffer_overflow_protection` |
 | Batas satu token argumen | `MAX_ARG_LEN` = 64 di `asl-kernel/asl-cockpit-shell/src/lib.rs` | penampung argumen parser, flag `Invocation::arg_cut`, penolakan nama terpotong dan pengumuman isi terpotong di dispatch, Pasal 6 dan 7 `docs/PANDUAN/REFERENSI-PERINTAH.md` | `test_f4_argumen_terpotong_ditandai_bukan_disembunyikan`, `test_f4_nama_sampai_batas_argumen_tetap_utuh`, `test_f4_dokumen_memuat_batas_argumen`, `test_f4_peta_memuat_batas_argumen`, `test_f6_rename_argumen_terpotong_dapat_dibaca_per_posisi` |
 
@@ -67,6 +67,27 @@ setelahnya.
 | Objek akar tidak dapat diganti nama | basis kosong pada jalur hasil normalisasi di `jalankan_rename` | label `MSG_RENAME_AKAR` | `test_f6_pieces_tolakan_rename_pakai_satu_label_galat` + sesi QEMU F6 |
 | rename tidak masuk mode berpanduan | `resolusi_pemandu()` hanya memetakan tiga perintah pembuatan; `rename` -> `TujuanPemandu::TidakAda` | jembatan `buka_pemandu` di `asl-kernel-core` berhenti sebelum mode terbuka | `test_f6_rename_tidak_dibimbing_mode_panduan` |
 
+## Pasal 2C - Navigasi keyboard (F7, parsial)
+
+Unit F7 dikerjakan sebagian sesuai keputusan pemilik: hanya aksi yang tidak
+menuntut perpindahan kursor horizontal pada framebuffer. Semua aksi dinyatakan
+dengan dua primitif yang sudah terbukti di layar — hapus yang tercetak
+(`gema_hapus`) lalu cetak ulang baris (`gema_char`). Kelas bukti unit ini
+`VERIFIED-ON-HOST`; bukti `VERIFIED-ON-VM` TERBLOKIR karena penguasaan ISO tidak
+dapat dijalankan (bootloader tidak ada di pohon kerja).
+
+| Fakta | Sumber satu-satunya | Yang menyusun dari sumber | Penjaga |
+| --- | --- | --- | --- |
+| Jumlah entri riwayat | `HIST_MAKS` = 4 di `asl-kernel/asl-cockpit-shell/src/lib.rs` | cincin `hist`/`hist_len` pada `CockpitShell`, panggilan kernel `catat_riwayat_terakhir` | `test_f7_riwayat_naik_turun`, `test_f7_riwayat_menolak_baris_kosong` |
+| "Tidak sedang melihat riwayat" | `HIST_TIDAK_MEMANDANG` (= `usize::MAX`) | `hist_view`, reset pada `clear_line` | `test_f7_riwayat_menolak_baris_kosong` |
+| Kepala daftar kandidat `Pilihan perintah: ` | `MSG_KANDIDAT` | lengan `Echo::Candidates` di `asl-kernel-core` | `test_f3_labels_keluaran_satu_sumber`, `test_f7_tab_melengkapi_dan_mendaftar` |
+| Baris pembatalan Ctrl+C | `MSG_CTRL_C` | lengan `Echo::Cancel` di `asl-kernel-core` | `test_f7_ctrl_c_membatalkan_baris` |
+| Penghubung Indonesia perintah tak dikenal | `MSG_UNKNOWN_PANDUAN` (+ `MSG_ERROR` + `MSG_UNKNOWN`) | dispatch `ShellCommand::Unknown` dan token pertama lewat `nama_perintah` | `test_f7_dokumen_memuat_bagian_navigasi`, `test_f7_tidak_ada_kalimat_inggris_asing` |
+| Kandidat Tab = nama kanonik registry | `kandidat_perintah()` membaca `REGISTRY` (bukan daftar tangan) | `tab_lengkapi`, kepala daftar di kernel | `test_f7_kandidat_perintah_hanya_nama_kanonik`, `test_f7_tab_menghasilkan_perintah_registry_sah` |
+| Berapa byte yang sudah tercetak | `CockpitShell::echo_len`, dihitung dari langkah sunting | `buang_tampilan` sebelum cetak ulang | `test_f7_gema_dihitung_dari_langkah_sunting` |
+| Bersihkan layar satu salinan | `bersihkan_layar()` di `asl-kernel-core` | `clear` kanonik, `clear` lama, Ctrl+L | `test_f7_ctrl_l_dan_f1` |
+| Nama perintah hanya huruf kecil | `find_entry` membandingkan byte apa adanya (tanpa normalisasi besar-kecil) | penolakan `HELP` menjadi galat Indonesia, bukan panik; argumen tetap menerima huruf besar | `test_f7_huruf_besar_ditolak_dengan_galat_anggun` |
+
 ## Pasal 3 - Penyimpanan dan memori
 
 | Fakta | Sumber satu-satunya | Yang menyusun dari sumber | Penjaga |
@@ -108,7 +129,8 @@ smoke. `M6` plus prompt shell adalah syarat lulus smoke boot.
 | Uji host dan build release di runner GitHub | `VERIFIED-ON-CI` | workflow hanya menempuh langkah uji host dan build; boot QEMU tidak berjalan di runner |
 | Gerbang boot `-m 3M` | MERAH, `DEVIASI TERCATAT` | lihat `docs/PANDUAN/KONFIGURASI-MEMORI.md` Pasal 4 dan `ACCOUNTABILITY_FAULT_LOG` entri ke-23 |
 | Buat/hapus berkas pada FAT32 | `RANCANGAN`, sengaja dilepas dari v1.0.2 | lingkup STRETCH; catatan di laporan akhir misi |
-| Riwayat baris (panah atas/bawah) | `RANCANGAN`, tidak dijanjikan | mesin penyunting baris sudah teruji untuk sisip/hapus/pindah |
+| Riwayat baris (panah atas/bawah), Tab, Ctrl+C, Ctrl+L, Esc, Delete, F1 | `VERIFIED-ON-HOST` (parsial, TIDAK ada bukti `VERIFIED-ON-VM`) | cincin empat baris perintah + penyuntingan sekuens escape di jalur serial; galang PS/2 mengabaikan scan code terextend sehingga riwayat baris (panah atas/bawah) TIDAK tersimpan pada galang PS/2. Lihat Pasal 2C |
+| Halaman (PageUp/Down), Insert, F2-F12, penempelan (paste) | `RANCANGAN`, tidak dijanjikan | backlog jujur unit F7; tombol dikenali atau tidak dikirim sama sekali |
 | Perangkat keras fisis | tidak ada klaim | belum diukur; kelas `VERIFIED-ON-HARDWARE` tidak dipakai |
 
 ## Pasal 6 - Artefak yang terikat sidik jari

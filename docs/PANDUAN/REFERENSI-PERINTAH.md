@@ -173,12 +173,17 @@ bekerja lewat jalur pengalihan lama: `meminfo`, `cpuinfo`, `uname`, `lspci`,
   sebagai satu nama — lihat MODE BERPANDUAN di Pasal 7.
 - Pembuatan/penghapusan berkas pada FAT32 bukan bagian v1.0.2 (lingkup STRETCH
   yang diputuskan dilepas; tercatat di laporan akhir misi).
-- Tombol panah dan Home/End dikirim sebagai sekuens escape; bila jalur masukan
-  tidak mengirim sekuens escape, karakter penggerak tetap dimasukkan ke baris.
-  Mesin penyuntingnya sudah teruji; yang bergantung pada perangkat adalah
-  pengiriman sekuens.
-- Riwayat baris (panah atas/bawah) sengaja tidak dijanjikan dan tidak
-  diimplementasikan.
+- Tombol panah, Home/End, Delete, Esc dan Tab dikirim sebagai sekuens escape;
+  jalur yang tidak mengirim sekuens escape akan memasukkan karakter penggerak
+  ke baris. Mesin penyuntingnya teruji di host (`test_f7_*`); yang bergantung
+  pada perangkat adalah pengiriman sekuens. Galang PS/2 kernel mengabaikan
+  scan code terextend, jadi panah/Home/End/Tab hanya tersedia pada jalur serial
+  ANSI — lihat NAVIGASI KEYBOARD di Pasal 7.
+- Riwayat baris tersedia sejak unit F7 sebagai cincin empat baris perintah,
+  HANYA di jalur serial. Galang PS/2 tidak menerjemahkan scan code terextend,
+  sehingga
+  riwayat baris (panah atas/bawah) TIDAK tersimpan pada galang PS/2; tombolnya
+  tidak pernah sampai ke shell lewat galang tersebut.
 
 ## Pasal 7 - Keluaran shell: satu label galat dan jumlah yang diumumkan
 
@@ -417,10 +422,111 @@ Batas yang dinyatakan jujur:
   berjalan dengan interrupt dimatikan sehingga pencacah tick tidak naik.
 - Sel penanda mengikuti titik tulis: sesudah prompt, sesudah label panduan, dan
   sesudah satu karakter diketik. Selama satu baris sedang diedit, penanda tidak
-  mengikuti kursor di dalam baris (panah kiri/kanan, Home/End adalah lingkup
-  unit F7).
+  mengikuti kursor di dalam baris: panah kiri/kanan, Home, dan End memindahkan
+  kursor SUNTING di dalam baris, tetapi penanda tetap di titik tulis paling
+  kanan (lihat batas NAVIGASI KEYBOARD di bawah).
 - Tidak ada sinkronisasi dengan terminal serial: yang disaksikan adalah layar
   framebuffer (QEMU `screendump`), bukan jendela HyperTerminal.
+
+#### NAVIGASI KEYBOARD: sunting baris lewat sekuens (F7)
+
+Prinsip unit F7: setiap aksi penyuntingan dinyatakan sebagai dua primitif yang
+sudah terbukti di layar, yaitu **hapus apa yang sudah tercetak** lalu **cetak
+ulang baris saat ini**. Tidak ada aksi F7 yang menuntut perpindahan kursor
+horizontal pada framebuffer, karena jalur itu belum pernah disaksikan.
+
+Tombol yang dikenali mesin penyunting (`CockpitShell::edit`):
+
+| Tombol | Sekuens serial | Aksi | Gema di layar |
+| --- | --- | --- | --- |
+| kiri / kanan | `ESC [ D`, `ESC [ C` | geser kursor di dalam baris | tidak mengubah yang tercetak |
+| Home / End | `ESC [ H`, `ESC [ F` | kursor ke awal / ke akhir baris | tidak mengubah yang tercetak |
+| atas / bawah | `ESC [ A`, `ESC [ B` | riwayat maju/mundur (cincin 4 baris, `HIST_MAKS`) | hapus baris yang tercetak, cetak ulang isi entri |
+| Delete | `ESC [ 3 ~` | hapus satu byte di depan kursor | hapus-maju tidak menghapus yang tercetak; baris dicetak ulang saat entri berikutnya berubah |
+| Esc | `ESC` yang tidak disusul `[` atau `O` | kosongkan baris | hapus semua yang tercetak |
+| Tab | `09` | lengkapi awalan; ditekan dua kali menampilkan kandidat | lihat di bawah |
+| Ctrl+C | `03` | batalkan baris | `Baris dibatalkan: tidak ada perintah dijalankan` |
+| Ctrl+L | `0C` | bersihkan kedua penampil lalu cetak prompt | sama seperti perintah `clear` |
+| F1 | `ESC O P` atau `ESC [ 11 ~` | cetak blok bantuan, kembali ke titik mengetik | isi `write_help` |
+| ENTER | `0A` / `0D` | serahkan baris | baris baru |
+
+Riwayat (`HIST_MAKS = 4`, konstanta `HIST_TIDAK_MEMANDANG` untuk "tidak sedang
+melihat riwayat"):
+
+- Yang disimpan HANYA baris perintah. Baris argumen mode berpanduan (F5) tidak
+  pernah masuk cincin, karena kernel memanggil `catat_riwayat_terakhir` hanya
+  pada cabang non-panduan.
+- Baris kosong dan baris yang sama dengan entri paling baru tidak disimpan,
+  jadi menekan ENTER dua kali pada perintah yang sama tidak menggeser riwayat.
+- Cincin menggeser entri tertua; memanggul riwayat tidak pernah mengalokasi
+  memori.
+
+Tab completion:
+
+- Kandidatnya HANYA nama kanonik dari registry, dalam urutan registry, tanpa
+  alias dan tanpa argumen (`kandidat_perintah`, satu-sumber seperti Pasal 4).
+- Tab melengkapi hanya bila kursor berada di akhir baris dan baris tidak
+  mengandung spasi; di tengah baris Tab tidak melengkapi dan tidak menghapus
+  apa pun.
+- Tab pertama menyisipkan awalan bersama semua kandidat; bila tidak ada
+  kemajuan, Tab kedua mencetak kepala daftar `Pilihan perintah: ` diikuti satu
+  kandidat per baris, lalu prompt dan baris aktif disusun ulang.
+- Karena hasil Tab adalah nama kanonik utuh, baris yang dilengkapi selalu dapat
+  dijalankan; test `test_f7_tab_menghasilkan_perintah_registry_sah` mematok itu
+  lewat registry, bukan lewat parser lama.
+
+Perintah yang tidak dikenal kini memakai satu label dan satu penghubung
+Indonesia, sama seperti jalur kanonik (unit F3):
+
+```text
+Kesalahan: perintah tidak dikenal: <nama> - ketik help untuk daftar perintah
+```
+
+`<nama>` adalah token pertama baris, bukan seluruh baris. Kalimat Inggris
+`Unknown command. Type 'help' for available commands.` sudah dihapus dari
+kernel dan test `test_f7_tidak_ada_kalimat_inggris_asing` menjaga ia tidak
+kembali.
+
+Batas yang dinyatakan jujur (F7 parsial):
+
+- Bukti yang ada adalah `VERIFIED-ON-HOST` (test unit `test_f7_*` di
+  `asl-cockpit-shell`, penjaga dokumen, dan jembatan label di
+  `asl-kernel-core`). **Tidak ada bukti `VERIFIED-ON-VM` untuk unit ini**:
+  penguasaan ISO tidak dapat dijalankan karena `target/limine_v8_binary/limine.exe`
+  tidak ada di pohon kerja (fault tercatat di ACCOUNTABILITY_FAULT_LOG), jadi
+  tidak ada layar yang disaksikan dan tidak ada angka lantai memori pasca-F7.
+  Semua pernyataan di atas adalah deskripsi perilaku yang teruji di host, bukan
+  hasil pengamatan di mesin.
+- Galang PS/2 kernel mengabaikan scan code terextend, sehingga
+  riwayat baris (panah atas/bawah) TIDAK tersimpan pada galang PS/2; tombol
+  panah, Home/End, Delete, dan F1 hanya tiba lewat jalur serial ANSI.
+- Shift dan CapsLock tidak dapat diverifikasi sebagai keadaan: kedua jalur
+  masukan hanya mengirim byte hasil, jadi kernel tidak pernah melihat modifier
+  menyala atau padam dan tidak ada LED yang dibaca. Yang terverifikasi di host
+  adalah bentuk galatnya: registry berisi nama huruf kecil, jadi `HELP` dari
+  operator dengan CapsLock keluar sebagai
+  `Kesalahan: perintah tidak dikenal: HELP - ketik help untuk daftar perintah`
+  dan bukan panik (`test_f7_huruf_besar_ditolak_dengan_galat_anggun`). Di luar
+  posisi nama, huruf besar adalah data operator dan dikirim apa adanya ke VFS.
+- Penanda kursor (F5) tetap di titik tulis. Panah kiri/kanan, Home, dan End
+  menggerakkan kursor sunting tanpa menggerakkan penanda, dan Delete maju tidak
+  menggambar ulang kolom yang bergeser — barisnya benar, tampilannya bisa
+  meninggalkan jejak sampai ada perubahan yang memicu cetak ulang. Perbaikan
+  ini menuntut perpindahan kursor horizontal di framebuffer dan sengaja tidak
+  dikerjakan pada unit parsial ini.
+- Esc dikenali segera setelah byte penutupnya tiba (`ESC x`), jadi menekan Esc
+  saja tanpa tombol lain baru terlihat efeknya sesudah byte berikutnya masuk;
+  pemisah waktu (timeout) tidak dipasang karena menuntut pencacah di galang
+  shell.
+- Backlog yang belum dikerjakan dan belum dijanjikan:
+  PageUp/Down, Insert, F2-F12, dan penempelan (paste); semuanya tetap tercatat
+  sebagai backlog jujur.
+- Penyangga riwayat menambah kira-kira 550 byte pada struktur shell yang hidup
+  di rangka `kernel_main`. Angka itu adalah hitungan ukuran struktur di host,
+  bukan hasil pengukuran di VM; dampaknya ke lantai memori boot baru dapat
+  dinyatakan setelah gerbang `scripts/test_ram_floor_3mb.ps1` dapat dijalankan
+  lagi.
+
 
 
 

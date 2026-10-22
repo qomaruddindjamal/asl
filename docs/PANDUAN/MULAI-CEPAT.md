@@ -112,6 +112,15 @@ gagal, dan setiap `write-file` yang memangkas isi lama mengumumkannya dengan
 jumlah byte. Bentuk lengkap dan janji setiap perintah:
 `docs/PANDUAN/REFERENSI-PERINTAH.md` (label keluaran: Pasal 7).
 
+Sunting baris tersedia pada jalur serial ANSI: panah atas/bawah memanggil ulang
+empat baris perintah terakhir, Tab melengkapi awalan menjadi nama kanonik dan
+Tab kedua mencetak `Pilihan perintah: `, Ctrl+C membatalkan baris, Ctrl+L
+membersihkan layar, Esc mengosongkan baris, dan F1 mencetak blok bantuan.
+Perintah yang tidak dikenal dijawab dengan satu baris Indonesia, bukan kalimat
+Inggris warisan. Batas lengkapnya — termasuk tombol yang TIDAK dikerjakan dan
+mengapa bukti layarnya belum ada — tercatat di Pasal 6 dan seksi NAVIGASI
+KEYBOARD pada Pasal 7 dokumen yang sama.
+
 ## Pasal 5 - Pipeline lengkap sekali jalan
 
 ```

@@ -1129,6 +1129,31 @@ fn byte_terpotong(ukuran_lama: u64, tertulis: u64) -> u64 {
     ukuran_lama.saturating_sub(tertulis)
 }
 
+/// Potongan baris galat F4 untuk argumen nama yang DIPOTONG saat tokenisasi:
+/// `(label, potongan-yang-sudah-sampai, keterangan-batas, penutup)`. Angka
+/// batas ditambahkan pemanggil dari [`asl_cockpit_shell::MAX_ARG_LEN`] supaya
+/// test dan keluaran memakai satu sumber angka.
+fn pieces_galat_argumen<'a>(arg0: &'a str) -> (&'static str, &'a str, &'static str, &'static str) {
+    (
+        asl_cockpit_shell::MSG_ERROR,
+        arg0,
+        asl_cockpit_shell::MSG_ARG_CUT,
+        asl_cockpit_shell::MSG_ARG_CUT_TAIL,
+    )
+}
+
+/// Cetak baris galat argumen terpotong. Perintah TIDAK dijalankan, jadi tidak
+/// ada berkas bernama rusak yang tercipta dari ketikan operator (akar F4).
+fn print_galat_argumen_terpotong(out: &DualOut, arg0: &str) {
+    let (label, potongan, keterangan, penutup) = pieces_galat_argumen(arg0);
+    out.text(label);
+    out.text(potongan);
+    out.text(keterangan);
+    out.number(asl_cockpit_shell::MAX_ARG_LEN as u64);
+    out.text(penutup);
+    out.text("\n");
+}
+
 /// Cetak satu galat VFS dengan label seragam DAN path yang gagal (F3), sehingga
 /// operator tahu objek mana yang dimaksud tanpa menebak dari urutan perintah.
 fn print_vfs_error(out: &DualOut, path: &str, err: asl_storage::VfsError) {
@@ -1186,11 +1211,17 @@ fn resolve_target<'a>(
 /// dan memegang akses eksklusif ke `RAMDISK_FS` selama satu perintah.
 unsafe fn run_canonical_command(inv: &asl_cockpit_shell::Invocation, cwd: &mut ShellCwd) {
     use asl_cockpit_shell::CanonicalId;
+    let out = DualOut;
+    // F4: nama yang terpotong bukan input operator. Ditolak sebelum VFS
+    // tersentuh, supaya tidak ada berkas berekstensi hilang yang tercipta.
+    if inv.nama_terpotong() {
+        print_galat_argumen_terpotong(&out, inv.arg(0));
+        return;
+    }
     let fs_ptr = core::ptr::addr_of_mut!(RAMDISK_FS);
     (*fs_ptr).ensure_root();
     let mut vfs = asl_storage::Vfs::new();
     vfs.mount_root(&mut *fs_ptr);
-    let out = DualOut;
     let mut path_buf = [0u8; asl_storage::vfs::MAX_PATH_LEN];
 
     match inv.id {
@@ -1374,6 +1405,11 @@ unsafe fn run_canonical_command(inv: &asl_cockpit_shell::Invocation, cwd: &mut S
                         out.text(asl_cockpit_shell::MSG_TRUNCATED);
                         out.number(hilang);
                         out.text(asl_cockpit_shell::MSG_TRUNCATED_END);
+                    }
+                    if inv.isi_terpotong() {
+                        out.text(asl_cockpit_shell::MSG_ISI_CUT);
+                        out.number(asl_cockpit_shell::MAX_ARG_LEN as u64);
+                        out.text(asl_cockpit_shell::MSG_ISI_CUT_TAIL);
                     }
                     out.text("\n");
                 }
@@ -3511,5 +3547,66 @@ mod hardening_tests {
         // Batas bawah nol: tulisan yang lebih panjang tidak pernah
         // "menghapus" dan angkanya tidak boleh berputar.
         assert_eq!(byte_terpotong(u64::MAX, u64::MAX), 0);
+    }
+
+    /// Penjaga F4: baris galat argumen terpotong tersusun dari label
+    /// satu-sumber cockpit-shell dan SELALU menyebut nama yang terpotong,
+    /// sehingga operator melihat potongan apa yang diketiknya.
+    #[test]
+    fn test_f4_pieces_galat_argumen_menyebut_potongan() {
+        const POTONG: &str = "laporan-tahunan-2026-versi-final-revisi-draf-acu";
+        let (label, potongan, keterangan, penutup) = pieces_galat_argumen(POTONG);
+        assert_eq!(label, asl_cockpit_shell::MSG_ERROR);
+        assert_eq!(potongan, POTONG, "nama terpotong hilang dari baris galat");
+        assert_eq!(keterangan, asl_cockpit_shell::MSG_ARG_CUT);
+        assert_eq!(penutup, asl_cockpit_shell::MSG_ARG_CUT_TAIL);
+        // Tidak ada potongan yang memuat baris baru: satu baris galat = satu baris.
+        assert!(!keterangan.contains('\n') && !penutup.contains('\n'));
+    }
+
+    /// Penjaga F4: satu-sumber angka batas. Batas argumen parser sama dengan
+    /// batas nama RAMDISK/VFS, jadi nama yang muat diketik selalu muat dipakai;
+    /// yang di luar batas DITOLAK, bukan dipotong diam-diam.
+    #[test]
+    fn test_f4_batas_argumen_sama_dengan_batas_nama() {
+        assert_eq!(
+            asl_cockpit_shell::MAX_ARG_LEN,
+            asl_storage::vfs::MAX_NAME_LEN,
+            "batas argumen parser dan batas nama berkas tidak lagi satu sumber"
+        );
+    }
+
+    /// Penjaga F4 bagian dokumen: `PETA-KANONIK.md` memuat angka batas
+    /// argumen yang sama dengan konstanta, bukan tebakan.
+    #[test]
+    fn test_f4_peta_memuat_batas_argumen() {
+        const PETA: &str = include_str!("../../../docs/ROADMAP/PETA-KANONIK.md");
+        let baris = PETA
+            .lines()
+            .find(|l| l.contains("MAX_ARG_LEN"))
+            .expect("PETA-KANONIK tidak memuat MAX_ARG_LEN");
+        let ekor = baris.split("MAX_ARG_LEN").nth(1).unwrap_or("");
+        let mut nilai = 0usize;
+        let mut digit = 0usize;
+        for b in ekor.bytes() {
+            if b.is_ascii_digit() {
+                nilai = nilai * 10 + (b - b'0') as usize;
+                digit += 1;
+            } else if digit > 0 {
+                break;
+            }
+        }
+        if digit == 0 {
+            panic!(
+                "baris MAX_ARG_LEN di PETA-KANONIK tidak memuat angka: {:?}",
+                baris
+            );
+        }
+        assert_eq!(
+            nilai,
+            asl_cockpit_shell::MAX_ARG_LEN,
+            "baris MAX_ARG_LEN di PETA-KANONIK memuat angka lain: {:?}",
+            baris
+        );
     }
 }

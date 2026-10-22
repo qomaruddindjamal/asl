@@ -156,6 +156,11 @@ bekerja lewat jalur pengalihan lama: `meminfo`, `cpuinfo`, `uname`, `lspci`,
 - RAMDISK adalah penyimpanan volatil: tanpa daya, tanpa isi.
 - Kapasitas total 262144 byte dengan satu slot berkas 8192 byte; satu berkas
   tidak dapat melebihi satu slot pada build ini.
+- Satu token argumen paling panjang 64 byte, sama dengan batas nama berkas.
+  Yang melebihi batas DITOLAK dengan baris galat (nama) atau diumumkan
+  potongannya (isi) — lihat Pasal 7; tidak ada pemotongan diam-diam lagi.
+  Nama berkas yang mengandung spasi tidak dapat diketik karena spasi adalah
+  pemisah argumen.
 - Pembuatan/penghapusan berkas pada FAT32 bukan bagian v1.0.2 (lingkup STRETCH
   yang diputuskan dilepas; tercatat di laporan akhir misi).
 - Tombol panah dan Home/End dikirim sebagai sekuens escape; bila jalur masukan
@@ -191,6 +196,7 @@ penjelasan. Tidak ada lagi label kedua (`Galat:` sudah hilang dari shell).
 | Path tidak sah | `Kesalahan: <jalan> path tidak sah` |
 | Perangkat penyimpanan gagal | `Kesalahan: <jalan> galat perangkat penyimpanan` |
 | Hasil normalisasi path terlalu panjang | `Kesalahan: <argumen> - path hasil normalisasi melebihi batas 128 byte` |
+| Argumen nama terpotong saat pembacaan baris | `Kesalahan: <64 byte pertama>... - argumen melebihi batas 64 byte, perintah tidak dijalankan` |
 | Jumlah argumen tidak sesuai | `Kesalahan: jumlah argumen tidak sesuai - Sintaks: <sintaks registry>` |
 | Nama perintah tidak dikenal (`help <nama>`) | `Kesalahan: perintah tidak dikenal: <nama>` |
 
@@ -212,8 +218,32 @@ VFS, jadi operator tahu objek mana yang gagal tanpa mengingat ketikannya.
 | `write-file` berkas baru | `Tertulis <n> byte di <jalan> (berkas baru)` |
 | `write-file` menimpa, isi lama lebih panjang | `Tertulis <n> byte di <jalan> - <m> byte isi lama dihapus` |
 | `write-file` menimpa, isi lama tidak dipotong | `Tertulis <n> byte di <jalan>` |
+| `write-file` dengan teks melebihi batas argumen | `Tertulis 64 byte di <jalan> - isi dipotong pada batas 64 byte; sisa tidak tertulis` |
 | `delete-file` | `Berkas dihapus: <jalan> (<n> byte dibebaskan)` |
 | `delete-folder` | `Direktori dihapus: <jalan> (0 entri)` |
+
+#### Batas panjang argumen dan nama berkas (F4)
+
+Satu token argumen pada satu baris perintah paling panjang 64 byte. Batas ini
+sengaja sama dengan batas nama berkas pada RAMDISK, jadi nama yang muat
+diketik selalu muat dipakai dan tidak ada batas kedua yang diam-diam memotong.
+
+Perilaku lama (bug F4): token yang lebih panjang dari 64 byte DIPOTONG tanpa
+pengumuman, sehingga `write-file laporan-...-terakhir-sebelum-terbit.txt ...`
+menciptakan berkas ber-nama 64 byte tanpa ekstensi. Sekarang potongan itu
+BERLABEL:
+
+- Nama/path (argumen pertama) terpotong: perintah TIDAK dijalankan sama
+  sekali, dan barisnya `Kesalahan: <potongan>... - argumen melebihi batas 64
+  byte, perintah tidak dijalankan`. Tidak ada berkas bernama rusak yang
+  tercipta.
+- Isi (argumen kedua `write-file`) terpotong: bagian yang muat tetap ditulis
+  dan sisanya diumumkan pada baris yang sama, `- isi dipotong pada batas 64
+  byte; sisa tidak tertulis`.
+
+Isi berkas yang ingin lebih dari 64 byte ditulis bertahap (`open`/`write-file`
+ulang) — batas ini batas satu baris ketikan, bukan batas ukuran berkas; ukuran
+berkas dibatasi satu slot RAMDISK 8192 byte (Pasal 6).
 
 #### Janji `write-file` tanpa argumen teks
 

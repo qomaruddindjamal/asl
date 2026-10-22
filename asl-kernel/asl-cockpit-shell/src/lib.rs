@@ -118,6 +118,23 @@ pub const MSG_ZERO_ENTRIES: &str = " (0 entri)";
 /// Penutup jumlah byte yang dibebaskan `delete-file`.
 pub const MSG_FREED_TAIL: &str = " byte dibebaskan)";
 
+/// Penanda argumen yang DIPOTONG pada tokenisasi, untuk baris galat F4:
+/// `Kesalahan: <64 byte pertama>... - argumen melebihi batas <n> byte, perintah
+/// tidak dijalankan`. Ini bukan potongan diam-diam: jalur lama memotong tanpa
+/// memberi tahu, sehingga nama berkas berekstensi bisa berubah menjadi nama
+/// tanpa ekstensi dan berkas tercipta dengan nama yang tidak diketik operator.
+pub const MSG_ARG_CUT: &str = "... - argumen melebihi batas ";
+
+/// Penutup baris galat argumen terpotong.
+pub const MSG_ARG_CUT_TAIL: &str = " byte, perintah tidak dijalankan";
+
+/// Awalan keterangan isi yang tidak tertulis pada `write-file` (F4):
+/// `... - isi dipotong pada batas <n> byte; sisa tidak tertulis`.
+pub const MSG_ISI_CUT: &str = " - isi dipotong pada batas ";
+
+/// Penutup keterangan isi terpotong.
+pub const MSG_ISI_CUT_TAIL: &str = " byte; sisa tidak tertulis";
+
 /// Susun prompt berposisi ke penyangga pemberi panggilan: nol alokasi heap,
 /// nol `alloc`, target `no_std` (G1). Posisi yang tidak muat dipotong pada
 /// batas penyangga sementara akhiran tetap utuh; seluruh jalur shell ASCII
@@ -808,10 +825,25 @@ pub struct Invocation {
     pub name: &'static str,
     pub argc: usize,
     pub arg_len: [usize; MAX_ARGS],
+    /// Bit `1 << i` berarti argumen ke-`i` lebih panjang dari [`MAX_ARG_LEN`]
+    /// dan baru saja DIPOTONG oleh tokenisasi (F4). Dispatch wajib memeriksa
+    /// flag ini sebelum memakai argumen: potongan bukan input operator.
+    pub arg_cut: u8,
     args: [[u8; MAX_ARG_LEN]; MAX_ARGS],
 }
 
 impl Invocation {
+    /// Argumen pertama (nama/path) terpotong, jadi tidak boleh dipakai.
+    pub fn nama_terpotong(&self) -> bool {
+        self.arg_cut & 0b01 != 0
+    }
+
+    /// Argumen isi `write-file` terpotong; bagian yang muat tetap sah ditulis,
+    /// sisa wajib diumumkan.
+    pub fn isi_terpotong(&self) -> bool {
+        self.arg_cut & 0b10 != 0
+    }
+
     /// Isi argumen ke-`i` sebagai `&str`; `""` bila indeks di luar argc.
     pub fn arg(&self, i: usize) -> &str {
         if i >= self.argc || i >= MAX_ARGS {
@@ -855,11 +887,11 @@ fn push_arg(inv: &mut Invocation, tok: &str) {
         return;
     }
     let bytes = tok.as_bytes();
-    let n = if bytes.len() > MAX_ARG_LEN {
-        MAX_ARG_LEN
-    } else {
-        bytes.len()
-    };
+    let terpotong = bytes.len() > MAX_ARG_LEN;
+    let n = if terpotong { MAX_ARG_LEN } else { bytes.len() };
+    if terpotong {
+        inv.arg_cut |= 1 << inv.argc;
+    }
     let mut i = 0;
     while i < n {
         inv.args[inv.argc][i] = bytes[i];
@@ -893,6 +925,7 @@ pub fn parse_line(line: &str) -> LineOutcome {
         name: entry.name(),
         argc: 0,
         arg_len: [0usize; MAX_ARGS],
+        arg_cut: 0,
         args: [[0u8; MAX_ARG_LEN]; MAX_ARGS],
     };
     let mut extra_words = 0usize;
@@ -1551,8 +1584,9 @@ mod tests {
         );
     }
 
-    /// Semua label keluaran shell (F3) sebagai pasangan `(nama, teks)`.
-    fn f3_labels() -> [(&'static str, &'static str); 24] {
+    /// Semua label keluaran shell (F3, dua tambahan F4) sebagai pasangan
+    /// `(nama, teks)`.
+    fn f3_labels() -> [(&'static str, &'static str); 28] {
         [
             ("MSG_ERROR", MSG_ERROR),
             ("MSG_BAD_ARITY", MSG_BAD_ARITY),
@@ -1578,6 +1612,10 @@ mod tests {
             ("MSG_ZERO_BYTES", MSG_ZERO_BYTES),
             ("MSG_ZERO_ENTRIES", MSG_ZERO_ENTRIES),
             ("MSG_FREED_TAIL", MSG_FREED_TAIL),
+            ("MSG_ARG_CUT", MSG_ARG_CUT),
+            ("MSG_ARG_CUT_TAIL", MSG_ARG_CUT_TAIL),
+            ("MSG_ISI_CUT", MSG_ISI_CUT),
+            ("MSG_ISI_CUT_TAIL", MSG_ISI_CUT_TAIL),
         ]
     }
 
@@ -1591,7 +1629,7 @@ mod tests {
         let labels = f3_labels();
 
         // (1) Teks dipatok harfiah, berurutan sama dengan daftar di atas.
-        let hoped: [&str; 24] = [
+        let hoped: [&str; 28] = [
             "Kesalahan: ",
             "jumlah argumen tidak sesuai - ",
             "Sintaks: ",
@@ -1616,6 +1654,10 @@ mod tests {
             " (0 byte)",
             " (0 entri)",
             " byte dibebaskan)",
+            "... - argumen melebihi batas ",
+            " byte, perintah tidak dijalankan",
+            " - isi dipotong pada batas ",
+            " byte; sisa tidak tertulis",
         ];
         let mut i = 0;
         while i < labels.len() {
@@ -1733,6 +1775,36 @@ mod tests {
             rangkai(&[MSG_WORKDIR_AT_ROOT, "/"], &mut buf),
             "Ruang kerja tetap di akar: /"
         );
+        // Dua baris F4: argumen terpotong. Nama -> perintah tidak dijalankan;
+        // isi -> bagian yang muat tetap ditulis dan sisanya diumumkan.
+        assert_eq!(
+            rangkai(
+                &[
+                    MSG_ERROR,
+                    "nama-panjang",
+                    MSG_ARG_CUT,
+                    "64",
+                    MSG_ARG_CUT_TAIL
+                ],
+                &mut buf
+            ),
+            "Kesalahan: nama-panjang... - argumen melebihi batas 64 byte, perintah tidak dijalankan"
+        );
+        assert_eq!(
+            rangkai(
+                &[
+                    MSG_WRITTEN,
+                    "64",
+                    MSG_WRITTEN_TO,
+                    "/log/note.txt",
+                    MSG_ISI_CUT,
+                    "64",
+                    MSG_ISI_CUT_TAIL
+                ],
+                &mut buf
+            ),
+            "Tertulis 64 byte di /log/note.txt - isi dipotong pada batas 64 byte; sisa tidak tertulis"
+        );
     }
 
     /// Rakit potongan menjadi satu baris ke penyangga pemberi panggilan:
@@ -1781,8 +1853,8 @@ mod tests {
             i += 1;
         }
         assert_eq!(
-            ditagihkan, 22,
-            "jumlah label yang ditagihkan ke dokumen berubah (24 dikurangi 2 penghubung)"
+            ditagihkan, 26,
+            "jumlah label yang ditagihkan ke dokumen berubah (28 dikurangi 2 penghubung)"
         );
 
         // Pasal 7 harus memberi contoh baris UTUH, bukan daftar label saja.
@@ -1801,6 +1873,110 @@ mod tests {
         assert!(
             DOC.contains("path hasil normalisasi melebihi batas "),
             "dokumen tidak memuat galat normalisasi path (angkanya dijaga asl-storage)"
+        );
+    }
+
+    /// Ambil bilangan bulat pertama yang muncul sesudah penanda di dokumen,
+    /// tanpa alokasi: angka dibaca langsung dari byte.
+    fn number_after(doc: &str, marker: &str) -> Option<usize> {
+        let mut bytes = doc.split(marker).nth(1)?.bytes();
+        let mut value = 0usize;
+        let mut digits = 0usize;
+        for b in bytes.by_ref() {
+            if b.is_ascii_digit() {
+                value = value * 10 + (b - b'0') as usize;
+                digits += 1;
+            } else if digits > 0 {
+                break;
+            }
+        }
+        if digits == 0 {
+            None
+        } else {
+            Some(value)
+        }
+    }
+
+    /// Penjaga F4 bagian parser: tokenisasi tidak boleh lagi memotong argumen
+    /// tanpa jejak. Yang berubah adalah potongan kini TERDANDA, sehingga sisi
+    /// dispatch dapat menolaknya alih-alih memakai nama rusak.
+    #[test]
+    fn test_f4_argumen_terpotong_ditandai_bukan_disembunyikan() {
+        // Nama 78 byte berekstensi: dulu berkas tercipta dengan nama 64 byte
+        // tanpa ekstensi karena ekor ".txt" terpotong di tengah kata.
+        const NAMA: &str =
+            "laporan-tahunan-2026-versi-final-revisi-draf-acuan-terakhir-sebelum-terbit.txt";
+        const BARIS: &str =
+            "write-file laporan-tahunan-2026-versi-final-revisi-draf-acuan-terakhir-sebelum-terbit.txt isi";
+        assert_eq!(NAMA.len(), 78);
+        match parse_line(BARIS) {
+            LineOutcome::Ready(inv) => {
+                assert!(inv.nama_terpotong(), "nama terpotong tidak ditandai");
+                assert!(!inv.isi_terpotong(), "isi pendek tidak boleh ditandai");
+                assert_eq!(inv.arg(0).len(), MAX_ARG_LEN);
+                assert!(
+                    NAMA.starts_with(inv.arg(0)),
+                    "arg(0) bukan awalan nama yang diketik"
+                );
+                assert_eq!(inv.arg(1), "isi");
+                assert_eq!(inv.arg_cut, 0b01);
+            }
+            other => panic!("baris nama panjang seharusnya Ready, dapat {:?}", other),
+        }
+
+        // Isi panjang: nama tetap utuh, hanya isi yang terpotong.
+        const ISI: &str = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
+        const BARIS_ISI: &str = "write-file note.txt xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
+        assert_eq!(ISI.len(), 100);
+        match parse_line(BARIS_ISI) {
+            LineOutcome::Ready(inv) => {
+                assert!(!inv.nama_terpotong(), "nama pendek tidak boleh ditandai");
+                assert!(inv.isi_terpotong(), "isi 100 byte tidak ditandai");
+                assert_eq!(inv.arg(0), "note.txt");
+                assert_eq!(inv.arg(1).len(), MAX_ARG_LEN);
+                assert_eq!(inv.arg_cut, 0b10);
+            }
+            other => panic!("baris isi panjang seharusnya Ready, dapat {:?}", other),
+        }
+    }
+
+    /// Penjaga F4 bagian janji misi: nama berkas sampai batas argumen tetap
+    /// utuh dan tidak ditandai terpotong.
+    #[test]
+    fn test_f4_nama_sampai_batas_argumen_tetap_utuh() {
+        const NAMA64: &str = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+        const BARIS: &str =
+            "write-file aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa isi";
+        assert_eq!(NAMA64.len(), MAX_ARG_LEN);
+        match parse_line(BARIS) {
+            LineOutcome::Ready(inv) => {
+                assert_eq!(inv.arg(0), NAMA64, "nama tepat batas berubah");
+                assert_eq!(inv.arg(1), "isi");
+                assert_eq!(inv.arg_cut, 0, "nama tepat batas tidak boleh ditandai");
+            }
+            other => panic!("nama tepat batas seharusnya Ready utuh, dapat {:?}", other),
+        }
+
+        // Baris harian tidak tersentuh flag baru.
+        match parse_line("write-file a.txt halo dunia") {
+            LineOutcome::Ready(inv) => {
+                assert_eq!(inv.arg(0), "a.txt");
+                assert_eq!(inv.arg(1), "halo dunia");
+                assert_eq!(inv.arg_cut, 0);
+            }
+            other => panic!("dapat {:?}", other),
+        }
+    }
+
+    /// Penjaga F4 bagian dokumen: Pasal 7 memuat angka batas argumen yang sama
+    /// dengan konstanta parser, bukan tebakan.
+    #[test]
+    fn test_f4_dokumen_memuat_batas_argumen() {
+        const DOC: &str = include_str!("../../../docs/PANDUAN/REFERENSI-PERINTAH.md");
+        assert_eq!(
+            number_after(DOC, "argumen pada satu baris perintah "),
+            Some(MAX_ARG_LEN),
+            "Pasal 7 dokumen memuat batas argumen yang bukan dari konstanta"
         );
     }
 

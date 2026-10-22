@@ -99,6 +99,16 @@ nomor "sesudah" merujuk berkas kerja saat dokumen ini ditulis.
   (`asl-cockpit-shell/src/lib.rs:707-768`), argumen dipotong ke
   `MAX_ARG_LEN` (`:684-701`), dan RAMDISK menolak nama/path lewat
   `VfsError` (`asl-storage/src/ramdisk.rs:321-363`, `:371-391`).
+  **Koreksi atas klaim "aman" ini lahir dari F4**: potongan ke `MAX_ARG_LEN`
+  memang tidak memicu panik, jadi pernyataan di atas benar untuk E8, tetapi
+  ia MENYEMBUNYIKAN perubahan makna masukan operator. Nomor baris yang
+  sebenarnya terukur pada HEAD `e60f0a7` (sebelum F4): `MAX_ARG_LEN` di
+  `asl-cockpit-shell/src/lib.rs:346`, `push_arg` di `:853-870` dengan pemotongan
+  di `:858-862`, dan sembilan titik pemakaian `inv.arg(0)` di
+  `asl-kernel-core/src/lib.rs` (`:1200`, `:1203`, `:1218`, `:1252`, `:1313`,
+  `:1329`, `:1346`, `:1384`, `:1403`) yang semuanya memakai potongan apa
+  adanya. Rentang `:684-701` dan `:707-768` pada kalimat di atas adalah nomor
+  pra-renumerasi E8 dan TIDAK lagi cocok dengan berkas.
 - `RamFileSystem::<0, N>::new()`/`ensure_root()` akan mengakses `nodes[0]`
   pada tabel nol simpul (`ramdisk.rs:211-240`). **Tidak dapat dicapai**:
   kernel hanya menginstansiasi `RAMDISK_DEFAULT_NODES = 32`, dan menambah
@@ -112,7 +122,7 @@ nomor "sesudah" merujuk berkas kerja saat dokumen ini ditulis.
 | Temuan | Lokasi | Mengapa tidak ditutup di E8 |
 |---|---|---|
 | `write-file <nama>` tanpa isi **memangkas berkas menjadi 0 byte** | `asl-storage/src/vfs.rs:233-245` | Ini perilaku, bukan crash. Masuk cakupan F3 (keluaran eksplisit) dan F4; harus diumumkan ke pemilik sebelum diterima sebagai janji. |
-| Isi `write-file` lebih dari 64 byte dipotong diam-diam; karena itu tepi 8192/8193 byte tidak dapat diketik dari shell | `asl-cockpit-shell/src/lib.rs:684-701` | Yang bisa dilakukan E8 adalah membuktikan tepi 8192/8193 di tingkat RAMDISK (dilakukan, lihat Bagian 4). Batas potong = keputusan F1-F7. |
+| Isi `write-file` lebih dari 64 byte dipotong diam-diam; karena itu tepi 8192/8193 byte tidak dapat diketik dari shell | `asl-cockpit-shell/src/lib.rs:684-701` | Yang bisa dilakukan E8 adalah membuktikan tepi 8192/8193 di tingkat RAMDISK (dilakukan, lihat Bagian 4). Batas potong = keputusan F1-F7. **DITUTUP PADA F4**: pemotongan kini berlabel lewat bendera `Invocation::arg_cut` (`push_arg` menandai bit per argumen), nama terpotong DITOLAK sebelum VFS tersentuh, dan isi terpotong diumumkan pada baris `write-file`. Tepi 8192/8193 tetap tidak dapat diketik dari shell karena satu token terbatas 64 byte - dan kini batas itu tertulis serta dijaga test, bukan tersirat. |
 | RAMDISK menerima nama berisi byte NUL | `asl-storage/src/ramdisk.rs:331-336` | Validasi tambahan di luar cakupan E8; tercatat sebagai keputusan terbuka untuk F2/F3. |
 | Teks balasan lama masih berbahasa Inggris (`Unknown command. Type 'help' ...`) | `asl-cockpit-shell` jalur lama | Aturan G10 (100% bahasa Indonesia) ditegakkan pada F1-F7, bukan pada E8. |
 

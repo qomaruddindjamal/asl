@@ -103,7 +103,7 @@ dokumen kerja.
 | fmt/clippy | tidak hijau harfiah karena **140 blok deviasi** dan **137 diagnostik warisan** yang sudah ada sebelum E8; yang ditegakkan adalah **nol BARU** pada baris hasil kerja, dihitung `scripts/r1_new_only_gate_check.py` | VERIFIED-ON-HOST |
 | Lantai memori | ratchet **3392K lulus**; janji Bagian 5 **`-m 3M` tetap MERAH** (serial 0 byte) — deviasi tidak diubah menjadi hijau | VERIFIED-ON-VM |
 | Sesi adversarial | Pass A 43 payload keluar 0; Pass B 59/59 [OK] keluar 0; `trap_de` mencetak blok konteks lengkap; tujuh sesi berjendela | VERIFIED-ON-VM |
-| CI terkelola | **34 run** atas cabang R1 pada saat audit, **17 pasangan** peristiwa, seluruhnya `conclusion=success`; tiap pasangan yang terekstrak 30 suite, 19 `warning` profil test, 13 `Compiling` 0/0 — lulusnya 202/0 untuk pasangan lama, **205/0** untuk pasangan atas unit F1 dan unit ekstrak, **207/0** untuk pasangan atas unit F2 dan unit ekstrak `c3a8343`; ELF runner 325.184 byte lalu 329.360 byte lalu 329.664 byte. Ekstrak: 34 berkas milik run cabang R1; total `ci_hosted_*` ter-commit 83. Angka ini disinkron dari audit `f3_audit-utang-ekstrak_2026-10-22.txt` pada HEAD `c3a8343` (dijalankan sebelum unit F3), bukan dari ingatan; jumlah run diperiksa pada dua halaman `gh api` (34 lalu 0) sehingga pembatas 100 tidak menyamarkan apa pun. Pasangan atas unit F3 belum bisa terekstrak karena aturan G8 | VERIFIED-ON-CI / VERIFIED-ON-CI-API |
+| CI terkelola | **36 run** atas cabang R1 pada saat audit unit F4, **18 pasangan** peristiwa, seluruhnya `conclusion=success`; tiap pasangan yang terekstrak 30 suite, 19 `warning` profil test, 13 `Compiling` 0/0 — lulusnya 202/0 untuk pasangan lama, **205/0** untuk pasangan atas unit F1 dan unit ekstrak, **207/0** untuk pasangan atas unit F2 dan unit ekstrak `c3a8343`, **212/0** untuk pasangan atas unit F3 (`39716468849` + `39716474359`, headSha `e60f0a7`); ELF runner 325.184 byte lalu 329.360 byte lalu 329.664 byte, dan pada pasangan F3 ukurannya 337.848 byte versus 337.792 byte di lingkungan host (selisih antar-platform +56 B, dilaporkan apa adanya). Ekstrak terukur dengan `git ls-tree -r HEAD Analysis/reports`: **34 berkas** `ci_hosted_*` milik run cabang R1 pada HEAD `e60f0a7`, dan angka itu menjadi 36 sesudah commit-unit F4 ini karena pasangan atas `e60f0a7` (`39716468849` + `39716474359`) mendarat di commit-unit F4; total `ci_hosted_*` ter-commit 83 pada HEAD `e60f0a7` dan menjadi 85 pada commit-unit F4 ini. Angka ini disinkron dari audit `f4_audit-utang-ekstrak_2026-10-22.txt` pada HEAD `e60f0a7` (dijalankan sebelum commit-unit F4), bukan dari ingatan; jumlah run diperiksa pada dua halaman `gh api` (36 lalu 0) sehingga pembatas 100 tidak menyamarkan apa pun. Pasangan atas unit F4 belum bisa terekstrak karena aturan G8 | VERIFIED-ON-CI / VERIFIED-ON-CI-API |
 | Jendela LANGKAH 6 | Lima sesi terdokumentasi di Bagian 5.3; **disaksikan pemilik dan dinyatakan LULUS 2026-10-22** | VERIFIED-ON-VM-VISIBLE + kesaksian pemilik |
 
 ## 5. Batas bukti — yang TIDAK boleh dibaca sebagai sudah terbukti
@@ -124,8 +124,11 @@ dokumen kerja.
    `b9acd5b`, `ca582fa`) karena satu peristiwa push hanya memicu run untuk tip
    saat itu. Ini fakta cara kerja CI, bukan kelalaian.
 5. **Utang ekstrak G8 tidak pernah bisa nol pada commit terakhir rantai.** Yang
-   tertutup sampai unit F3 = 17 pasangan (34 berkas milik run cabang R1, audit di
-   `Analysis/reports/f3_audit-utang-ekstrak_2026-10-22.txt` pada HEAD `c3a8343`).
+   tertutup sampai unit F3 = 17 pasangan (34 berkas milik run cabang R1 pada HEAD
+   `e60f0a7`, audit di
+   `Analysis/reports/f3_audit-utang-ekstrak_2026-10-22.txt` pada HEAD `c3a8343`
+   dan dihitung ulang pada `Analysis/reports/f4_audit-utang-ekstrak_2026-10-22.txt`
+   pada HEAD `e60f0a7`).
    Yang diperkirakan pada laporan ini semula ("pasangan atas commit-unit ini masuk
    unit pertama BAGIAN 2") tidak terjadi apa adanya: commit-unit F1 `5812c77`
    sengaja TIDAK memuat ekstraknya sendiri agar satu commit satu logika, unit

@@ -21,8 +21,9 @@ dicetak atau nama konstanta adalah penanda yang stabil.
 | Daftar perintah kanonik | `REGISTRY` + `CANONICAL_COMMAND_COUNT` di berkas yang sama | keluaran `help`, jumlah pada `status`, `docs/PANDUAN/REFERENSI-PERINTAH.md` | `test_registry_has_twelve_canonical_commands`, `test_f2_up_command_is_canonical_and_takes_no_argument`, `test_docs_command_reference_matches_registry` |
 | Alias parser | `aliases()` tiap entri registry | resolusi parser, baris `alias:` pada `help` | `test_parser_resolves_every_documented_alias` |
 | Judul kelompok perintah | `CommandCategory::label()` | seksi pada keluaran `help`, kolom Kelompok pada dokumen panduan | `test_help_text_is_generated_from_registry` |
-| Label keluaran shell (24 konstanta `MSG_*`) | `MSG_*` di `asl-kernel/asl-cockpit-shell/src/lib.rs` | setiap baris galat dan baris sukses yang dicetak dispatch di `asl-kernel/asl-kernel-core/src/lib.rs`, `docs/PANDUAN/REFERENSI-PERINTAH.md` Pasal 7 | `test_f3_labels_keluaran_satu_sumber`, `test_f3_dokumen_memuat_setiap_label_keluaran` |
+| Label keluaran shell (28 konstanta `MSG_*`) | `MSG_*` di `asl-kernel/asl-cockpit-shell/src/lib.rs` | setiap baris galat dan baris sukses yang dicetak dispatch di `asl-kernel/asl-kernel-core/src/lib.rs`, `docs/PANDUAN/REFERENSI-PERINTAH.md` Pasal 7 | `test_f3_labels_keluaran_satu_sumber`, `test_f3_dokumen_memuat_setiap_label_keluaran` |
 | Batas baris input | `SHELL_BUFFER_MAX` | penyangga shell, uji limpahan | `test_shell_buffer_overflow_protection` |
+| Batas satu token argumen | `MAX_ARG_LEN` = 64 di `asl-kernel/asl-cockpit-shell/src/lib.rs` | penampung argumen parser, flag `Invocation::arg_cut`, penolakan nama terpotong dan pengumuman isi terpotong di dispatch, Pasal 6 dan 7 `docs/PANDUAN/REFERENSI-PERINTAH.md` | `test_f4_argumen_terpotong_ditandai_bukan_disembunyikan`, `test_f4_nama_sampai_batas_argumen_tetap_utuh`, `test_f4_dokumen_memuat_batas_argumen`, `test_f4_peta_memuat_batas_argumen` |
 
 ## Pasal 3 - Penyimpanan dan memori
 
@@ -32,6 +33,7 @@ dicetak atau nama konstanta adalah penanda yang stabil.
 | Ukuran slot berkas 8.192 byte | `RAMDISK_FILE_SLOT_BYTES` | batas tulis `write-file`, dokumen | dua test di atas |
 | Batas bawah/atas kapasitas | `RAMDISK_CAPACITY_MIN_BYTES`, `RAMDISK_CAPACITY_MAX_BYTES` | keputusan konfigurasi misi | `test_ram_filesystem_capacity_bounds` |
 | Batas panjang path 128 byte | `MAX_PATH_LEN` di `asl-kernel/asl-storage/src/vfs.rs` | penyangga normalisasi jalur dan pemotongan posisi prompt di `asl-kernel-core`, baris galat batas pada Pasal 7 `docs/PANDUAN/REFERENSI-PERINTAH.md` | `test_f3_dokumen_memuat_batas_panjang_path`, `test_f1_prompt_truncates_long_position_and_keeps_suffix` |
+| Batas nama berkas = batas satu token argumen | `MAX_NAME_LEN` di `asl-kernel/asl-storage/src/vfs.rs` (diikat sama dengan batas argumen parser) | setiap nama yang muat diketik harus muat dibuat; nama di luar batas ditolak sebelum VFS tersentuh | `test_f4_batas_argumen_sama_dengan_batas_nama` |
 | Instance yang dipakai kernel | `RAMDISK_FS` (statis `.bss`, `new_bss_zeroed()` + `ensure_root()`) di `asl-kernel/asl-kernel-core/src/lib.rs` | jembatan shell ke VFS | `test_zeroed_static_requires_ensure_root` |
 | Antarmuka berkas | `trait FileSystem` di `asl-kernel/asl-storage/src/vfs.rs` | implementasi ramdisk dan jembatan shell | test ramdisk + test jalur ganda shell |
 | Ambang gerbang memori | `-MissionRam 3M`, `-RatchetRam 3392K` di `scripts/test_ram_floor_3mb.ps1` | langkah `[4/5]` `scripts/ci_local.ps1` | kode keluar 0/1/2 skrip |

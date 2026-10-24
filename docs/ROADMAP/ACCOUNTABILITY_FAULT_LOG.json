@@ -1115,6 +1115,32 @@
         "Yang mencegah terulangnya: setiap Bagian mulai dengan pengukuran keadaan yang dibutuhkannya, dan setiap klaim tentang pohon/origin harus menyebut perintah pengukurannya."
       ],
       "notes": "Kelas bukti entri ini VERIFIED-ON-CI-API (PR, run, tag, rilis) dan VERIFIED-ON-HOST (git, berkas, jam mesin). violations_recorded_delta 0 karena tidak ada gerbang yang gagal; ini temuan KELAS DOKUMENTASI/KEADAAN, bukan regresi perangkat. Otorisasi yang berlaku: mandat tertulis pemilik 2026-10-24 (MASTER PROMPT R3) dengan pengecualian mutlak yang tetap berjalan - nol tulis ESP/disk fisik, nol amend/rebase/reset/force-push, artefak terproteksi tidak disentuh, tidak ada rilis dari tree merah, tidak ada penghapusan tag di luar BAGIAN 7."
+    },
+    {
+      "date": "2026-10-24T11:25:26Z",
+      "actor": "QODER (agen) - BAGIAN 2 MASTER PROMPT R3 (mandat otonom pemilik 2026-10-24, pemilik bepergian)",
+      "type": "F3_KEPUTUSAN_PEMILIK_R3_P1_P4_DAN_TAHAN_DICABUT_dicatat",
+      "gate_id": "BAGIAN 2 MASTER PROMPT R3 (empat keputusan BUTIR 7 sudah diambil pemilik) + Aturan misi R1 G7 (nol asumsi) - keputusan yang dulu menunggu pemilik kini ditulis sebagai fakta yang dibaca",
+      "result": "CLOSED",
+      "violations_recorded_delta": 0,
+      "root_cause": "Rantai kerja sebelumnya berhenti karena EMPAT pertanyaan menunggu pemilik (butir 7 dokumen docs/RND/ASL-V1.0.2-R1-STATUS-BAGIAN-2.md). Mandat R3 2026-10-24 menjawab keempatnya sekaligus DAN cabut empat tahan menunggu, jadi agen tidak boleh lagi memakai alasan 'menunggu pemilik' untuk menahan pekerjaan yang aman, dan juga tidak boleh menganggap tahan yang TETAP TERLARANG sudah dicabut. Empat keputusan terukur: P1 mandat F7 ditutup (sisa kursor horizontal framebuffer jadi backlog); P2 blocker #50 didahulukan lewat pin Limine varian A supaya kerja punya bukti VM; P3 penyesuaian alat di luar lingkup, 134 warisan clippy tidak disentuh, nol clippy BARU tetap dijaga; P4 jendela disaksikan ditunda dan diganti jendela VM tak-disaksikan dengan VERIFIED-ON-HARDWARE tetap 0. Empat tahan DICABUT: merge PR misi, potong tag/rilis, tulis LAPORAN-FINAL (tetap paling akhir), menunggu jendela disaksikan. Lima tahan TETAP TERLARANG: (a) nol tulis ESP/disk fisik, K-6 fisik dilarang tanpa kehadiran pemilik; (b) nol amend/rebase/reset/force-push, koreksi = commit baru; (c) artefak terproteksi tidak disentuh (scripts/g9_final_p8_run.ps1, CHECKLIST_STATE.json, 20 artefak Analysis/reports/g9_final_p8_* 2026-10-21, README.md:138 milik pemilik, berkas .log di root repo); (d) nol rilis dari tree merah, nol sembunyikan kegagalan, nol klaim kelas bukti di atas yang terukur; (e) nol hapus tag/rilis di luar BAGIAN 7.",
+      "evidence": [
+        "Sumber keputusan: berkas mandat pemilik yang dilampirkan pada sesi ini, TERUKUR 10132 byte, 54 baris, sha256 e7c6925994bb3f01300f19fb8f9e34f06ab0904c6fdadcd091e6866159d4f472. Jalur direktori lampiran sengaja TIDAK dicatat di berkas bukti karena jalur personal; yang diikat adalah sidik jari byte.",
+        "Kutipan otorisasi (baris 5 berkas mandat) disalin ke ASCII murni; 1 karakter non-ASCII diganti '-' dan penyalian kehilangan ini dinyatakan di sini - teks asli tidak diubah di mana pun.",
+        "Pemetaan keputusan ke pertanyaan: 4 butir BUTIR 7 dokumen docs/RND/ASL-V1.0.2-R1-STATUS-BAGIAN-2.md terukur pada baris 128..137 (di bawah judul '## 7. Keputusan yang dibutuhkan dari pemilik' di baris 126, sebelum judul '## 8.' di baris 139); tiap butir dipasang ke P1..P4 dengan pencocokan kata kunci yang di-assert (F7, #50, penyesuaian alat, jendela).",
+        "Berkas bukti Analysis/reports/r3_bagian2-keputusan-pemilik_2026-10-24.txt ditulis oleh naskah yang sama pada 2026-10-24T11:25:26Z (jam mesin UTC; selisih jam mesin lokal vs UTC TERUKUR 7.0 jam) dan memuat tabel keputusan, daftar tahan dicabut, daftar tetap terlarang, serta konsekuensi per BAGIAN.",
+        "docs/ROADMAP/HANDOFF_STATE.json: DUA kunci baru appended (v1_0_2_r3_keputusan_p1_p4, v1_0_2_r3_tahan_dicabut_dan_terlarang) dan TIGA kunci status (active_phase, next_immediate_step, timestamp) diperbarui; 42 kunci lainnya BYTE-IDENTIK dengan sebelumnya, terukur dengan membandingkan json.dumps per kunci terhadap berkas lama."
+      ],
+      "correction": [
+        "Keempat pertanyaan BUTIR 7 tidak lagi berstatus MENUNGGU PEMILIK. Sesi berikutnya yang membaca dokumen STATUS-BAGIAN-2 wajib membaca mandat R3 2026-10-24 (berkas terbaru) sebagai nilai final P1..P4; pertentangan dokumen dicatat di entri #57, bukan diselesaikan diam-diam.",
+        "Tahan yang dicabut HANYA tahan-menunggu-pemilik. Aturan teknis tetap penuh: gerbang diukur ulang bila ada berkas .rs berubah, bukti hanya kelas VERIFIED-ON-HOST/CI/CI-API/VM/RANCANGAN, dan VERIFIED-ON-HARDWARE tetap 0 sampai pemilik kembali untuk jendela fisik.",
+        "Urunan BAGIAN 7 tetap seperti terukur di audit BAGIAN 1: SATU commit merge origin/main ke cabang feature/v1.0.2-r1 (nol rebase, nol reset, nol force-push), CI hijau di tip hasil merge, baru merge PR #7; tag v1.0.2 TIDAK ADA di mana pun sehingga tidak ada yang diarsip/dihapus untuk versi itu, dan v1.1.0 hanya TAG LOKAL tanpa rilis GitHub."
+      ],
+      "prevented_by": [
+        "Append-only + assert byte-identik pada ACCOUNTABILITY_FAULT_LOG.json dan HANDOFF_STATE.json SEBELUM satu byte pun ditulis, sehingga entri lama dan kunci lama tidak bisa tergusur.",
+        "Pembacaan mandat dari berkas (bukan dari ingatan sesi) + pencocokan P1..P4 terhadap butir BUTIR 7 yang dibaca dari tree ter-commit, sehingga keputusan tidak bisa salah dipasangkan."
+      ],
+      "notes": "BAGIAN 2 adalah KOMIT DOKUMEN: nol berkas .rs (terukur git diff --name-only 4335e41..HEAD -- '*.rs' = 0 baris), nol operasi tag, nol merge, nol tulis ESP. Tip saat penulisan 526412dd4343f772ba983292311477175e10bef8 dengan origin sinkron (left-right 0 0) dan 20 artefak g9_final_p8_* tetap untracked ditahan. violations_recorded tetap 0 karena tidak ada gerbang yang gagal."
     }
   ]
 }

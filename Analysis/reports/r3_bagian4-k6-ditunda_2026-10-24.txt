@@ -1,0 +1,156 @@
+BUKTI R3 BAGIAN 4 - K-6 FISIK DITUNDA BEROTORISASI, NOL TULIS ESP
+Dihitung alat pada 2026-10-24T13:08:32Z (jam mesin UTC) dari logs/k6_pra_kondisi_b4.txt (pengukuran BARU 2026-10-24T12:39:43Z
+sampai 2026-10-24T12:39:56Z), logs/k6_pra_kondisi_out.txt (pengukuran K-6 langkah 1-2 2026-10-24T08:12:00Z sampai 2026-10-24T08:12:14Z), dua
+ekstrak hosted CI, scripts/r1_debt_audit.py, git, dan GitHub API.
+Kelas bukti: VERIFIED-ON-HOST (lingkup lingkungan mesin ini). VERIFIED-ON-HARDWARE TETAP 0.
+NOL angka ketikan tangan; satu-satunya teks kutipan ditandai [KUTIPAN PEMILIK].
+
+1. PERINTAH PEMILIK YANG DITUTUP
+================================
+  [KUTIPAN PEMILIK] 'BAGIAN 4 - K-6 FISIK: DITUNDA, NOL TULIS ESP: Pemilik tidak ada; jaring fisik
+  UPS/USB dan penulisan ESP TIDAK dilakukan. Catat penundaan berotorisasi di fault log. Lanjut ke
+  BAGIAN 5.'
+  [KUTIPAN PEMILIK, daftar larangan mutlak butiran (a)] 'MENULIS apa pun ke ESP/disk fisik mesin
+  pemilik. K-6 fisik DILARANG dijalankan tanpa kehadiran pemilik (BAGIAN 4).'
+  Otorisasi penundaan = dua baris di atas, tertulis 2026-10-24, pemilik bepergian (mandat R3).
+  Unit ini TIDAK mengambil keputusan teknis apa pun atas ESP: hanya mengukur, mencatat, lanjut.
+  Kepemilikan atas tindakan fisik tetap pada pemilik.
+
+2. KONDISI MESIN DIUKUR ULANG (BAGIAN 4 MENOLAK MENYALIN ANGKA LAMA)
+====================================================================
+  elevasi              = IS_ADMIN=True (diperlukan untuk reagentc/CIM; naskah tetap hanya membaca)
+  jendela ukur         = 2026-10-24T12:39:43Z sampai 2026-10-24T12:39:56Z UTC; jam mesin lokal 2026-10-24T19:39:43 +07:00
+  WinRE                = 'Disabled' (reagentc /info exit 0); lokasi WinRE kosong; BCD identifier 4e0f2e37-effd-11ee-b727-b757474dc764
+  Winre.wim di C:      = NOL di C:\Windows\System32\Recovery (umum: wim hidup di partisi pemulihan, bukan di C:)
+  baterai              = TIDAK ADA INSTANSI Win32_Battery
+  UPS (CIM)            = TIDAK ADA INSTANSI Win32_UninterruptiblePowerSupply ; UPS (HID) = NOL
+  ChassisTypes         = 3 ; PC_SYSTEM = Acer / Veriton N4660G / PCSystemType=1 / HibernationMode= (3 = Desktop: tidak ada baterai oleh desain)
+  controller lepasan   = NOL INSTANSI
+  logika disk          = 2 terukur; himpunan DriveType = 3
+    C: DriveType=3 Size=255060865024 Free=16845815808 Vol=WINDOWS
+    G: DriveType=3 Size=16106127360 Free=13244272640 Vol=Google Drive
+  media DriveType=2    = 0 (nol = tidak ada USB/ODD untuk menaruh jaring selamat)
+  dirty bit C:         = C| exit=0| Volume - C: is NOT Dirty
+  kejadian Chkdsk 30 h = NOL KEJADIAN dalam 30 hari
+
+3. ESP = VOLUME YANG MENJADI SOAL K-6 (TERUKUR, BUKAN DIINGAT)
+==============================================================
+  partisi System disk 0: idx=1 ukuran=209715200 B offset=1048576 B tipe-GPT={c12a7328-f81f-11d2-ba4b-00a0c93ec93b} (bidang huruf kosong)
+  volume FAT32 pada disk 0 (huruf kosong): tersedia=167084032 B health=Warning operasinya='Full Repair Needed'
+  Objek kerja K-6 adalah volume tanpa huruf dengan operasinya='Full Repair Needed' itu; ia TIDAK disentuh pada
+  unit ini. Perintah perbaikan (Repair-Volume) tidak dijalankan sama sekali - lihat bagian 4.
+  partisi Recovery ADA secara struktur (idx=4, 770703360 B, offset=255288410112, tipe-GPT={de94bba4-06d1-4d40-a16a-bfd50179d6ac}) tetapi WinRE
+  berstatus 'Disabled', jadi partisi Recovery BUKAN jaring selamat yang berfungsi.
+  DAFTAR PARTISI LENGKAP TERUKUR:
+    disk=0 idx=1 tipe=System ukuran=209715200 offset=1048576 huruf=- recovery=False
+    disk=0 idx=2 tipe=Reserved ukuran=16777216 offset=210763776 huruf=- recovery=False
+    disk=0 idx=3 tipe=Basic ukuran=255060869120 offset=227540992 huruf=C recovery=False
+    disk=0 idx=4 tipe=Recovery ukuran=770703360 offset=255288410112 huruf=- recovery=False
+  DAFTAR VOLUME LENGKAP TERUKUR (objid memuat nama mesin - SENGAJA tidak dikutip di sini):
+    huruf=: label= fs=FAT32 tersedia=167084032 health=Warning operasinya=Full Repair Needed
+    huruf=: label= fs=NTFS tersedia=64634880 health=Healthy operasinya=OK
+    huruf=C: label=WINDOWS fs=NTFS tersedia=16845795328 health=Healthy operasinya=OK
+
+4. BUKTI 'NOL TULIS' - TIGA UKURAN, BUKAN PENGAKUAN
+===================================================
+  (1) Naskah pengukuran diperiksa untuk kata kerja menulis: 1 kecocokan dari 13 kata kerja yang
+      dicari (Repair-Volume, chkdsk, Format-Volume, Set-Partition, Set-Volume, diskpart, mountvol,
+      Clear-Disk, New-Partition, Write-VolumeCache, Enable-ComputerRestore, robocopy, Copy-Item):
+      chkdsk: termuat pada 3 baris naskah, SEMUANYA bagian baca-saja:
+        baris 93: Section "10. LOG EVENT CHKDSK (sumber Chkdsk, ID 1001) 30 HARI TERAKHIR"
+        baris 96: Where-Object { $_.ProviderName -match 'Chkdsk' }
+        baris 97: if ($ev) { $ev | ForEach-Object { Write-Host ("CHKDSK_EVENT| " + $_.TimeCreated.ToString("yyyy-MM-ddTHH:mm:ssK") + " id=
+  (2) BAIT YANG TIDAK DIJALANKAN pada unit ini (didaftarkan supaya mudah diperiksa ulang):
+      Repair-Volume -Scan
+      Repair-Volume -OfflineScanAndFix
+      chkdsk <ESP> /f
+      chkdsk /fix
+      diskpart (clean/assign/active/format)
+      Set-Partition
+      Set-Volume
+      Format-Volume
+      mountvol /D
+      robocopy/xcopy ke ESP
+      penulisan byte apa pun ke \\?\Volume{...}
+  (3) BUKTI BYTE-PADA-VOLUME-TU: ruang tersedia ESP terukur 167084032 B (lama) vs 167084032 B (baru) ->
+      identik: YA. Kalau ada tulis-menulis ke ESP di antara dua pengukuran, angka ini berubah.
+
+5. PERBANDINGAN DUA PENGUKURAN (K-6 LANGKAH 1-2 vs BAGIAN 4)
+============================================================
+  12 bidang IDENTIK, 0 bidang BERBEDA:
+    identik  Windows RE status          = Disabled
+    identik  exit reagentc              = 0
+    identik  baterai                    = TIDAK ADA INSTANSI Win32_Battery
+    identik  UPS CIM                    = TIDAK ADA INSTANSI Win32_UninterruptiblePowerSupply
+    identik  UPS HID                    = NOL
+    identik  ChassisTypes               = 3
+    identik  controller media lepasan   = NOL INSTANSI
+    identik  ESP health                 = Warning
+    identik  ESP operasinya             = Full Repair Needed
+    identik  ESP tersedia (B)           = 167084032
+    identik  event chkdsk 30 hari       = NOL KEJADIAN dalam 30 hari
+    identik  Winre.wim di C:            = NOL di C:\Windows\System32\Recovery (umum: wim hidup di partisi pemulihan, bukan di C:)
+  Yang TIDAK dibuat-buat: ruang tersedia C: berubah dari 18475249664 B menjadi 16845815808 B (selisih -1629433856 B).
+  Selisih itu TERUKUR; penyebabnya TIDAK diukur pada unit ini, jadi dicatat apa adanya tanpa
+  penjelasan yang diklaim sebagai bukti.
+  Kesimpulan yang dapat dipertanggungjawabkan: PRA-KONDISI JARING SELAMAT TIDAK BERUBAH antara dua
+  pengukuran - WinRE 'Disabled', nol baterai, nol UPS, nol media DriveType=2, ESP tetap 'Full Repair Needed'.
+  Byte NUL pada tangkapan BARU: 3 (bidang huruf-kosong mencetak 0x00); pada tangkapan lama: 0.
+  Di berkas bukti ini NUL diganti '-' dan jumlah penggantian dilaporkan di sini, bukan dibuang
+  diam-diam; tangkapan mentah tetap utuh di logs/ (scratch, tidak di-commit).
+
+6. GERBANG LINTAS-BAGIAN: YANG DIWARISI DAN YANG DIUKUR ULANG
+=============================================================
+  Berkas .rs yang DIUBAH komit BAGIAN 3 (induk 7108d84): 0 -> (nol)
+  Berkas .rs yang BERUBAH di pohon kerja saat bukti ini ditulis: 0
+  Berkas .rs pada rentang misi main..HEAD: 4 -> ['asl-kernel/asl-cockpit-shell/src/lib.rs', 'asl-kernel/asl-kernel-core/src/lib.rs', 'asl-kernel/asl-storage/src/ramdisk.rs', 'asl-kernel/asl-storage/src/vfs.rs']
+  Komit BAGIAN 4 ini TIDAK menyentuh .rs, jadi angka sisi-kompilasi DIWARISI DAN diukur ulang
+  pada hosted CI atas 5ad71ae:
+    ci_hosted_40094821516_2026-10-24.log run 40094821516 (push, completed/success): suite=30 passed=262 failed=0 roster-ok=262 warning[1/2]=19 error=0 Compiling[2/2]=13
+    ci_hosted_40094823897_2026-10-24.log run 40094823897 (pull_request, completed/success): suite=30 passed=262 failed=0 roster-ok=262 warning[1/2]=19 error=0 Compiling[2/2]=13
+  himpunan nilai KEDUA run identik: YA (nol regresi pada 5ad71ae)
+  Metode ekstrak TIDAK diubah saat memeriksa ulang: log mentah diunduh ulang via
+  'gh run view --log' (logs/r3_b4_raw_<run>.log; 40094821516=218232 B, 40094823897=221724 B) lalu generator yang sama
+  logs/p7_extract2.py dijalankan atasnya. Hasilnya: ekstrak ulang BYTE-IDENTIK dengan
+  ekstrak di repo KECUALI baris waktu ekstraksinya (run 40094821516 beda 1 baris | run 40094823897 beda 1 baris). Baris 'warning' yang tersalin
+  ke dalam ekstrak = 0, 0, sedangkan hitungan dari LOG MENTAH = 19, 19; ekstrak ini merangkum
+  jumlah itu dan tidak menyalin tiap barisnya, jadi angka warning diverifikasi dari log
+  mentah, bukan dari cacah baris di dalam ekstrak (langkah [2/2]: warning=0, error=0 kedua run).
+  ELF dilaporkan CI (ls -l di runner): 312968 B (keduanya sama: YA); ELF diukur di host: 312912 B,
+    SHA256 fb4eeb31e26b1cf9a289e4c697e6cea8230cd83a1ad45424cd2312ee5eee5d59
+  Selisih ELF host vs CI = -56 B; keduanya TERUKUR dari build yang berbeda (runner Linux vs host
+  Windows) dan SENGAJA tidak dicocokkan paksa - tidak ada klaim 'ELF yang sama'.
+  ISO di disk saat bukti ini ditulis: 4624384 B, SHA256 1569c17157b98c8aa29c9e9d18ccb6aeb931c883d1e1a25983864df4206c668c
+
+7. UTANG G8 ATAS 5ad71ae (DITUTUP KOMIT INI)
+============================================
+  Alat scripts/r1_debt_audit.py dijalankan, tertangkap logs/r3_b4_debt_audit.txt (exit 0):
+    total commit cabang: 50; ekstrak ter-commit (pohon HEAD saat audit): 127
+    commit tanpa run sendiri: 10 -> 007d3dd, 54abf73, 4e865c0, 223e7f6, 6bbd77d, 939cc95, d6c5b12, 093a7d6, b9acd5b, ca582fa
+    baris BELUM saat audit: 2 -> 5ad71ae run 40094821516 push, 5ad71ae run 40094823897 pull_request
+    utang terbuka terukur: ('5ad71ae', 40094821516, 'push'), ('5ad71ae', 40094823897, 'pull_request')
+  Dua ekstrak yang dibawa komit ini MENUTUP pasangan atas 5ad71ae. Aturan G8 melarang satu komit memuat
+  ekstrak untuk dirinya sendiri, jadi pasangan atas komit INI menjadi utang komit berikutnya -
+  konstruksi rantai yang terukur, bukan kegagalan.
+  Sidik jari headSha di ekstrak: 5ad71ae855ebf3a5753291f08c61d6f9eff0cddd, 5ad71ae855ebf3a5753291f08c61d6f9eff0cddd == komit induk 5ad71ae855ebf3a5753291f08c61d6f9eff0cddd: YA
+
+8. STATUS SEKARANG DAN LANGKAH BERIKUTNYA
+=========================================
+  DITUNDA : K-6 fisik (perbaikan ESP) - DITUNDA BEROTORISASI, tidak dibatalkan. Eksekusinya perlu
+            tiga hal yang terukur belum ada: jaring daya (nol baterai DAN nol UPS pada desktop
+            chassis=3), media lepasan (nol DriveType=2), dan kehadiran pemilik untuk aksi yang
+            tidak bisa dibatalkan di tengah jalan. WinRE 'Disabled' berarti tidak ada pemulihan otomatis
+            bila ESP rusak saat perbaikan.
+  LANJUT  : BAGIAN 5 - kuasai ISO master dari tree bersih (scripts/stage_iso_root.ps1 lalu
+            scripts/build_kernel.ps1 -Action iso), catat SHA256, boot QEMU headless (serial +
+            screendump) sebagai VERIFIED-ON-VM; gerbang penuh diukur ulang HANYA bila .rs berubah.
+            BAGIAN 6 = jendela P8 VM TAK-disaksikan berprefiks Analysis/reports/p8_unattended_*.
+            BAGIAN 7 = merge + tag ber-annotasi v1.0.2 + rilis. BAGIAN 8 = LAPORAN-FINAL terakhir.
+  TAHAN   : nol tulis ESP/disk fisik; nol amend/rebase/reset/force-push; artefak terproteksi tidak
+            disentuh; nol rilis dari tree merah (-m 3M MASIH MERAH, deviasi tercatat); nol hapus
+            tag di luar BAGIAN 7; 'UNIT TUNTAS = PUSH'.
+  KELAS   : VERIFIED-ON-HOST untuk seluruh isi unit ini; VERIFIED-ON-CI-API untuk angka CI induk;
+            VERIFIED-ON-VM tetap milik BAGIAN 3 dan TIDAK diklaim ulang di sini;
+            VERIFIED-ON-HARDWARE TETAP 0.
+
+Akhir berkas bukti. Semua angka di atas dihitung alat pada 2026-10-24T13:08:32Z.

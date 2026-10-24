@@ -1,0 +1,226 @@
+======================================================================
+0. IDENTITAS UNIT
+======================================================================
+  Unit: MASTER PROMPT R3 BAGIAN 6 - P8: JENDELA PENERIMAAN VM TAK-DISAKSIKAN.
+  Komit induk (pohon yang diukur): 7703711094b6d2be41376260b9bfc8a1cc6c9fcf
+  Kutipan perintah pemilik: 'Ganti jendela disaksikan dengan jendela VM memakai alat fail-closed
+  buatan P8-PERSIAPAN: prachecklist divalidasi otomatis; boot media final di QEMU headless; tangkap
+  log serial + screendump; kriteria lulus = kriteria checklist alat itu sendiri ... Bukti di-commit
+  dengan prefiks BARU (Analysis/reports/p8_unattended_*) - prefiks g9_final_p8_* tetap tak disentuh.
+  Verdict tercatat. ... Catat di fault log: deviasi "jendela tak-disaksikan" dengan rujukan otorisasi
+  2026-10-24.'
+  Waktu penulisan berkas bukti: 2026-10-24T15:50:40Z (jam mesin UTC).
+  Kelas bukti: VERIFIED-ON-HOST (pra-checklist, higiene berkas, audit git) + VERIFIED-ON-VM (boot
+  headless: serial dua arah + screendump QMP) + VERIFIED-ON-CI-API (dua ekstrak atas komit induk).
+  VERIFIED-ON-HARDWARE TETAP 0 - tidak ada manusia menyaksikan jendela pada unit ini (keputusan P4).
+
+======================================================================
+1. ALAT JENDELA BARU DAN ALAT LAMA YANG TIDAK DISENTUH
+======================================================================
+  (a) Alat baru yang di-commit: scripts/p8_unattended_run.py
+      37572 B, 854 baris, CRLF=0, non-ASCII=0, SHA256 34abecec764a5afe8a7fae7151b4f0caeb3aa624a5389b5f620be60e9de7a0d3
+      Keluaran selalu ber-prefix BARU p8_unattended_ dan bercap-waktu; alat menolak menimpa artefak
+      yang sudah ada (diperiksa pada jalur 'tolak menimpa'), jadi run A/B/C/D tinggal berdampingan.
+      QEMU headless (-display none) dan masukan sesi dikirim lewat chardev socket dua arah pada COM1;
+      karena itu kelas buktinya VERIFIED-ON-VM, bukan VERIFIED-ON-HARDWARE.
+  (b) Alat kriteria yang TERPROTEKSI hanya dibaca, tidak diubah dan tidak dijalankan menulis:
+      scripts/g9_final_p8_run.ps1 = 18321 B SHA256 1cf64d41f42047d65be4a2aedde2f6fe603e845824b3153ce65df0971056b3cf
+      git status --porcelain untuk berkas ini: '(kosong)'  (nol = byte-identik dengan komit)
+      komit terakhir yang menyentuhnya: 36cf856 (sebelum unit ini; tidak berubah).
+      Mode -SelfTest-nya dipanggil dalam pra-checklist karena mode itu tidak menulis artefak.
+
+======================================================================
+2. KRITERIA BUKAN KARYA ALAT INI - DIBACA DAN DIAUDIT OTOMATIS
+======================================================================
+  Sumber kriteria: satu-satunya = scripts/g9_final_p8_run.ps1 (alat P8-PERSIAPAN).
+  Terukur terbaca: 13 penanda keluaran, 17 baris sesi, gerbang versi wajib 'v1.0.2' >=1 dan nol 'v1.1.0'.
+  Prompt shell dibaca dari konstanta Rust satu-sumber: PREFIX+SUFFIX = 'ASL-KERNEL >_ '.
+  Pra-checklist (python scripts/p8_unattended_run.py --selftest, keluaran di logs\r3_b6_selftest.txt):
+    11 item [OK], 0 item [MERAH], exit 0.
+    Item yang TIDAK ada pada alat lama dan ditambahkan unit ini: tiap penanda wajib berpokok
+    terukur. Hasil audit 13 penanda:
+      help (registry)              pokok=literal sumber   asl-kernel\asl-cockpit-shell\src\lib.rs:1512
+      status                       pokok=literal sumber   asl-kernel\asl-kernel-core\src\lib.rs:2096
+      create-folder                pokok=literal sumber   asl-kernel\asl-cockpit-shell\src\lib.rs:76
+      list + alias dir             pokok=literal sumber   asl-kernel\asl-cockpit-shell\src\lib.rs:2655
+      cd (alias open) + open /     pokok=literal sumber   asl-kernel\asl-cockpit-shell\src\lib.rs:70
+      create-file                  pokok=literal sumber   asl-kernel\asl-cockpit-shell\src\lib.rs:79
+      write-file                   pokok=literal sumber   asl-kernel\asl-cockpit-shell\src\lib.rs:88
+      isi berkas via alias cat     pokok=teks baris sesi 10 -
+      delete-file                  pokok=literal sumber   asl-kernel\asl-cockpit-shell\src\lib.rs:82
+      delete-folder                pokok=literal sumber   asl-kernel\asl-cockpit-shell\src\lib.rs:85
+      help token tak dikenal       pokok=varian MSG_* sumber asl-kernel\asl-cockpit-shell\src\lib.rs:67 (MSG_ERROR+MSG_UNKNOWN)
+      aritas salah -> Sintaks      pokok=literal sumber   asl-kernel\asl-cockpit-shell\src\lib.rs:62
+      clear (sekuens ANSI)         pokok=literal sumber   asl-kernel\asl-kernel-core\src\lib.rs:1380
+    11/13 penanda berpokok literal sumber; yang bukan:
+      - isi berkas via alias cat: 'halo dari sesi p8' = teks yang DIKETIK baris 10, bukan string kernel (dibuktikan oleh gema+isi berkas).
+      - help token tak dikenal: 'Perintah tidak dikenal: ' tidak ada di sumber; yang tercetak = 'Kesalahan: perintah tidak dikenal: ' (asl-kernel\asl-cockpit-shell\src\lib.rs:67 (MSG_ERROR+MSG_UNKNOWN))
+    ARTINYA: satu literal alat lama ('Perintah tidak dikenal: ') USANG terhadap sumber - kernel
+    saat ini mencetak MSG_ERROR + MSG_UNKNOWN ('Kesalahan: perintah tidak dikenal: ', asl-cockpit-shell
+    lib.rs:56 dan :67). Alat lama terproteksi TIDAK diedit; alat baru menghitung kedua angka dan
+    melaporkan selisihnya. Ini dicatat sebagai deviasi kriteria di fault log.
+
+======================================================================
+3. SIKLUS UJI -> PERBAIKI -> UJI ULANG (BAGIAN 5 BUTIR 4: MAKSIMUM 3 ITERASI PER KELAS)
+======================================================================
+  EMPAT invokasi jendela tercatat, semuanya pada ISO yang sama (SHA256 1569c17157b98c8aa29c9e9d18ccb6aeb931c883d1e1a25983864df4206c668c, 4624384 B).
+  run A (2026-10-24_14-59-01):
+    ringkasan=2954 B, serial=5787 B, stderr=195 B (sisa=0 B, baris info=1 - kedua angka stderr
+    DIHITUNG ULANG dengan fungsi alat sekarang, bukan angka yang dilaporkan run itu), kode keluar=bukan 0 - ringkasan berhenti pada 'stderr QEMU tidak kosong (195 byte) pada fase 1.' sebelum blok keputusan; jalur gagal ini belum menulis JSON pada invokasi itu
+    kelas kegagalan: kelas-1 'stderr QEMU tak kosong' + kelas-2 'literal penanda usang' + kelas-3 'pemantau prompt sesudah clear'
+    yang diubah: stderr diluruhkan baris info chardev; varian penanda dari konstanta MSG_*; ANSI diluruhkan saat mencocok prompt
+  run B (2026-10-24_15-10-05):
+    ringkasan=5639 B, serial=5787 B, stderr=195 B (sisa=0 B, baris info=1 - kedua angka stderr
+    DIHITUNG ULANG dengan fungsi alat sekarang, bukan angka yang dilaporkan run itu), kode keluar=2
+    M6/prompt/crash: lihat ringkasan; penanda kurang=['help token tak dikenal', 'clear (sekuens ANSI)']; baris sesi berprompt tepat=None; fase2=SKIP
+    kelas kegagalan: kelas-3 berulang dalam bentuk baru: pemantau berbasis JUMLAH baris prompt membuat ke-17 baris sesi menunggu penuh 60 s
+    yang diubah: pemantau dikembalikan ke SELISIH OFFSET prompt (fungsi posisi_prompt) dan jumlah baris siap dilaporkan sebagai angka
+  run C (DIBATALKAN - lihat paragraf sesudah daftar invokasi) (2026-10-24_15-31-45):
+    ringkasan=5068 B, serial=5787 B, stderr=195 B (sisa=0 B, baris info=1 - kedua angka stderr
+    DIHITUNG ULANG dengan fungsi alat sekarang, bukan angka yang dilaporkan run itu), kode keluar=0
+    M6/prompt/crash: lihat ringkasan; penanda kurang=[]; baris sesi berprompt tepat=17; fase2=LULUS
+    kelas kegagalan: kelas-4 'parameter RAM tidak diteruskan ke QEMU': fase 2 melaporkan -m 3M LULUS padahal kedua baris CMDLINE tidak memuat -m sehingga QEMU memakai RAM bawaannya
+    yang diubah: mulai_qemu menerima ram dan MEMERIKSA cmdline sebelum memakai (-m wajib ada); --boot-ram 256M ditambahkan; label 256M yang diketik keras diganti angka yang diminta
+  run D (FINAL - inilah verdict) (2026-10-24_15-36-39):
+    ringkasan=5807 B, serial=5787 B, stderr=195 B (sisa=0 B, baris info=1 - kedua angka stderr
+    DIHITUNG ULANG dengan fungsi alat sekarang, bukan angka yang dilaporkan run itu), kode keluar=0
+    M6/prompt/crash: lihat ringkasan; penanda kurang=[]; baris sesi berprompt tepat=17; fase2=MERAH
+    kelas kegagalan: window sesudah keempat kelas diperbaiki
+    yang diubah: -
+  PEMBUKTIAN -m DARI BARIS CMDLINE (dihitung dari ringkasan tiap run):
+    run A  baris CMDLINE memuat '-m 256M': 0 | '-m 3M': 0
+    run B  baris CMDLINE memuat '-m 256M': 0 | '-m 3M': 0
+    run C  baris CMDLINE memuat '-m 256M': 0 | '-m 3M': 0
+    run D  baris CMDLINE memuat '-m 256M': 1 | '-m 3M': 1
+  RUN C DIBATALKAN DAN ITU KEGAGALAN ALAT, BUKAN KEBERHASILAN PRODUK: ringkasannya menutup
+  dengan '[PASS] ... fase 2 -m 3M lulus', padahal kedua baris CMDLINE-nya tidak memuat -m
+  sehingga QEMU memakai RAM bawaannya. Angka fase 2 run C (serial 2518 B, M6/prompt terlapor LULUS)
+  TIDAK BOLEH dibaca sebagai bukti lantai 3 MB dan tidak dikutip hijau di mana pun. Artefaknya
+  DITINGGALKAN utuh di direktori bukti supaya kegagalan metode ini dapat diperiksa ulang.
+  Pemakaian iterasi mandat: kelas-1 1 dari 3, kelas-2 1 dari 3, kelas-3 3 dari 3 (habis tepat
+  pada keberhasilan), kelas-4 1 dari 3. Tidak ada kelas habis sambil gagal; tidak ada pekerjaan
+  yang ditahan pada unit ini.
+
+======================================================================
+4. JENDELA FINAL TERUKUR (RUN D 2026-10-24_15-36-39) - ANGKA DARI ARTEFAK
+======================================================================
+  Media : ISO 4624384 B SHA256 1569c17157b98c8aa29c9e9d18ccb6aeb931c883d1e1a25983864df4206c668c; identik dengan ISO master BAGIAN 5 = YA (item pencocokan media pada pra-checklist: 11/11 item [OK], exit 0)
+  QEMU  : QEMU emulator version 10.2.50 (v10.2.0-14086-g840320663e)
+  Boot  : M6 + prompt terdeteksi, crash=False (baris prompt 'ASL-KERNEL />_')
+  Sesi  : 17 baris dikirim lewat serial ANSI; 17/17 mendapat prompt baru sebelum batas 60 s
+  Pengendapan: Pengendapan buffer sebelum penanda dihitung: 0 byte tambahan dalam 1.3 s (diameter: gema/keluaran baris terakhir boleh mendarat sesudah batas).; penanda dihitung pada buffer yang sudah tenang
+  Serial: 5787 B mentah; CR 121 buah; 5666 B setelah CR diluruhkan; 121 baris LF; rantai M0 M1 M2 M3 M4 M5 M6
+  stderr: total 195 B; baris info chardev wait=on 1 buah; SISA 0 B (gerbang: sisa 0)
+  Versi : occurrence 'v1.0.2'=3, occurrence 'v1.1.0'=0 (gerbang: >=1 dan 0)
+  Fase2 : -m 3M = MERAH; serial3M=0 B; stderr3M total=0 B sisa=0 B; baris CMDLINE run D yang memuat '-m 3M': 1
+  Penanda dihitung ULANG dari berkas serial oleh naskah ini dengan fungsi alat yang sama, lalu
+  dibandingkan terhadap yang dilaporkan run:
+    help (registry)              terukur 1 (butuh 1)  [OK]
+    status                       terukur 1 (butuh 1)  [OK]
+    create-folder                terukur 1 (butuh 1)  [OK]
+    list + alias dir             terukur 2 (butuh 2)  [OK]
+    cd (alias open) + open /     terukur 4 (butuh 2)  [OK]
+    create-file                  terukur 1 (butuh 1)  [OK]
+    write-file                   terukur 1 (butuh 1)  [OK]
+    isi berkas via alias cat     terukur 2 (butuh 2)  [OK]
+    delete-file                  terukur 1 (butuh 1)  [OK]
+    delete-folder                terukur 1 (butuh 1)  [OK]
+    help token tak dikenal       terukur 1 (butuh 1)  [OK]  <- dihitung lewat varian sumber (drift kriteria)
+    aritas salah -> Sintaks      terukur 1 (butuh 1)  [OK]
+    clear (sekuens ANSI)         terukur 1 (butuh 1)  [OK]
+  Selisih himpunan penanda kurang (hitung-ulang vs laporan run): NOL - kedua himpunan sama persis []
+  Screendump QMP (tangkapan layar VM, dibaca sebagai binari):
+    [1] png=7538 B dimensi=1024x768 SHA256 57bcaf3d60d0ad3b7bf17c5f07ff50898ac04a9b0128d3270ae545a627c25473 | ppm sumber=2359312 B SHA256 0d7f38d623edd921d5f6003da0aa1a1e9c11a8ed5b9f8506869eb0d35b969f8c
+    [2] png=2621 B dimensi=1024x768 SHA256 c9c0729b6088525c424bb4c4ad17626f8e1b48050f09f576fdb043215635182a | ppm sumber=2359312 B SHA256 2eaeb7bb56d7b93ee706cc396a622f7d7f1fb668ece1355643ecc0a8338e6e8e
+    [3] png=8123 B dimensi=1280x800 SHA256 ba0e0698404c7ecaf8f43a4dc5dd52ac7930903576099cd40657dfb434da3b4e | ppm sumber=3072016 B SHA256 0bda163c7619031b4dbdaf4308b1c8dcb7d54b34f274f9db4c2260e92ce8f81d
+  Verdict: lihat baris terakhir ringkasan run D (5807 B): [PASS BERSYARAT] jendela VM tak-disaksikan: cold boot -m 256M + sesi Bagian 3 +
+  Yang TIDAK berubah: janji misi '-m 3M' tetap MERAH pada ISO ini. Unit ini tidak mengubah
+  status merah menjadi hijau; deviasinya diterima lewat bendera --accept-deviation-3m dengan
+  rujukan tertulis, dan wajib muncul di rilis + LAPORAN-FINAL.
+
+======================================================================
+5. GERBANG SISI-KOMPILASI: DIWARISI EKSPLISIT (NOL BERKAS .RS BERUBAH)
+======================================================================
+  Berkas .rs berubah di pohon kerja saat bukti ini ditulis: 0 (nol)
+  Berkas .rs diubah komit induk 7703711: 0 (nol)
+  Maka mandat BAGIAN 5 butir 3 jatuh pada cabang 'bila nol - diwarisi EKSPLISIT dengan bukti run'.
+  Bukti run atas komit induk (VERIFIED-ON-CI-API, ekstrak ter-commit):
+    run 40103405803 (push): success | suite=30 passed=262 failed=0 per_test_ok=262 warning[1/2]=19 error[1/2]=0 Compiling=13 warning[2/2]=0 error[2/2]=0 | ekstrak 11192 B 94 baris
+      headSha tercetak 7703711094b6d2be41376260b9bfc8a1cc6c9fcf (40 karakter) - == komit induk: YA | ELF dilaporkan CI: 312968 B (host: 312912 B; selisih runner Linux vs Windows TIDAK dicocokkan paksa)
+    run 40103408036 (pull_request): success | suite=30 passed=262 failed=0 per_test_ok=262 warning[1/2]=19 error[1/2]=0 Compiling=13 warning[2/2]=0 error[2/2]=0 | ekstrak 11208 B 94 baris
+      headSha tercetak 7703711094b6d2be41376260b9bfc8a1cc6c9fcf (40 karakter) - == komit induk: YA | ELF dilaporkan CI: 312968 B (host: 312912 B; selisih runner Linux vs Windows TIDAK dicocokkan paksa)
+  Himpunan nilai kedua run identik: YA = NOL REGRESI antara dua event pemicu.
+  Footprint ELF host 312912 B SHA256 fb4eeb31e26b1cf9a289e4c697e6cea8230cd83a1ad45424cd2312ee5eee5d59 = sama dengan yang diwarisi BAGIAN 5 (nol .rs berubah, jadi
+  tidak ada angka footprint baru). Riwayat append-only Analysis\reports\elf_footprint_history.txt kini 19 baris; baris TERAKHIR (milik unit
+  sebelumnya, isinya tidak diubah unit ini): #   (jika artefak tidak ada: cargo build --package asl-kernel-bin --target x86_64-unknown-none --release)
+  Audit utang G8 (scripts/r1_debt_audit.py, exit 0, luaran logs\r3_b6_debt_audit.txt):
+    total commit cabang=52; commit tanpa run sendiri=9; ekstrak ter-commit=131
+    baris BELUM pada saat pengukuran: [('7703711', 40103405803, 'push'), ('7703711', 40103408036, 'pull_request')]
+    Artinya: pasangan atas komit induk 7703711 (dua run di atas) TERKOMIT oleh komit unit ini - utang G8
+    komit induk ditutup di sini; pasangan atas komit unit ini menjadi utang komit berikutnya, karena
+    aturan G8 melarang satu komit memuat ekstrak untuk dirinya sendiri (konstruksi rantai, bukan kegagalan).
+
+======================================================================
+6. HYGIENE, LEDGER, DAN BATASAN JUJUR
+======================================================================
+  Artefak jendela yang di-commit berprefiks BARU p8_unattended_* (prefiks g9_final_p8_* tidak disentuh,
+  dan 20 artefaknya tetap tidak terlacak git seperti sebelum unit ini):
+    Analysis\reports\p8_unattended_summary_2026-10-24_15-36-39.log              5807 B
+    Analysis\reports\p8_unattended_serial_2026-10-24_15-36-39.log               5787 B
+    Analysis\reports\p8_unattended_qemu_stderr_2026-10-24_15-36-39.log           195 B
+    Analysis\reports\p8_unattended_hasil_2026-10-24_15-36-39.json               7636 B
+    Analysis\reports\p8_unattended_serial_3m_2026-10-24_15-36-39.log               0 B
+    Analysis\reports\p8_unattended_qemu_stderr_3m_2026-10-24_15-36-39.log          0 B
+    Analysis\reports\p8_unattended_summary_2026-10-24_15-31-45.log              5068 B
+    Analysis\reports\p8_unattended_hasil_2026-10-24_15-31-45.json               7578 B
+    Analysis\reports\p8_unattended_summary_2026-10-24_14-59-01.log              2954 B
+    Analysis\reports\p8_unattended_serial_2026-10-24_14-59-01.log               5787 B
+    Analysis\reports\p8_unattended_qemu_stderr_2026-10-24_14-59-01.log           195 B
+    Analysis\reports\p8_unattended_summary_2026-10-24_15-10-05.log              5639 B
+    Analysis\reports\p8_unattended_hasil_2026-10-24_15-10-05.json               6680 B
+    Analysis\reports\p8_unattended_screendump_2026-10-24_15-36-39_1.png         7538 B (png; ppm sumber 2359312 B SHA256 0d7f38d623edd921d5f6003da0aa1a1e9c11a8ed5b9f8506869eb0d35b969f8c TIDAK di-commit)
+    Analysis\reports\p8_unattended_screendump_2026-10-24_15-36-39_2.png         2621 B (png; ppm sumber 2359312 B SHA256 2eaeb7bb56d7b93ee706cc396a622f7d7f1fb668ece1355643ecc0a8338e6e8e TIDAK di-commit)
+    Analysis\reports\p8_unattended_screendump_2026-10-24_15-36-39_3.png         8123 B (png; ppm sumber 3072016 B SHA256 0bda163c7619031b4dbdaf4308b1c8dcb7d54b34f274f9db4c2260e92ce8f81d TIDAK di-commit)
+  Artefak keempat invokasi TETAP ada di disk dan yang di-commit per invokasi adalah:
+    run D (FINAL, sumber verdict) (2026-10-24_15-36-39): summary_2026-10-24_15-36-39.log, serial_2026-10-24_15-36-39.log, qemu_stderr_2026-10-24_15-36-39.log, hasil_2026-10-24_15-36-39.json, serial_3m_2026-10-24_15-36-39.log, qemu_stderr_3m_2026-10-24_15-36-39.log
+    run C (DIBATALKAN, hijau palsu -m) (2026-10-24_15-31-45): summary_2026-10-24_15-31-45.log, hasil_2026-10-24_15-31-45.json
+    run A (kelas-1/kelas-2/kelas-3 pertama) (2026-10-24_14-59-01): summary_2026-10-24_14-59-01.log, serial_2026-10-24_14-59-01.log, qemu_stderr_2026-10-24_14-59-01.log
+    run B (kelas-3 berulang) (2026-10-24_15-10-05): summary_2026-10-24_15-10-05.log, hasil_2026-10-24_15-10-05.json
+  Tidak ada bukti invokasi yang dibuang; berkas PPM tangkapan layar (2,3 MB per berkas) tidak
+  di-commit dan SHA256-nya dicatat di atas supaya PNG dapat diturunkan ulang.
+  Ledger: ACCOUNTABILITY_FAULT_LOG.json bertambah satu entri (append-only, entri lama prefiks byte)
+  dan HANDOFF_STATE.json bertambah satu kunci unit ini. Nomor entri dan jumlah kunci dicatat oleh
+  naskah ledger, lalu dikutip di pesan komit.
+
+  BATASAN JUJUR unit ini:
+  1. Jendela TIDAK disaksikan manusia - deviasi mandatoris dengan otorisasi tertulis 2026-10-24;
+     kelas VERIFIED-ON-HARDWARE tetap 0 dan akan tertulis begitu di rilis dan LAPORAN-FINAL.
+  2. Masukan sesi lewat jalur serial ANSI, bukan keyboard PS/2 yang ditekan manusia; jalur keyboard
+     tetap teruji pada jendela tersaksikan 2026-10-21_17-51-59 (artefak g9_final_p8_*) dan tidak
+     diklaim ulang di sini.
+  3. Satu literal penanda alat lama usang terhadap sumber (bagian 2): yang dinilai adalah keluaran
+     kernel yang sebenarnya, dan selisihnya dilaporkan, bukan disembunyikan.
+  4. Baris info chardev QEMU (wait=on) menyisakan 195 B pada stderr; gerbang dibaca dari SISA setelah
+     baris info itu, dan sisa lainnya tetap membuat jendela MERAH (fail-closed tidak dilonggarkan).
+  5. Run B menunjukkan pemantau prompt berbasis jumlah baris tidak dapat dipakai pada konsol ini
+     (prompt dan gema berbagi baris); kelas itu diperbaiki dan perbaikannya terukur pada run D
+     (baris sesi berprompt tepat 17 dari 17).
+  6. Exit code run A tidak tertangkap ke berkas konsol (cara penangkapannya baru dipakai pada run
+     invokasi pertama, jadi yang dikutip untuk run A hanyalah angka artefak dan baris [FAIL]
+     yang tertulis di ringkasannya - bukan kode keluar.
+  7. Run C adalah HIJAU PALSU yang tertangkap oleh pemeriksaan cmdline sebelum diklaim: fase 2-nya
+     memakai RAM bawaan QEMU, bukan -m 3M. Run C tidak diberi kelas bukti apa pun; ia dibatalkan
+     dan dipakai sebagai contoh kegagalan metode di bagian 3.
+
+======================================================================
+7. TAHAN TETAK BERLAKU DAN LANGKAH BERIKUTNYA
+======================================================================
+  NOL tulis ke ESP/disk fisik (K-6 fisik tetap ditunda berotorisasi, entri ke-60); NOL amend/rebase/
+  reset/force-push; artefak terproteksi tidak disentuh (scripts/g9_final_p8_run.ps1 byte-identik -
+  SHA256 1cf64d41f42047d65be4a2aedde2f6fe603e845824b3153ce65df0971056b3cf; CHECKLIST_STATE.json; 20 artefak g9_final_p8_* 2026-10-21 tetap untracked; README.md:138
+  milik pemilik; berkas .log di root repo).
+  Langkah berikutnya = BAGIAN 7: merge PR misi satu per satu dengan CI hijau per merge, sinkron main
+  fast-forward saja, arsip-dulu-hapus tag lama sesuai definisi P9, potong tag ANNOTATED v1.0.2 di tip
+  yang lulus BAGIAN 6 ini, buat rilis dengan kepala BATASAN JUJUR, verifikasi via API.
+
+Terakhir ditulis: 2026-10-24T15:50:40Z oleh naskah logs/r3_b6_evidence.py (nol angka ketikan tangan).

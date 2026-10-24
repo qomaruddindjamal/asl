@@ -1,0 +1,52 @@
+ASL P8 UNATTENDED VM ACCEPTANCE RUN (TAK-DISAKSIKAN) - 2026-10-24_15-10-05
+prompt satu-sumber : 'ASL-KERNEL >_ '
+kriteria           : 13 penanda, 17 baris sesi - DIBACA dari scripts\g9_final_p8_run.ps1 (nol salin tangan)
+QEMU               : QEMU emulator version 10.2.50 (v10.2.0-14086-g840320663e)
+ISO                : 4624384 bytes SHA256=1569c17157b98c8aa29c9e9d18ccb6aeb931c883d1e1a25983864df4206c668c
+ELF                : 312912 bytes SHA256=fb4eeb31e26b1cf9a289e4c697e6cea8230cd83a1ad45424cd2312ee5eee5d59
+mode               : headless (-display none); sesi lewat jalur serial ANSI dua arah
+kelas bukti        : VERIFIED-ON-VM (BUKAN VERIFIED-ON-HARDWARE)
+
+=== FASE 1 - cold boot -m 256M headless + sesi Bagian 3 lewat serial ===
+CMDLINE: C:\Program Files\qemu\qemu-system-x86_64.exe -machine q35 -vga std -cdrom C:\asl\asl-kernel\target\asl-core-kernel.iso -display none -no-reboot -no-shutdown -qmp tcp:127.0.0.1:44610,server,nowait -chardev socket,id=c0,host=127.0.0.1,port=44620,server=on,wait=on -serial chardev:c0
+Boot   : M6=True prompt=True crash=False (setelah 1.0s)
+         baris prompt terdeteksi: 'ASL-KERNEL />_'
+screendump sesudah boot: {"idx": 1, "ppm_ada": true, "ppm_bytes": 2359312, "ppm_sha256": "18db522cb0cda9e3d1e214719da0417bed95508dd6f71169accbc4c1c58fb53b", "png": "C:\\asl\\Analysis\\reports\\p8_unattended_screendump_2026-10-24_15-10-05_1.png", "png_bytes": 7544, "png_sha256": "f17d54aa0fd429c41c6c32802f9268fde25dfe30feb5454be2449071706ddc38", "dimensi": "1024x768"}
+[i] baris sesi 1 ('help'): prompt baru tidak muncul dalam 60 s; lanjut ke baris berikutnya, penanda dihitung di akhir
+[i] baris sesi 2 ('status'): prompt baru tidak muncul dalam 60 s; lanjut ke baris berikutnya, penanda dihitung di akhir
+[i] baris sesi 3 ('where'): prompt baru tidak muncul dalam 60 s; lanjut ke baris berikutnya, penanda dihitung di akhir
+[i] baris sesi 4 ('create-folder sesi'): prompt baru tidak muncul dalam 60 s; lanjut ke baris berikutnya, penanda dihitung di akhir
+[i] baris sesi 5 ('list'): prompt baru tidak muncul dalam 60 s; lanjut ke baris berikutnya, penanda dihitung di akhir
+[i] baris sesi 6 ('dir'): prompt baru tidak muncul dalam 60 s; lanjut ke baris berikutnya, penanda dihitung di akhir
+[i] baris sesi 7 ('cd sesi'): prompt baru tidak muncul dalam 60 s; lanjut ke baris berikutnya, penanda dihitung di akhir
+[i] baris sesi 8 ('where'): prompt baru tidak muncul dalam 60 s; lanjut ke baris berikutnya, penanda dihitung di akhir
+[i] baris sesi 9 ('create-file catatan.txt'): prompt baru tidak muncul dalam 60 s; lanjut ke baris berikutnya, penanda dihitung di akhir
+[i] baris sesi 10 ('write-file catatan.txt halo dari sesi p8'): prompt baru tidak muncul dalam 60 s; lanjut ke baris berikutnya, penanda dihitung di akhir
+[i] baris sesi 11 ('cat catatan.txt'): prompt baru tidak muncul dalam 60 s; lanjut ke baris berikutnya, penanda dihitung di akhir
+[i] baris sesi 12 ('delete-file catatan.txt'): prompt baru tidak muncul dalam 60 s; lanjut ke baris berikutnya, penanda dihitung di akhir
+[i] baris sesi 13 ('open /'): prompt baru tidak muncul dalam 60 s; lanjut ke baris berikutnya, penanda dihitung di akhir
+[i] baris sesi 14 ('delete-folder sesi'): prompt baru tidak muncul dalam 60 s; lanjut ke baris berikutnya, penanda dihitung di akhir
+[i] baris sesi 15 ('help tidakada'): prompt baru tidak muncul dalam 60 s; lanjut ke baris berikutnya, penanda dihitung di akhir
+[i] baris sesi 16 ('open'): prompt baru tidak muncul dalam 60 s; lanjut ke baris berikutnya, penanda dihitung di akhir
+[i] baris sesi 17 ('clear'): prompt baru tidak muncul dalam 60 s; lanjut ke baris berikutnya, penanda dihitung di akhir
+
+=== Hasil sesi Bagian 3 (hitung kemunculan penanda di serial) ===
+Penanda = literal dari alat P8; bila 0, varian dicari dari konstanta MSG_* sumber.
+Pokok penanda (audit prachecklist): 11 literal sumber, 1 teks baris sesi, 0 varian konstanta MSG_* sumber.
+  [OK  ] help (registry)              'Perintah kanonik Cockpit Shell' terukur 1 (butuh 1)
+  [OK  ] status                       'Status Cockpit Shell ' terukur 1 (butuh 1)
+  [OK  ] create-folder                'Direktori dibuat: ' terukur 1 (butuh 1)
+  [OK  ] list + alias dir             'Daftar isi /' terukur 2 (butuh 2)
+  [OK  ] cd (alias open) + open /     'Ruang kerja: ' terukur 4 (butuh 2)
+  [OK  ] create-file                  'Berkas dibuat: ' terukur 1 (butuh 1)
+  [OK  ] write-file                   'Tertulis ' terukur 1 (butuh 1)
+  [OK  ] isi berkas via alias cat     'halo dari sesi p8' terukur 2 (butuh 2)
+  [OK  ] delete-file                  'Berkas dihapus: ' terukur 1 (butuh 1)
+  [OK  ] delete-folder                'Direktori dihapus: ' terukur 1 (butuh 1)
+  [KURANG] help token tak dikenal       'Perintah tidak dikenal: ' terukur 0 (butuh 1)
+  [OK  ] aritas salah -> Sintaks      'Sintaks: ' terukur 1 (butuh 1)
+  [KURANG] clear (sekuens ANSI)         '\x1b[2J' terukur 0 (butuh 1)
+Versi  : occurrence 'v1.0.2'=3  occurrence 'v1.1.0'=0  (gerbang: >=1 dan 0)
+Ukuran : serial=5765 byte  stderr total=195 byte; sisa=0 byte setelah 1 baris info chardev wait=on diluruhkan (gerbang: sisa 0)
+screendump sesudah sesi: {"idx": 2, "ppm_ada": true, "ppm_bytes": 2359312, "ppm_sha256": "f248c82c42aa77d778f50d1f69dda60104df7b38af8a2102bbc0748e56dc32f3", "png": "C:\\asl\\Analysis\\reports\\p8_unattended_screendump_2026-10-24_15-10-05_2.png", "png_bytes": 2619, "png_sha256": "e69369ca3932f6b7f13f4ef1bac893df0834ee918320ffb82024492c40ab1551", "dimensi": "1024x768"}
+[FAIL] sesi Bagian 3 belum lengkap (2 penanda kurang): help token tak dikenal; clear (sekuens ANSI)

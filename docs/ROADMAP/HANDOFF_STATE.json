@@ -319,5 +319,157 @@
       "utang_komit_berikutnya": "pasangan atas komit BAGIAN 5 ini sendiri (aturan G8)"
     },
     "langkah_berikutnya": "BAGIAN 6 - jendela penerimaan VM tak-disaksikan, bukti berprefiks BARU Analysis/reports/p8_unattended_*"
+  },
+  "v1_0_2_r3_b6_jendela_vm_tak_disaksikan_state": {
+    "dicatat_pada_utc": "2026-10-24T15:50:51Z",
+    "komit_induk": "7703711094b6d2be41376260b9bfc8a1cc6c9fcf",
+    "kelas_bukti": "VERIFIED-ON-VM + VERIFIED-ON-HOST + VERIFIED-ON-CI-API",
+    "perintah_pemilik_ditutup": [
+      "BAGIAN 6 - GANTI JENDELA DISAKSIKAN DENGAN JENDELA VM MEMAKAI ALAT FAIL-CLOSED BUATAN P8-PERSIAPAN",
+      "BAGIAN 6 - PRACHECKLIST DIVALIDASI OTOMATIS",
+      "BAGIAN 6 - BOOT MEDIA FINAL DI QEMU HEADLESS, TANGKAP LOG SERIAL DAN SCREENDUMP",
+      "BAGIAN 6 - KRITERIA LULUS = KRITERIA CHECKLIST ALAT ITU SENDIRI",
+      "BAGIAN 6 - BUKTI DI-COMMIT DENGAN PREFIKS BARU Analysis/reports/p8_unattended_*",
+      "BAGIAN 6 - VERDICT TERCATAT DAN DEVIASI 'JENDELA TAK-DISAKSIKAN' DICATAT DI FAULT LOG"
+    ],
+    "alat_baru": {
+      "jalur": "scripts/p8_unattended_run.py",
+      "bytes": 37572,
+      "sha256": "34abecec764a5afe8a7fae7151b4f0caeb3aa624a5389b5f620be60e9de7a0d3",
+      "belum_pernah_ter_lacak": true,
+      "kriteria_dibaca_dari": "scripts/g9_final_p8_run.ps1",
+      "selftest": {
+        "item_ok": 11,
+        "item_merah": 0,
+        "exit": 0
+      },
+      "prefiks_bukti": "Analysis/reports/p8_unattended_*"
+    },
+    "alat_terproteksi_tidak_disentuh": {
+      "jalur": "scripts/g9_final_p8_run.ps1",
+      "bytes": 18321,
+      "sha256": "1cf64d41f42047d65be4a2aedde2f6fe603e845824b3153ce65df0971056b3cf",
+      "git_status": "(kosong)",
+      "komit_terakhir": "36cf856"
+    },
+    "media": {
+      "iso_bytes": 4624384,
+      "iso_sha256": "1569c17157b98c8aa29c9e9d18ccb6aeb931c883d1e1a25983864df4206c668c",
+      "rujukan_bagian5_sha256": "1569c17157b98c8aa29c9e9d18ccb6aeb931c883d1e1a25983864df4206c668c",
+      "identik_byte": true,
+      "elf_bytes": 312912,
+      "elf_sha256": "fb4eeb31e26b1cf9a289e4c697e6cea8230cd83a1ad45424cd2312ee5eee5d59"
+    },
+    "jendela_final": {
+      "stamp": "2026-10-24_15-36-39",
+      "qemu": "QEMU emulator version 10.2.50 (v10.2.0-14086-g840320663e)",
+      "prompt": "ASL-KERNEL />_",
+      "rantai_boot": "M0 M1 M2 M3 M4 M5 M6",
+      "penanda_dibaca": 13,
+      "penanda_kurang": [],
+      "sesi_baris": 17,
+      "sesi_berprompt_tepat": 17,
+      "pengendapan_sebelum_hitung": "0 byte tambahan dalam 1.3 s",
+      "serial_mentah_bytes": 5787,
+      "serial_norm_bytes": 5666,
+      "serial_baris": 121,
+      "stderr_total_bytes": 195,
+      "stderr_baris_info": 1,
+      "stderr_sisa_bytes": 0,
+      "versi_baru_occ": 3,
+      "versi_lama_occ": 0,
+      "screendump_jumlah": 3,
+      "screendump_ter_commit": 3,
+      "screendump_dimensi": "1024x768",
+      "verdict": "[PASS BERSYARAT] jendela VM tak-disaksikan: cold boot -m 256M + sesi Bagian 3 +",
+      "kode_keluar": 0,
+      "ram_fase1_diminta": "256M",
+      "ram_fase2_diminta": "3M",
+      "bukti_cmdline_memuat_m": {
+        "baris_cmdline_total": 2,
+        "baris_memuat_m_256M": 1,
+        "baris_memuat_m_3M": 1,
+        "sumber": "baris CMDLINE yang dicetak alat pada 2026-10-24_15-36-39"
+      }
+    },
+    "invokasi_dibatalkan": {
+      "stamp": "2026-10-24_15-31-45",
+      "alasan": "mulai_qemu() tidak menerima parameter RAM sehingga kedua baris CMDLINE invokasi ini tidak memuat '-m'; fase 2 berjalan pada RAM bawaan QEMU, bukan pada 3M yang dijanjikan",
+      "baris_cmdline_total": 2,
+      "baris_memuat_m_256M": 0,
+      "baris_memuat_m_3M": 0,
+      "fase2_dilaporkan": "LULUS",
+      "serial_3m_dilaporkan_bytes": 2518,
+      "verdict_dilaporkan": "[PASS] jendela VM tak-disaksikan penuh: fase 1 + fase 2 -m 3M lulus.",
+      "kode_keluar_dilaporkan": 0,
+      "kunci_ram_hasil": "TIDAK ADA - kunci ram_fase1_diminta/ram_fase2_diminta baru lahir sesudah periksa-diri dipasang, jadi invokasi ini tidak bisa membuktikan RAM-nya",
+      "artefak": "DITINGGALKAN utuh di Analysis/reports (ringkasan 5068 B, hasil 7578 B, serial 5787 B, serial_3m 2518 B); tidak dihapus, tidak diberi kelas bukti, tidak dipakai sebagai verdict",
+      "perbaikan": "mulai_qemu menerima ram dan MEMERIKSA baris perintah sebelum QEMU dipakai; --boot-ram ditambahkan; label 256M yang diketik keras di naskah ringkasan diganti angka yang benar-benar diminta"
+    },
+    "fase2_gerbang_memori": {
+      "janji": "-m 3M",
+      "hasil": "MERAH",
+      "serial_3m_bytes": 0,
+      "stderr_3m_sisa_bytes": 0,
+      "deviasi_diterima": true,
+      "rujukan_tertulis": "jendela tersaksikan 2026-10-21_17-51-59 + otorisasi tertulis pemilik 2026-10-24 (R3 BAGIAN 2 keputusan P4: jendela diganti VM tak-disaksikan; VERIFIED-ON-HARDWARE tetap 0)",
+      "status_diwarisi": "MERAH sejak entri ke-23 (result=OPEN); tidak diperbaiki pada R3 karena keputusan P1/P3 membatasi lingkup"
+    },
+    "deviasi_kriteria": {
+      "jumlah": 1,
+      "penanda": "help token tak dikenal",
+      "literal_alat_lama": "Perintah tidak dikenal: ",
+      "terukur_literal": 0,
+      "varian_sumber": "Kesalahan: perintah tidak dikenal: ",
+      "terukur_varian": 1,
+      "sumber": "asl-kernel\\asl-cockpit-shell\\src\\lib.rs:67 (MSG_ERROR+MSG_UNKNOWN)",
+      "alat_lama_diedit": false
+    },
+    "iterasi_bagian_5_4": {
+      "invokasi": 4,
+      "pertama": "2026-10-24_14-59-01 exit 1 (stderr tidak kosong + literal penanda usang + pemantau prompt belum beroffset)",
+      "kedua": "2026-10-24_15-10-05 exit 2 (pemantau berbasis jumlah baris: 17 baris menunggu penuh 60 s; keluaran 'clear' mendarat sesudah hitungan)",
+      "ketiga": "2026-10-24_15-31-45 exit 0 DIBATALKAN (hijau palsu: 0 baris CMDLINE memuat '-m' dari 2 baris CMDLINE; fase 2 dilaporkan 'LULUS')",
+      "keempat": "2026-10-24_15-36-39 exit 0 (final, --accept-deviation-3m, RAM terbukti pada CMDLINE, fase 2 'MERAH')",
+      "pemakaian": "kelas 'stderr' 1/3, kelas 'kriteria penanda' 1/3, kelas 'pemantau kesiapan sesi' 3/3, kelas 'parameter RAM tidak diteruskan' 1/3; tidak ada pekerjaan ditahan"
+    },
+    "gerbang_kompilasi_diwarisi": {
+      "rs_diubah_komit_induk": 0,
+      "rs_berubah_di_pohon_kerja": 0,
+      "ci": {
+        "run_push": 40103405803,
+        "run_pull_request": 40103408036,
+        "head_sha": "7703711094b6d2be41376260b9bfc8a1cc6c9fcf",
+        "conclusion": "success",
+        "suite": 30,
+        "passed": 262,
+        "failed": 0,
+        "per_test_ok": 262,
+        "warning_dari_log_mentah": 19,
+        "error_dari_log_mentah": 0,
+        "compiling": 13,
+        "warning_region": 0,
+        "error_region": 0,
+        "elf_dilaporkan_ci_bytes": 312968,
+        "himpunan_nilai_kedua_run_identik": true
+      }
+    },
+    "utang_g8": {
+      "total_commit_cabang": 52,
+      "ekstrak_ter_commit_saat_audit": 131,
+      "baris_belum_saat_audit": 2,
+      "ditutup_komit_ini": "pasangan atas 7703711",
+      "utang_komit_berikutnya": "pasangan atas komit BAGIAN 6 ini sendiri (aturan G8)"
+    },
+    "batasan_jujur": [
+      "VERIFIED-ON-HARDWARE tetap 0 - tidak ada manusia menyaksikan jendela ini",
+      "satu literal kriteria alat lama usang terhadap sumber; angkanya dihitung lewat varian MSG_* dan selisihnya dilaporkan",
+      "stderr QEMU berisi baris info chardev wait=on; gerbang menghitung SISA sesudah baris info itu diluruhkan",
+      "janji misi '-m 3M' tetap MERAH dan deviasinya diterima tertulis, bukan diperbaiki",
+      "satu invokasi (2026-10-24_15-31-45) menghasilkan hijau palsu pada fase 2 karena RAM tidak diteruskan; invokasi itu DIBATALKAN, artefaknya ditinggalkan untuk diperiksa ulang, dan verdict unit ini hanya dari invokasi final (2026-10-24_15-36-39)",
+      "ELF dilaporkan hosted CI berbeda dari ELF host karena runner Linux lawan Windows; selisih tidak dicocokkan paksa",
+      "PPM tangkapan layar 2,3 MB per berkas tidak di-commit; SHA256-nya dicatat di berkas bukti"
+    ],
+    "langkah_berikutnya": "BAGIAN 7 - merge PR misi satu per satu dan verifikasi CI hijau per merge, sinkron main fast-forward saja, arsip-then-hapus tag lama sesuai dokumen P9 terbaru, potong tag annotated v1.0.2 pada tip lulus BAGIAN 6, rilis GitHub dengan angka gerbang final dan aset ISO + SHA256SUMS.txt"
   }
 }

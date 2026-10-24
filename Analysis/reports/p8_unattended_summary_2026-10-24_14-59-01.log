@@ -1,0 +1,33 @@
+ASL P8 UNATTENDED VM ACCEPTANCE RUN (TAK-DISAKSIKAN) - 2026-10-24_14-59-01
+prompt satu-sumber : 'ASL-KERNEL >_ '
+kriteria           : 13 penanda, 17 baris sesi - DIBACA dari scripts\g9_final_p8_run.ps1 (nol salin tangan)
+QEMU               : QEMU emulator version 10.2.50 (v10.2.0-14086-g840320663e)
+ISO                : 4624384 bytes SHA256=1569c17157b98c8aa29c9e9d18ccb6aeb931c883d1e1a25983864df4206c668c
+ELF                : 312912 bytes SHA256=fb4eeb31e26b1cf9a289e4c697e6cea8230cd83a1ad45424cd2312ee5eee5d59
+mode               : headless (-display none); sesi lewat jalur serial ANSI dua arah
+kelas bukti        : VERIFIED-ON-VM (BUKAN VERIFIED-ON-HARDWARE)
+
+=== FASE 1 - cold boot -m 256M headless + sesi Bagian 3 lewat serial ===
+CMDLINE: C:\Program Files\qemu\qemu-system-x86_64.exe -machine q35 -vga std -cdrom C:\asl\asl-kernel\target\asl-core-kernel.iso -display none -no-reboot -no-shutdown -qmp tcp:127.0.0.1:44610,server,nowait -chardev socket,id=c0,host=127.0.0.1,port=44620,server=on,wait=on -serial chardev:c0
+Boot   : M6=True prompt=True crash=False (setelah 1.0s)
+         baris prompt terdeteksi: 'ASL-KERNEL />_'
+screendump sesudah boot: {"idx": 1, "ppm_ada": true, "ppm_bytes": 2359312, "ppm_sha256": "b89d7f253ee7cfb578f73300f5e8e67a5210d9e9588f5e2adca6641043e0b3c1", "png": "C:\\asl\\Analysis\\reports\\p8_unattended_screendump_2026-10-24_14-59-01_1.png", "png_bytes": 7546, "png_sha256": "aa8d1f2ea2d3dc3acf1792bfcf865f24ab2a2e36d7d68c66ddaffcf5960df71b", "dimensi": "1024x768"}
+[i] baris sesi 17 ('clear'): prompt baru tidak muncul dalam 60 s; lanjut ke baris berikutnya, penanda dihitung di akhir
+
+=== Hasil sesi Bagian 3 (hitung kemunculan penanda di serial) ===
+  [OK  ] help (registry)              'Perintah kanonik Cockpit Shell' terukur 1 (butuh 1)
+  [OK  ] status                       'Status Cockpit Shell ' terukur 1 (butuh 1)
+  [OK  ] create-folder                'Direktori dibuat: ' terukur 1 (butuh 1)
+  [OK  ] list + alias dir             'Daftar isi /' terukur 2 (butuh 2)
+  [OK  ] cd (alias open) + open /     'Ruang kerja: ' terukur 4 (butuh 2)
+  [OK  ] create-file                  'Berkas dibuat: ' terukur 1 (butuh 1)
+  [OK  ] write-file                   'Tertulis ' terukur 1 (butuh 1)
+  [OK  ] isi berkas via alias cat     'halo dari sesi p8' terukur 2 (butuh 2)
+  [OK  ] delete-file                  'Berkas dihapus: ' terukur 1 (butuh 1)
+  [OK  ] delete-folder                'Direktori dihapus: ' terukur 1 (butuh 1)
+  [KURANG] help token tak dikenal       'Perintah tidak dikenal: ' terukur 0 (butuh 1)
+  [OK  ] aritas salah -> Sintaks      'Sintaks: ' terukur 1 (butuh 1)
+  [OK  ] clear (sekuens ANSI)         '\x1b[2J' terukur 1 (butuh 1)
+Versi  : occurrence 'v1.0.2'=3  occurrence 'v1.1.0'=0  (gerbang: >=1 dan 0)
+Ukuran : serial=5787 byte  stderr QEMU=195 byte (gerbang: 0)
+[FAIL] stderr QEMU tidak kosong (195 byte) pada fase 1.

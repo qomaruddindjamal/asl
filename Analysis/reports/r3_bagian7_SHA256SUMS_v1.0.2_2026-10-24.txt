@@ -1,0 +1,19 @@
+# ASL Core Kernel v1.0.2 - checksum aset rilis (2026-10-24)
+# Diukur pada host build (Windows), diverifikasi ulang oleh sisi hosted setelah unggahan.
+# Tag annotated v1.0.2 objek 79d581f8291650679693e6014e0ce4b73b54faf7 -> commit 700481c22dc98b92be5bbd2059c54ea5bf97feb3
+#   (tip yang lulus BAGIAN 6; merge commit dua-parent, tanpa squash, tanpa rebase, tanpa force-push).
+# Prinsip yang ditegakkan: ISO yang dirilis = ISO yang di-boot pada jendela penerimaan VM BAGIAN 6.
+#   Terukur: ISO jendela 1569c17157b98c8aa29c9e9d18ccb6aeb931c883d1e1a25983864df4206c668c dan master_sha256_bagian5 1569c17157b98c8aa29c9e9d18ccb6aeb931c883d1e1a25983864df4206c668c -- keduanya sama dengan baris hash di bawah.
+#   Ukuran file terukur 4624384 B; reproduksi dua jalan pada BAGIAN 5 menghasilkan byte yang sama (selisih 0 B).
+# ISO ini byte-reproducible per-platform sejak PHASE-7 T1 (tanggal xorriso tetap, GUID GPT diturunkan dari epoch).
+1569c17157b98c8aa29c9e9d18ccb6aeb931c883d1e1a25983864df4206c668c *asl-core-kernel-v1.0.2.iso
+# Ukuran: ISO 4624384 B.
+# ELF di dalam ISO (boot/asl-kernel.elf): 312912 B, SHA256 fb4eeb31e26b1cf9a289e4c697e6cea8230cd83a1ad45424cd2312ee5eee5d59.
+#   Runner hosted melaporkan 312968 B; selisih 56 B (Windows vs Linux) dibiarkan terbuka, tidak dicocokkan paksa.
+# Bukti boot (VERIFIED-ON-VM, BUKAN perangkat keras): Analysis/reports/r3_bagian6-jendela-vm_2026-10-24.txt
+#   dan artefak bercap-waktu 2026-10-24_15-36-39 berprefiks p8_unattended_* (serial 5787 B, stderr 195 B dengan sisa 0 B,
+#   3 tangkapan layar PNG QMP; cap waktu jendela 2026-10-24_15-36-39, stamp_utc alat 2026-10-24_15-36-39.
+#   Kode keluar alat 0, verdict [PASS BERSYARAT].
+# Deviasi yang diterima pemilik secara tertulis: janji lantai memori boot '-m 3M' masih MERAH
+#   ([MERAH] fase 2: -m 3M tidak mencapai prompt pada ISO ini (serial=0 byte).; ACCOUNTABILITY_FAULT_LOG entri ke-23, result OPEN). Rilis ini diterbitkan di bawah
+#   keputusan pemilik 2026-10-24 dan keputusan P1/P3 yang membatasi lingkup rantai ini.

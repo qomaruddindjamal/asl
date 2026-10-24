@@ -1,0 +1,42 @@
+ASL Core Kernel v1.0.2 (2026-10-24)
+
+Rilis rantai R3. Otorisasi: MASTER PROMPT R3, tertulis 2026-10-24 (pemilik bepergian,
+seluruh rantai dijalankan satu kali jalan sampai rilis dan laporan-final).
+
+Basis: commit 700481c22dc98b92be5bbd2059c54ea5bf97feb3
+= tip yang lulus BAGIAN 6, jendela penerimaan VM tak-disaksikan dengan perkakas
+fail-closed scripts/p8_unattended_run.py. Terukur dari artefaknya: kode keluar 0,
+verdict [PASS BERSYARAT], rantai boot M0..M6 lengkap, prompt 'ASL-KERNEL >_ ', 13/13 penanda tercapai,
+log serial 5787 B, stderr QEMU 195 B (sisa 0 B), 3 tangkapan layar QMP.
+Tip main setelah merge PR #7 adalah c6e4c01788789e3126fa3488abb7696f72d0f485. Selisih tree terhadap basis ini terukur
+hanya README.md (nol berkas .rs) dan kedua commit hijau hosted CI.
+
+Artefak rilis: asl-core-kernel-v1.0.2.iso, 4624384 byte, SHA256
+1569c17157b98c8aa29c9e9d18ccb6aeb931c883d1e1a25983864df4206c668c. Identik byte dengan ISO master BAGIAN 5
+(1569c17157b98c8aa29c9e9d18ccb6aeb931c883d1e1a25983864df4206c668c) dan dengan ISO yang di-boot pada jendela BAGIAN 6.
+ELF di dalam ISO terukur di host: 312912 B, SHA256 fb4eeb31e26b1cf9a289e4c697e6cea8230cd83a1ad45424cd2312ee5eee5d59.
+Runner hosted melaporkan 312968 B; selisih 56 B dibiarkan terbuka, tidak dicocokkan paksa.
+
+Angka gerbang final (dibaca dari berkas ekstrak hosted CI, bukan hitungan lokal):
+suite=30, passed=262, failed=0, per-test ok=262, warning langkah [1]=19, error langkah [1]=0,
+warning langkah [2]=0, error langkah [2]=0, baris Compiling=13.
+Empat run hijau ter-extrak: 40109001959, 40109006618 di 700481c dan 40109170099, 40109173018 di 4aa17a3 (event push + pull_request
+pada tiap commit); himpunan nilai keempat run identik = nol regresi.
+
+Kategori bukti rilis ini: VERIFIED-ON-HOST, VERIFIED-ON-CI, VERIFIED-ON-CI-API,
+VERIFIED-ON-VM (QEMU emulator version 10.2.50 (v10.2.0-14086-g840320663e) headless, q35 -vga std). VERIFIED-ON-HARDWARE = 0.
+
+Blocker #50 (perkakas bootloader): TERTUTUP sisi host dan sisi VM melalui pin Limine
+varian A pada BAGIAN 3 (scripts/check_limine.ps1 exit 0); dibuktikan ulang oleh jendela
+VM BAGIAN 5 dan BAGIAN 6.
+
+Deviasi yang diterima pemilik secara tertulis, dinyatakan terang:
+1. Janji lantai memori boot '-m 3M' tetap MERAH. Baris alat: [MERAH] fase 2: -m 3M tidak mencapai prompt pada ISO ini (serial=0 byte).
+   (serial fase 2 terukur 0 B; lulus pada ratchet 3392K). ACCOUNTABILITY_FAULT_LOG
+   entri ke-23, result OPEN; perbaikannya tidak diusahakan pada rantai ini karena
+   keputusan P1/P3 pemilik membatasi lingkup.
+2. Jendela penerimaan TIDAK disaksikan manusia (keputusan P4, entri ke-62): diganti
+   jendela VM tak-disaksikan dengan alat fail-closed; masukan sesi lewat jalur serial
+   ANSI, bukan keyboard PS/2 yang ditekan manusia.
+3. K-6 fisik (penulisan ESP mesin pemilik) DITUNDA berotorisasi; nol byte ditulis ke ESP
+   (entri ke-60). Jendela tersaksikan 2026-10-21 tidak diklaim ulang di sini.

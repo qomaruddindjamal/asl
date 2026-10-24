@@ -471,5 +471,237 @@
       "PPM tangkapan layar 2,3 MB per berkas tidak di-commit; SHA256-nya dicatat di berkas bukti"
     ],
     "langkah_berikutnya": "BAGIAN 7 - merge PR misi satu per satu dan verifikasi CI hijau per merge, sinkron main fast-forward saja, arsip-then-hapus tag lama sesuai dokumen P9 terbaru, potong tag annotated v1.0.2 pada tip lulus BAGIAN 6, rilis GitHub dengan angka gerbang final dan aset ISO + SHA256SUMS.txt"
+  },
+  "v1_0_2_r3_b7_merge_tag_rilis_state": {
+    "dicatat_pada_utc": "2026-10-24T16:37:10Z",
+    "komit_induk": "4aa17a3bb3b967e8931ff79a857e6478ea79df65",
+    "kelas_bukti": "VERIFIED-ON-CI-API + VERIFIED-ON-HOST (warisan VERIFIED-ON-VM dan VERIFIED-ON-CI dari BAGIAN 5 dan 6)",
+    "perintah_pemilik_ditutup": [
+      "BAGIAN 7 - merge PR misi satu per satu dengan CI hijau per merge",
+      "BAGIAN 7 - sinkron main lokal fast-forward SAJA",
+      "BAGIAN 7 - arsip-dulu-hapus rilis lama v1.0.2 dan v1.1.0 dengan pola T4R",
+      "BAGIAN 7 - potong tag ANNOTATED v1.0.2 di TIP YANG LULUS BAGIAN 6 lalu push",
+      "BAGIAN 7 - buat rilis GitHub dengan angka gerbang final dan BATASAN JUJUR di kepala",
+      "BAGIAN 7 - verifikasi rilis via API (state, digest aset)"
+    ],
+    "merge": {
+      "pr": 7,
+      "state": "MERGED",
+      "merged_at": "2026-10-24T15:57:11Z",
+      "merge_commit": "c6e4c01788789e3126fa3488abb7696f72d0f485",
+      "pr_terbuka_sesudah": [],
+      "main_lokal_identik_origin": true,
+      "tip_basis": "700481c22dc98b92be5bbd2059c54ea5bf97feb3",
+      "tip_basis_leluhur_origin_main": true,
+      "delta_tip_main": [
+        "README.md"
+      ],
+      "delta_rs": 0,
+      "metode": "merge commit baru, nol rebase, nol --admin bypass (branch protection menuntut periksa wajib + head up-to-date)"
+    },
+    "arsip_lalu_hapus": {
+      "rilis_lama_v1_0_2": "TERUKUR SUDAH TIDAK ADA sebelum unit ini (nol tag lokal, nol ref origin, nol rilis) - diarsipkan dan dihapus pada rantai R1 BAGIAN 0.2; tidak ada penghapusan ganda",
+      "tag_v1_1_0": {
+        "objek": "90954ce008eb1e4774e792357ddcf528bc7f41a3",
+        "tipe": "tag",
+        "bytes": 1595,
+        "peel_komit": "7104814e2ea1b3c45ff4b69c0fe70ed6d8c0423e",
+        "ruang_lingkup": "TAG ANNOTATED LOKAL SAJA (tidak pernah ada di origin sehingga nol push --delete)",
+        "manifes": "Analysis/reports/T4R-ARSIP-TAG-V1.1.0-2026-10-24.md",
+        "manifes_bytes": 8590,
+        "manifes_sha256": "8a77c018630a4e7ddf86d8622b13494c6f9e5a4503b1c118956cf12d08796395",
+        "perintah_hapus": "git tag -d v1.1.0 (exit 0, 'Deleted tag v1.1.0 (was 90954ce)')",
+        "biner_iso_terverifikasi_ulang": false,
+        "alasan": "ISO v1.1.0 tidak pernah di-commit; 0 dari berkas .iso di logs/ cocok dengan SHA256-nya"
+      },
+      "tag_tidak_disentuh": [
+        "v1.0.0",
+        "v1.0.1",
+        "v1.0.1-alfa"
+      ]
+    },
+    "tag_v1_0_2": {
+      "objek": "79d581f8291650679693e6014e0ce4b73b54faf7",
+      "tipe": "tag",
+      "bytes": 3058,
+      "peel_komit": "700481c22dc98b92be5bbd2059c54ea5bf97feb3",
+      "basis_lulus_bagian_6": "700481c22dc98b92be5bbd2059c54ea5bf97feb3",
+      "pesan_bytes": 2921,
+      "pesan_sha256": "7d890006097ca3dbd9e70f92982699ce84f4aeba12322efae3da77e956cdf982",
+      "pesan_salinan_ter_commit": "Analysis/reports/r3_bagian7_pesan_tag_v1.0.2_2026-10-24.txt",
+      "potongan_dibatalkan": {
+        "objek": "tag",
+        "bytes_lama": 2722,
+        "peel": "700481c22dc98b92be5bbd2059c54ea5bf97feb3",
+        "alasan": "empat angka gerbang diketik tangan dari ingatan, bukan dibaca dari berkas ekstrak",
+        "dipublikasi_sebelum_dibatalkan": false,
+        "bukti": "`git ls-remote refs/tags/v1.0.2` kosong saat potongan ini dibatalkan"
+      },
+      "origin_tags": [
+        "v1.0.0",
+        "v1.0.0^{}",
+        "v1.0.1",
+        "v1.0.2",
+        "v1.0.2^{}"
+      ]
+    },
+    "rilis": {
+      "url": "https://github.com/qomaruddindjamal/asl/releases/tag/v1.0.2",
+      "id": 422838293,
+      "node": "RE_kwDOVGvOuM4ZNAAV",
+      "tag": "v1.0.2",
+      "draft": false,
+      "prerelease": false,
+      "immutable": false,
+      "created_at": "2026-10-24T16:11:23Z",
+      "published_at": "2026-10-24T16:14:39Z",
+      "target_commitish": "main",
+      "sumber_sebenarnya": "ref tag refs/tags/v1.0.2 -> objek 79d581f8291650679693e6014e0ce4b73b54faf7 peel 700481c22dc98b92be5bbd2059c54ea5bf97feb3 (tag_peel_cocok_dengan_basis=True)",
+      "notes_bytes": 7086,
+      "notes_sha256": "d40dca6f878cced8a22b3b93d769dac124d0775306840f2a2a4c5b4746674ffc",
+      "body_api_identik_byte": true,
+      "aset": {
+        "asl-core-kernel-v1.0.2.iso": {
+          "id": 672712293,
+          "bytes_api": 4624384,
+          "state": "uploaded",
+          "digest_server": "1569c17157b98c8aa29c9e9d18ccb6aeb931c883d1e1a25983864df4206c668c",
+          "sha256_host": "1569c17157b98c8aa29c9e9d18ccb6aeb931c883d1e1a25983864df4206c668c",
+          "cocok": true,
+          "size_cocok_host": true,
+          "url": "https://github.com/qomaruddindjamal/asl/releases/download/v1.0.2/asl-core-kernel-v1.0.2.iso"
+        },
+        "SHA256SUMS.txt": {
+          "id": 672712295,
+          "bytes_api": 2034,
+          "state": "uploaded",
+          "digest_server": "5c35c77f88a060fce723a55e8a857b6464ca241dc988a7e5542188eb655a3355",
+          "sha256_host": "5c35c77f88a060fce723a55e8a857b6464ca241dc988a7e5542188eb655a3355",
+          "cocok": true,
+          "size_cocok_host": true,
+          "url": "https://github.com/qomaruddindjamal/asl/releases/download/v1.0.2/SHA256SUMS.txt"
+        }
+      },
+      "verifikasi_json_ter_commit": "Analysis/reports/r3_bagian7_rilis_api_verifikasi_2026-10-24.json",
+      "nol_klaim_hardwear": "kepala rilis memuat 'VERIFIED-ON-HARDWARE: 0' persis seperti terukur"
+    },
+    "media": {
+      "iso_bytes": 4624384,
+      "iso_sha256": "1569c17157b98c8aa29c9e9d18ccb6aeb931c883d1e1a25983864df4206c668c",
+      "identik_dengan_jendela_dan_bagian5": true,
+      "elf_host_bytes": 312912,
+      "elf_host_sha256": "fb4eeb31e26b1cf9a289e4c697e6cea8230cd83a1ad45424cd2312ee5eee5d59",
+      "elf_dilaporkan_ci_bytes": 312968,
+      "selisih_elf_bytes_dibiarkan_terbuka": 56
+    },
+    "gerbang_kompilasi_diwarisi": {
+      "rs_diubah_komit_induk": 0,
+      "rs_berubah_di_pohon_kerja": 0,
+      "empat_run": [
+        {
+          "run": 40109001959,
+          "event": "push",
+          "head_sha": "700481c",
+          "conclusion": "success",
+          "suite": 30,
+          "passed": 262,
+          "failed": 0,
+          "per_test_ok": 262,
+          "warning1": 19,
+          "error1": 0,
+          "warning2": 0,
+          "error2": 0,
+          "compiling": 13,
+          "elf_ci": 312968,
+          "ekstrak": "ci_hosted_40109001959_2026-10-24.log",
+          "ekstrak_bytes": 11192,
+          "ekstrak_sha256": "9e1a48518d19571c3a56bd4188d406ece328f42445f39163d49a1d7f0a42c7b9"
+        },
+        {
+          "run": 40109006618,
+          "event": "pull_request",
+          "head_sha": "700481c",
+          "conclusion": "success",
+          "suite": 30,
+          "passed": 262,
+          "failed": 0,
+          "per_test_ok": 262,
+          "warning1": 19,
+          "error1": 0,
+          "warning2": 0,
+          "error2": 0,
+          "compiling": 13,
+          "elf_ci": 312968,
+          "ekstrak": "ci_hosted_40109006618_2026-10-24.log",
+          "ekstrak_bytes": 11208,
+          "ekstrak_sha256": "c7ef1ea88f47bb0026374c997e6d4c2bd9abad5c996749aef02ada0d6e5d50de"
+        },
+        {
+          "run": 40109170099,
+          "event": "push",
+          "head_sha": "4aa17a3",
+          "conclusion": "success",
+          "suite": 30,
+          "passed": 262,
+          "failed": 0,
+          "per_test_ok": 262,
+          "warning1": 19,
+          "error1": 0,
+          "warning2": 0,
+          "error2": 0,
+          "compiling": 13,
+          "elf_ci": 312968,
+          "ekstrak": "ci_hosted_40109170099_2026-10-24.log",
+          "ekstrak_bytes": 11192,
+          "ekstrak_sha256": "a3b9cf27513f323065549a9081337aa12014141b16a9fc2d0a747830e060a266"
+        },
+        {
+          "run": 40109173018,
+          "event": "pull_request",
+          "head_sha": "4aa17a3",
+          "conclusion": "success",
+          "suite": 30,
+          "passed": 262,
+          "failed": 0,
+          "per_test_ok": 262,
+          "warning1": 19,
+          "error1": 0,
+          "warning2": 0,
+          "error2": 0,
+          "compiling": 13,
+          "elf_ci": 312968,
+          "ekstrak": "ci_hosted_40109173018_2026-10-24.log",
+          "ekstrak_bytes": 11208,
+          "ekstrak_sha256": "c00deef6cd5c50e75035209de3605622eab936d24fb2103dc983d29e013b456e"
+        }
+      ],
+      "himpunan_nilai_identik": true
+    },
+    "utang_g8": {
+      "audit_exit_0": true,
+      "total_commit_cabang_terukur": 0,
+      "ekstrak_ter_commit_saat_audit": 133,
+      "utang_terbuka_saat_audit": "[]",
+      "perubahan_realitas": "sejak PR #7 ter-merge, `git rev-list main..HEAD` kosong sehingga alat tidak menghasilkan baris BELUM lagi; realitas ini DIIKUTI, bukan dilawan",
+      "ditutup_komit_ini": "pasangan atas 700481c dan 4aa17a3 (empat ekstrak)",
+      "utang_komit_berikutnya": "pasangan atas komit BAGIAN 7 ini, di luar tip main c6e4c01 yang run-nya sudah hijau"
+    },
+    "deviasi_dinyatakan_di_rilis": [
+      "janji misi '-m 3M' MERAH: [MERAH] fase 2: -m 3M tidak mencapai prompt pada ISO ini (serial=0 byte).",
+      "jendela penerimaan TIDAK disaksikan manusia (keputusan P4, entri ke-62); VERIFIED-ON-HARDWARE 0",
+      "K-6 fisik DITUNDA berotorisasi, nol byte ditulis ke ESP (entri ke-60)",
+      "satu potongan tag v1.0.2 DIBATALKAN karena memuat angka ketikan tangan (entri ini)",
+      "tiga salah ketik huruf di pesan commit 700481c (MELEPORKAN, ANGkat, AKAIBAT) dan satu frasa tidak lazim di 4aa17a3 (MUTU-TAKI-BARU) DIWARISI, tidak di-amend karena larangan butir b",
+      "biner ISO v1.1.0 tidak dapat diverifikasi ulang (manifes arsip)",
+      "iterasi BAGIAN 5.4: 11 perbaikan di 6 naskah scratch; sebagai satu kelas gabungan batas 3 iterasi LEWAT, per naskah tertinggi 3 dari 3 - dirinci di notes entri ledger ini"
+    ],
+    "batasan_jujur": [
+      "VERIFIED-ON-HARDWARE tetap 0 - tidak satu pun bukti di perangkat keras pemilik",
+      "ISO tidak di-commit; yang di-commit adalah fingerprint-nya di pesan tag, catatan rilis, dan SHA256SUMS.txt",
+      "target_commitish rilis berisi string 'main' bukan SHA; sumber sebenarnya ref tag, keduanya menunjuk pohon kode yang sama",
+      "iterasi kelas kegagalan untuk unit ini dihitung dari riwayat invokasi naskah scratch, bukan dari berkas",
+      "PPM tangkapan layar jendela tetap tidak di-commit (2,3 MB per berkas); SHA256-nya tercatat di berkas bukti BAGIAN 6"
+    ],
+    "langkah_berikutnya": "BAGIAN 8 - LAPORAN-FINAL-v1.0.2.md paling akhir (tabel kelas bukti, dua pemulihan mati lampu, URL rilis, batas jujur) dan tutup utang ekstrak atas tip main"
   }
 }

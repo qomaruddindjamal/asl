@@ -1,0 +1,206 @@
+BERKAS BUKTI R3 BAGIAN 7 - MERGE, ARSIP-LALU-HAPUS TAG LAMA, TAG v1.0.2, RILIS GITHUB
+Dibangun oleh logs/r3_b7_evidence.py pada 2026-10-24; setiap angka di bawah dibaca ulang dari
+disk, git, atau API pada saat naskah dijalankan, bukan disalin dari unit sebelumnya.
+Induk komit: 4aa17a3bb3 (tip cabang feature/v1.0.2-r1). Tip main: c6e4c01788.
+Otorisasi: MASTER PROMPT R3 BAGIAN 7 + otorisasi tertulis pemilik 2026-10-24 (bepergian,
+tanpa konfirmasi tambahan).
+
+======================================================================
+0. MANDAT YANG DILAKSANAKAN DAN REALITAS YANG TERUKUR
+======================================================================
+  Mandat BAGIAN 7: "Merge PR misi SATU PER SATU dari hasil audit BAGIAN 1; verifikasi CI hijau
+  per merge; konflik = fail-closed... Sinkron main lokal fast-forward SAJA. Rilis lama v1.0.2
+  (dipotong prematur) dan v1.1.0 ... verifikasi keberadaannya terukur; arsip-dulu-hapus dengan
+  pola T4R ... Potong tag ANNOTATED v1.0.2 di TIP YANG LULUS BAGIAN 6; push tag; buat rilis
+  GitHub ... Verifikasi rilis via API (state, digest aset)."
+  Realitas terukur pada saat eksekusi: PR misi yang tersisa untuk di-merge hanya PR #7
+  (feature/v1.0.2-r1 -> main); sesudah merge, `gh pr list --state open` mengembalikan nol PR.
+  Merge PR #7 sudah terjadi pada unit sebelumnya (lihat bagian 1); tag, arsip, dan rilis
+  dipotong pada unit ini.
+
+======================================================================
+1. MERGE PR MISI + SINKRON main (fast-forward SAJA, tanpa rebase/amend/admin-bypass)
+======================================================================
+  PR #7 feature/v1.0.2-r1 -> main: state=MERGED, mergedAt=2026-10-24T15:57:11Z, merge commit=c6e4c01788789e3126fa3488abb7696f72d0f485
+  PR misi terbuka SESUDAH operasi ini (terukur): [] -> NOL
+  Perlindungan branch menuntut dua hal: periksa wajib `asl-ci-minimal` DAN head up-to-date
+  dengan base. Karena itu cabang lebih dulu disatukan dengan origin/main lewat merge commit
+  BARU (4aa17a3bb3, bukan rebase, bukan --admin bypass): README.md pemilik diadopsi apa adanya,
+  lalu merge diverifikasi hijau pada kedua event, baru PR di-merge normal.
+  Sinkron main lokal: `git rev-parse main` = c6e4c01788789e3126fa3488abb7696f72d0f485 dan `origin/main` = c6e4c01788789e3126fa3488abb7696f72d0f485 -> IDENTIK byte;
+  luaran sebenarnya `main` lokal = c6e4c01788789e3126fa3488abb7696f72d0f485 (fast-forward, nol merge tambahan di main).
+  Delta tree 700481c -> c6e4c01 terukur: README.md (berkas .rs: 0). Tip basis rilis adalah leluhur origin/main: YA.
+
+======================================================================
+2. ARSIP-LALU-HAPUS: v1.0.2 (sudah tidak ada) dan v1.1.0 (tag lokal)
+======================================================================
+  Keadaan SEBELUM unit ini (terukur oleh manifes arsip, barisnya dikutip apa adanya):
+    tag lokal : v1.0.0, v1.0.1, v1.0.1-alfa, v1.1.0
+    tag origin: v1.0.0, v1.0.0^{}, v1.0.1
+    tag v1.0.2: TIDAK ADA (kolom lokal | kolom origin pada manifes: TIDAK ADA)
+    rilis     : 2 rilis: v1.0.1 (pre-release); v1.0.0 (pre-release)
+  Keadaan SESUDAH unit ini (terukur oleh naskah bukti ini):
+    tag lokal : v1.0.0, v1.0.1, v1.0.1-alfa, v1.0.2
+    tag origin: v1.0.0, v1.0.0^{}, v1.0.1, v1.0.2, v1.0.2^{}
+    rilis     : v1.0.2 (prerelease=False); v1.0.1 (prerelease=True); v1.0.0 (prerelease=True)
+  Rilis lama v1.0.2 yang dipotong prematur (butir pertama mandat): terukur SUDAH TIDAK ADA
+  sebelum unit ini dijalankan - nol tag lokal, nol ref di origin, nol rilis - karena sudah
+  dihapus dan diarsipkan pada rantai R1 BAGIAN 0.2
+  (`Analysis/reports/T4R-ARSIP-RILIS-V1.0.2-2026-10-21.md`). Jadi tidak ada penghapusan untuk
+  butir ini; menghapusnya lagi justru akan menjadi klaim palsu. v1.0.2 yang ada SEKARANG
+  adalah tag baru yang dipotong unit ini di tip lulus BAGIAN 6 (bagian 3 dan 4).
+  v1.1.0: ada SEBAGAI TAG ANNOTATED LOKAL SAJA (objek 90954ce008eb1e4774e792357ddcf528bc7f41a3,
+  1595 B, tipe `tag`, peel ke komit 7104814e2ea1b3c45ff4b69c0fe70ed6d8c0423e). Arsip dibuat
+  lebih dulu dan di-commit: `Analysis\reports\T4R-ARSIP-TAG-V1.1.0-2026-10-24.md` (8590 B SHA256 8a77c018630a4e7ddf86d8622b13494c6f9e5a4503b1c118956cf12d08796395, 123 baris, CRLF, non-ASCII 0).
+  Manifes memuat sidik jari byte + SALINAN PENUH pesan tag (1458 B) + tabel tiga artefak
+  ter-commit (iso_build/release_v1.1.0_*.log/txt) + bagian batasan jujur: biner ISO v1.1.0
+  SHA256 faca92f4e1e92b2ee5eb8d2e931c0b1a64df9c2035a308529e69d4e5128c8355 TIDAK terverifikasi
+  ulang karena tidak pernah di-commit dan terukur 0 dari 29 berkas .iso di logs/ yang cocok.
+  Penghapusan: `git tag -d v1.1.0` -> exit 0, keluaran `Deleted tag 'v1.1.0' (was 90954ce)`.
+  Tidak ada `git push --delete` karena origin memang tidak punya tag itu (terukur). Tag
+  v1.0.0, v1.0.1, v1.0.1-alfa TIDAK disentuh (di luar daftar BAGIAN 7; larangan butir e).
+  Verifikasi sesudah hapus: `git tag -l` = v1.0.0, v1.0.1, v1.0.1-alfa, v1.0.2. Yang dihapus hanyalah `v1.1.0`; `v1.0.0`,
+  `v1.0.1`, `v1.0.1-alfa` tetap ada (terukur). Penulisan ref baru di origin hanya satu:
+  `refs/tags/v1.0.2` hasil push bagian 3 - tidak ada ref lain yang berubah, dan `v1.1.0`
+  memang tidak pernah ada di origin sehingga tidak ada penghapusan remote untuknya.
+
+======================================================================
+3. TAG ANNOTATED v1.0.2 DI TIP YANG LULUS BAGIAN 6
+======================================================================
+  Basis: 700481c22dc98b92be5bbd2059c54ea5bf97feb3 = komit BAGIAN 6 (berkas bukti jendela + artefak p8_unattended_* + alat).
+  objects: 79d581f8291650679693e6014e0ce4b73b54faf7 (tipe `tag`) -> peel 700481c22dc98b92be5bbd2059c54ea5bf97feb3. Pesan tag 2921 B SHA256 7d890006097ca3dbd9e70f92982699ce84f4aeba12322efae3da77e956cdf982; salinan teks-nya di-commit
+  sebagai `Analysis\reports\r3_bagian7_pesan_tag_v1.0.2_2026-10-24.txt`.
+  FAKTA TERTULIS JUJUR - tag ini dipotong dua kali; potongan pertama DIBATALKAN sebelum
+  satu pihak pun melihatnya di publik:
+    potongan #1 objek 7eb2752536b0: empat angka gerbang diketik tangan (melanggar aturan
+    'angka dari alat'); DIBATALKAN; nol byte diff .rs; BELUM pernah didorong ke origin.
+    potongan #2 objek 79d581f82916 = yang sekarang, dibangun ulang oleh logs/r3_b7_tag2.py
+    dengan seluruh angka dibaca dari berkas ekstrak + JSON jendela (fail-closed: menolak jalan
+    bila tag yang dibatalkan sudah terlihat di origin - terukur belum).
+  Tidak ada komit yang di-amend dan tidak ada force-push: penghapusan/pemotongan tag lokal
+  yang belum pernah dipublikasikan bukan koreksi riwayat publik, dan kedua objek lama
+  dicatat di sini beserta SHA-nya agar dapat diperiksa ulang.
+  Isi pesan tag yang terukur (dipotong dari artefak, bukan diingat): kode keluar 0, verdict [PASS BERSYARAT],
+  ISO 4624384 B SHA256 1569c17157b98c8aa29c9e9d18ccb6aeb931c883d1e1a25983864df4206c668c, ELF host 312912 B SHA256 fb4eeb31e26b1cf9a289e4c697e6cea8230cd83a1ad45424cd2312ee5eee5d59, runner 312968 B (selisih 56 B, TIDAK dicocokkan paksa),
+  suite=30 passed=262 failed=0, blocker #50 TERTUTUP sisi host+VM, '-m 3M' MERAH,
+  VERIFIED-ON-HARDWARE = 0, jendela tak-disaksikan (keputusan P4), K-6 fisik ditunda (entri ke-60).
+
+======================================================================
+4. RILIS GITHUB v1.0.2 + VERIFIKASI API
+======================================================================
+  https://github.com/qomaruddindjamal/asl/releases/tag/v1.0.2 id=422838293 node=RE_kwDOVGvOuM4ZNAAV
+  tag=v1.0.2 draft=False prerelease=False immutable=False created=2026-10-24T16:11:23Z published=2026-10-24T16:14:39Z
+  `target_commitish` API = `main` (bawaan gh ketika tag sudah ada); yang menentukan sumber
+  rilis adalah ref tag: `gh api .../git/ref/tags/v1.0.2` -> objek 79d581f82916 tipe `tag` yang peel ke
+  700481c22dc9 (terukur `tag_peel_cocok_dengan_basis` = True). Selisihnya hanya README.md dan tip itu
+  leluhur origin/main, sehingga kedua pembacaan menunjuk pohon kode yang sama.
+  Catatan rilis: 7086 B SHA256 d40dca6f878cced8a22b3b93d769dac124d0775306840f2a2a4c5b4746674ffc; body yang dikembalikan API 7086 B SHA256 d40dca6f878cced8a22b3b93d769dac124d0775306840f2a2a4c5b4746674ffc -> IDENTIK BYTE
+  (termasuk CRLF): True. Salinan lokal di-commit sebagai `Analysis\reports\r3_bagian7_release_notes_v1.0.2_2026-10-24.md`.
+  Aset (state + digest dihitung ulang oleh sisi hosted, sesuai mandat 'verifikasi via API'):
+    asl-core-kernel-v1.0.2.iso       id=672712293 4624384 B state=uploaded downloads=0
+      digest server 1569c17157b98c8aa29c... == sha256 host 1569c17157b98c8aa29c... -> IDENTIK; ukuran cocok host: YA
+      https://github.com/qomaruddindjamal/asl/releases/download/v1.0.2/asl-core-kernel-v1.0.2.iso
+    SHA256SUMS.txt                   id=672712295 2034 B state=uploaded downloads=0
+      digest server 5c35c77f88a060fce723... == sha256 host 5c35c77f88a060fce723... -> IDENTIK; ukuran cocok host: YA
+      https://github.com/qomaruddindjamal/asl/releases/download/v1.0.2/SHA256SUMS.txt
+  Salinan JSON verifikasi (dibangun naskah ini, di-commit): `Analysis\reports\r3_bagian7_rilis_api_verifikasi_2026-10-24.json` (2473 B); luaran mentah API
+  disimpan di luar riwayat sebagai logs/r3_b7_rilis_api_mentah.json (13312 B) karena `logs/` diabaikan.
+  Berkas SHA256SUMS.txt yang diunggah juga di-commit: `Analysis\reports\r3_bagian7_SHA256SUMS_v1.0.2_2026-10-24.txt` (2034 B SHA256 5c35c77f88a060fce723...).
+  ISO TIDAK di-commit (4,6 MB; `logs/` dan `target/` diabaikan git). Yang di-commit adalah
+  fingerprint-nya di tiga tempat: pesan tag, catatan rilis, dan SHA256SUMS.txt.
+
+======================================================================
+5. GERBANG SISI-KOMPILASI: EMPAT EKSTRAK HOSTED CI ATAS DUA KOMIT
+======================================================================
+  Nol berkas .rs berubah oleh unit ini (terukur: `git diff --name-only 4aa17a3` memuat 12 berkas
+  berubah terhadap komit induk, 0 di antaranya berkas .rs); angka gerbang diwarisi dan dibuktikan
+  oleh ekstrak hosted CI atas dua komit sebelum unit ini:
+    run 40109001959 push          headSha 700481c completed/success suite=30 passed=262 failed=0 per_test_ok=262 warning[1]=19 error[1]=0 warning[2]=0 error[2]=0 Compiling=13 ELF runner=312968 B
+      ekstrak `ci_hosted_40109001959_2026-10-24.log` 11192 B 94 baris SHA256 9e1a48518d19571c3a56bd4188d406ece328f42445f39163d49a1d7f0a42c7b9
+    run 40109006618 pull_request  headSha 700481c completed/success suite=30 passed=262 failed=0 per_test_ok=262 warning[1]=19 error[1]=0 warning[2]=0 error[2]=0 Compiling=13 ELF runner=312968 B
+      ekstrak `ci_hosted_40109006618_2026-10-24.log` 11208 B 94 baris SHA256 c7ef1ea88f47bb0026374c997e6d4c2bd9abad5c996749aef02ada0d6e5d50de
+    run 40109170099 push          headSha 4aa17a3 completed/success suite=30 passed=262 failed=0 per_test_ok=262 warning[1]=19 error[1]=0 warning[2]=0 error[2]=0 Compiling=13 ELF runner=312968 B
+      ekstrak `ci_hosted_40109170099_2026-10-24.log` 11192 B 94 baris SHA256 a3b9cf27513f323065549a9081337aa12014141b16a9fc2d0a747830e060a266
+    run 40109173018 pull_request  headSha 4aa17a3 completed/success suite=30 passed=262 failed=0 per_test_ok=262 warning[1]=19 error[1]=0 warning[2]=0 error[2]=0 Compiling=13 ELF runner=312968 B
+      ekstrak `ci_hosted_40109173018_2026-10-24.log` 11208 B 94 baris SHA256 c00deef6cd5c50e75035209de3605622eab936d24fb2103dc983d29e013b456e
+  Himpunan nilai keempat run IDENTIK = nol regresi (diperiksa oleh logs/r3_b7_ukur.py dan
+  membuat naskah berhenti bila berbeda). ELF host 312912 B vs runner 312968 B: selisih 56 B
+  dibiarkan terbuka. Berkas TERKENDALI yang berubah terhadap komit induk pada saat naskah ini
+  dijalankan: 12 berkas (nol di antaranya .rs, nol ekstrak lama, nol artefak g9_final_p8_*).
+
+======================================================================
+6. UTANG G8: AUDIT ALAT + SATU PERUBAHAN REALITAS PASCA-MERGE
+======================================================================
+  `python scripts/r1_debt_audit.py` exit 0 (luaran disimpan di logs/r3_b7_debt_audit.txt):
+    HEAD saat audit dijalankan: 4aa17a3 (run milik HEAD belum ter-commit, memang begitu aturan G8)
+    total commit cabang: 0
+    commit tanpa run sendiri:  (0)
+    utang terbuka (run ada, ekstrak belum di repo): []
+    ekstrak ter-commit total: 133
+  PERBEDAAN REALITAS vs asumsi alat (BAGIAN 1 protokol: ikuti realitas, catat, lanjut): alat
+  menghitung `git rev-list main..HEAD`; sejak PR #7 ter-merge, range itu TERUKUR KOSONG
+  (0 komit) sehingga tabel run per-komit cabang tidak lagi menghasilkan baris BELUM.
+  Ini BUKAN kegagalan gerbang: utang G8 unit ini (pasangan atas 700481c dan 4aa17a3) justru DIBAWA
+  di sini sebagai empat berkas ekstrak, dan pasangan atas komit unit ini menjadi utang
+  komit BAGIAN 8 (run push atas tip main c6e4c01: 40109305262, masih belum ter-extrak).
+  Ekstrak ter-commit menurut `git ls-tree HEAD` SEBELUM unit ini: 133; milik unit ini yang
+  sudah terlihat di HEAD: 0 (harus 0 karena komit unit ini belum dibuat).
+
+======================================================================
+7. HIGIENE, LEDGER, DAN BATASAN JUJUR
+======================================================================
+  Berkas yang di-commit unit ini (prefiks BARU r3_bagian7_* + manifes T4R + empat ekstrak;
+  prefiks g9_final_p8_* TETAP tidak disentuh):
+    Analysis\reports\T4R-ARSIP-TAG-V1.1.0-2026-10-24.md                           8590 B
+    Analysis\reports\r3_bagian7_release_notes_v1.0.2_2026-10-24.md                7086 B
+    Analysis\reports\r3_bagian7_SHA256SUMS_v1.0.2_2026-10-24.txt                  2034 B
+    Analysis\reports\r3_bagian7_rilis_api_verifikasi_2026-10-24.json              2473 B
+    Analysis\reports\r3_bagian7_pesan_tag_v1.0.2_2026-10-24.txt                   2921 B
+    Analysis\reports\ci_hosted_40109001959_2026-10-24.log                        11192 B
+    Analysis\reports\ci_hosted_40109006618_2026-10-24.log                        11208 B
+    Analysis\reports\ci_hosted_40109170099_2026-10-24.log                        11192 B
+    Analysis\reports\ci_hosted_40109173018_2026-10-24.log                        11208 B
+  Berkas bukti ini sendiri diukur SETELAH ditulis oleh naskah (luaran stdout naskah); ukuran
+  dan SHA256-nya dikutip di pesan komit dan di entri ledger supaya dapat dicocokkan orang lain.
+  Ledger: ACCOUNTABILITY_FAULT_LOG bertambah satu entri (append-only; entri lama diverifikasi
+  identik sebagai prefiks byte sebelum tulis) dan HANDOFF_STATE bertambah satu kunci unit ini;
+  jumlah entri/kunci diukur oleh naskah ledger dan dikutip di pesan komit.
+  BATASAN JUJUR unit ini:
+  1. Rilis ini TIDAK punya satu pun bukti pada perangkat keras: VERIFIED-ON-HARDWARE = 0.
+  2. Jendela penerimaan tidak disaksikan manusia (keputusan P4 + entri ke-63); masukan sesi
+     lewat jalur serial ANSI. Jalur keyboard PS/2 hanya teruji pada jendela tersaksikan
+     2026-10-21 (artefak g9_final_p8_*), yang tidak diklaim ulang dan tidak disentuh.
+  3. Janji misi '-m 3M' dinyatakan MERAH di rilis, persis seperti terukur.
+  4. Biner ISO v1.1.0 tidak dapat diverifikasi ulang lagi (dijelaskan di manifes arsip).
+  5. `target_commitish` rilis berisi string `main`, bukan SHA; sumber sebenarnya adalah ref tag
+     (dijelaskan di bagian 4 dengan pengukuran API-nya).
+  6. Tag v1.0.2 dipotong DUA kali: potongan pertama dibatalkan karena memuat angka ketikan
+     tangan, sebelum sempat didorong ke origin. Keduanya dicatat di bagian 3 beserta SHA objek.
+  7. Pesan commit yang SUDAH TERBIT memuat salah ketik huruf di 700481c:
+     MELEPORKAN, ANGkat, AKAIBAT. Frasa tidak lazim `MUTU-TAKI-BARU` ada di 4aa17a3.
+     Tidak ada amend/rebase/force-push (larangan butir b); komit koreksi isi pesan hanya
+     menjadi kebisingan riwayat, jadi salah ketik ini DIBIARKAN dan DINYATAKAN di sini
+     serta di entri ledger unit ini.
+  8. Pemakaian iterasi mandat BAGIAN 5.4 unit ini DILAPORKAN TERBUKA sebagai deviasi: dihitung
+     sebagai satu kelas gabungan 'cacat naskah scratch' ada 11 perbaikan di 6 naskah sehingga
+     batas 3 iterasi LEWAT; dihitung per naskah yang tertinggi 3 dari 3 (r3_b7_evidence.py dan
+     r3_b7_fl63_handoff.py), sisanya 1-2. Rinciannya didaftar di entri ledger unit ini. Tidak
+     ada artefak yang dibuang atau ditahan karenanya, dan tidak ada satu pun perbaikan yang
+     mengubah angka gerbang - yang berubah hanya cara angka itu dibaca ke dalam berkas.
+  TAHAN TETAK BERLAKU: nol tulis ke ESP/disk fisik; nol amend/rebase/reset/force-push; artefak
+  terproteksi tidak disentuh (scripts/g9_final_p8_run.ps1, CHECKLIST_STATE.json, 20 artefak
+  g9_final_p8_* 2026-10-21, README.md:138, berkas .log di root repo); tidak ada tag di luar
+  daftar BAGIAN 7 yang dihapus.
+
+  PINDAI RAHASIA (BAGIAN 9): gerbang dijalankan dengan metode yang TIDAK diubah,
+  `python logs/r3_b4_scan_diff.py`, terhadap diff yang sudah di-stage; luarannya dikutip di
+  pesan komit unit ini. Satu-satunya kelas yang cocok adalah surel identitas git pemilik
+  (jam***@gmail.com - DISEMBUNYIKAN DI SINI atas pilihan naskah ini, diambil dari `git log -1 --format=%ae`)
+  yang TERUKUR sudah tercetak di 158 objek commit repo ini (visibilitas API: PUBLIC) dan di 1
+  berkas ter-commit di HEAD. Angka ini diukur naskah ini, bukan diasumsikan: penyembunyian
+  identitas penulis pada manifes arsip justru akan merusak nilai buktinya, sementara
+  identitas itu sendiri sudah publik oleh operasi git biasa.
+
+  LANGKAH BERIKUTNYA = BAGIAN 8: LAPORAN-FINAL-v1.0.2.md paling akhir, menutup utang ekstrak
+  atas tip main c6e4c01 (run 40109305262) dan menuliskan tabel kelas bukti lengkap + seluruh
+  deviasi rantai R3.

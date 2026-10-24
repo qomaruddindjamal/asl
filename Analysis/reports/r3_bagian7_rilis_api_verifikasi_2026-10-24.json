@@ -1,0 +1,64 @@
+{
+  "aset": [
+    {
+      "cocok": true,
+      "digest_server": "1569c17157b98c8aa29c9e9d18ccb6aeb931c883d1e1a25983864df4206c668c",
+      "download_count": 0,
+      "id": 672712293,
+      "nama": "asl-core-kernel-v1.0.2.iso",
+      "sha256_host": "1569c17157b98c8aa29c9e9d18ccb6aeb931c883d1e1a25983864df4206c668c",
+      "size_api": 4624384,
+      "size_cocok_host": true,
+      "state": "uploaded",
+      "url": "https://github.com/qomaruddindjamal/asl/releases/download/v1.0.2/asl-core-kernel-v1.0.2.iso"
+    },
+    {
+      "cocok": true,
+      "digest_server": "5c35c77f88a060fce723a55e8a857b6464ca241dc988a7e5542188eb655a3355",
+      "download_count": 0,
+      "id": 672712295,
+      "nama": "SHA256SUMS.txt",
+      "sha256_host": "5c35c77f88a060fce723a55e8a857b6464ca241dc988a7e5542188eb655a3355",
+      "size_api": 2034,
+      "size_cocok_host": true,
+      "state": "uploaded",
+      "url": "https://github.com/qomaruddindjamal/asl/releases/download/v1.0.2/SHA256SUMS.txt"
+    }
+  ],
+  "release": {
+    "body_api_bytes": 7086,
+    "body_api_sha256": "d40dca6f878cced8a22b3b93d769dac124d0775306840f2a2a4c5b4746674ffc",
+    "body_identik_byte_dengan_notes": true,
+    "created_at": "2026-10-24T16:11:23Z",
+    "draft": false,
+    "id": 422838293,
+    "immutable": false,
+    "jumlah_aset": 2,
+    "nama": "ASL Core Kernel v1.0.2: shell Cockpit + rantai boot Limine ter-pin + bukti VM",
+    "node": "RE_kwDOVGvOuM4ZNAAV",
+    "notes_lokal_bytes": 7086,
+    "notes_lokal_sha256": "d40dca6f878cced8a22b3b93d769dac124d0775306840f2a2a4c5b4746674ffc",
+    "prerelease": false,
+    "published_at": "2026-10-24T16:14:39Z",
+    "tag": "v1.0.2",
+    "target_commitish": "main",
+    "url": "https://github.com/qomaruddindjamal/asl/releases/tag/v1.0.2"
+  },
+  "tag_lokal": {
+    "objek": "79d581f8291650679693e6014e0ce4b73b54faf7",
+    "peel_komit": "700481c22dc98b92be5bbd2059c54ea5bf97feb3",
+    "tipe_objek": "tag"
+  },
+  "tag_objek_sama_di_lokal_dan_server": true,
+  "tag_peel_cocok_dengan_basis": true,
+  "tag_server": {
+    "node_id": "REF_kwDOVGvOuLByZWZzL3RhZ3MvdjEuMC4y",
+    "object": {
+      "sha": "79d581f8291650679693e6014e0ce4b73b54faf7",
+      "type": "tag",
+      "url": "https://api.github.com/repos/qomaruddindjamal/asl/git/tags/79d581f8291650679693e6014e0ce4b73b54faf7"
+    },
+    "ref": "refs/tags/v1.0.2",
+    "url": "https://api.github.com/repos/qomaruddindjamal/asl/git/refs/tags/v1.0.2"
+  }
+}

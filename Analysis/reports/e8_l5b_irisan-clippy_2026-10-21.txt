@@ -1,0 +1,13 @@
+diagnostik clippy ber-baris seluruh workspace : 137
+    16  asl-storage/src/fat32.rs
+    13  asl-kernel-core/src/lib.rs
+    11  asl-memory/src/paging.rs
+    10  asl-cockpit-shell/src/lib.rs
+     8  asl-storage/src/raid.rs
+     7  asl-hal/src/x86_fault.rs
+     6  asl-hal/src/apic.rs
+     6  asl-driver-pci/src/lib.rs
+asl-kernel/asl-kernel-core/src/lib.rs: baris saya 3, IRISAN BARU 0
+asl-kernel/asl-cockpit-shell/src/lib.rs: baris saya 0, IRISAN BARU 0
+asl-kernel/asl-storage/src/ramdisk.rs: baris saya 0, IRISAN BARU 0
+TOTAL deviasi/diagnostik BARU = 0

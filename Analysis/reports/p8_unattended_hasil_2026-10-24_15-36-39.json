@@ -1,0 +1,248 @@
+{
+ "accept_deviation_3m": true,
+ "alasan": "jendela tersaksikan 2026-10-21_17-51-59 + otorisasi tertulis pemilik 2026-10-24 (R3 BAGIAN 2 keputusan P4: jendela diganti VM tak-disaksikan; VERIFIED-ON-HARDWARE tetap 0)",
+ "artefak": [
+  "C:\\asl\\Analysis\\reports\\p8_unattended_serial_2026-10-24_15-36-39.log",
+  "C:\\asl\\Analysis\\reports\\p8_unattended_serial_3m_2026-10-24_15-36-39.log",
+  "C:\\asl\\Analysis\\reports\\p8_unattended_qemu_stderr_2026-10-24_15-36-39.log",
+  "C:\\asl\\Analysis\\reports\\p8_unattended_qemu_stderr_3m_2026-10-24_15-36-39.log",
+  "C:\\asl\\Analysis\\reports\\p8_unattended_summary_2026-10-24_15-36-39.log"
+ ],
+ "audit_penanda_sumber": [
+  {
+   "butuh": 1,
+   "literal_alat_p8": "Perintah kanonik Cockpit Shell",
+   "penanda": "help (registry)",
+   "pokok": "literal sumber",
+   "sumber": "asl-kernel\\asl-cockpit-shell\\src\\lib.rs:1512",
+   "varian_sumber": null
+  },
+  {
+   "butuh": 1,
+   "literal_alat_p8": "Status Cockpit Shell ",
+   "penanda": "status",
+   "pokok": "literal sumber",
+   "sumber": "asl-kernel\\asl-kernel-core\\src\\lib.rs:2096",
+   "varian_sumber": null
+  },
+  {
+   "butuh": 1,
+   "literal_alat_p8": "Direktori dibuat: ",
+   "penanda": "create-folder",
+   "pokok": "literal sumber",
+   "sumber": "asl-kernel\\asl-cockpit-shell\\src\\lib.rs:76",
+   "varian_sumber": null
+  },
+  {
+   "butuh": 2,
+   "literal_alat_p8": "Daftar isi /",
+   "penanda": "list + alias dir",
+   "pokok": "literal sumber",
+   "sumber": "asl-kernel\\asl-cockpit-shell\\src\\lib.rs:2655",
+   "varian_sumber": null
+  },
+  {
+   "butuh": 2,
+   "literal_alat_p8": "Ruang kerja: ",
+   "penanda": "cd (alias open) + open /",
+   "pokok": "literal sumber",
+   "sumber": "asl-kernel\\asl-cockpit-shell\\src\\lib.rs:70",
+   "varian_sumber": null
+  },
+  {
+   "butuh": 1,
+   "literal_alat_p8": "Berkas dibuat: ",
+   "penanda": "create-file",
+   "pokok": "literal sumber",
+   "sumber": "asl-kernel\\asl-cockpit-shell\\src\\lib.rs:79",
+   "varian_sumber": null
+  },
+  {
+   "butuh": 1,
+   "literal_alat_p8": "Tertulis ",
+   "penanda": "write-file",
+   "pokok": "literal sumber",
+   "sumber": "asl-kernel\\asl-cockpit-shell\\src\\lib.rs:88",
+   "varian_sumber": null
+  },
+  {
+   "butuh": 2,
+   "literal_alat_p8": "halo dari sesi p8",
+   "penanda": "isi berkas via alias cat",
+   "pokok": "teks baris sesi 10",
+   "sumber": null,
+   "varian_sumber": null
+  },
+  {
+   "butuh": 1,
+   "literal_alat_p8": "Berkas dihapus: ",
+   "penanda": "delete-file",
+   "pokok": "literal sumber",
+   "sumber": "asl-kernel\\asl-cockpit-shell\\src\\lib.rs:82",
+   "varian_sumber": null
+  },
+  {
+   "butuh": 1,
+   "literal_alat_p8": "Direktori dihapus: ",
+   "penanda": "delete-folder",
+   "pokok": "literal sumber",
+   "sumber": "asl-kernel\\asl-cockpit-shell\\src\\lib.rs:85",
+   "varian_sumber": null
+  },
+  {
+   "butuh": 1,
+   "literal_alat_p8": "Perintah tidak dikenal: ",
+   "penanda": "help token tak dikenal",
+   "pokok": "varian MSG_* sumber",
+   "sumber": null,
+   "varian_sumber": {
+    "literal": "Kesalahan: perintah tidak dikenal: ",
+    "sumber": "asl-kernel\\asl-cockpit-shell\\src\\lib.rs:67 (MSG_ERROR+MSG_UNKNOWN)"
+   }
+  },
+  {
+   "butuh": 1,
+   "literal_alat_p8": "Sintaks: ",
+   "penanda": "aritas salah -> Sintaks",
+   "pokok": "literal sumber",
+   "sumber": "asl-kernel\\asl-cockpit-shell\\src\\lib.rs:62",
+   "varian_sumber": null
+  },
+  {
+   "butuh": 1,
+   "literal_alat_p8": "\u001b[2J",
+   "penanda": "clear (sekuens ANSI)",
+   "pokok": "literal sumber",
+   "sumber": "asl-kernel\\asl-kernel-core\\src\\lib.rs:1380",
+   "varian_sumber": null
+  }
+ ],
+ "baris_sesi_penuh_prompt": 17,
+ "catatan": "jendela tak-disaksikan; VERIFIED-ON-HARDWARE tetap 0 (R3 BAGIAN 6, otorisasi 2026-10-24)",
+ "drift_kriteria_penanda": [
+  {
+   "literal_alat_p8": "Perintah tidak dikenal: ",
+   "penanda": "help token tak dikenal",
+   "sumber": "asl-kernel\\asl-cockpit-shell\\src\\lib.rs:67 (MSG_ERROR+MSG_UNKNOWN)",
+   "terukur_literal": 0,
+   "terukur_varian": 1,
+   "varian_sumber": "Kesalahan: perintah tidak dikenal: "
+  }
+ ],
+ "elf_bytes": 312912,
+ "elf_sha256": "fb4eeb31e26b1cf9a289e4c697e6cea8230cd83a1ad45424cd2312ee5eee5d59",
+ "fase2": "MERAH",
+ "iso_bytes": 4624384,
+ "iso_sha256": "1569c17157b98c8aa29c9e9d18ccb6aeb931c883d1e1a25983864df4206c668c",
+ "kelas_bukti": "VERIFIED-ON-VM",
+ "kode_keluar": 0,
+ "master_sha256_bagian5": "1569c17157b98c8aa29c9e9d18ccb6aeb931c883d1e1a25983864df4206c668c",
+ "penanda_dibaca": 13,
+ "penanda_kurang": [],
+ "pengendapan_byte": 0,
+ "pengendapan_detik": 1.2529213428497314,
+ "prachecklist": [
+  [
+   "qemu ada",
+   true,
+   "C:\\Program Files\\qemu\\qemu-system-x86_64.exe"
+  ],
+  [
+   "iso master ada",
+   true,
+   "C:\\asl\\asl-kernel\\target\\asl-core-kernel.iso"
+  ],
+  [
+   "prompt terbaca dari konstanta satu-sumber",
+   true,
+   "'ASL-KERNEL >_ '"
+  ],
+  [
+   "penanda sesi terbaca dari alat P8",
+   true,
+   "13 penanda dari scripts\\g9_final_p8_run.ps1"
+  ],
+  [
+   "baris sesi terbaca dari alat P8",
+   true,
+   "17 baris"
+  ],
+  [
+   "gerbang versi terbaca dari alat P8",
+   true,
+   "wajib 'v1.0.2' >=1 dan nol 'v1.1.0'"
+  ],
+  [
+   "tiap penanda punya pokok terukur (sumber / baris sesi / varian MSG_*)",
+   true,
+   "11/13 literal ada di sumber; 2 bukan literal sumber; tanpa pokok: (nol)"
+  ],
+  [
+   "check_limine exit 0 (perkakas cocok ledger)",
+   true,
+   "exit 0 | SIAP: perkakas cocok dengan ledger; boleh menjalankan scripts/build_kernel.ps1 -Action iso."
+  ],
+  [
+   "selftest alat P8 exit 0",
+   true,
+   "exit 0 (mode -SelfTest tidak menulis artefak)"
+  ],
+  [
+   "selftest alat P8 sependapat dengan yang dibaca",
+   true,
+   "13 penanda, 17 baris sesi"
+  ],
+  [
+   "media yang di-boot = ISO master yang dikuasai BAGIAN 5",
+   true,
+   "master 1569c17157b98c8a 4624384 B | ISO kini 1569c17157b98c8a 4624384 B"
+  ]
+ ],
+ "prompt": "ASL-KERNEL >_ ",
+ "qemu_version": "QEMU emulator version 10.2.50 (v10.2.0-14086-g840320663e)",
+ "ram_fase1_diminta": "256M",
+ "ram_fase2_diminta": "3M",
+ "screendump": [
+  {
+   "dimensi": "1024x768",
+   "idx": 1,
+   "png": "C:\\asl\\Analysis\\reports\\p8_unattended_screendump_2026-10-24_15-36-39_1.png",
+   "png_bytes": 7538,
+   "png_sha256": "57bcaf3d60d0ad3b7bf17c5f07ff50898ac04a9b0128d3270ae545a627c25473",
+   "ppm_ada": true,
+   "ppm_bytes": 2359312,
+   "ppm_sha256": "0d7f38d623edd921d5f6003da0aa1a1e9c11a8ed5b9f8506869eb0d35b969f8c"
+  },
+  {
+   "dimensi": "1024x768",
+   "idx": 2,
+   "png": "C:\\asl\\Analysis\\reports\\p8_unattended_screendump_2026-10-24_15-36-39_2.png",
+   "png_bytes": 2621,
+   "png_sha256": "c9c0729b6088525c424bb4c4ad17626f8e1b48050f09f576fdb043215635182a",
+   "ppm_ada": true,
+   "ppm_bytes": 2359312,
+   "ppm_sha256": "2eaeb7bb56d7b93ee706cc396a622f7d7f1fb668ece1355643ecc0a8338e6e8e"
+  },
+  {
+   "dimensi": "1280x800",
+   "idx": 3,
+   "png": "C:\\asl\\Analysis\\reports\\p8_unattended_screendump_2026-10-24_15-36-39_3.png",
+   "png_bytes": 8123,
+   "png_sha256": "ba0e0698404c7ecaf8f43a4dc5dd52ac7930903576099cd40657dfb434da3b4e",
+   "ppm_ada": true,
+   "ppm_bytes": 3072016,
+   "ppm_sha256": "0bda163c7619031b4dbdaf4308b1c8dcb7d54b34f274f9db4c2260e92ce8f81d"
+  }
+ ],
+ "serial_3m_bytes": 0,
+ "serial_bytes": 5787,
+ "sesi_dibaca": 17,
+ "stamp_utc": "2026-10-24_15-36-39",
+ "stderr_3m_sisa_bytes": 0,
+ "stderr_3m_total_bytes": 0,
+ "stderr_baris_info_chardev": 1,
+ "stderr_sisa_bytes": 0,
+ "stderr_total_bytes": 195,
+ "versi_baru_occ": 3,
+ "versi_lama_occ": 0
+}

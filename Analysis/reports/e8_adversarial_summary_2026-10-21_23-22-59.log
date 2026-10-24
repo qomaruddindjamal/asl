@@ -1,0 +1,92 @@
+ASL E8 ADVERSARIAL INPUT RUN - 2026-10-21_23-22-59
+prompt satu-sumber : 'ASL-KERNEL> '
+penanda crash      : ASL-CORE-PANIC | ASL EXCEPTION | FATAL
+kasus              : 41 utama + 2 sisa; dijalankan 59 kasus (diagnostik=True faultDemo=False satuToken='')
+QEMU   : QEMU emulator version 10.2.50 (v10.2.0-14086-g840320663e)
+ISO    : C:\asl\asl-kernel\target\asl-core-kernel.iso
+ISO    : 4200448 bytes SHA256=18f40d2d4e18c3b46a88c13090ac1f6fcce13b4d264a1d5b78b4d6e0a833fad0
+PORTA  : 127.0.0.1:14721 (chardev socket dua arah, COM1)
+
+=== FASE 1 - cold boot 256M berjendela + koneksi serial ===
+CMDLINE: "C:\Program Files\qemu\qemu-system-x86_64.exe" -machine q35 -vga std -m 256M -cdrom C:\asl\asl-kernel\target\asl-core-kernel.iso -chardev socket,id=ser0,server=on,wait=on,host=127.0.0.1,port=14721 -serial chardev:ser0 -no-reboot -no-shutdown
+PID    : 15216  (tutup dengan: e8_adversarial_run.ps1 -StopQemu)
+SERIAL : terhubung, log byte-per-byte -> C:\asl\Analysis\reports\e8_adversarial_serial_2026-10-21_23-22-59.log
+Boot   : M6=True prompt=True crash=TIDAK
+
+=== FASE 2 - sesi masukan adversarial ===
+CATATAN bangun: pada ISO ini registry kanonik berisi 11 perintah; 'up' (C15) dan 'rename' (C26,C27)
+             BELUM ada, jadi kedua kasus itu menguji jalur 'perintah tak dikenal' - bukan jalur
+             aslinya. Jalur asli keduanya diuji lagi setelah F2/F6, dan jendela E8 diulang.
+  S01  [OK      ] SIAP: buat direktori uji                       kirim    20 byte dalam    454 ms -> prompt kembali :: create-folder e8uji | Direktori dibuat: /e8uji | ASL-KERNEL> 
+  S02  [OK      ] SIAP: masuk direktori uji                      kirim    11 byte dalam    445 ms -> prompt kembali :: open e8uji | Ruang kerja: /e8uji | ASL-KERNEL> 
+  S03  [OK      ] SIAP: buat berkas a.txt                        kirim    18 byte dalam    443 ms -> prompt kembali :: create-file a.txt | Berkas dibuat: /e8uji/a.txt | ASL-KERNEL> 
+  S04  [OK      ] SIAP: isi a.txt                                kirim    29 byte dalam    444 ms -> prompt kembali :: write-file a.txt isi awal e8 | Tertulis 11 byte di /e8uji/a.txt | ASL-KERNEL> 
+  C01  [OK      ] baris kosong                                   kirim     1 byte dalam    413 ms -> prompt kembali ::  | ASL-KERNEL> 
+  C02  [OK      ] hanya spasi                                    kirim     6 byte dalam    410 ms -> prompt kembali ::       | ASL-KERNEL> 
+  C03  [OK      ] baris 512 karakter                             kirim   513 byte dalam    457 ms -> prompt kembali :: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA | Unknown command. Typ...[197 byte]
+  C04  [OK      ] baris 1024 karakter                            kirim  1025 byte dalam    441 ms -> prompt kembali :: BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB | Unknown command. Typ...[197 byte]
+  C05  [OK      ] baris 5000 karakter (>=4096)                   kirim  5001 byte dalam    508 ms -> prompt kembali :: CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC | Unknown command. Typ...[197 byte]
+  C06  [OK      ] argumen '..'                                   kirim     8 byte dalam    411 ms -> prompt kembali :: open .. | Ruang kerja: / | ASL-KERNEL> 
+  C07  [OK      ] argumen '//'                                   kirim     8 byte dalam    410 ms -> prompt kembali :: open // | Ruang kerja: / | ASL-KERNEL> 
+  C08  [OK      ] trailing slash                                 kirim    22 byte dalam    460 ms -> prompt kembali :: create-folder namaku/ | Direktori dibuat: /namaku | ASL-KERNEL> 
+  C09  [OK      ] argumen titik                                  kirim     7 byte dalam    445 ms -> prompt kembali :: open . | Ruang kerja: / | ASL-KERNEL> 
+  C10  [OK      ] argumen berkutip                               kirim    30 byte dalam    457 ms -> prompt kembali :: create-folder "nama bertanda" | Sintaks: create-folder <nama> | ASL-KERNEL> 
+  C11  [OK      ] argumen hubung                                 kirim    14 byte dalam    440 ms -> prompt kembali :: delete-file - | Galat: tidak ditemukan | ASL-KERNEL> 
+  C12  [OK      ] open berkas yang ada                           kirim    11 byte dalam    440 ms -> prompt kembali :: open a.txt | Galat: tidak ditemukan | ASL-KERNEL> 
+  C13  [OK      ] open jalur tidak ada                           kirim    20 byte dalam    443 ms -> prompt kembali :: open tidak-ada-e8-9 | Galat: tidak ditemukan | ASL-KERNEL> 
+  C14  [OK      ] open '/..'                                     kirim     9 byte dalam    443 ms -> prompt kembali :: open /.. | Ruang kerja: / | ASL-KERNEL> 
+  C15  [OK      ] up di akar                                     kirim     3 byte dalam    443 ms -> prompt kembali :: up | Unknown command. Type 'help' for available commands. | ASL-KERNEL> 
+  C16  [OK      ] create-folder nama baru (siap kasus bertumpuk) kirim    18 byte dalam    443 ms -> prompt kembali :: create-folder sub | Direktori dibuat: /sub | ASL-KERNEL> 
+  C16B [OK      ] create-folder nama sudah ada                   kirim    18 byte dalam    474 ms -> prompt kembali :: create-folder sub | Galat: sudah ada | ASL-KERNEL> 
+  C17  [OK      ] create-folder berisi garis miring              kirim    25 byte dalam    444 ms -> prompt kembali :: create-folder luar/dalam | Galat: tidak ditemukan | ASL-KERNEL> 
+  C18  [OK      ] create-folder tanpa nama                       kirim    14 byte dalam    458 ms -> prompt kembali :: create-folder | Sintaks: create-folder <nama> | ASL-KERNEL> 
+  C19  [OK      ] create-file nama sudah ada                     kirim    18 byte dalam    442 ms -> prompt kembali :: create-file a.txt | Berkas dibuat: /a.txt | ASL-KERNEL> 
+  C20  [OK      ] write-file ke folder tidak ada                 kirim    34 byte dalam    443 ms -> prompt kembali :: write-file tidak-ada-e8/x.txt isi | Galat: tidak ditemukan | ASL-KERNEL> 
+  C21  [OK      ] write-file pada folder                         kirim    19 byte dalam    440 ms -> prompt kembali :: write-file sub isi | Galat: objek ini direktori | ASL-KERNEL> 
+  C22  [OK      ] write-file isi kosong (tanpa argumen isi)      kirim    17 byte dalam    444 ms -> prompt kembali :: write-file a.txt | Tertulis 0 byte di /a.txt | ASL-KERNEL> 
+  C23  [OK      ] write-file isi satu spasi                      kirim    19 byte dalam    444 ms -> prompt kembali :: write-file a.txt   | Tertulis 0 byte di /a.txt | ASL-KERNEL> 
+  C24  [OK      ] write-file tepat 8192 byte (di ujung baris)    kirim  8210 byte dalam    538 ms -> prompt kembali :: write-file a.txt DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD | Tertulis 64 byte di ...[171 byte]
+  C25  [OK      ] write-file 8193 byte (di ujung baris)          kirim  8211 byte dalam    548 ms -> prompt kembali :: write-file a.txt EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE | Tertulis 64 byte di ...[171 byte]
+  C26  [OK      ] rename ke nama sudah ada                       kirim    19 byte dalam    442 ms -> prompt kembali :: rename a.txt b.txt | Unknown command. Type 'help' for available commands. | ASL-KERNEL> 
+  C27  [OK      ] rename akar                                    kirim    11 byte dalam    438 ms -> prompt kembali :: rename / / | Unknown command. Type 'help' for available commands. | ASL-KERNEL> 
+  C28  [OK      ] delete-file pada folder                        kirim    16 byte dalam    457 ms -> prompt kembali :: delete-file sub | Galat: objek ini direktori | ASL-KERNEL> 
+  C29  [OK      ] delete-folder pada berkas                      kirim    20 byte dalam    445 ms -> prompt kembali :: delete-folder a.txt | Galat: objek ini bukan direktori | ASL-KERNEL> 
+  C30  [OK      ] delete akar                                    kirim    16 byte dalam    443 ms -> prompt kembali :: delete-folder / | Galat: tidak ditemukan | ASL-KERNEL> 
+  C31  [OK      ] perintah tak dikenal                           kirim    23 byte dalam    445 ms -> prompt kembali :: perintahane8takdikenal | Unknown command. Type 'help' for available commands. | ASL-KERNEL> 
+  C32  [OK      ] argumen berlebih                               kirim    66 byte dalam    444 ms -> prompt kembali :: list satu dua tiga empat lima enam tujuh delapan sembilan sepuluh | Sintaks: list [jalan] | ASL-KERNEL> 
+  C33  [OK      ] nama panjang 127 byte di ujung buffer          kirim   128 byte dalam    444 ms -> prompt kembali :: fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff | Unknown command. Typ...[197 byte]
+  C34  [OK      ] byte kendali mentah (NUL, BEL, BS, DEL, ESC-A) kirim     8 byte dalam   1059 ms -> prompt kembali ::  | ASL-KERNEL> 
+  C35  [OK      ] rentetan cepat tanpa jeda (8 baris)            kirim    74 byte dalam   1013 ms -> prompt kembali :: status | Status Cockpit Shell v1.0.2 |   Sistem berkas   : ramdisk |   Kapasitas       : 262144 byte |   Terpakai        : 75 byte |   Entri hidup    ...[2541 byte]
+  C36  [OK      ] rentetan cepat baris kosong x12                kirim    12 byte dalam    728 ms -> prompt kembali ::  | ASL-KERNEL>  | ASL-KERNEL>  | ASL-KERNEL>  | ASL-KERNEL>  | ASL-KERNEL>  | ASL-KERNEL>  | ASL-KERNEL>  | ASL-KERNEL>  | ASL-KERNEL>  | ASL-KERNEL> ...[180 byte]
+  S91  [OK      ] SISA: kembali ke akar                          kirim     7 byte dalam    441 ms -> prompt kembali :: open / | Ruang kerja: / | ASL-KERNEL> 
+  S92  [OK      ] SISA: hapus direktori uji                      kirim    20 byte dalam    444 ms -> prompt kembali :: delete-folder e8uji | Galat: direktori masih berisi | ASL-KERNEL> 
+  D01  [OK      ] diagnostik meminfo                             kirim     8 byte dalam    445 ms -> prompt kembali :: meminfo | Installed RAM: 256 MB | Free Heap Pages: 4096 | ASL-KERNEL> 
+  D02  [OK      ] diagnostik cpuinfo                             kirim     8 byte dalam    444 ms -> prompt kembali :: cpuinfo | CPU Model: QEMU Virtual CPU version 2.5+ | ASL-KERNEL> 
+  D03  [OK      ] diagnostik lspci                               kirim     6 byte dalam    473 ms -> prompt kembali :: lspci | PCI Bus Devices: |   [0:0.0] Vendor: 0x8086 Device: 0x29C0 Class: Bridge Device |   [0:1.0] Vendor: 0x1234 Device: 0x1111 Class: Display Contr...[473 byte]
+  D04  [OK      ] diagnostik lsblk                               kirim     6 byte dalam    442 ms -> prompt kembali :: lsblk | Block Devices & Storage Subsystem: |   [ata0] No ATA device detected on Primary Channel | ASL-KERNEL> 
+  D05  [OK      ] diagnostik fdisk                               kirim     6 byte dalam    458 ms -> prompt kembali :: fdisk | Partition Table Inspection (fdisk): |   No active ATA drive detected to parse partitions. | ASL-KERNEL> 
+  D06  [OK      ] diagnostik mount                               kirim     6 byte dalam    442 ms -> prompt kembali :: mount | VFS Mount Points & File Systems: |   / (Root) -> VFS Active (Supported: FAT32 rw, Ext4 ro) |   /dev     -> Block and Character Device Mount | ...[162 byte]
+  D07  [OK      ] diagnostik uname                               kirim     6 byte dalam    444 ms -> prompt kembali :: uname | ASL Core Kernel v1.0.2 (x86_64-unknown-none) [DO-178C-inspired deterministic engineering] | ASL-KERNEL> 
+  D08  [OK      ] diagnostik failover                            kirim     9 byte dalam    438 ms -> prompt kembali :: failover | Secondary Failover Engine: Active-Standby Armed. |   State: Standby (Read-Only Locked Partition) |   Takeover latency: < 1 ms (DO-178C DAL-...[177 byte]
+  D09  [OK      ] diagnostik test_pml4                           kirim    10 byte dalam    441 ms -> prompt kembali :: test_pml4 | [TEST-PML4] Starting Gate 1C PML4 Virtual Memory Validation Tests... |   [TEST 1] Current CR3: 0x000000000FF59000 -> PASS (CR3 Loaded & Ac...[591 byte]
+  D10  [OK      ] diagnostik test_apic (mengaktifkan interupsi)  kirim    10 byte dalam    632 ms -> prompt kembali :: test_apic | [TEST-APIC] Starting Gate 2 Local APIC & APIC Timer Tests... |   [TEST 1] APIC Base MSR (0x1B): 0x00000000FEE00900 | Phys Base: 0x00000000...[519 byte]
+  D11  [OK      ] sesudah test_apic: status (shell masih hidup?) kirim     7 byte dalam    443 ms -> prompt kembali :: status | Status Cockpit Shell v1.0.2 |   Sistem berkas   : ramdisk |   Kapasitas       : 262144 byte |   Terpakai        : 75 byte |   Entri hidup    ...[218 byte]
+  D12  [OK      ] rentetan cepat saat timer aktif                kirim    29 byte dalam    628 ms -> prompt kembali :: where | / | ASL-KERNEL> list | Daftar isi / (4 entri): |   d e8uji  0 B |   d namaku  0 B |   d sub  0 B |   - a.txt  64 B | ASL-KERNEL> status | Stat...[2283 byte]
+  D13  [OK      ] diagnostik test_task (jalur unwrap/assert)     kirim    10 byte dalam 272600 ms -> prompt kembali :: test_task | [TEST-TASK] Starting Gate 3D 100,000 APIC Preemptive Tests... | [GATE-3D-REMEDIATION] Executing Gate 3D 100,000 APIC Interrupt Preemption ...[2844 byte]
+  D14  [OK      ] test_task diulang (stateManager berubah?)      kirim    10 byte dalam    473 ms -> prompt kembali :: test_task | [TEST-TASK] Starting Gate 3D 100,000 APIC Preemptive Tests... | [GATE-3D-REMEDIATION] Executing Gate 3D 100,000 APIC Interrupt Preemption ...[2533 byte]
+  D15  [OK      ] test_apic setelah test_task                    kirim    10 byte dalam    882 ms -> prompt kembali :: test_apic | [TEST-APIC] Starting Gate 2 Local APIC & APIC Timer Tests... |   [TEST 1] APIC Base MSR (0x1B): 0x00000000FEE00900 | Phys Base: 0x00000000...[528 byte]
+  D16  [OK      ] perintah biasa sesudah rangkaian diagnostik    kirim     7 byte dalam    442 ms -> prompt kembali :: status | Status Cockpit Shell v1.0.2 |   Sistem berkas   : ramdisk |   Kapasitas       : 262144 byte |   Terpakai        : 75 byte |   Entri hidup    ...[218 byte]
+
+=== Keadaan akhir sesi ===
+byte masuk (serial->alat)  : 19085
+byte keluar (alat->serial) : 23927
+stderr QEMU                : 197 byte
+  isi stderr = pesan 'info: QEMU waiting for connection' dari chardev socket
+  (konsekuensi wait=on agar tidak ada byte boot yang hilang). Bukan galat mesin.
+  Gerbang 'stderr 0 byte' alat G9 tetap berlaku untuk alat itu; di sesi ini
+  jumlah byte ini dilaporkan terang, bukan disembunyikan.
+serial log                 : C:\asl\Analysis\reports\e8_adversarial_serial_2026-10-21_23-22-59.log (19085 byte)
+HASIL: TIDAK ADA kasus yang memicu panic/hang pada sesi ini.
+E8-STATUS: BELUM-TERREPRODUKSI lewat alat. Teks panic dari pemilik tetap diperlukan untuk menutup E8.
+tabel kasus disimpan     : C:\asl\Analysis\reports\e8_adversarial_cases_2026-10-21_23-22-59.tsv (60 baris)
+jendela QEMU ditutup alat (sesi selesai).

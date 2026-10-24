@@ -1,0 +1,5 @@
+# Aturan eol untuk berkas yang dibakar langsung ke ISO.
+# Tanpa aturan ini `core.autocrlf=true` membuat berkas yang sama checkout-nya berbeda
+# byte di Windows (CRLF) dan Linux (LF), sehingga SHA256 ISO tidak dapat direproduksi.
+# Aturan ini hanya menutup berkas yang disebut di bawah; tidak mengubah berkas lain.
+asl-kernel/config/limine.conf text eol=lf

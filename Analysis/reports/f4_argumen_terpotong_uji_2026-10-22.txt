@@ -1,0 +1,201 @@
+BUKTI UNIT F4 - ARGUMEN TERPOTONG DITOLAK ATAU DIUMUMKAN, BUKAN DISAMBUNG DIAM-DIAM - DIUKUR 2026-10-22
+=======================================================================================================
+Semua angka di bawah disalin dari keluaran alat pada hari dan mesin yang sama
+(QEMU 256M, profil uji host, build rilis target bare-metal). Tidak ada angka
+yang ditulis sebagai harapan; yang tidak terukur ditulis tidak terukur.
+Tree yang diukur = isi HEAD `e60f0a7` (unit F3) plus suntingan unit F4 (dua
+berkas `.rs`, tiga berkas dokumen). Hash commit hasil unit ini TIDAK dikutip di
+sini karena satu hash hanya dirujuk pada commit berikutnya.
+
+[1] AKAR PENYEBAB - BERKAS:BARIS (diukur pada HEAD `e60f0a7`, sebelum perbaikan)
+    Dugaan misi F4 adalah "validasi ekstensi atau parsing argumen bertitik".
+    Keduanya TERBUKTI BUKAN akar:
+    - Tidak ada satu pun validasi yang menyebut ekstensi. Sensus `grep` pada
+      `asl-kernel/asl-storage/src/` menemukan nol cabang yang membandingkan
+      akhiran nama; `ramdisk.rs:259` dan `:334` hanya menolak nama kosong,
+      `.`/`..`, dan yang lebih panjang dari `MAX_NAME_LEN`.
+    - Parser tidak memisah token pada titik: pemisah tunggalnya spasi
+      (`push_arg` dipanggil dari `parse_line`), sehingga `a.b.c.txt` satu token
+      utuh. Test host `fs_tests::panic_guard_nama_dan_path_adversarial` sudah
+      mendaftar `x..` dan `.x` sebagai nama yang DITERIMA apa adanya.
+    Akar yang sebenarnya, satu baris pemotongan tanpa jejak:
+    - `asl-kernel/asl-cockpit-shell/src/lib.rs:346` - `MAX_ARG_LEN: usize = 64`.
+    - `asl-kernel/asl-cockpit-shell/src/lib.rs:853-870` (`push_arg`), potongan
+      pada `:858-862`: token lebih dari 64 byte disimpan 64 byte PERTAMA dan
+      sisanya dibuang tanpa mengubah apa pun yang bisa dibaca dispatch.
+    - `asl-kernel/asl-kernel-core/src/lib.rs` - sembilan titik pemakaian
+      `inv.arg(0)` (`:1200`, `:1203`, `:1218`, `:1252`, `:1313`, `:1329`,
+      `:1346`, `:1384`, `:1403`) dan satu `inv.arg(1)` (`:1345`) menyambung
+      potongan itu apa adanya ke `resolve_target`/VFS.
+    Jadi `write-file laporan-...-terakhir-sebelum-terbit.txt isi` (78 byte)
+    membuat berkas ber-nama 64 byte PERTAMA - ekornya `.txt` terpotong di tengah
+    kata. Ekor itu bukan kasus khusus ekstensi: nama 65 byte pun kehilangan
+    satu byte paling kanan, dan yang hilang selalu ujung yang berisi ekstensi
+    bila nama diketik penuh. Dokumen E8 Bagian 3.1 pernah mencatat pemotongan
+    ini sebagai "diaudit dan dinyatakan aman"; yang aman hanya dari sisi panik,
+    bukan dari sisi makna - koreksi itu ditulis di dokumen tersebut pada unit ini.
+    Lokasi pemotongan KEDUA yang ditemukan saat pembacaan: `vfs.rs:71-88`
+    (`DirectoryEntry::new`) memotong nama ke `MAX_NAME_LEN`. Ia tidak terjangkau
+    dari shell karena `ramdisk.rs:259`/`:334` menolak nama >64 byte lebih dulu;
+    setelah F4, parser menolak lebih awal lagi. Tidak diubah (di luar cakupan
+    perbaikan; perilaku terhadap masukan sah identik).
+
+[2] PERBAIKAN
+    - `asl-cockpit-shell`: bendera `Invocation::arg_cut: u8` (bit `1 << i`
+      menandai argumen ke-`i` terpotong) diisi oleh `push_arg`; pembacanya
+      `nama_terpotong()` (bit 0) dan `isi_terpotong()` (bit 1). Empat konstanta
+      teks baru (`MSG_ARG_CUT`, `MSG_ARG_CUT_TAIL`, `MSG_ISI_CUT`,
+      `MSG_ISI_CUT_TAIL`) sehingga roster label satu-sumber menjadi DUA PULUH
+      DELAPAN dan tetap dijaga `test_f3_labels_keluaran_satu_sumber`.
+    - `asl-kernel-core`: guard PALING AWAL di `run_canonical_command` -
+      `if inv.nama_terpotong() { print_galat_argumen_terpotong(...); return; }`
+      sebelum `RAMDISK_FS`/`Vfs` disentuh, jadi tidak ada objek bernama rusak
+      yang tercipta. Untuk `write-file`, potongan isi diumumkan pada baris hasil
+      yang sama setelah angka yang benar-benar tertulis.
+    - Baris yang kini tercetak:
+      `Kesalahan: <64 byte pertama>... - argumen melebihi batas 64 byte, perintah tidak dijalankan`
+      `Tertulis 64 byte di <jalan> (berkas baru) - isi dipotong pada batas 64 byte; sisa tidak tertulis`
+    - Batas slot berkas 8.192 byte TETAP tidak berubah (permisi misi). Tepi
+      8.192/8.193 tetap dijaga test host yang sudah ada,
+      `fs_tests::panic_guard_isi_tepat_satu_slot_dan_satu_lebih` (8.192 sukses,
+      `offset=1` dan `truncate 8193` -> `NoSpaceLeft`, offset `u64::MAX` ->
+      0 byte/`NoSpaceLeft`, ukuran tidak berubah oleh percobaan gagal).
+
+[3] TEST BARU (+6 -> 218 lulus / 0 gagal pada 30 suite)
+    asl-cockpit-shell (`tests::`):
+      test_f4_argumen_terpotong_ditandai_bukan_disembunyikan
+      test_f4_nama_sampai_batas_argumen_tetap_utuh
+      test_f4_dokumen_memuat_batas_argumen
+    asl-kernel-core (`hardening_tests::`):
+      test_f4_pieces_galat_argumen_menyebut_potongan
+      test_f4_batas_argumen_sama_dengan_batas_nama
+      test_f4_peta_memuat_batas_argumen
+    Penjaga yang sengaja dipasang: `MAX_ARG_LEN` (parser) diikat SAMA dengan
+    `MAX_NAME_LEN` (VFS/RAMDISK), dan dua test dokumen membaca angka 64 dari
+    Pasal 7 `docs/PANDUAN/REFERENSI-PERINTAH.md` dan dari baris `MAX_ARG_LEN`
+    `docs/ROADMAP/PETA-KANONIK.md` - kalau konstanta berubah tanpa dokumen,
+    test MERAH (bukan dokumen yang diam-diam basi).
+    Delta baseline: F3 melaporkan 212; unit ini menambah 6 sehingga 218, terukur
+    pada dua profilen (`cargo test --workspace --lib`, exit 0).
+    Profil uji: 19 baris `warning`, 0 baris `error` - identik dengan F3 dan F2;
+    seluruhnya warisan (penamaan variant DO-178/GPON dan satu impor tak terpakai
+    di crate di luar cakupan). Tidak ada warning dari crate yang disentuh.
+
+[4] GERBANG NOL BARU (fmt + clippy)
+    perintah : python scripts/r1_new_only_gate_check.py fmt
+    hasil    : asl-kernel-core   baris saya 98,  ingin diubah rustfmt 107, IRISAN BARU 0
+               asl-cockpit-shell baris saya 186, ingin diubah rustfmt 28,  IRISAN BARU 0
+               asl-storage/ramdisk baris saya 0,  ingin diubah rustfmt 19, IRISAN BARU 0
+               TOTAL deviasi/diagnostik BARU = 0
+    perintah : python scripts/r1_new_only_gate_check.py clippy
+    hasil    : 137 diagnostik ber-baris seluruh workspace (warisan, sama dengan
+               baseline rantai), IRISAN BARU 0 pada ketiga berkas.
+    Empat deviasi fmt BARU sempat muncul pada baris kerja sendiri (satu tanda
+    tangan fungsi, satu `assert_eq!` yang bisa satu baris, satu literal panjang
+    pada `const BARIS`) dan DIPERBAIKI mengikuti keluaran rustfmt, bukan
+    di-allow. `asl-storage/src/ramdisk.rs` tidak disentuh unit ini (baris saya 0).
+    Tidak ada angka gerbang yang diubah menjadi hijau.
+
+[5] BUILD RELEASE DAN REPRODUSIBILITAS
+    perintah : CARGO_TARGET_DIR=<scratch> cargo build --release
+               --target x86_64-unknown-none -p asl-kernel-bin (dari nol)
+    hasil    : 13 baris `Compiling`, 0 `warning`, 0 `error`, exit 0 per build
+    ELF      : 329.600 byte
+               SHA256 FA68A7055D1862A739508F480E5C1BE1FB7D235372A9112217330D2F2647CA99
+    reproduksi: TIGA direktori build pada tree yang sama (target utama,
+               logs/target_f4check, logs/target_f4check2) -> SHA256 IDENTIK.
+    Isi terukur: keempat label F4 ditemukan masing-masing SATU kali di dalam
+    ELF (pemeriksaan byte pada berkas ELF, bukan asumsi bahwa "kode sudah
+    dikompilasi").
+
+[6] SIDIK JARI ISO DAN SELISIH UKURAN
+    ISO      : 4.204.544 byte
+               SHA256 2A11FB80BDDFDF8FADD33DEB69082D4A68AC471FFB8BBCA0431B151E36476E06
+               (mastering scripts/build_kernel.ps1 -Action iso; GUID GPT pin
+               e181e879-31ec-3d41-a200-b4997a320a0d)
+    dua invokasi: byte-IDENTIK (`cmp` keluar 0; SHA256 sama).
+    isi      : byte ELF utuh ditemukan di dalam ISO pada offset 3.520.512
+               (329.600 dari 4.204.544) - jadi ISO yang di-boot adalah ELF yang
+               diuji.
+    vs F3    : ELF 337.792 -> 329.600 (MINUS 8.192) dan ISO 4.212.736 ->
+               4.204.544 (minus 8.192), padahal unit ini MENAMBAH kode. Selisih
+               ukuran ELF per-tree bukan fungsi monoton dari jumlah sumber:
+               angkanya KEMBALI ke ukuran F2 (329.600) karena padding bagian
+               per 4.096 byte, dan SERIAL BOOT mengonfirmasi pergeseran tata
+               letak yang sama - lihat [7]. ELF F3 sudah tertimpa oleh build
+               berikutnya sehingga perbandingan antar-bagian (section) TIDAK
+               dapat dilakukan pada unit ini; yang terukur hanyalah panjang
+               berkas, isi label, dan baris MEMMAP.
+    Konsekuensi yang terukur (bukan duga): janji misi "ELF hanya tumbuh sedikit"
+    tidak bisa diuji dari angka tunggal; yang diuji rantai ini adalah
+    reproduksibilitas per-tree, dan itu LULUS.
+
+[7] LANTAI MEMORI (tidak diubah menjadi hijau)
+    perintah : powershell -File scripts/test_ram_floor_3mb.ps1
+    [A] -m 3M    : reached=False m6=False crash=False serial=0 B stderr=0 B
+    [B] -m 3392K : reached=True  m6=True  crash=False serial=2501 B stderr=0 B
+    keputusan: 2 (DEVIASI TERCATAT), sama dengan F1, F2, F3, dan baseline E8.
+               Janji 3 MB tetap MERAH dan dilaporkan apa adanya.
+    Baris MEMMAP pada serial 3392K (terukur `grep`):
+      [MEMMAP] base: 1048576 len: 12288 typ: 0      (F3 mengukur 16384)
+      [ASL-VTD] kernel image virt=0xFFFFFFFF80100000 phys=0x0000000000108000
+                                            (F3 mengukur 0x104000)
+      panjang serial 2501 B                  (F3 mengukur 2499 B)
+    Ketiganya kembali ke angka F2 pada unit ini. Rantai bukti: F2 2501 ->
+    F3 2499 -> F4 2501, dan arah perubahan panjang serial mengikuti arah
+    perubahan ukuran ELF. Delta panjang serial antar-platform TIDAK diukur pada
+    unit ini (runner terkelola belum diekstrak untuk tree F4; itu utang ekstrak
+    yang normal menurut G8).
+
+[8] SESI QEMU 256M UNTUK KELUARAN F4 (VERIFIED-ON-VM)
+    alat     : logs/f4_qemu_check.py (scratch, tidak di-commit)
+    ISO sesi : 4.204.544 byte SHA256 2A11FB80... - sama dengan [6], jadi sesi
+               berjalan di tree F4.
+    SESI PERTAMA (stamp 2026-10-22_03-49-32, serial 6.158 byte, stderr 197 byte)
+      26 perintah, deret prompt terukur 27 == harapan 27, penanda 24 dari 29,
+      KESIMPULAN alat: TIDAK SESUAI. Lima penanda yang MERAH semuanya baris
+      galat argumen terpotong. Penyebabnya HARAPAN SAYA: saya menuliskan
+      `Kesalahan: <potongan> - argumen melebihi batas ...` padahal label
+      `MSG_ARG_CUT` diawali elipsis (`... - argumen melebihi batas `). Produk
+      TIDAK salah - baris yang tercetak pada sesi pertama ini sudah benar:
+        Kesalahan: laporan-tahunan-2026-versi-final-revisi-draf-acuan-terakhir-sebe... - argumen melebihi batas 64 byte, perintah tidak dijalankan
+        Kesalahan: bbbb....bbbb.tx... - argumen melebihi batas 64 byte, perintah tidak dijalankan
+      Verifikasi byte: berkas serial sesi pertama dan sesi kedua PANJANGNYA SAMA
+      (6.158) dan SHA256-NYA SAMA (b53c8ecbaa412bc0070ec4581861b31921575310f463aa3f00c544f741b8efde),
+      jadi perbedaan "MERAH vs LULUS" murni ada di checker, bukan di keluaran.
+      Kedua artefak SESUAI INI DI-COMMIT (preseden entri ke-45: sesi yang gagal
+      karena alat saya tidak dibuang).
+    SESI KEDUA (stamp 2026-10-22_03-51-18, serial 6.158 byte, stderr 197 byte)
+      26 perintah, deret prompt terukur 27 == harapan 27, penanda 29 dari 29,
+      penanda crash TIDAK ADA, pencacahan `Kesalahan` = 5 (tepat lima penolakan).
+      Yang terukur persis seperti janji Pasal 7:
+        write-file <78 byte berekstensi> isi
+          -> Kesalahan: <64 byte pertama>... - argumen melebihi batas 64 byte, perintah tidak dijalankan
+        list -> Daftar isi /f4 (0 entri):        (BUKTI perintah tidak berjalan)
+        write-file <65 byte> isi -> penolakan yang sama; list tetap (0 entri)
+        create-file <64 byte tanpa ekstensi> -> Berkas dibuat: /f4/cc..cc (0 byte)
+        write-file <60 a>.txt halo -> Tertulis 4 byte di /f4/aaa...txt (berkas baru)
+        open <60 a>.txt -> Isi /f4/aaa...txt (4 byte): halo   (ekstensi utuh)
+        write-file note.txt <isi 100 byte>
+          -> Tertulis 64 byte di /f4/note.txt (berkas baru) - isi dipotong pada batas 64 byte; sisa tidak tertulis
+        write-file note.txt <isi 100 byte> (berkas sudah ada)
+          -> Tertulis 64 byte di /f4/note.txt - isi dipotong pada batas 64 byte; sisa tidak tertulis
+        open note.txt -> Isi /f4/note.txt (64 byte): 64 byte x
+        create-folder/delete-file/open <78 byte> -> ketiganya ditolak dengan
+          baris yang sama; tidak satu pun menyentuh VFS
+        write-file s.txt isi -> Tertulis 3 byte (regresi: nama pendek normal)
+        up -> Ruang kerja: / ; delete-folder f4 -> Direktori dihapus: /f4 (0 entri)
+
+[9] KELAS BUKTI DAN YANG TIDAK DIBUKTIKAN
+    VERIFIED-ON-HOST  : [3] [4] [5] [6] (build, ISO dua mastering, isi ELF)
+    VERIFIED-ON-VM    : [7] [8] (terminal serial QEMU; jendela tidak disaksikan)
+    VERIFIED-ON-CI    : belum untuk tree F4 - pasangan atas `e60f0a7` baru
+                        mendarat pada commit-unit ini dan ekstrak atas tip F4
+                        menjadi utang unit berikutnya (aturan G8).
+    VERIFIED-ON-HARDWARE tetap 0.
+    Tidak diklaim: (a) perbandingan section ELF F3-vs-F4 (ELF F3 tertimpa);
+    (b) bahwa nama >64 byte "bisa ditulis" - yang diperbaiki adalah ia DITOLAK
+    dengan label, sementara nama sah sampai 64 byte (termasuk berekstensi)
+    terbukti bisa ditulis; (c) penghapusan batas satu token 64 byte - batas itu
+    tetap dan sekarang tertulis di Pasal 6/7; (d) perbaikan alat jendela
+    `scripts/g9_final_p8_run.ps1` - tidak disentuh pada R1.

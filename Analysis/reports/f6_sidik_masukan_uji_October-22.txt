@@ -1,0 +1,24 @@
+boot sampai prompt akar
+fase A: dengar 45 detik tanpa kirim
+fase A: byte masuk sendiri = 0 -> b''
+  B iter 0: kirim 'where' echo ' where' asing b' '
+  B iter 1: kirim 'status' echo 'Ruang kerja: /' asing b'Ruang kerja: /'
+  B iter 2: kirim 'list' echo 'ASL-KERNEL />_ status' asing b'ASL-KERNEL />_ status'
+  B iter 3: kirim 'where' echo 'Status Cockpit Shell v1.0.2' asing b'Status Cockpit Shell v1.0.2'
+  B iter 4: kirim 'help' echo '  Sistem berkas   : ramdisk' asing b'  Sistem berkas   : ramdisk'
+  B iter 5: kirim 'where' echo '  Kapasitas       : 262144 byte' asing b'  Kapasitas       : 262144 byte'
+  B iter 6: kirim 'list' echo '  Terpakai        : 0 byte' asing b'  Terpakai        : 0 byte'
+  B iter 7: kirim 'where' echo '  Entri hidup     : 1' asing b'  Entri hidup     : 1'
+fase B: 8 dari 8 baris menyimpang
+  C iter 0: kirim 'where' echo '  Ruang kerja     : /' asing b'  Ruang kerja     : /'
+  C iter 1: kirim 'status' echo '  Perintah kanonik: 13' asing b'  Perintah kanonik: 13'
+  C iter 2: kirim 'list' echo 'ASL-KERNEL />_ list' asing b'ASL-KERNEL />_ '
+  C iter 3: kirim 'where' echo 'Daftar isi / (0 entri):' asing b'Daftar isi / (0 entri):'
+  C iter 4: kirim 'help' echo 'ASL-KERNEL />_ where' asing b'ASL-KERNEL />_ where'
+  C iter 5: kirim 'where' echo 'Ruang kerja: /' asing b'Ruang kerja: /'
+  C iter 6: kirim 'list' echo 'ASL-KERNEL />_ help' asing b'ASL-KERNEL />_ help'
+  C iter 7: kirim 'where' echo 'Perintah kanonik Cockpit Shell (disusun dari registry, satu-sumber):' asing b'Perintah kanonik Cockpit Shell (disusun dari registry, satu-sumber):'
+fase C: 8 dari 8 baris menyimpang
+=== VONIS ===
+A sunyi: 0 byte asing | B kirim: 8 menyimpang | C kirim+dump: 8 menyimpang
+serial: 7549 byte -> Analysis\reports\f6_sidik_masukan_serial_October-22-2026_09-39-43.log

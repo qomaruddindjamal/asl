@@ -1,0 +1,162 @@
+AUDIT UTANG EKSTRAK HOSTED CI - UNIT K-5 SUB-KOMIT 5 (PENUTUP UTANG G8 ATAS 5326234 DAN 0270817) - DIUKUR 2026-10-24T08:57:51Z (UTC)
+====================================================================================
+Cabang: feature/v1.0.2-r1 | HEAD saat audit = 0270817 (induk commit ini) | Alat: scripts/r1_debt_audit.py
+tanpa perubahan, dijalankan dari akar repo | exit alat 0 | mulai 2026-10-24T08:57:51Z selesai 2026-10-24T08:57:54Z
+| jam mesin lokal pada saat ukur 2026-10-24 15:57:51 (UTC+7).
+Label tanggal pada berkas ini = tanggal UTC pengukuran; aturan zona ini adalah
+pelajaran entri #53 dan dinyatakan supaya label tidak dibaca sebagai salah ketik.
+
+APA YANG DITUTUP KOMIT INI. Empat baris BELUM pada tabel di bawah adalah DUA PASANGAN
+run, semuanya completed/success pada workflow asl-ci-minimal:
+  - 5326234 (sub-komit 3, ledger provisioning): push 40079054078, pull_request 40079057623
+  - 0270817 (sub-komit 4, penutup utang dua pasang pertama): push 40079435959,
+    pull_request 40079439472
+Kedua pasangan DITUTUP oleh commit ini: empat berkas ekstrak ikut ter-commit bersama
+berkas audit ini dan berkas bukti K-6. Setelah commit ini, satu-satunya utang yang
+tersisa adalah pasangan atas tip commit ini SENDIRI - pasangan itu memang belum ada
+saat audit (dibuat oleh push sesudah commit), dan aturannya G8: satu commit tidak
+boleh memuat hash/ekstrak dirinya sendiri.
+
+KOREKSI APPEND-ONLY ATAS ARTEFAK SUB-KOMIT 4 (tanpa menulis ulang berkas itu).
+Baris 14-16 berkas Analysis/reports/r1_k5_sub4-audit-utang-ekstrak_2026-10-24.txt:
+      | bersama berkas audit ini. Pasangan KETIGA (atas tip commit ini sendiri) secara
+      | konstruksi TIDAK bisa ditutup di sini - aturan G8 melarang satu commit memuat
+      | ekstrak untuk dirinya - dan menjadi utang yang ditutup sub-komit berikutnya.
+Tiga hal yang terukur tidak sependapat dengan kalimat itu:
+  (1) pasangan KETIGA pada unit itu bukan atas 'tip commit ini sendiri'; tabel alat
+      saat itu mencatat 5326234 40079054078/40079057623, dan 5326234 adalah INDUK dari
+      0270817, bukan 0270817 sendiri (terukur: HEAD saat audit sub-komit 4 = 5326234;
+      parent 0270817 = 5326234);
+  (2) aturan G8 melarang satu commit memuat ekstrak untuk DIRINYA SENDIRI, jadi ia
+      TIDAK melarang 0270817 memuat ekstrak induknya - alasan 'secara konstruksi
+      TIDAK bisa ditutup di sini' salah; utang itu hanya belum ditutup;
+  (3) run atas 5326234 sudah selesai SEBELUM audit sub-komit 4 diukur, jadi berkas
+      log mentahnya tersedia dan penundaan bukan karena CI lambat. Semua nilai UTC
+      terukur: waktu selesai run = 2026-10-24T08:43:08Z dan 2026-10-24T08:42:59Z; waktu audit berkas lama = 2026-10-24T08:43:16Z.
+Koreksi dilakukan dengan menutup kedua pasangan pada commit ini (nol amend, nol
+force-push, nol rewrite; berkas lama dibiarkan apa adanya dan dibaca kembali di sini).
+Kesalahan semacam ini dicatat sebagai entri fault log (kelas PELAPORAN).
+
+ANGKA EMPAT EKSTRAK (dihitung logs/p7_extract2.py dari log mentah `gh run view --log`,
+bukan salinan tangan):
+40079054078: 5326234 suite=30 passed=262 failed=0 per_test_ok=262 warn1=19 compile=13 warn2=0 err2=0 -> Analysis/reports/ci_hosted_40079054078_2026-10-24.log
+40079057623: 5326234 suite=30 passed=262 failed=0 per_test_ok=262 warn1=19 compile=13 warn2=0 err2=0 -> Analysis/reports/ci_hosted_40079057623_2026-10-24.log
+40079435959: 0270817 suite=30 passed=262 failed=0 per_test_ok=262 warn1=19 compile=13 warn2=0 err2=0 -> Analysis/reports/ci_hosted_40079435959_2026-10-24.log
+40079439472: 0270817 suite=30 passed=262 failed=0 per_test_ok=262 warn1=19 compile=13 warn2=0 err2=0 -> Analysis/reports/ci_hosted_40079439472_2026-10-24.log
+
+Delapan kolom itu SAMA PERSIS pada keempatnya (himpunan nilai terukur: 1 varian),
+yaitu suite=30, passed=262, failed=0, per_test_ok=262, warn1=19, compile=13,
+warn2=0, err2=0 - tidak ada regresi pada dua commit yang ditutup ini.
+
+UKURAN EMPAT BERKAS EKSTRAK YANG DIKOMIT (saat artefak ini ditulis; berkas .log
+ber-format LF, bukan CRLF, mengikuti konvensi ekstrak yang sudah ada):
+  ci_hosted_40079054078_2026-10-24.log            11192 B  barisLF=94  headSha=5326234  sha=b0e22fe13420b91b...  (ada)
+  ci_hosted_40079057623_2026-10-24.log            11208 B  barisLF=94  headSha=5326234  sha=84905ae94d538594...  (ada)
+  ci_hosted_40079435959_2026-10-24.log            11192 B  barisLF=94  headSha=0270817  sha=e93d5f9cf5f3b898...  (ada)
+  ci_hosted_40079439472_2026-10-24.log            11208 B  barisLF=94  headSha=0270817  sha=0b662192c629d51e...  (ada)
+
+METADATA EMPAT RUN (gh api repos/.../actions/runs/<id>, terukur saat artefak ini
+ditulis; keempatnya workflow asl-ci-minimal pada branch feature/v1.0.2-r1):
+  40079054078  push          completed success headSha=5326234  mulai=2026-10-24T08:41:56Z  selesai=2026-10-24T08:43:08Z
+  40079057623  pull_request  completed success headSha=5326234  mulai=2026-10-24T08:41:59Z  selesai=2026-10-24T08:42:59Z
+  40079435959  push          completed success headSha=0270817  mulai=2026-10-24T08:47:52Z  selesai=2026-10-24T08:49:05Z
+  40079439472  pull_request  completed success headSha=0270817  mulai=2026-10-24T08:47:55Z  selesai=2026-10-24T08:49:06Z
+
+STATE PENGUKURAN: audit dijalankan SEBELUM commit, jadi baris BELUM adalah fakta
+saat ukur (empat berkas ekstrak di atas masih untracked). Detektor alat
+membaca ekstrak dari `git ls-tree -r HEAD Analysis/reports`, sehingga angka
+'ekstrak ter-commit total: 113' dan 'utang terbuka ... 4 RUN (= dua pasang)'
+menggambarkan HEAD 0270817 sebelum commit ini, bukan sesudah. Jumlah baris BELUM pada
+tabel terukur = 4 dan cocok dengan daftar utang terbuka (4 entri).
+
+SUDUT BACA: tabel di bawah adalah keluaran alat apa adanya.
+AUDIT UTANG EKSTRAK HOSTED CI - cabang feature/v1.0.2-r1
+HEAD saat audit dijalankan: 0270817 (run milik HEAD belum ter-commit, memang begitu aturan G8)
+SUMBER: `git rev-list main..HEAD`, `gh api .../actions/runs?branch=...`, `git ls-tree -r HEAD Analysis/reports`.
+SUDUT BACA: baris BELUM di bawah adalah utang yang ditutup commit BERIKUTNYA, bukan kegagalan.
+
+commit   run-id       event  koncl  ekstrak-di-repo
+007d3dd  TIDAK ADA RUN -      -      -
+54abf73  TIDAK ADA RUN -      -      -
+4e865c0  TIDAK ADA RUN -      -      -
+17570f6  39596587533  push   success ADA
+17570f6  39596659449  pull_request success ADA
+a141640  39597097768  push   success ADA
+a141640  39597103437  pull_request success ADA
+223e7f6  TIDAK ADA RUN -      -      -
+6bbd77d  TIDAK ADA RUN -      -      -
+939cc95  TIDAK ADA RUN -      -      -
+97d1834  39624903214  push   success ADA
+97d1834  39624911155  pull_request success ADA
+d6c5b12  TIDAK ADA RUN -      -      -
+093a7d6  TIDAK ADA RUN -      -      -
+b9acd5b  TIDAK ADA RUN -      -      -
+ca582fa  TIDAK ADA RUN -      -      -
+08ddd71  39632688905  push   success ADA
+08ddd71  39632700077  pull_request success ADA
+53e226f  39634616449  push   success ADA
+53e226f  39634624636  pull_request success ADA
+1e2035f  39635248616  push   success ADA
+1e2035f  39635257738  pull_request success ADA
+8f56625  39635662050  push   success ADA
+8f56625  39635669557  pull_request success ADA
+12adcf1  39637458058  push   success ADA
+12adcf1  39637464118  pull_request success ADA
+1f3e3c2  39639275684  push   success ADA
+1f3e3c2  39639284164  pull_request success ADA
+4de1dfb  39643487647  push   success ADA
+4de1dfb  39643495816  pull_request success ADA
+b17a175  39644006778  push   success ADA
+b17a175  39644011859  pull_request success ADA
+4c3e0d2  39697869147  push   success ADA
+4c3e0d2  39697876437  pull_request success ADA
+d8c002a  39698870788  push   success ADA
+d8c002a  39698875695  pull_request success ADA
+5812c77  39703399191  push   success ADA
+5812c77  39703405130  pull_request success ADA
+c94f8b0  39704463256  push   success ADA
+c94f8b0  39704468088  pull_request success ADA
+c3a9f2e  39710147801  push   success ADA
+c3a9f2e  39710152877  pull_request success ADA
+c3a8343  39714508881  push   success ADA
+c3a8343  39714514694  pull_request success ADA
+e60f0a7  39716468849  push   success ADA
+e60f0a7  39716474359  pull_request success ADA
+a44fbaf  39732124375  push   success ADA
+a44fbaf  39732130192  pull_request success ADA
+87cf8fd  39749060881  push   success ADA
+87cf8fd  39749065750  pull_request success ADA
+791a88d  39764470372  push   success ADA
+791a88d  39764476332  pull_request success ADA
+235d44b  39764997805  push   success ADA
+235d44b  39765004319  pull_request success ADA
+6f2af6e  39787427791  push   success ADA
+6f2af6e  39787438189  pull_request success ADA
+9750724  39788285251  push   success ADA
+9750724  39788292764  pull_request success ADA
+38b3bcc  39844518151  push   success ADA
+38b3bcc  39844527147  pull_request success ADA
+70431dd  39844995227  push   success ADA
+70431dd  39845003304  pull_request success ADA
+a0bbcd6  39846181176  push   success ADA
+a0bbcd6  39846195525  pull_request success ADA
+fce6c0a  39847206080  push   success ADA
+fce6c0a  39847214355  pull_request success ADA
+762cea3  39847738550  push   success ADA
+762cea3  39847746179  pull_request success ADA
+4335e41  39997986811  push   success ADA
+4335e41  39997997963  pull_request success ADA
+65f6137  40077328147  push   success ADA
+65f6137  40077331380  pull_request success ADA
+76fe9a1  40077819604  push   success ADA
+76fe9a1  40077822683  pull_request success ADA
+5326234  40079054078  push   success BELUM
+5326234  40079057623  pull_request success BELUM
+0270817  40079435959  push   success BELUM
+0270817  40079439472  pull_request success BELUM
+
+total commit cabang: 44
+commit tanpa run sendiri: 007d3dd, 54abf73, 4e865c0, 223e7f6, 6bbd77d, 939cc95, d6c5b12, 093a7d6, b9acd5b, ca582fa (10)
+utang terbuka (run ada, ekstrak belum di repo): [('5326234', 40079054078, 'push'), ('5326234', 40079057623, 'pull_request'), ('0270817', 40079435959, 'push'), ('0270817', 40079439472, 'pull_request')]
+ekstrak ter-commit total: 113
+

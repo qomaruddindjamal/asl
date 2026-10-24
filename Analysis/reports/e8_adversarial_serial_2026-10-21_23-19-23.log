@@ -1,0 +1,341 @@
+
+[ASL-LAUNCHER] M1: Entered Limine Entry Stub (profile=release) via Assembly Trampoline.
+  [MEMMAP] base: 4096 len: 335872 typ: 5
+  [MEMMAP] base: 339968 len: 311296 typ: 0
+  [MEMMAP] base: 654336 len: 1024 typ: 1
+  [MEMMAP] base: 983040 len: 65536 typ: 1
+  [MEMMAP] base: 1048576 len: 264982528 typ: 0
+  [MEMMAP] base: 266031104 len: 20480 typ: 5
+  [MEMMAP] base: 266051584 len: 1138688 typ: 6
+  [MEMMAP] base: 267190272 len: 352256 typ: 5
+  [MEMMAP] base: 267542528 len: 106496 typ: 0
+  [MEMMAP] base: 267649024 len: 651264 typ: 5
+  [MEMMAP] base: 268300288 len: 135168 typ: 1
+  [MEMMAP] base: 2952790016 len: 268435456 typ: 1
+  [MEMMAP] base: 4244635648 len: 3145728 typ: 7
+  [MEMMAP] base: 4275159040 len: 16384 typ: 1
+  [MEMMAP] base: 4294705152 len: 262144 typ: 1
+  [MEMMAP] base: 1086626725888 len: 12884901888 typ: 1
+[ASL-LAUNCHER] Inspecting Limine Requests:
+  -> Base Revision supported.
+  -> Memmap response received.
+  -> HHDM response received.
+  -> Framebuffer response received.
+  -> Framebuffer configured successfully.
+[ASL-LAUNCHER] M2: Handover Adapted & Memory Map Sanitized.
+[ASL-LAUNCHER] M3: Transferring Control to ASL Microkernel Core Entry.
+[ASL-CORE] M0: x86_64 Minimal Fault Infrastructure (IDT/TSS/IST1) Initialized.
+[ASL-CORE] M0+: Secondary carve-out validated (aligned, in-image, disjoint from stack). Failover latch ARMED.
+[ASL-CORE] M4: Buddy Allocator & Heap Memory Subsystem Initialized.
+[ASL-CORE] M4+: Kernel stack guard page enforced (non-present below 512KB stack).
+[ASL-CORE] M5: ARINC 653 Partitions & Deterministic Scheduler Active.
+[ASL-CORE] M6: Kernel Cold Boot Complete. Entering Deterministic Idle Loop.
+       ___    ____    __   
+      /   |  / __/   / /   
+     / /| |  \ \    / /    
+    / ___ | _/ /   / /___  
+   /_/  |_|/___/  /_____/  
+
+   ASL Kernel v1.0.2
+   Selamat Datang Di ASL Kernel
+
+   [ OK ] Kernel initialized: ASL Core Kernel v1.0.2
+   [ OK ] Memory manager initialized: 256 MB RAM detected
+   [ OK ] CPU architecture detected: QEMU Virtual CPU version 2.5+ | CPU Load: 20%
+
+   ASL kernel booted successfully.
+
+[ASL-CORE] Secondary Failover Core Engine: STANDBY ARMED.
+[ASL-CORE] Local APIC Timer Initialized (Release Nominal Initial Count: 0x20000).
+[ASL-CORE] PCI Discovery: Found 6 devices on Bus 0.
+[ASL-VTD] QM-01 probe: scanning ACPI for RSDP/DMAR...
+[ASL-VTD] kernel image virt=0xFFFFFFFF80100000 phys=0x000000000FDBA000
+[ASL-VTD] ACPI present, DMAR table ABSENT (no IOMMU).
+
+ASL-KERNEL> create-folder e8uji
+Direktori dibuat: /e8uji
+ASL-KERNEL> open e8uji
+Ruang kerja: /e8uji
+ASL-KERNEL> create-file a.txt
+Berkas dibuat: /e8uji/a.txt
+ASL-KERNEL> write-file a.txt isi awal e8
+Tertulis 11 byte di /e8uji/a.txt
+ASL-KERNEL> 
+ASL-KERNEL>      
+ASL-KERNEL> AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+Unknown command. Type 'help' for available commands.
+ASL-KERNEL> BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB
+Unknown command. Type 'help' for available commands.
+ASL-KERNEL> CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
+Unknown command. Type 'help' for available commands.
+ASL-KERNEL> open ..
+Ruang kerja: /
+ASL-KERNEL> open //
+Ruang kerja: /
+ASL-KERNEL> create-folder namaku/
+Direktori dibuat: /namaku
+ASL-KERNEL> open .
+Ruang kerja: /
+ASL-KERNEL> create-folder "nama bertanda"
+Sintaks: create-folder <nama>
+ASL-KERNEL> delete-file -
+Galat: tidak ditemukan
+ASL-KERNEL> open a.txt
+Galat: tidak ditemukan
+ASL-KERNEL> open tidak-ada-e8-9
+Galat: tidak ditemukan
+ASL-KERNEL> open /..
+Ruang kerja: /
+ASL-KERNEL> up
+Unknown command. Type 'help' for available commands.
+ASL-KERNEL> create-folder sub
+Direktori dibuat: /sub
+ASL-KERNEL> create-folder sub
+Galat: sudah ada
+ASL-KERNEL> create-folder luar/dalam
+Galat: tidak ditemukan
+ASL-KERNEL> create-folder
+Sintaks: create-folder <nama>
+ASL-KERNEL> create-file a.txt
+Berkas dibuat: /a.txt
+ASL-KERNEL> write-file tidak-ada-e8/x.txt isi
+Galat: tidak ditemukan
+ASL-KERNEL> write-file sub isi
+Galat: objek ini direktori
+ASL-KERNEL> write-file a.txt
+Tertulis 0 byte di /a.txt
+ASL-KERNEL> write-file a.txt  
+Tertulis 0 byte di /a.txt
+ASL-KERNEL> write-file a.txt DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD
+Tertulis 64 byte di /a.txt
+ASL-KERNEL> write-file a.txt EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
+Tertulis 64 byte di /a.txt
+ASL-KERNEL> rename a.txt b.txt
+Unknown command. Type 'help' for available commands.
+ASL-KERNEL> rename / /
+Unknown command. Type 'help' for available commands.
+ASL-KERNEL> delete-file sub
+Galat: objek ini direktori
+ASL-KERNEL> delete-folder a.txt
+Galat: objek ini bukan direktori
+ASL-KERNEL> delete-folder /
+Galat: tidak ditemukan
+ASL-KERNEL> perintahane8takdikenal
+Unknown command. Type 'help' for available commands.
+ASL-KERNEL> list satu dua tiga empat lima enam tujuh delapan sembilan sepuluh
+Sintaks: list [jalan]
+ASL-KERNEL> fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+Unknown command. Type 'help' for available commands.
+ASL-KERNEL> 
+ASL-KERNEL> status
+Status Cockpit Shell v1.0.2
+  Sistem berkas   : ramdisk
+  Kapasitas       : 262144 byte
+  Terpakai        : 75 byte
+  Entri hidup     : 6
+  Ruang kerja     : /
+  Perintah kanonik: 11
+ASL-KERNEL> where
+/
+ASL-KERNEL> list
+Daftar isi / (4 entri):
+  d e8uji  0 B
+  d namaku  0 B
+  d sub  0 B
+  - a.txt  64 B
+ASL-KERNEL> open ..
+Ruang kerja: /
+ASL-KERNEL> help
+Perintah kanonik Cockpit Shell (disusun dari registry, satu-sumber):
+  Bantuan:
+    help          help [perintah]  --  Daftar perintah yang disusun langsung dari registry; dengan argumen menampilkan satu perintah.
+  Tampilan:
+    clear         clear  --  Bersihkan area tampilan konsol framebuffer dan kirim sekuens bersih layar ke serial.
+  Ruang kerja:
+    where         where  --  Tampilkan direktori kerja saat ini; prompt sengaja polos tanpa posisi folder.
+    list          list [jalan]  --  Daftar isi direktori pada RAMDISK volatil; tanpa argumen memakai direktori kerja.
+      alias: ls, dir
+    open          open <jalan>  --  Masuk ke direktori bila tujuannya direktori, atau tampilkan isi berkas bila tujuannya berkas.
+      alias: cd, cat, type, read-file, open-file
+  Berkas dan direktori (RAMDISK volatil):
+    create-folder create-folder <nama>  --  Buat direktori baru di dalam direktori kerja saat ini.
+      alias: mkdir
+    create-file   create-file <nama>  --  Buat berkas kosong di dalam direktori kerja saat ini.
+    write-file    write-file <nama> <teks>  --  Tulis satu baris teks ke berkas dan memotong sisa isi lama; isi hidup selama RAMDISK.
+    delete-file   delete-file <nama>  --  Hapus satu berkas dari direktori kerja saat ini; slot datanya ternol dan bisa dipakai ulang.
+      alias: rm
+    delete-folder delete-folder <nama>  --  Hapus satu direktori kosong dari direktori kerja saat ini; direktori berisi ditolak.
+  Status dan identitas:
+    status        status  --  Ringkas identitas rilis, berkas kerja shell, direktori kerja, dan pemakaian RAMDISK.
+Perintah lama (meminfo, cpuinfo, uname, lspci, lsblk, fdisk, mount, failover, reboot, halt, test_*, trap_*) tetap dikenali.
+Detail satu perintah: help <perintah>
+ASL-KERNEL> create-file b.txt
+Berkas dibuat: /b.txt
+ASL-KERNEL> delete-file b.txt
+Berkas dihapus: /b.txt
+ASL-KERNEL> status
+Status Cockpit Shell v1.0.2
+  Sistem berkas   : ramdisk
+  Kapasitas       : 262144 byte
+  Terpakai        : 75 byte
+  Entri hidup     : 6
+  Ruang kerja     : /
+  Perintah kanonik: 11
+ASL-KERNEL> 
+ASL-KERNEL> 
+ASL-KERNEL> 
+ASL-KERNEL> 
+ASL-KERNEL> 
+ASL-KERNEL> 
+ASL-KERNEL> 
+ASL-KERNEL> 
+ASL-KERNEL> 
+ASL-KERNEL> 
+ASL-KERNEL> 
+ASL-KERNEL> 
+ASL-KERNEL> open /
+Ruang kerja: /
+ASL-KERNEL> delete-folder e8uji
+Galat: direktori masih berisi
+ASL-KERNEL> meminfo
+Installed RAM: 256 MB
+Free Heap Pages: 4096
+ASL-KERNEL> cpuinfo
+CPU Model: QEMU Virtual CPU version 2.5+
+ASL-KERNEL> lspci
+PCI Bus Devices:
+  [0:0.0] Vendor: 0x8086 Device: 0x29C0 Class: Bridge Device
+  [0:1.0] Vendor: 0x1234 Device: 0x1111 Class: Display Controller (VGA/GPU)
+  [0:2.0] Vendor: 0x8086 Device: 0x10D3 Class: Network Controller
+  [0:31.0] Vendor: 0x8086 Device: 0x2918 Class: Bridge Device
+  [0:31.2] Vendor: 0x8086 Device: 0x2922 Class: Mass Storage Controller
+  [0:31.3] Vendor: 0x8086 Device: 0x2930 Class: Serial Bus Controller (USB/FireWire)
+ASL-KERNEL> lsblk
+Block Devices & Storage Subsystem:
+  [ata0] No ATA device detected on Primary Channel
+ASL-KERNEL> fdisk
+Partition Table Inspection (fdisk):
+  No active ATA drive detected to parse partitions.
+ASL-KERNEL> mount
+VFS Mount Points & File Systems:
+  / (Root) -> VFS Active (Supported: FAT32 rw, Ext4 ro)
+  /dev     -> Block and Character Device Mount
+ASL-KERNEL> uname
+ASL Core Kernel v1.0.2 (x86_64-unknown-none) [DO-178C-inspired deterministic engineering]
+ASL-KERNEL> failover
+Secondary Failover Engine: Active-Standby Armed.
+  State: Standby (Read-Only Locked Partition)
+  Takeover latency: < 1 ms (DO-178C DAL-A Invariant)
+ASL-KERNEL> test_pml4
+[TEST-PML4] Starting Gate 1C PML4 Virtual Memory Validation Tests...
+  [TEST 1] Current CR3: 0x000000000FF59000 -> PASS (CR3 Loaded & Active)
+  [TEST 5] HHDM Read at 0xFFFF800000001000: 0x0000000000000000 -> PASS (HHDM Valid)
+  [TEST 2] Dynamic Virtual Mapping (4KB Page)...
+  [TEST 2] Page mapped successfully at 0x700010000000 -> PASS
+  [TEST 2] Memory Read/Write via Virtual Page Verified -> PASS
+  [TEST 3] Unmapping Virtual Page...
+  [TEST 3] Page unmapped successfully -> PASS
+[TEST-PML4] All Safe Virtual Memory Tests Completed Successfully.
+ASL-KERNEL> test_apic
+[TEST-APIC] Starting Gate 2 Local APIC & APIC Timer Tests...
+  [TEST 1] APIC Base MSR (0x1B): 0x00000000FEE00900 | Phys Base: 0x00000000FEE00000 -> PASS
+  [TEST 2] Local APIC Initialized & SVR Software-Enabled -> PASS
+  [TEST 3] APIC Periodic Timer Started (Vector 32) -> PASS
+  [TEST 4-6] Enabling CPU Interrupts (sti) to observe tick stability...
+  [TEST 4-6] Observed Ticks: Start=1, End=80 -> PASS (Timer & EOI Stable)
+  [TEST 7] Bendera interupsi CPU dipulihkan (cli) -> PASS
+ASL-KERNEL> status
+Status Cockpit Shell v1.0.2
+  Sistem berkas   : ramdisk
+  Kapasitas       : 262144 byte
+  Terpakai        : 75 byte
+  Entri hidup     : 6
+  Ruang kerja     : /
+  Perintah kanonik: 11
+ASL-KERNEL> where
+/
+ASL-KERNEL> list
+Daftar isi / (4 entri):
+  d e8uji  0 B
+  d namaku  0 B
+  d sub  0 B
+  - a.txt  64 B
+ASL-KERNEL> status
+Status Cockpit Shell v1.0.2
+  Sistem berkas   : ramdisk
+  Kapasitas       : 262144 byte
+  Terpakai        : 75 byte
+  Entri hidup     : 6
+  Ruang kerja     : /
+  Perintah kanonik: 11
+ASL-KERNEL> uname
+ASL Core Kernel v1.0.2 (x86_64-unknown-none) [DO-178C-inspired deterministic engineering]
+ASL-KERNEL> help
+Perintah kanonik Cockpit Shell (disusun dari registry, satu-sumber):
+  Bantuan:
+    help          help [perintah]  --  Daftar perintah yang disusun langsung dari registry; dengan argumen menampilkan satu perintah.
+  Tampilan:
+    clear         clear  --  Bersihkan area tampilan konsol framebuffer dan kirim sekuens bersih layar ke serial.
+  Ruang kerja:
+    where         where  --  Tampilkan direktori kerja saat ini; prompt sengaja polos tanpa posisi folder.
+    list          list [jalan]  --  Daftar isi direktori pada RAMDISK volatil; tanpa argumen memakai direktori kerja.
+      alias: ls, dir
+    open          open <jalan>  --  Masuk ke direktori bila tujuannya direktori, atau tampilkan isi berkas bila tujuannya berkas.
+      alias: cd, cat, type, read-file, open-file
+  Berkas dan direktori (RAMDISK volatil):
+    create-folder create-folder <nama>  --  Buat direktori baru di dalam direktori kerja saat ini.
+      alias: mkdir
+    create-file   create-file <nama>  --  Buat berkas kosong di dalam direktori kerja saat ini.
+    write-file    write-file <nama> <teks>  --  Tulis satu baris teks ke berkas dan memotong sisa isi lama; isi hidup selama RAMDISK.
+    delete-file   delete-file <nama>  --  Hapus satu berkas dari direktori kerja saat ini; slot datanya ternol dan bisa dipakai ulang.
+      alias: rm
+    delete-folder delete-folder <nama>  --  Hapus satu direktori kosong dari direktori kerja saat ini; direktori berisi ditolak.
+  Status dan identitas:
+    status        status  --  Ringkas identitas rilis, berkas kerja shell, direktori kerja, dan pemakaian RAMDISK.
+Perintah lama (meminfo, cpuinfo, uname, lspci, lsblk, fdisk, mount, failover, reboot, halt, test_*, trap_*) tetap dikenali.
+Detail satu perintah: help <perintah>
+ASL-KERNEL> test_task
+[TEST-TASK] Starting Gate 3D 100,000 APIC Preemptive Tests...
+
+[GATE-3D-REMEDIATION] Executing Gate 3D 100,000 APIC Interrupt Preemption Verification Suite...
+[GATE-3D-TEST] TEST 1: Ring 0 Interrupt Frame Layout & Normalization (160B / 20 QWORDs) -> PASS
+[GATE-3D-TEST] TEST 2: Frame Offset Compile-Time Assertions (All 20 Fields Verified) -> PASS
+[GATE-3D-TEST] TEST 9: Failure Injection - Corrupt Canary Isolation -> PASS
+[GATE-3D-TEST] TEST 10: Failure Injection - Invalid Target RSP Isolation -> PASS
+[GATE-3D-TEST] TEST 11: Failure Injection - Non-Canonical RIP Isolation -> PASS
+[GATE-3D-TEST] TEST 12: Failure Injection - No-Ready-Task Safe Fallback Path -> PASS
+[GATE-3D-TEST] TEST 6A: Pre-Stress Stack Bounds & Fresh State Isolation Verification -> PASS
+[GATE-3D-TEST] Starting True 100,000 Hardware APIC Preemption Run...
+  [SNAPSHOT-0] APIC Interrupts: 81 | APIC Switches: 0 | EOI Writes: 81
+Kesalahan: uji praemption Gate 3D dihentikan operator sebelum 100.000 tukar - kembali ke prompt, shell tetap hidup
+ASL-KERNEL> test_task
+[TEST-TASK] Starting Gate 3D 100,000 APIC Preemptive Tests...
+
+[GATE-3D-REMEDIATION] Executing Gate 3D 100,000 APIC Interrupt Preemption Verification Suite...
+[GATE-3D-TEST] TEST 1: Ring 0 Interrupt Frame Layout & Normalization (160B / 20 QWORDs) -> PASS
+[GATE-3D-TEST] TEST 2: Frame Offset Compile-Time Assertions (All 20 Fields Verified) -> PASS
+[GATE-3D-TEST] TEST 9: Failure Injection - Corrupt Canary Isolation -> PASS
+[GATE-3D-TEST] TEST 10: Failure Injection - Invalid Target RSP Isolation -> PASS
+[GATE-3D-TEST] TEST 11: Failure Injection - Non-Canonical RIP Isolation -> PASS
+[GATE-3D-TEST] TEST 12: Failure Injection - No-Ready-Task Safe Fallback Path -> PASS
+[GATE-3D-TEST] TEST 6A: Pre-Stress Stack Bounds & Fresh State Isolation Verification -> PASS
+[GATE-3D-TEST] Starting True 100,000 Hardware APIC Preemption Run...
+  [SNAPSHOT-0] APIC Interrupts: 16249 | APIC Switches: 16168 | EOI Writes: 16249
+Kesalahan: uji praemption Gate 3D dihentikan operator sebelum 100.000 tukar - kembali ke prompt, shell tetap hidup
+ASL-KERNEL> test_apic
+[TEST-APIC] Starting Gate 2 Local APIC & APIC Timer Tests...
+  [TEST 1] APIC Base MSR (0x1B): 0x00000000FEE00900 | Phys Base: 0x00000000FEE00000 -> PASS
+  [TEST 2] Local APIC Initialized & SVR Software-Enabled -> PASS
+  [TEST 3] APIC Periodic Timer Started (Vector 32) -> PASS
+  [TEST 4-6] Enabling CPU Interrupts (sti) to observe tick stability...
+  [TEST 4-6] Observed Ticks: Start=16518, End=16598 -> PASS (Timer & EOI Stable)
+  [TEST 7] Bendera interupsi CPU dipulihkan (cli) -> PASS
+ASL-KERNEL> status
+Status Cockpit Shell v1.0.2
+  Sistem berkas   : ramdisk
+  Kapasitas       : 262144 byte
+  Terpakai        : 75 byte
+  Entri hidup     : 6
+  Ruang kerja     : /
+  Perintah kanonik: 11
+ASL-KERNEL> 

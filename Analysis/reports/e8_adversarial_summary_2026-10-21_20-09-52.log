@@ -1,0 +1,34 @@
+ASL E8 ADVERSARIAL INPUT RUN - 2026-10-21_20-09-52
+prompt satu-sumber : 'ASL-KERNEL> '
+penanda crash      : ASL-CORE-PANIC | ASL EXCEPTION | FATAL
+kasus              : 41 utama + 2 sisa; dijalankan 1 kasus (diagnostik=False faultDemo=False satuToken='test_task')
+QEMU   : QEMU emulator version 10.2.50 (v10.2.0-14086-g840320663e)
+ISO    : C:\asl\asl-kernel\target\asl-core-kernel.iso
+ISO    : 4200448 bytes SHA256=aa77806018d7a9009bb705e29e71d33724a6b50fc3a5cf62de24133359c74de9
+PORTA  : 127.0.0.1:14721 (chardev socket dua arah, COM1)
+
+=== FASE 1 - cold boot 256M berjendela + koneksi serial ===
+CMDLINE: "C:\Program Files\qemu\qemu-system-x86_64.exe" -machine q35 -vga std -m 256M -cdrom C:\asl\asl-kernel\target\asl-core-kernel.iso -chardev socket,id=ser0,server=on,wait=on,host=127.0.0.1,port=14721 -serial chardev:ser0 -no-reboot -no-shutdown
+PID    : 12484  (tutup dengan: e8_adversarial_run.ps1 -StopQemu)
+SERIAL : terhubung, log byte-per-byte -> C:\asl\Analysis\reports\e8_adversarial_serial_2026-10-21_20-09-52.log
+Boot   : M6=True prompt=True crash=TIDAK
+
+=== FASE 2 - sesi masukan adversarial ===
+CATATAN bangun: pada ISO ini registry kanonik berisi 11 perintah; 'up' (C15) dan 'rename' (C26,C27)
+             BELUM ada, jadi kedua kasus itu menguji jalur 'perintah tak dikenal' - bukan jalur
+             aslinya. Jalur asli keduanya diuji lagi setelah F2/F6, dan jendela E8 diulang.
+  V01  [OK      ] verifikasi satu token: test_task               kirim    10 byte dalam 178779 ms -> prompt kembali :: test_task | [TEST-TASK] Starting Gate 3D 100,000 APIC Preemptive Tests... | [GATE-3D-REMEDIATION] Executing Gate 3D 100,000 APIC Interrupt Preemption ...[2841 byte]
+
+=== Keadaan akhir sesi ===
+byte masuk (serial->alat)  : 5325
+byte keluar (alat->serial) : 10
+stderr QEMU                : 197 byte
+  isi stderr = pesan 'info: QEMU waiting for connection' dari chardev socket
+  (konsekuensi wait=on agar tidak ada byte boot yang hilang). Bukan galat mesin.
+  Gerbang 'stderr 0 byte' alat G9 tetap berlaku untuk alat itu; di sesi ini
+  jumlah byte ini dilaporkan terang, bukan disembunyikan.
+serial log                 : C:\asl\Analysis\reports\e8_adversarial_serial_2026-10-21_20-09-52.log (5325 byte)
+HASIL: token 'test_task' selesai tanpa penanda crash.
+E8-STATUS: MODE VERIFIKASI - jalur ini kini kembali ke prompt (diharapkan setelah perbaikan).
+tabel kasus disimpan     : C:\asl\Analysis\reports\e8_adversarial_cases_2026-10-21_20-09-52.tsv (2 baris)
+jendela QEMU ditutup alat (sesi selesai).

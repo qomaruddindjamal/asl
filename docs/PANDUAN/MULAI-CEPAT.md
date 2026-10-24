@@ -2,7 +2,7 @@
 
 ## Pasal 1 - Tujuan
 
-Satu halaman untuk sampai pada prompt `ASL-KERNEL> ` dari repositori bersih:
+Satu halaman untuk sampai pada prompt `ASL-KERNEL />_ ` dari repositori bersih:
 uji unit di host, bangun ELF release, bangun ISO, lalu boot di QEMU. Setiap
 perintah di bawah adalah perintah yang benar-benar dipakai pipeline repo ini.
 
@@ -78,7 +78,9 @@ pola ini yang dipakai sesi shell terukur pada tahap P3 (`VERIFIED-ON-VM`):
 
 Urutan yang harus muncul di serial: `[ASL-LAUNCHER] M1`, `M2`, `M3`, lalu
 `[ASL-CORE] M0`, `M0+`, `M4`, `M4+`, `M5`, `M6: Kernel Cold Boot Complete`,
-banner, dan prompt `ASL-KERNEL> `. Daftar arti tiap tahap ada di
+banner, dan prompt `ASL-KERNEL />_ ` (akar RAMDISK). Prompt membawa posisi
+direktori kerja, jadi sesudah `cd log` ia berubah menjadi `ASL-KERNEL /log>_ `.
+Daftar arti tiap tahap ada di
 `docs/ROADMAP/PETA-KANONIK.md`.
 
 ## Pasal 4 - Lima menit pertama di shell
@@ -86,20 +88,38 @@ banner, dan prompt `ASL-KERNEL> `. Daftar arti tiap tahap ada di
 Perintah yang tersedia dibaca dari dalam shell sendiri, bukan dari hafalan:
 
 ```
-ASL-KERNEL> help
-ASL-KERNEL> help write-file
-ASL-KERNEL> where
-ASL-KERNEL> create-folder log
-ASL-KERNEL> cd log
-ASL-KERNEL> create-file note.txt
-ASL-KERNEL> write-file note.txt halo dunia
-ASL-KERNEL> cat note.txt
-ASL-KERNEL> status
+ASL-KERNEL />_ help
+ASL-KERNEL />_ help write-file
+ASL-KERNEL />_ where
+ASL-KERNEL />_ create-folder log
+ASL-KERNEL />_ cd log
+ASL-KERNEL /log>_ create-file note.txt
+ASL-KERNEL /log>_ write-file note.txt halo dunia
+ASL-KERNEL /log>_ cat note.txt
+ASL-KERNEL /log>_ rename note.txt catatan.txt
+ASL-KERNEL /log>_ up
+ASL-KERNEL />_ status
 ```
 
-Ruang kerja (`cd`, `ls`, `cat`) hanya melihat RAMDISK volatil; isi hilang ketika
-mesin dimatikan. Bentuk lengkap dan janji setiap perintah:
-`docs/PANDUAN/REFERENSI-PERINTAH.md`.
+Ruang kerja (`cd`, `ls`, `cat`) hanya melihat RAMDISK volatil; `up` menaiki satu
+tingkat dan tetap di akar bila sudah di akar. Isi hilang ketika mesin dimatikan.
+`rename` hanya menerima satu nama tujuan tanpa garis miring: ia memindah nama,
+bukan isi, dan menolak menimpa nama yang sudah ada. Mengganti nama folder
+menggeser seluruh subtree di bawahnya, termasuk ruang kerja bila operator
+berdiri di dalamnya — posisi baru itu diumumkan dan tampil pada prompt.
+Setiap kegagalan memakai satu label `Kesalahan: ` yang menyebut jalur yang
+gagal, dan setiap `write-file` yang memangkas isi lama mengumumkannya dengan
+jumlah byte. Bentuk lengkap dan janji setiap perintah:
+`docs/PANDUAN/REFERENSI-PERINTAH.md` (label keluaran: Pasal 7).
+
+Sunting baris tersedia pada jalur serial ANSI: panah atas/bawah memanggil ulang
+empat baris perintah terakhir, Tab melengkapi awalan menjadi nama kanonik dan
+Tab kedua mencetak `Pilihan perintah: `, Ctrl+C membatalkan baris, Ctrl+L
+membersihkan layar, Esc mengosongkan baris, dan F1 mencetak blok bantuan.
+Perintah yang tidak dikenal dijawab dengan satu baris Indonesia, bukan kalimat
+Inggris warisan. Batas lengkapnya — termasuk tombol yang TIDAK dikerjakan dan
+mengapa bukti layarnya belum ada — tercatat di Pasal 6 dan seksi NAVIGASI
+KEYBOARD pada Pasal 7 dokumen yang sama.
 
 ## Pasal 5 - Pipeline lengkap sekali jalan
 

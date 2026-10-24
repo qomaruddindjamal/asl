@@ -1,0 +1,138 @@
+AUDIT KEADAAN AWAL - MASTER PROMPT R3 BAGIAN 1 - DIUKUR 2026-10-24T11:06:18Z (UTC)
+========================================================================================
+Alat: naskah scratch logs/r3_b1_tulis_audit.py (gitignored) yang MEMANGGIL git, gh api,
+os.path/Test-Path, dan jam mesin pada saat yang sama; nol angka diketik tangan. Jam mesin
+lokal 2026-10-24 18:06:18 dengan selisih terukur 7.0 jam terhadap UTC (koreksi jam = catatan baru, nol amend).
+Cabang feature/v1.0.2-r1 tip 201fb0f367ff9e2adbd100b786d39f5038dea916 ([V1.0.2-R1-K5-SUB7]), tersinkron dengan origin (0 0), pohon kerja bersih kecuali 20 artefak
+g9_final_p8_* yang ditahan.
+
+TABEL KEADAAN TERUKUR
+  cabang aktif                                   feature/v1.0.2-r1
+  tip lokal                                      201fb0f367ff9e2adbd100b786d39f5038dea916
+  tip origin/feature/v1.0.2-r1                   201fb0f367ff9e2adbd100b786d39f5038dea916
+  lokal vs origin (left-right)                   0 0
+  pohon kerja - baris ter-track yang berubah     0 (nol); baris non-g9 untracked = 2 ekstrak yang dibawa komit ini
+  artefak g9_final_p8_* untracked ditahan        20
+  pesan commit tip                               [V1.0.2-R1-K5-SUB7]
+  PR total / terbuka                             9 / 1 (nomor 7)
+  run CI hosted atas tip                         2, semuanya completed/success
+  tag lokal                                      ["v1.0.0", "v1.0.1", "v1.0.1-alfa", "v1.1.0"]
+  tag origin                                     ["v1.0.0", "v1.0.1"]
+  rilis GitHub                                   2: v1.0.0, v1.0.1
+  LAPORAN-FINAL ter-commit                       [] (nol - memang belum ditulis)
+  jam mesin UTC / lokal / selisih                2026-10-24T11:06:18Z / 2026-10-24 18:06:18 / 7.0 jam
+
+PR TERMEASUR (gh api pulls?state=all untuk daftar 9 PR; mergeable hanya ada di endpoint
+tunggal sehingga PR terbuka dibaca ulang lewat gh api pulls/<nomor>; judul PR disalin ke ASCII
+murni dengan non-ASCII diganti '-')
+  PR #9   closed  mergeable=tidak dilaporkan daftar qomaruddindjamal-patch-2 -> main   mergedAt=2026-10-22T07:29:30Z  Update README.md
+  PR #8   closed  mergeable=tidak dilaporkan daftar qomaruddindjamal-patch-1 -> main   mergedAt=2026-10-22T07:26:51Z  Update README.md
+  PR #7   open    mergeable=True/behind  feature/v1.0.2-r1        -> main   mergedAt=-  [V1.0.2-R1] rantai revisi: penutupan BAGIAN 0 + E8 + F1-F7
+  PR #6   closed  mergeable=tidak dilaporkan daftar feature/v1.0.2-shell     -> main   mergedAt=2026-10-21T11:03:17Z  MISI v1.0.2 P3-P7: shell kanonik + RAMDISK + panduan Indonesia +
+  PR #5   closed  mergeable=tidak dilaporkan daftar feature/v1.0.2-shell     -> main   mergedAt=2026-10-20T23:54:19Z  Misi v1.0.2: P0-sisa bukti pasca-merge + P2 konstanta satu-sumbe
+  PR #4   closed  mergeable=tidak dilaporkan daftar feature/phase7           -> main   mergedAt=2026-10-20T23:31:09Z  PHASE-7 T0: Opsi B + bukti CI via jalur PR + higiene scratch (no
+  PR #3   closed  mergeable=tidak dilaporkan daftar security/asl-v1.0.2-audit -> main   mergedAt=2026-10-20T11:49:43Z  [PHASE-6B] Merge mission branch: PHASE-1..5 + GERBANG AKHIR + 6A
+  PR #2   closed  mergeable=tidak dilaporkan daftar security/asl-v1.0.2-audit -> main   mergedAt=2026-10-19T18:52:11Z  ASL Core Kernel v1.0.2 - Security Audit & Hardening Remediation
+  PR #1   closed  mergeable=tidak dilaporkan daftar feature/asl-v1.0.2       -> main   mergedAt=2026-10-17T12:26:36Z  ASL Core Kernel v1.0.2 - Complete Milestone 3 Storage
+
+RUN CI HOSTED ATAS TIP (gh api actions/runs?head_sha=201fb0f367ff9e2adbd100b786d39f5038dea916)
+  run 40084708640  push          completed success  2026-10-24T10:08:14Z -> 2026-10-24T10:09:10Z  workflow=asl-ci-minimal branch=feature/v1.0.2-r1
+  run 40084712236  pull_request  completed success  2026-10-24T10:08:17Z -> 2026-10-24T10:09:18Z  workflow=asl-ci-minimal branch=feature/v1.0.2-r1
+
+PROTEKSI BRANCH main (gh api branches/main/protection) - syarat teknis BAGIAN 7
+  required_status_checks.strict=true contexts=["test-and-build"] | approvals=0 | enforce_admins=true | allow_force_pushes=false | required_linear_history=false
+  commit origin/main yang TIDAK ada di cabang (4):
+    1f096ed Merge pull request #9 from qomaruddindjamal/qomaruddindjamal-patch-2
+    d4c4375 Update README.md
+    726f137 Merge pull request #8 from qomaruddindjamal/qomaruddindjamal-patch-1
+    09c618f Update README.md
+  commit cabang yang TIDAK ada di origin/main: 47
+
+TAG LOKAL vs ORIGIN, DAN RILIS
+  tag v1.0.0         lokal=ada  (objecttype=tag -> 8ff19c3)  origin=ada 
+  tag v1.0.1         lokal=ada  (objecttype=tag -> b478ee5)  origin=ada 
+  tag v1.0.1-alfa    lokal=ada  (objecttype=commit -> b6c8b58)  origin=TIDAK ADA
+  tag v1.1.0         lokal=ada  (objecttype=tag -> 7104814)  origin=TIDAK ADA
+  rilis v1.0.0   draft=False prerelease=True  published=2026-10-13T06:14:22Z aset=4
+  rilis v1.0.1   draft=False prerelease=True  published=2026-10-17T05:25:25Z aset=6
+
+DOKUMEN MISI TERMEASUR (git log -1 --format=%ci per berkas; mandat: ikuti yang terbaru)
+  docs/RND/ASL-V1.0.2-R1-STATUS-BAGIAN-2.md            ada=True  commit terakhir=2026-10-23 03:00:00 +0700
+  Analysis/reports/STATUS-KERJA-v1.0.2-2026-10-21.md   ada=True  commit terakhir=2026-10-21 13:14:51 +0700
+  docs/ROADMAP/HANDOFF_STATE.json                      ada=True  commit terakhir=2026-10-24 17:07:58 +0700
+  docs/TOOLING/LIMINE-PIN.json                         ada=True  commit terakhir=2026-10-24 15:41:30 +0700
+  README.md                                            ada=True  commit terakhir=2026-10-21 13:14:51 +0700
+  RELEASE_NOTES.md                                     ada=True  commit terakhir=2026-10-21 06:43:59 +0700
+
+PERKAKAS BOOT TERUKUR SAAT INI
+  Test-Path tools\limine\v8.7.0\limine.exe = False | isi tools\ = ["Accountability_Watchdog.py", "Gemini_Assist.py", "Sub_Assist.py", "gen_asl_font.py", "limine", "pack_boot_fonts.py", "tla2tools-v157.jar", "tla2tools.jar"]
+  scripts/check_limine.ps1 exit 1 (fail-closed, perkakas belum ada) | ledger pinned_version=8.7.0
+  staging asl-kernel\target\iso_root\boot\limine ada=False dengan 0 berkas | ISO asl-core-kernel.iso ada=False ukuran=0 sha256=TIDAK ADA ISO
+  bekas inspeksi K-5 di tools\limine\_inspeksi (BELUM dipin, BELUM dipasang): limine-8.7.0.tar.gz 603144 B sha=a70a11f69b4ca5d8; limine-binary.zip 2110373 B sha=5f6916d5bcae8f13; limine-binary.zip.sig 566 B sha=fcadc3d33339a7f6 | sha256 yang SAMA dengan blok kandidat ledger: 2 dari 3 berkas
+  artefak terproteksi ada={"scripts/g9_final_p8_run.ps1": true, "docs/ROADMAP/CHECKLIST_STATE.json": true} | CHECKLIST_STATE.json version=1.1.0 dengan 49 gate (44 PASS) - TIDAK disentuh
+  README.md:138 (milik pemilik, dibaca saja): "C:\asl\asl-kernel\target\limine_v8_binary\limine.exe bios-install C:\asl\asl-kernel\targ"
+
+ASUMSI vs NYATA - 7 BEDA, 3 SAMA
+  [BEDA] ASUMSI: PR #6 dan PR #7 adalah PR misi yang masih terbuka dan ditahan
+        NYATA TERUKUR: PR #6 MERGED 2026-10-21T11:03:17Z (base main, head feature/v1.0.2-shell); satu-satunya PR TERBUKA = PR #7 dengan mergeable=True mergeable_state=behind (penyebab state terukur: 4 commit origin/main tidak ada di cabang, 47 commit cabang tidak ada di origin/main); head sha PR #7 == tip 201fb0f
+  [BEDA] ASUMSI: rilis lama v1.0.2 pernah dipotong dan perlu diarsip-then-hapus
+        NYATA TERUKUR: tag v1.0.2 TIDAK ADA di pohon tag lokal MAUPUN origin; 2 rilis yang ada = v1.0.0, v1.0.1; jadi tidak ada yang dihapus untuk v1.0.2
+  [BEDA] ASUMSI: rilis v1.1.0 ada di GitHub dan tag v1.1.0 ada di origin
+        NYATA TERUKUR: tag v1.1.0 ADA LOKAL (objecttype tag -> 7104814) tetapi TIDAK ADA di origin; TIDAK ada release untuk v1.1.0 (2 rilis: v1.0.0, v1.0.1)
+  [BEDA] ASUMSI: daftar tag di origin sama dengan daftar tag lokal
+        NYATA TERUKUR: origin hanya ["v1.0.0", "v1.0.1"]; lokal hanya ["v1.0.0", "v1.0.1", "v1.0.1-alfa", "v1.1.0"]; selisih = ["v1.0.1-alfa", "v1.1.0"]
+  [SAMA] ASUMSI: perkakas Limine ter-pin belum terpasang sehingga blocker #50 terbuka
+        NYATA TERUKUR: Test-Path tools\limine\v8.7.0\limine.exe = False; isi tools\ = ["Accountability_Watchdog.py", "Gemini_Assist.py", "Sub_Assist.py", "gen_asl_font.py", "limine", "pack_boot_fonts.py", "tla2tools-v157.jar", "tla2tools.jar"]; check_limine.ps1 exit 1 (fail-closed); ledger pinned_version=8.7.0; staging asl-kernel\target\iso_root\boot\limine berisi 0 berkas
+  [SAMA] ASUMSI: gerbang hijau di tip saat ini dan nol berkas .rs pada rantai R1
+        NYATA TERUKUR: dua run atas 201fb0f = completed/success (40084708640, 40084712236); ekstrak terukur pada keduanya suite=30 passed=262 failed=0 per_test_ok=262 warn1=19 compile=13 warn2=0 err2=0 (satu varian); nol berkas .rs pada 4335e41..HEAD = 0 baris
+  [SAMA] ASUMSI: 20 artefak g9_final_p8_* untracked ditahan dan tidak disentuh
+        NYATA TERUKUR: terukur git status: 20 baris untracked g9_final_p8_* (deret pertama Analysis/reports/g9_final_p8_qemu_stderr_2026-10-21_13-22-57.log); 2 baris untracked lainnya = dua ekstrak G8 yang dibawa komit ini; nol berkas ter-track yang berubah
+  [BEDA] ASUMSI: bukti akhir memerlukan jendela yang disaksikan pemilik
+        NYATA TERUKUR: mandat R3 2026-10-24: pemilik bepergian dan TIDAK bisa dihubungi; jendela disaksikan DIGANTI jendela VM tak-disaksikan; VERIFIED-ON-HARDWARE tetap 0
+  [BEDA] ASUMSI: dokumen misi satu suara soal operasi tag
+        NYATA TERUKUR: bertentangan: Analysis/reports/STATUS-KERJA-v1.0.2-2026-10-21.md (commit 2026-10-21 13:14:51 +0700) mewajibkan P9 hapus v1.1.0 + terbit v1.0.2, sedangkan docs/RND/ASL-V1.0.2-R1-STATUS-BAGIAN-2.md (commit 2026-10-23 03:00:00 +0700) melarang operasi tag tanpa perintah; mandat R3 2026-10-24 adalah berkas terbaru dan yang berlaku
+  [BEDA] ASUMSI: PR misi tinggal di-merge apa adanya ke main
+        NYATA TERUKUR: belum siap: proteksi branch main =required_status_checks.strict=true contexts=["test-and-build"] | approvals=0 | enforce_admins=true | allow_force_pushes=false | required_linear_history=false; cabang ini 4 commit DI BELAKANG origin/main dan 47 commit di depannya (sebabnya 4 commit patch README pemilik di main belum ada di cabang); langkah wajib BAGIAN 7 sebelum merge = SATU commit merge origin/main ke cabang (nol rebase, nol force-push) lalu CI hijau di tip hasil merge
+
+PERBEDAAN YANG DIKATAKAN PEMANDU BAGIAN 1 DITUTUP OLEH ENTRI FAULT LOG INI. 7 asumsi terukur
+BEDA dan 3 terukur SAMA. Empat BEDA pertama soal keadaan pohon dan origin: (1) PR #6 sudah
+MERGED 2026-10-21T11:03:17Z, bukan ditahan terbuka; (2) tag v1.0.2 tidak ada di mana pun sehingga tidak ada yang
+diarsip/dihapus untuk versi itu; (3) v1.1.0 hanya tag LOKAL tanpa rilis GitHub, padahal perintah
+lama mengasumsikan rilis v1.1.0 ada di origin; (4) daftar tag origin TIDAK sama dengan daftar
+lokal (selisih ["v1.0.1-alfa", "v1.1.0"]). Tiga BEDA sisanya: (5) bukti akhir dulu mensyaratkan jendela yang disaksikan
+pemilik, kini diganti jendela VM tak-disaksikan atas otorisasi tertulis 2026-10-24 sehingga
+VERIFIED-ON-HARDWARE tetap 0; (6) dokumen misi saling bertentangan soal operasi tag, dan yang
+berlaku adalah mandat R3 sebagai berkas terbaru; (7) PR #7 belum bisa langsung di-merge karena
+proteksi main menuntut branch up-to-date (strict=true) sementara 4 commit di main belum ada di
+cabang ini. Dua hal yang terukur TETAP
+benar: blocker perkakas Limine masih terbuka (exit 1) dan rantai R1 nol berkas .rs dengan CI
+hijau di tip.
+
+UTANG G8 ATAS TIP INI IKUT DITUTUP KOMIT INI (aturan: ekstrak sebuah commit dibawa commit
+BERIKUTNYA; komit ini tidak memuat ekstrak dirinya sendiri). Dua run atas 201fb0f ditangkap
+log mentahnya (`gh run view --log`, stderr NOL byte) dan dihitung logs/p7_extract2.py pada
+2026-10-24T10:51:24Z sampai 2026-10-24T10:51:33Z:
+  40084708640  log mentah 218229 B, 1481 baris
+  40084712236  log mentah 221725 B, 1513 baris
+  run 40084708640   11192 B  barisLF=94  headSha=201fb0f  sha=eb688de807d840b1...
+  run 40084712236   11208 B  barisLF=94  headSha=201fb0f  sha=ba302b2856357303...
+Keduanya suite=30 passed=262 failed=0 per_test_ok=262 warn1=19 compile=13 warn2=0 err2=0 -
+satu varian, sama seperti sebelas run hosted unit K-5 sebelumnya. Sesudah komit ini utang
+tersisa = pasangan atas tip komit ini sendiri.
+
+KELAS BUKTI: VERIFIED-ON-HOST (keluaran alat di mesin ini) dan VERIFIED-ON-CI-API (run +
+PR + tag + rilis). VERIFIED-ON-HARDWARE TETAP NOL. Tahan yang DICABUT mandat (merge PR
+misi, potong tag/rilis, LAPORAN-FINAL, jendela disaksikan) dan yang TETAP TERLARANG mutlak
+(nol tulis ESP/disk fisik, nol amend/rebase/reset/force-push, artefak terproteksi, rilis
+dari tree merah, hapus tag di luar BAGIAN 7) dicatat sebagai entri fault log berikutnya.
+
+DAFTAR PANGGILAN gh api + WAKTU MESIN KETIKA DIPANGGIL (nol angka sumber yang dikutip dari
+sesi lama; setiap nilai di berkas ini berasal dari salah satu panggilan di bawah atau dari
+perintah git yang tercatat di bagian masing-masing)
+  2026-10-24T11:06:18Z  gh api repos/qomaruddindjamal/asl/pulls?state=all&per_page=30
+  2026-10-24T11:06:19Z  gh api repos/qomaruddindjamal/asl/pulls/7
+  2026-10-24T11:06:20Z  gh api repos/qomaruddindjamal/asl/branches/main/protection
+  2026-10-24T11:06:20Z  gh api repos/qomaruddindjamal/asl/actions/runs?head_sha=201fb0f367ff9e2adbd100b786d39f5038dea916
+  2026-10-24T11:06:21Z  gh api repos/qomaruddindjamal/asl/git/refs/tags
+  2026-10-24T11:06:22Z  gh api repos/qomaruddindjamal/asl/releases
+

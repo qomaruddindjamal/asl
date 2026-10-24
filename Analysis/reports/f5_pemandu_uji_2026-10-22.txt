@@ -1,0 +1,208 @@
+UNIT F5 — INDIKATOR INPUT (LABEL MODE BERPANDUAN + PENANDA KURSOR IDLE)
+=========================================================================
+Tanggal             : 2026-10-22
+Cabang              : feature/v1.0.2-r1
+Induk commit        : a44fbaf ([V1.0.2-R1-F4-ARGUMEN])
+Mandat              : F5 dari MASTER PROMPT R1-REVISI, diperluas keputusan
+                      pemilik dengan entri ke-38 (umpan balik kemajuan layar
+                      untuk pekerjaan panjang) + dokumentasi varians durasi.
+Kelas bukti         : VERIFIED-ON-HOST (gerbang, test), VERIFIED-ON-VM
+                      (sesi QEMU + piksel framebuffer), RANCANGAN (tidak ada).
+                      VERIFIED-ON-HARDWARE tetap 0.
+
+0. APA YANG DIBUAT
+------------------
+(1) MODE BERPANDUAN, dibuka SESUDAH galat arity (keputusan pemilik): baris
+    `Kesalahan: jumlah argumen tidak sesuai - Sintaks: ...` tetap tercetak apa
+    adanya, penjaga arity 12 perintah tidak diubah, lalu shell mencetak label
+    konteks dan memakai baris berikutnya sebagai argumen yang hilang.
+      create-folder  -> "Nama folder baru: "
+      create-file    -> "Nama berkas: "
+      write-file     -> "Nama berkas: " lalu "Isi <berkas> (baris N): "
+      baris kosong   -> batal / selesai
+    Lingkup sadar: TEPAT TIGA perintah terbimbing, hasil pemindaian REGISTRY
+    (asl-cockpit-shell/src/lib.rs:1099 `resolusi_pemandu`, REGISTRY satu-sumber).
+    Perintah lain tetap hanya menanggung galat arity.
+(2) PENANDA KURSOR SAAT IDLE, hanya di framebuffer: glif "_" menempati satu
+    baris piksel selebar 8; kedipan disinkron ke detik jam CMOS dengan periode
+    2 detik (`CURSOR_BLINK_PERIODE`, asl-cockpit-shell/src/lib.rs:145;
+    `kursor_nyala` di :149-150). Sumber detik = `baca_detik_rtc()`
+    (asl-kernel-core/src/lib.rs:1240), BUKAN pencacah tick APIC, karena galang
+    berjalan dengan interupsi dimatikan. Blok blink di ekor loop shell
+    (asl-kernel-core/src/lib.rs:2810-2824, guard `detik_terakhir` di :2221).
+(3) ENTRI #38 — CERMIN LAYAR: `DualOut` (asl-kernel-core/src/lib.rs:1067,
+    `text` :1073-1082, `number` :1083-1090) menulis satu teks ke serial COM1
+    DAN ke `FB_CONSOLE`. Rangkaian Gate 3D kini memakai jalur itu: 58 panggilan
+    `out.text(` + 16 `out.number(` di dalam `execute_gate3d_suite`
+    (asl-kernel-core/src/lib.rs:3148 ke bawah), plus snapshot
+    `[PROGRESS-SNAPSHOT]` tiap 25.000 tukar.
+(4) ROSTER LABEL: 39 konstanta `MSG_*` (28 warisan F3/F4 + 11 baru F5); test
+    roster `f3_labels()` array 39, `hoped` 39, tagihan dokumen 37
+    (asl-cockpit-shell/src/lib.rs:1968, :2022, :2258).
+
+1. GERBANG NOL-BARU (diukur pada tree final ini)
+------------------------------------------------
+`python scripts/r1_new_only_gate_check.py fmt`
+  asl-kernel-core/src/lib.rs   : baris saya 638, ingin diubah rustfmt 100, IRISAN BARU 0
+  asl-cockpit-shell/src/lib.rs : baris saya 678, ingin diubah rustfmt  28, IRISAN BARU 0
+  asl-storage/src/ramdisk.rs   : baris saya   0, ingin diubah rustfmt  19, IRISAN BARU 0
+  TOTAL deviasi BARU = 0
+`python scripts/r1_new_only_gate_check.py clippy` (artefak `> logs/clippy_r1_allow.txt 2>&1`)
+  tiga berkas cakupan: IRISAN BARU 0; TOTAL diagnostik BARU = 0
+  Warisan dilaporkan apa adanya: 138 diagnostik di seluruh workspace
+  (cockpit-shell 10, kernel-core 14), 25 ringkasan crate.
+Test host: `cargo test --workspace --lib` = 232 LULUS / 0 GAGAL
+  (cockpit-shell 36 lulus termasuk 10 test baru F5; kernel-core 31 lulus
+   termasuk 4 test baru F5 — 14 test F5 seluruhnya, semua lulus).
+Build rilis: 0 error; 14 warning seluruhnya di luar crate cakupan F5.
+
+2. BUILD, REPRODUSIBILITAS, DAN LANTAI MEMORI
+---------------------------------------------
+ELF kernel : 302.472 B  SHA256 1AC5513614235AE93FDC53AB37A13178FD057F9E2DF67F3DE274159BEDFD49D6
+ISO        : 4.177.920 B SHA256 E4CA4ABCC06A2CF0A33C2DADA98A659B45D229986B4FDFEA4B71768C571AF775
+             dua mastering terpisah (logs/f5_iso_final_a.iso / _b.iso) BYTE-IDENTIK
+             (`cmp` bersih), GPT Disk GUID pin e181e879-31ec-3d41-a200-b4997a320a0d.
+
+Delta bagian ELF F5 terhadap F4 (`logs/f5_elf_banding_bagian.py`, ELF F4
+diekstrak dari ISO F4 pada offset 3.520.512):
+  .text   207.567 -> 177.519  delta -30.048
+  .rodata  29.350 ->  30.150  delta    +800   (11 label MSG_* F5)
+  .bss    843.904 -> 852.096  delta  +8.192   (state Pemandu + penyangga)
+  .symtab   7.800 ->   8.256  delta    +456
+  .strtab  21.762 ->  22.851  delta  +1.089
+  TOTAL DELTA = -19.511 B
+
+CERITA GERBANG LANTAI MEMORI (laporan sebab, bukan pengubahan angka):
+  a) Run pertama `scripts/test_ram_floor_3mb.ps1` pada tree F5 pra-pengendalian
+     footprint memberi KEPUTUSAN 1 = REGRESI: ratchet 3.392K TIDAK boot
+     (serial 0 byte).Harness QEMU langsung mengonfirmasi angka itu nyata, bukan
+     artefak Start-Process.
+  b) Tangga ukuran RAM (`logs/f5_lantai_ladder.txt`) menemukan lantai baru
+     3.456K pada tree pra-pengendalian; 3.392K mati.
+  c) Delta bagian ELF menunjukkan penyebabnya: .text bertambah 45.808 B karena
+     `DualOut::text`/`number` disalin ke puluhan situs call Gate 3D
+     (opt-level=3, tanpa LTO, codegen-units 16).
+  d) Tindakan DALAM SCOPE: sembilan penanda `#[inline(never)]` —
+     `DualOut::text` (:1073), `DualOut::number` (:1083), `cetak_prompt` (:1288),
+     `jalankan_buat_folder` (:1334), `jalankan_buat_berkas` (:1359),
+     `jalankan_tulis_berkas` (:1388), `jalankan_aksi_pemandu` (:1453),
+     `terima_baris_panduan` (:1496), `buka_pemandu` (:1537). Alasannya ditulis
+     di komentar kode, bukan sebagai gaya.
+  e) Hasil terukur: ELF turun 73.248 B, .text 30.048 B DI BAWAH F4, ISO
+     4.177.920 B. Gerbang kembali KEPUTUSAN 2 (DEVIASI TERCATAT):
+       -m 3M    : TIDAK boot (serial 0 B) -> MERAH, tidak diubah jadi hijau
+       -m 3392K : boot penuh (serial 2.501 B, prompt akar) -> LULUS
+     Tangga pada tree final: 3.328K LULUS, 3.360K LULUS, 3.200K tidak boot.
+     Janji misi "boot pada 3 MB" tetap merah; hanya deviasi tercatat.
+
+3. SESI QEMU — MODE BERPANDUAN + ENTRI #38 (VERIFIED-ON-VM)
+-----------------------------------------------------------
+Sesi pertama  : Analysis/reports/f5_pemandu_serial_2026-10-22_08-13-46.log (17.416 B)
+Sesi kedua    : Analysis/reports/f5_pemandu_serial_2026-10-22_08-20-02.log (17.416 B)
+Kedua sesi memuat 27 vonis LULUS yang sama untuk pemeriksaan fungsional di
+bawah; beda jumlah periksa ada pada assertion alat (sesi pertama 31 periksa,
+sesi kedua 28 periksa - lihat Bagian 5). Vonis utuh tiap sesi disalin apa
+adanya dari keluaran konsol alat dan kini menjadi artefak:
+Analysis/reports/f5_pemandu_harness_vonis_2026-10-22_08-13-46.txt
+(TOTAL 27 LULUS / 31 periksa) dan
+Analysis/reports/f5_pemandu_harness_vonis_2026-10-22_08-20-02.txt
+(TOTAL 27 LULUS / 28 periksa).
+
+  galat arity tercetak         LULUS  Kesalahan: jumlah argumen tidak sesuai - Sintaks: create-folder <nama>
+  label Nama folder baru       LULUS  Nama folder baru:
+  create-folder panduan selesai LULUS Direkturori dibuat: /panduan (0 entri)
+  masuk /panduan               LULUS  Ruang kerja: /panduan
+  galat arity write-file       LULUS  Kesalahan: jumlah argumen tidak sesuai - Sintaks: write-file <nama> <t...
+  label Nama berkas            LULUS  Nama berkas:
+  label baris 1/2/3            LULUS  Isi catat.txt (baris 1): / (baris 2): / (baris 3):
+  tulis 20 byte                LULUS  Tertulis 20 byte di /panduan/catat.txt (berkas baru)
+  header isi                   LULUS  Isi /panduan/catat.txt (20 byte):
+  baris pertama / kedua        LULUS  baris satu / baris dua
+  label muncul lagi            LULUS  Nama folder baru:
+  batal baris kosong           LULUS  Dibatalkan: nama folder kosong - direktori tidak dibuat
+  nama panduan ditolak         LULUS  Kesalahan: nama lebih panjang dari batas 64 byte - perintah tidak dija...
+  pengumuman isi penuh         LULUS  Isi berhenti pada kapasitas satu slot 8192 byte  (74 baris x 110 char -> 8.192 B)
+  tulis penuh satu slot        LULUS  Tertulis 8192 byte di /panduan/penuh.txt (berkas baru)
+  beres catat.txt/penuh.txt    LULUS  Berkas dihapus: ... (20 / 8192 byte dibebaskan)
+  kembali ke akar              LULUS  Ruang kerja: /
+  beres panduan                LULUS  Direktori dihapus: /panduan (0 entri)
+  regresi meminfo lama         LULUS  Installed RAM: 256 MB
+  suite dimulai                LULUS  [GATE-3D-TEST]
+  telemetri akhir              LULUS  APIC Preemptive Switches:
+  prompt kembali               LULUS  ASL-KERNEL />_
+
+Durasi suite Gate 3D pada tree F5: 186,6 s (sesi 08-13-46) dan 205,2 s
+(sesi 08-20-02) pada ISO 256 MB yang sama.
+
+ENTRI #38 — ANGKA LAYAR (bukti perubahan piksel, BUKAN pembacaan teks):
+  sesi 08-13-46 : 202.788 piksel beda, 617 baris layar berubah isi,
+                  bbox (0, 2, 1023, 766), serial 3 x [PROGRESS-SNAPSHOT]
+  sesi 08-20-02 : 123.532 piksel beda, 509 baris layar berubah isi,
+                  bbox (0, 2, 1023, 764), serial 3 x [PROGRESS-SNAPSHOT]
+  Kedua angka dihitung ulang dari artefak screendump yang sama oleh
+  `logs/f5_38_reanalisis.py`; artefak tidak dibuang.
+
+4. SESI QEMU — PENANDA KURSOR (VERIFIED-ON-VM)
+----------------------------------------------
+`logs/f5_kursor_check.py` > `logs/f5_kursor_run2.txt`, 14 screendump dalam
+5,21 s (jarak rata-rata 0,40 s), keadaan glif dibaca per sampel:
+  deret diff bersebelahan : [0, 0, 8, 0, 0, 8, 0, 8, 0, 8, 0, 0, 8]
+  gabungan bbox perubahan : (120, 302, 127, 302) = 8 x 1 piksel
+  deret keadaan (1=glif)  : [0, 0, 0, 1, 1, 1, 0, 0, 1, 1, 0, 0, 0, 1]
+  waktu transisi (s)      : 1,18 / 2,39 / 3,20 / 4,00 / 5,21 (jarak 1,21/0,81/0,81/1,21)
+  serial selama sampling  : 2.519 -> 2.519 B (tambah 0)
+VONIS 6 LULUS / 6 pemeriksaan:
+  LULUS perubahan hanya selebar satu kolom karakter (8 x 1)
+  LULUS kedua fase kursor muncul (6/14 gambar berglif)
+  LULUS transisi cukup banyak untuk menyebut kedipan (5 transisi)
+  LULUS tidak ada kedip ganda di bawah 0,4 s (jarak minimum 0,81 s)
+  LULUS rata-rata jarak transisi sesuai periode 2 detik (rata-rata 1,01 s)
+  LULUS serial tidak bertambah selama blink idle (delta 0 byte)
+Sisa diff bbox pada titik lain sesi pemandu (176, 766)-(183, 766) juga 8 x 1
+piksel: bentuk glif yang sama di baris prompt yang berbeda.
+
+5. EMPAT KEKELIRUAN CHECKER SAYA SENDIRI (dilaporkan, artefak tidak dibuang)
+---------------------------------------------------------------------------
+(1)-(3) Sesi pertama 27/31: dua assertion blink mengandaikan dua dump
+    bersebelahan selalu berbeda, padahal satu `screendump` memakan ratusan ms
+    sehingga dua sampel bisa jatuh di detik yang sama (terukur d0-d1 = 0
+    piksel, d1-d2 = 8 piksel); satu assertion pengumuman isi penuh ditanyakan
+    SEBELUM baris kosong yang memicu cetakannya.
+(4) Sesi kedua 27/28: assertion entri #38 memakai "jumlah baris glif
+    bertambah" (`r1 > r0`). Ketika layar sudah penuh lalu menggulir, jumlah
+    baris bukan-hitam tetap jenuh di 583 sehingga metrik itu tidak naik walau
+    509 baris berubah isi dan 123.532 piksel berbeda. Kriteria yang benar
+    adalah baris-yang-berubah-isi, dihitung ulang di Bagian 3. Tidak ada
+    kegagalan produk di balik empat MERAH ini.
+
+6. DOKUMEN DAN GOVERNANCE YANG SINKRON
+--------------------------------------
+docs/PANDUAN/REFERENSI-PERINTAH.md : Pasal 6 koreksi nama berspasi; Pasal 7
+  subseksi "MODE BERPANDUAN: label konteks sesudah galat argumen (F5)" +
+  "Penanda kursor saat idle (F5)".
+docs/ROADMAP/PETA-KANONIK.md       : roster "(39 konstanta MSG_*)", Pasal 2A
+  MODE BERPANDUAN, baris `DualOut` untuk entri #38.
+docs/RND/ASL-V1.0.2-E8-LAPORAN-PENUTUPAN.md dan -AKAR-PENYEBAB-DAN-STATUS.md :
+  entri ke-38 DITUTUP pada F5 + varians durasi 64,0 s / 310,7 s ditambah dua
+  pengukuran tree F5 (186,6 s / 205,2 s).
+ACCOUNTABILITY_FAULT_LOG : entri ke-47 (keputusan pemilik F5, penanganan #38,
+  lingkup sadar tiga perintah terbimbing, regresi lantai memori + akar inline,
+  empat kekeliruan checker sendiri).
+HANDOFF_STATE.json       : kunci `v1_0_2_r1_f5_state` (append-only).
+Utang ekstrak hosted CI G8 atas a44fbaf ditutup lebih dulu oleh dua berkas:
+  Analysis/reports/ci_hosted_39732124375_2026-10-22.log
+  Analysis/reports/ci_hosted_39732130192_2026-10-22.log
+  (218 lulus / 0 gagal, 13 Compiling, 0 warning 0 error pada runner).
+
+7. BATAS JUJUR
+--------------
+- Klaim layar ditegakkan pada perubahan piksel terukur, bukan pada pembacaan
+  teks dari screenshot; tidak ada klaim "saya melihat" di VM.
+- Pengujian dijalankan di QEMU 256 MB; perangkat keras fisik belum.
+  VERIFIED-ON-HARDWARE = 0.
+- `scripts/g9_final_p8_run.ps1` sengaja tidak diubah (pembekuan alat sampai
+  R2); `scripts/ci_local.ps1` tidak dijalankan apa adanya.
+- Entri #38 ditutup sebagai "progres panjang kini tampak di layar"; durasi
+  suite tidak dibuat lebih cepat, hanya lebih terlihat.
+- PageUp/PageDown, Insert, F2-F12, paste, dan undo/redo riwayat tidak ada di
+  F5; itu wilayah F7 dan backlog jujur.

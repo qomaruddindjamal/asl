@@ -1,0 +1,4 @@
+asl-kernel/asl-kernel-core/src/lib.rs: baris saya 3, ingin diubah rustfmt 107, IRISAN BARU 0
+asl-kernel/asl-cockpit-shell/src/lib.rs: baris saya 0, ingin diubah rustfmt 28, IRISAN BARU 0
+asl-kernel/asl-storage/src/ramdisk.rs: baris saya 0, ingin diubah rustfmt 19, IRISAN BARU 0
+TOTAL deviasi/diagnostik BARU = 0

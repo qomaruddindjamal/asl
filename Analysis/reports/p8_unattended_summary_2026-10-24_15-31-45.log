@@ -1,0 +1,47 @@
+ASL P8 UNATTENDED VM ACCEPTANCE RUN (TAK-DISAKSIKAN) - 2026-10-24_15-31-45
+prompt satu-sumber : 'ASL-KERNEL >_ '
+kriteria           : 13 penanda, 17 baris sesi - DIBACA dari scripts\g9_final_p8_run.ps1 (nol salin tangan)
+QEMU               : QEMU emulator version 10.2.50 (v10.2.0-14086-g840320663e)
+ISO                : 4624384 bytes SHA256=1569c17157b98c8aa29c9e9d18ccb6aeb931c883d1e1a25983864df4206c668c
+ELF                : 312912 bytes SHA256=fb4eeb31e26b1cf9a289e4c697e6cea8230cd83a1ad45424cd2312ee5eee5d59
+mode               : headless (-display none); sesi lewat jalur serial ANSI dua arah
+kelas bukti        : VERIFIED-ON-VM (BUKAN VERIFIED-ON-HARDWARE)
+
+=== FASE 1 - cold boot -m 256M headless + sesi Bagian 3 lewat serial ===
+CMDLINE: C:\Program Files\qemu\qemu-system-x86_64.exe -machine q35 -vga std -cdrom C:\asl\asl-kernel\target\asl-core-kernel.iso -display none -no-reboot -no-shutdown -qmp tcp:127.0.0.1:44610,server,nowait -chardev socket,id=c0,host=127.0.0.1,port=44620,server=on,wait=on -serial chardev:c0
+Boot   : M6=True prompt=True crash=False (setelah 1.0s)
+         baris prompt terdeteksi: 'ASL-KERNEL />_'
+screendump sesudah boot: {"idx": 1, "ppm_ada": true, "ppm_bytes": 2359312, "ppm_sha256": "b89d7f253ee7cfb578f73300f5e8e67a5210d9e9588f5e2adca6641043e0b3c1", "png": "C:\\asl\\Analysis\\reports\\p8_unattended_screendump_2026-10-24_15-31-45_1.png", "png_bytes": 7546, "png_sha256": "aa8d1f2ea2d3dc3acf1792bfcf865f24ab2a2e36d7d68c66ddaffcf5960df71b", "dimensi": "1024x768"}
+
+=== Hasil sesi Bagian 3 (hitung kemunculan penanda di serial) ===
+Pemantau baris sesi: 17/17 baris mendapat prompt baru sebelum batas 60 s (selisih offset prompt, ANSI diluruhkan).
+Pengendapan buffer sebelum penanda dihitung: 0 byte tambahan dalam 1.3 s (diameter: gema/keluaran baris terakhir boleh mendarat sesudah batas).
+Penanda = literal dari alat P8; bila 0, varian dicari dari konstanta MSG_* sumber.
+Pokok penanda (audit prachecklist): 11 literal sumber, 1 teks baris sesi, 1 varian konstanta MSG_* sumber.
+  [OK  ] help (registry)              'Perintah kanonik Cockpit Shell' terukur 1 (butuh 1)
+  [OK  ] status                       'Status Cockpit Shell ' terukur 1 (butuh 1)
+  [OK  ] create-folder                'Direktori dibuat: ' terukur 1 (butuh 1)
+  [OK  ] list + alias dir             'Daftar isi /' terukur 2 (butuh 2)
+  [OK  ] cd (alias open) + open /     'Ruang kerja: ' terukur 4 (butuh 2)
+  [OK  ] create-file                  'Berkas dibuat: ' terukur 1 (butuh 1)
+  [OK  ] write-file                   'Tertulis ' terukur 1 (butuh 1)
+  [OK  ] isi berkas via alias cat     'halo dari sesi p8' terukur 2 (butuh 2)
+  [OK  ] delete-file                  'Berkas dihapus: ' terukur 1 (butuh 1)
+  [OK  ] delete-folder                'Direktori dihapus: ' terukur 1 (butuh 1)
+  [OK  ] help token tak dikenal       'Perintah tidak dikenal: ' terukur 1 (butuh 1)  <DRIFT: literal 'Perintah tidak dikenal: ' 0x; varian sumber 'Kesalahan: perintah tidak dikenal: ' terukur 1>
+  [OK  ] aritas salah -> Sintaks      'Sintaks: ' terukur 1 (butuh 1)
+  [OK  ] clear (sekuens ANSI)         '\x1b[2J' terukur 1 (butuh 1)
+DRIFT KRITERIA (literal alat P8 usang terhadap sumber; alat terproteksi TIDAK diubah):
+  - help token tak dikenal: 'Perintah tidak dikenal: ' terukur 0 -> 'Kesalahan: perintah tidak dikenal: ' terukur 1 dari asl-kernel\asl-cockpit-shell\src\lib.rs:67 (MSG_ERROR+MSG_UNKNOWN)
+Versi  : occurrence 'v1.0.2'=3  occurrence 'v1.1.0'=0  (gerbang: >=1 dan 0)
+Ukuran : serial=5787 byte  stderr total=195 byte; sisa=0 byte setelah 1 baris info chardev wait=on diluruhkan (gerbang: sisa 0)
+screendump sesudah sesi: {"idx": 2, "ppm_ada": true, "ppm_bytes": 2359312, "ppm_sha256": "f248c82c42aa77d778f50d1f69dda60104df7b38af8a2102bbc0748e56dc32f3", "png": "C:\\asl\\Analysis\\reports\\p8_unattended_screendump_2026-10-24_15-31-45_2.png", "png_bytes": 2619, "png_sha256": "e69369ca3932f6b7f13f4ef1bac893df0834ee918320ffb82024492c40ab1551", "dimensi": "1024x768"}
+[OK] fase 1 lulus: M6 + prompt + sesi Bagian 3 lengkap + gerbang versi + stderr sisa 0 byte.
+
+=== FASE 2 - percobaan boot headless pada -m 3M (janji Bagian 5) ===
+CMDLINE: C:\Program Files\qemu\qemu-system-x86_64.exe -machine q35 -vga std -cdrom C:\asl\asl-kernel\target\asl-core-kernel.iso -display none -no-reboot -no-shutdown -qmp tcp:127.0.0.1:44611,server,nowait -serial file:C:\asl\Analysis\reports\p8_unattended_serial_3m_2026-10-24_15-31-45.log
+Hasil  : M6=True prompt=True crash=False serial=2518 byte stderr=0 byte (sisa=0, info=0)
+[OK] fase 2: janji Bagian 5 -m 3M LULUS pada ISO ini.
+screendump fase 2 (-m 3M): {"idx": 3, "ppm_ada": true, "ppm_bytes": 2359312, "ppm_sha256": "18db522cb0cda9e3d1e214719da0417bed95508dd6f71169accbc4c1c58fb53b", "png": "C:\\asl\\Analysis\\reports\\p8_unattended_screendump_2026-10-24_15-31-45_3.png", "png_bytes": 7544, "png_sha256": "f17d54aa0fd429c41c6c32802f9268fde25dfe30feb5454be2449071706ddc38", "dimensi": "1024x768"}
+
+[PASS] jendela VM tak-disaksikan penuh: fase 1 + fase 2 -m 3M lulus.

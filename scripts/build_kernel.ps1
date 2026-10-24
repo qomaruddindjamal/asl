@@ -97,9 +97,11 @@ switch ($Action) {
 
         # 2. Check xorriso and limine tools
         $xorriso = Assert-Tool "xorriso" "xorriso.exe"
-        $limineExe = Join-Path $Workspace "target\limine_v8_binary\limine.exe"
+        # K-5: the host utility lives OUTSIDE target/, because `cargo clean` deletes the
+        # whole of target/ and had taken the owner-installed limine.exe with it (fault log #50/#54).
+        $limineExe = Join-Path $RepoRoot "tools\limine\v8.7.0\limine.exe"
         if (-not (Test-Path $limineExe)) {
-            Write-Error "ERROR: Limine binary utility not found at '$limineExe'."
+            Write-Error "ERROR: Limine binary utility not found at '$limineExe'. See docs/TOOLING/LIMINE-PROVISIONING.md."
             exit 1
         }
 

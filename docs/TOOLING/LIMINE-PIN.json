@@ -2,18 +2,20 @@
   "schema_version": 1,
   "tool": "limine",
   "perintah_pemilik": "K-5: Versi dikunci Limine v8.7.0 resmi, dipasang DI LUAR target/ di C:\\asl\\tools\\limine\\v8.7.0\\; catat SHA256 limine.exe (dan payload) di ledger sebelum dipakai; pembanding byte payload selamat di logs/iso_recovery/boot/limine/, bila beda catat jangan dipaksakan.",
-  "pinned_version": "8.7.0",
-  "install_root": "C:\\asl\\tools\\limine\\v8.7.0",
-  "host_utility_expected_path": "C:\\asl\\tools\\limine\\v8.7.0\\limine.exe",
-  "host_utility_expected_version_string": "8.7.0",
-  "ledger_ditulis_utc": "2026-10-24T08:40:09Z",
+  "pinned_version": "12.9.4",
+  "install_root": "C:\\asl\\tools\\limine\\v12.9.4",
+  "host_utility_expected_path": "C:\\asl\\tools\\limine\\v12.9.4\\limine.exe",
+  "host_utility_expected_version_string": "12.9.4",
+  "ledger_ditulis_utc": "2026-10-24T11:39:45Z",
   "hash_utilitas_host_yang_dicatat": {
-    "catatan": "Diisi SEBELUM artefak dipakai (syarat pemilik K-5). null = belum dicatat karena perkakas pada versi pin belum ada.",
-    "sha256": null,
-    "bytes": null,
-    "diukur_utc": null
+    "catatan": "Diisi SEBELUM artefak dipakai (syarat pemilik K-5), dipenuhi pada komit ini. Angka diukur dari berkas yang terpasang di jalur pin dan DIBANDINGKAN dengan digest yang dipublikasikan sumber resmi lewat API rilis; cocok sebelum ditulis.",
+    "sha256": "f68d3c2c96aca8883134016567b8ba644dfbada2ec16750d3009df288006e9ec",
+    "bytes": 96256,
+    "diukur_utc": "2026-10-24T11:39:45Z",
+    "keluaran_version": "Limine 12.9.4",
+    "sumber": "anggota limine-binary.zip resmi: limine-tool-windows-x86/limine.exe"
   },
-  "status": "TERBLOKIR - tidak ada aset binari resmi untuk v8.7.0; pemenuhan pin menunggu keputusan pemilik (lihat pilihan)",
+  "status": "SIAP - pin varian A dipenuhi: limine.exe 12.9.4 resmi terpasang di jalur pin dan cocok dengan digest yang dipublikasikan sumber (lihat pemasangan_varian_a). Blocker #50 tertutup pada sisi host; bukti VM baru sah setelah rantai boot diukur ulang dengan perkakas ini.",
   "dipakai_oleh": [
     "scripts/build_kernel.ps1 (aksi iso, langkah 2 pemeriksaan alat lalu langkah 5 'bios-install')",
     "scripts/test_hv2_stack_overflow_qemu.ps1 (variabel $limineExe, baris 28)"
@@ -73,7 +75,23 @@
       "bytes": 566,
       "sha256": "fcadc3d33339a7f6d7d51ff3ae05212ad9435bcdb32c2f99d69240ee7f86b4f3",
       "unduh_utc": "2026-10-24T08:23:13Z",
-      "verifikasi": "GAGAL - kunci penanda tidak ada di ring lokal (pesan alat: 'Can't check signature: No public key', `gpg --verify` exit 2 terekam pada berkas logs/k5_gpg_verify.txt dengan mtime 2026-10-24T08:28:52Z, jam mesin UTC); kunci RSA 05D29860D0A0668AAEFB9D691F3C021BECA23821, tanggal tanda tangan 2026-10-19T23:10:35 SEAST (keluaran gpg, jam mesin lokal). Ring kunci dibuat gpg sebagai efek samping pemeriksaan (C:\\Users\\Administrator\\.gnupg); tidak ada kunci yang diimpor."
+      "verifikasi": "GAGAL - kunci penanda tidak ada di ring lokal (pesan alat: 'Can't check signature: No public key', `gpg --verify` exit 2 terekam pada berkas logs/k5_gpg_verify.txt dengan mtime 2026-10-24T08:28:52Z, jam mesin UTC); kunci RSA 05D29860D0A0668AAEFB9D691F3C021BECA23821, tanggal tanda tangan 2026-10-19T23:10:35 SEAST (keluaran gpg, jam mesin lokal). Ring kunci lokal dibuat gpg sebagai efek samping pemeriksaan di direktori profil pengguna (jalur personal SENGAJA tidak dicatat di ledger); tidak ada kunci yang diimpor saat itu.",
+      "verifikasi_ulang_bagian3": {
+        "utc": "2026-10-24T12:13:21Z",
+        "perintah": "gpg --verify limine-binary.zip.sig limine-binary.zip",
+        "exit": 0,
+        "baris_good_signature": 1,
+        "hasil": "Good signature (kunci penerbit sudah tersedia di ring lokal)",
+        "peringatan_tetap": "This key is not certified with a trusted signature - tanda tangan SAH dari kunci yang TIDAK disertifikasi web-of-trust; tidak ada kunci yang ditandai tepercaya secara manual.",
+        "sidik_jari_kunci_rsa": "05D29860D0A0668AAEFB9D691F3C021BECA23821",
+        "zip_sha256_terukur": "5f6916d5bcae8f13e0cabebb4d6f5ea0e82e505165fa899b38195868d7853655",
+        "sig_sha256_terukur": "fcadc3d33339a7f6d7d51ff3ae05212ad9435bcdb32c2f99d69240ee7f86b4f3",
+        "cocok_aset_resmi": {
+          "zip": true,
+          "sig": true
+        },
+        "catatan": "Perbedaan dengan pengukuran K-5 sub-komit 3 (exit 2, No public key) TERUKUR, bukan harapan. UID penerbit memuat surel pribadi; surel itu SENGAJA tidak ditulis di ledger maupun bukti - hanya sidik jari kunci. Bekas pengukuran ada di logs/r3_b3_gpg_exit.txt (gitignored)."
+      }
     },
     "anggota_dibutuhkan": {
       "host_utility_windows": {
@@ -208,5 +226,170 @@
       "judul": "Pemilik memasang sendiri limine.exe v8.7.0 seperti sebelumnya",
       "konsekuensi_terukur": "Jalur pin sudah siap (sub-komit 2); setelah berkas ada, scripts/check_limine.ps1 yang membandingkan terhadap ledger jadi langkah pembuka K-2. Catatan: tuliskan asal-usul berkas (URL rilis atau berkas lokal) karena repo tidak pernah melacak perkakas ini."
     }
-  ]
+  ],
+  "keputusan": {
+    "dipilih": "A",
+    "judul_dijamin": "Pindahkan pin ke v12.9.4 (paket binari resmi, termasuk limine.exe Windows)",
+    "dasar_otorisasi": "MASTER PROMPT R3 BAGIAN 2 keputusan P2 pemilik 2026-10-24 (tercatat di fault log entri ke-58): blocker #50 DISELESAIKAN LEBIH DULU lewat pin Limine varian A. BAGIAN 3 mengizinkan versi stabil resmi terdekat bila aset resmi pada versi pin tidak tersedia; v8.7.0 terukur punya NOL aset binari (delapan rilis v8.x, semuanya tarball sumber).",
+    "v_8_7_0_tetap_dicatat": "Blok aset_resmi_v8_7_0, rujukan_payload_v8_7_0_selamat, perbandingan_payload, kandidat_v12_9_4 dan perkakas_yang_diperlukan_untuk_membangun_dari_sumber DITINGGAL APA ADANYA sebagai sejarah pengukuran; tidak ada nilai ter-commit yang ditulis ulang.",
+    "konsekuensi_terpilih": "Keempat payload BEDA hash dan BEDA ukuran terhadap salinan v8.7.0, jadi ISO dan ukurannya berubah dan rantai boot WAJIB diukur ulang - angka lama tidak boleh disalin (BAGIAN 3 mandat)."
+  },
+  "pemasangan_varian_a": {
+    "sebelum": {
+      "pinned_version": "8.7.0",
+      "status": "TERBLOKIR (nol aset binari resmi)"
+    },
+    "sesudah": {
+      "pinned_version": "12.9.4",
+      "install_root": "C:\\asl\\tools\\limine\\v12.9.4"
+    },
+    "metode_unduh": "curl HTTPS langsung ke URL aset rilis resmi https://github.com/Limine-Bootloader/Limine/releases/download/v12.9.4/limine-binary.zip (dan .sig), tanpa perkakas pihak ketiga dan tanpa penyalinan dari berkas lama.",
+    "unduh_mulai_utc": "2026-10-24T11:35:27Z",
+    "unduh_selesai_utc": "2026-10-24T11:35:31Z",
+    "zip_hasil_unduh": {
+      "bytes": 2110373,
+      "sha256_dihitung": "5f6916d5bcae8f13e0cabebb4d6f5ea0e82e505165fa899b38195868d7853655"
+    },
+    "zip_digest_dipublikasikan_sumber": {
+      "bytes": 2110373,
+      "sha256": "5f6916d5bcae8f13e0cabebb4d6f5ea0e82e505165fa899b38195868d7853655",
+      "diukur_utc": "2026-10-24T11:39:46Z",
+      "metode": "gh api repos/Limine-Bootloader/Limine/releases/tags/v12.9.4 lalu field assets[].digest (format 'sha256:<64 hex>')"
+    },
+    "kecocokan_tiga_lapis": [
+      "unduhan baru 2026-10-24 = digest yang dipublikasikan sumber untuk aset yang sama (byte dan sha256 sama)",
+      "unduhan baru = sha256 yang diukur sesi K-5 pada 2026-10-24T08:17:54Z dari unduhan lepas (dua pengukuran berdiri sendiri atas berkas yang sama)",
+      "tanda tangan terpisah limine-binary.zip.sig terverifikasi: 'Good signature' dari kunci 05D29860D0A0668AAEFB9D691F3C021BECA23821 setelah kunci diimpor dari keyserver yang DIREKOMENDASIKAN TEKS RILIS ITU SENDIRI (hkps://keyserver.ubuntu.com, tercantum di body rilis v12.9.4); level web-of-trust kunci tetap [unknown] dan itu ditulis apa adanya, bukan dinaikkan"
+    ],
+    "gpg_informasi": {
+      "kunci_diimpor": "05D29860D0A0668AAEFB9D691F3C021BECA23821",
+      "identitas_uid": "Mintsuki - UID publik pada kunci penanda rilis, sebagaimana dicetak keluaran gpg",
+      "keluaran_verifikasi": "logs/r3_b3_gpg_verify.txt (scratch, di-ignored): 'gpg: Good signature from ... [unknown]' + peringatan 'not certified with a trusted signature', exit 0",
+      "banding_sesi_k5": "Sesi K-5 mencatat gpg --verify exit 2 'Can't check signature: No public key' karena kunci belum diimpor; pada komit ini kunci diimpor dan hasil menjadi exit 0."
+    },
+    "berkas_dipasang": {
+      "BOOTX64.EFI": {
+        "bytes": 385024,
+        "sha256": "8a7214bfd8b9a044b780f1e71b2752dc12ecc25c06b9cf39ac6a0a341c802282",
+        "anggota_zip": "limine-binary/BOOTX64.EFI"
+      },
+      "limine-bios-cd.bin": {
+        "bytes": 26624,
+        "sha256": "05efcd37e04e18dc3e66ecc79c698aa95791f8bcd77abc2e0e994ef5e19a8b14",
+        "anggota_zip": "limine-binary/limine-bios-cd.bin"
+      },
+      "limine-bios.sys": {
+        "bytes": 339788,
+        "sha256": "80468d0c0485447dc790d8be4c2834af3f581d3829867f66a273256ba91b65f8",
+        "anggota_zip": "limine-binary/limine-bios.sys"
+      },
+      "limine-uefi-cd.bin": {
+        "bytes": 3145728,
+        "sha256": "3496a6e858c2ea8fc90d1e208ffa883fe9b18d073d77aa18f146522a4d0e123c",
+        "anggota_zip": "limine-binary/limine-uefi-cd.bin"
+      },
+      "limine.exe": {
+        "bytes": 96256,
+        "sha256": "f68d3c2c96aca8883134016567b8ba644dfbada2ec16750d3009df288006e9ec",
+        "anggota_zip": "limine-binary/limine-tool-windows-x86/limine.exe"
+      }
+    },
+    "waktu_pasang_utc": "2026-10-24T11:36:07Z",
+    "catatan_hygiene": "tools/ di-ignored .gitignore baris 154-155: repo menyimpan VERSI, JALUR dan HASH, tidak pernah menyimpan perkakas atau hasil unduhannya."
+  },
+  "aset_resmi_v12_9_4": {
+    "rilis_url": "https://github.com/Limine-Bootloader/Limine/releases/tag/v12.9.4",
+    "tag": "v12.9.4",
+    "diterbitkan_utc": "2026-10-19T16:10:50Z",
+    "daftar_aset": [
+      {
+        "nama": "limine-12.9.4.tar.bz2",
+        "bytes": 698786,
+        "sha256": "982b3e2ec4fa231457826925545164edab5e5e434643000bc4fe0333f6a6d2b0"
+      },
+      {
+        "nama": "limine-12.9.4.tar.bz2.sig",
+        "bytes": 566,
+        "sha256": "622e3ed4a54b924fd64fe9bc1c62a5a21cb6d2d66a0fe46e032bbe643aa59a0c"
+      },
+      {
+        "nama": "limine-12.9.4.tar.gz",
+        "bytes": 832403,
+        "sha256": "4f75ffca8e11a1030e43e2b9ab82fac1a0f8985e1c40d429fea9fd2972693447"
+      },
+      {
+        "nama": "limine-12.9.4.tar.gz.sig",
+        "bytes": 566,
+        "sha256": "3f1d9b13ef6f2371f487282404233317f52c2e32cd8133783e053143b11f54f1"
+      },
+      {
+        "nama": "limine-12.9.4.tar.xz",
+        "bytes": 623876,
+        "sha256": "0b576463ec818d09df5dfd27d06cf3028be54bd95b12007053cc0818c041f4c3"
+      },
+      {
+        "nama": "limine-12.9.4.tar.xz.sig",
+        "bytes": 566,
+        "sha256": "62d4b99fe75e67161074bddd765de6837c12f75baa4ed8323ea3ecb2cd4accb7"
+      },
+      {
+        "nama": "limine-binary.tar.gz",
+        "bytes": 2118689,
+        "sha256": "847334bc4bc142de996fbd132806b89ed73ac9ab34dbc1e90cfebf1fcc68c2b1"
+      },
+      {
+        "nama": "limine-binary.tar.gz.sig",
+        "bytes": 566,
+        "sha256": "170b6b4853bd0140c52a7ec703f1ee52489845666246de22e7244ce956dd66c6"
+      },
+      {
+        "nama": "limine-binary.tar.xz",
+        "bytes": 896648,
+        "sha256": "9880cc04681262214db9b824ed8a5c55296955027d8caa9f55ab52a6dd85d6a0"
+      },
+      {
+        "nama": "limine-binary.tar.xz.sig",
+        "bytes": 566,
+        "sha256": "a664d35181c370a27899ca7a9f15529f5c8161c959b2f5eb3d3b2cb5b6a45b95"
+      },
+      {
+        "nama": "limine-binary.zip",
+        "bytes": 2110373,
+        "sha256": "5f6916d5bcae8f13e0cabebb4d6f5ea0e82e505165fa899b38195868d7853655"
+      },
+      {
+        "nama": "limine-binary.zip.sig",
+        "bytes": 566,
+        "sha256": "fcadc3d33339a7f6d7d51ff3ae05212ad9435bcdb32c2f99d69240ee7f86b4f3"
+      }
+    ],
+    "kutipan_teks_rilis": "Tarballs are signed using key ID 05D29860D0A0668AAEFB9D691F3C021BECA23821 which can be obtained from a keyserver such as keyserver.ubuntu.com (kutipan body rilis)",
+    "diukur_utc": "2026-10-24T11:39:46Z"
+  },
+  "payload_rujukan_aktif": "rujukan_payload_v12_9_4_resmi",
+  "rujukan_payload_v12_9_4_resmi": {
+    "lokasi": "C:\\asl\\tools\\limine\\v12.9.4 (hasil ekstrak limine-binary.zip resmi unduhan 2026-10-24)",
+    "sumber": "anggota arsip limine-binary/ dan limine-tool-windows-x86/ dari paket binari resmi v12.9.4",
+    "diukur_utc": "2026-10-24T11:39:45Z",
+    "berkas": {
+      "BOOTX64.EFI": {
+        "bytes": 385024,
+        "sha256": "8a7214bfd8b9a044b780f1e71b2752dc12ecc25c06b9cf39ac6a0a341c802282"
+      },
+      "limine-bios-cd.bin": {
+        "bytes": 26624,
+        "sha256": "05efcd37e04e18dc3e66ecc79c698aa95791f8bcd77abc2e0e994ef5e19a8b14"
+      },
+      "limine-bios.sys": {
+        "bytes": 339788,
+        "sha256": "80468d0c0485447dc790d8be4c2834af3f581d3829867f66a273256ba91b65f8"
+      },
+      "limine-uefi-cd.bin": {
+        "bytes": 3145728,
+        "sha256": "3496a6e858c2ea8fc90d1e208ffa883fe9b18d073d77aa18f146522a4d0e123c"
+      }
+    }
+  },
+  "ledger_diperbarui_utc": "2026-10-24T12:19:12Z",
+  "alasan_diperbarui": "Sanitasi jalur personal di blok verifikasi .sig (BAGIAN 9 MASTER PROMPT R3: nol jalur personal di berkas ter-commit) + blok verifikasi_ulang_bagian3 berisi pengukuran gpg exit code/waktu/sidik jari dari logs/r3_b3_gpg_exit.txt. Kunci riwayat v8.7.0 tidak dihapus."
 }

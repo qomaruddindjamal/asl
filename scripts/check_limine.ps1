@@ -63,7 +63,16 @@ if (-not (Test-Path $root)) {
 
 Write-Host ""
 Write-Host "-- 2. Payload pada jalur pin vs rujukan ledger (byte-identik)"
-$rujuk = $L.rujukan_payload_v8_7_0_selamat.berkas
+# Rujukan aktif dibaca dari ledger (kunci payload_rujukan_aktif) supaya pergantian versi pin
+# tidak lagi menuntut suntingan di alat periksa - akar fault log #50/#54 adalah alat yang
+# mengasumsi satu versi tertentu.
+$refKey = $L.payload_rujukan_aktif
+if (-not $refKey) {
+    Write-Host "   LEDGER tidak punya kunci payload_rujukan_aktif - pemeriksaan tidak bisa dijalankan."
+    exit 1
+}
+Write-Host "   kunci rujukan aktif: $refKey"
+$rujuk = $L.$refKey.berkas
 foreach ($nama in @("BOOTX64.EFI", "limine-bios-cd.bin", "limine-bios.sys", "limine-uefi-cd.bin")) {
     $ref = $rujuk.$nama
     $p = Join-Path $root $nama

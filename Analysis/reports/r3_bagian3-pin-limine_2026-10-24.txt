@@ -1,0 +1,260 @@
+BERKAS BUKTI R3 BAGIAN 3 - PIN LIMINE VARIAN A DIIIMPLEMENTASIKAN + RANTAI BOOT DIUKUR ULANG
+========================================================================================
+Diukur 2026-10-24T12:36:12Z (UTC). Jam mesin lokal 2026-10-24 19:36:12 dengan selisih terukur 7.0 jam terhadap UTC.
+Alat: naskah scratch logs/r3_b3_tulis_bukti.py (gitignored) membaca keluaran alat yang tertangkap di logs/,
+     berkas di disk, git, dan GitHub API pada satu kesempatan. NOL angka diketik tangan.
+Cabang feature/v1.0.2-r1 tip 7108d84 (pesan commit tip: [V1.0.2-R3-BAGIAN2] MASTER PROMPT R3 BAGIAN 2 (E). origin sinkron (left-right count: 0 0).
+Kelas bukti unit ini: VERIFIED-ON-HOST (perkakas + ledger + gerbang host), VERIFIED-ON-VM (boot QEMU headless),
+VERIFIED-ON-CI-API (metadata run). VERIFIED-ON-HARDWARE TETAP NOL.
+Pemetaan mandat: BAGIAN 3 MASTER PROMPT R3; P2 butir 7 STATUS-BAGIAN-2; penutup blocker #50 dan #54.
+Ganti teks non-ASCII dengan '-': 0 karakter (semuanya pada sisipan markdown, dihitung oleh alat).
+
+1. YANG DIMINTA MANDAT DAN YANG DIHASILKAN
+==========================================
+  Butir mandat BAGIAN 3: unduh binari resmi via HTTPS, verifikasi SHA256 terhadap hash resmi yang
+  dipublikasikan, pasang di jalur yang diharapkan tooling, jalankan check_limine sampai exit 0,
+  ukur ulang rantai boot SEPENUHNYA (angka lama dilarang disalin), commit + push.
+  Hasil terukur: keempat langkah pertama TERPENUHI; rantai boot diukur ulang dari nol; dua ekstrak
+  hosted CI atas 7108d84 ikut dibawa (utang G8 ditutup komit ini).
+  Versi yang dipasang: v12.9.4 (varian A). Alasannya terukur di unit K-5 dan diikat di ledger:
+  rilis resmi v8.7.0 punya NOL aset binari (408 rilis diperiksa, delapan tag v8.x hanya tarball sumber),
+  sehingga 'binari resmi' hanya ada mulai v12.6.1; v12.9.4 adalah rilis stabil resmi terdekat yang
+  payloadnya terbukti menghidupkan rantai boot ini - dan BUKTI itu sudah TERUKUR di bawah, bukan dugaan.
+
+2. PROVENANSI TIGA LAPIS (TERUKUR, BUKAN DIINGAT)
+=================================================
+  [L1] digest yang DIPUBLIKASIKAN sumber (GitHub API releases/tags/v12.9.4, aset limine-binary.zip):
+       size 2110373 B, digest sha256 5f6916d5bcae8f13e0cabebb4d6f5ea0e82e505165fa899b38195868d7853655; published_at 2026-10-19T16:10:50Z; updated_at 2026-10-19T16:10:50Z
+  [L2] byte yang ada di disk mesin ini: 2110373 B, sha256 5f6916d5bcae8f13e0cabebb4d6f5ea0e82e505165fa899b38195868d7853655 -> sama dengan L1: YA
+  [L3] tanda tangan GPG atas paket yang sama (566 B, sha256 fcadc3d33339a7f6d7d51ff3ae05212ad9435bcdb32c2f99d69240ee7f86b4f3):
+       perintah `gpg --verify <sig> <zip>` dijalankan 2026-10-24T12:13:21Z (jam mesin UTC, berkas logs/r3_b3_gpg_exit.txt):
+       EXIT CODE TERUKUR = 0; baris 'Good signature' = 1; kunci RSA 05D29860D0A0668AAEFB9D691F3C021BECA23821
+       sidik jari yang DIBACA alat dari paket di disk: zip 5f6916d5bcae8f13... (terunduh dicatat ledger 5f6916d5bcae8f13... -> sama), sig fcadc3d33339a7f6... (ledger fcadc3d33339a7f6... -> sama)
+       tanggal tanda tangan pada keluaran alat: Mon Oct 19 2026 23:10:35 SEAST (jam mesin lokal).
+       PERINGATAN yang TIDAK disembunyikan: 'This key is not certified with a trusted signature'.
+       Ini tanda tangan YANG SAH dari kunci yang TIDAK disertifikasi web-of-trust; tidak ada kunci
+       yang diimpor sebagai tepercaya. Bandingkan dengan pengukuran K-5 sub-komit 3: pada saat itu
+       gpg --verify EXIT 2 ('Can't check signature: No public key'); kini kunci penerbit tersedia di
+       ring dan hasil pemeriksaan berubah menjadi good signature. Perbedaan itu TERUKUR, bukan harapan.
+  Catatan hygiene: UID penerbit pada kunci berisi alamat surel pribadi; alamat itu SENGAJA tidak ditulis
+  di berkas bukti, ledger, maupun dokumen - yang diikat hanya sidik jari kunci.
+
+3. PERKAKAS TERPASANG (jalur yang diharapkan tooling)
+=====================================================
+  install_root ledger : C:\asl\tools\limine\v12.9.4   (ditulis 2026-10-24T11:39:45Z)
+  limine.exe          : 96256 B, sha256 f68d3c2c96aca8883134016567b8ba644dfbada2ec16750d3009df288006e9ec
+  cocok ledger        : YA (ledger f68d3c2c96aca8883134016567b8ba644dfbada2ec16750d3009df288006e9ec)
+  --version penuh     : Limine 12.9.4 Copyright (C) 2019-2026 Mintsuki, 2026 Kamila Szewczyk, and contributors. Limine is distributed under the terms of the BSD-2-Clause license. There is ABSOLUTELY NO WARRANTY, to the extent permitted by law.
+  BOOTX64.EFI       : 385024 B, sha256 8a7214bfd8b9a044b780f1e71b2752dc12ecc25c06b9cf39ac6a0a341c802282, cocok rujukan ledger: YA
+  limine-bios-cd.bin: 26624 B, sha256 05efcd37e04e18dc3e66ecc79c698aa95791f8bcd77abc2e0e994ef5e19a8b14, cocok rujukan ledger: YA
+  limine-bios.sys   : 339788 B, sha256 80468d0c0485447dc790d8be4c2834af3f581d3829867f66a273256ba91b65f8, cocok rujukan ledger: YA
+  limine-uefi-cd.bin: 3145728 B, sha256 3496a6e858c2ea8fc90d1e208ffa883fe9b18d073d77aa18f146522a4d0e123c, cocok rujukan ledger: YA
+
+4. check_limine.ps1 - GERBANG FAIL-CLOSED EXIT 0
+================================================
+  baris kepala keluaran: == LEDGER: pinned_version=12.9.4 install_root=C:\asl\tools\limine\v12.9.4 | == Waktu ledger ditulis (UTC): 2026-10-24T11:39:45Z | == RINGKASAN | SIAP: perkakas cocok dengan ledger; boleh menjalankan scripts/build_kernel.ps1 -Action iso.
+  dijalankan ulang pada 2026-10-24T12:22:50Z (jam mesin UTC) dengan keluaran di logs/r3_b3_check_limine2.txt;
+  exit code TERUKUR 0 (bukan disimpulkan dari kata SIAP).
+  jumlah baris COCOK yang dicetak alat: 8 = 4 nama payload x 2 lokasi (jalur pin + staging iso_root):
+    BOOTX64.EFI        COCOK (385024 B)
+    limine-bios-cd.bin COCOK (26624 B)
+    limine-bios.sys    COCOK (339788 B)
+    limine-uefi-cd.bin COCOK (3145728 B)
+    BOOTX64.EFI        COCOK (385024 B)
+    limine-bios-cd.bin COCOK (26624 B)
+    limine-bios.sys    COCOK (339788 B)
+    limine-uefi-cd.bin COCOK (3145728 B)
+  ringkasan alat: SIAP: perkakas cocok dengan ledger; boleh menjalankan scripts/build_kernel.ps1 -Action iso.
+  Perubahan alat: kunci rujukan payload tidak lagi dihardcode - dibaca dari
+  $L.payload_rujukan_aktif = 'rujukan_payload_v12_9_4_resmi' sehingga ledger tetap satu-sumber.
+
+5. STAGING ISO_ROOT DARI LEDGER (scripts/stage_iso_root.ps1, BARU)
+==================================================================
+  Naskah ini menutup akar kedua yang ditemukan di unit ini: isi ISO (payload dan limine.conf) tidak
+  pernah dilacak repository, sehingga 'build ISO dari tree bersih' mustahil. limine.conf kini tracked di
+  asl-kernel/config/limine.conf dan payload disalin dari jalur pin SETELAH diverifikasi ukuran+SHA256
+  terhadap ledger. Keluaran terukur:
+    BOOTX64.EFI         : TERSALIN 385024 B, hash cocok ledger
+    limine-bios-cd.bin  : TERSALIN 26624 B, hash cocok ledger
+    limine-bios.sys     : TERSALIN 339788 B, hash cocok ledger
+    limine-uefi-cd.bin  : TERSALIN 3145728 B, hash cocok ledger
+    limine.conf : TERSALIN ke C:\asl\asl-kernel\target\iso_root\boot\limine\limine.conf (197 B, sha 78a1e9324e7e1fd9)...
+    limine.conf : TERSALIN ke C:\asl\asl-kernel\target\iso_root\boot\limine.conf (197 B, sha 78a1e9324e7e1fd9)...
+    SIAP: staging iso_root cocok dengan ledger. Lanjut scripts/build_kernel.ps1 -Action iso.
+  limine.conf ter-commit: 197 B, sha256 78a1e9324e7e1fd98f6d28af7f39f1d31d52790e16b7ba83cc3390910ae1ee7d (prefik terukur naskah staging: 78a1e9324e7e1fd9...)
+  Alasan konf tanpa daftar modul: kernel TIDAK membaca psf/cmdline. Terbukti dengan grep nol hasil
+  untuk 'psf', 'module', 'cmdline', 'asl.mode' di seluruh *.rs, dan boot di bawah lulus tanpa psf.
+
+6. PENGUASAAN ISO - PERILAKU BARU BOOTLOADER (AKAR KOREKSI NASKAH)
+==================================================================
+  Percobaan pertama `build_kernel.ps1 -Action iso` pada v12.9.4 EXIT 1 dengan pesan 'GPT header not found after bios-install'. Itu PERUBAHAN PERILAKU Limine 12.x, bukan regresi naskah: bios-install v12.9.4 tidak meninggalkan protective GPT, hybrid diubah ke layout MBR.
+  Byte yang BERBEDA antara dua penguasaan SEBELUM pin layout (salinan scratch r3_b3_iso_A.iso vs
+  r3_b3_iso_M1.iso, jam mesin 18:42:18 dan 18:42:28): 52 byte dalam 4 kelompok: 0x1B8..0x1BB (4 B); 0x461210..0x46121F (16 B); 0x461290..0x46129F (16 B); 0x461310..0x46131F (16 B)
+  Signature MBR 0x1B8 pada pasangan itu: dcf29bbf vs 93769861 (itulah 4 byte acak pertama; tiga kelompok
+  16 byte berikutnya adalah GUID entri partisi pada array yang ditinggalkan bios-install).
+  KOREKSI METODE yang juga dicatat: perbandingan PERTAMA yang saya lakukan memakai salinan
+  r3_b3_iso_A.iso vs r3_b3_iso_B.iso dan menghasilkan 0 byte berbeda - nol. Itu BUKAN bukti reproduksibilitas:
+  keduanya adalah salinan berkas yang sama karena xorriso dipanggil dari Git Bash, dan MSYS mengubah
+  argumen '/cygdrive/...' sehingga penguasaan itu sendiri gagal ('Neither stdio-path nor its directory
+  exist'). Perbandingan yang SAH baru terjadi setelah xorriso dipanggil dari PowerShell: 52 byte berbeda.
+  Sesudah percabangan pin MBR dipasang, dua penguasaan bersih (P1 vs P2) berbeda 0 byte dan signature MBR keduanya 79e881e1 vs 79e881e1.
+  Koreksi: percabangan pin layout MBR ditulis di build_kernel.ps1 (4 B signature MBR + 3 GUID entri
+  partisi dari epoch yang sama), jalur GPT v8 dibiarkan ada, dan naskah fail-closed bila tidak ada
+  GPT header MAUPUN signature MBR 0x55AA. Pesan pin terukur:
+    [MBR disk signature pinned to 79e881e1 plus 3 partition-entry Unique GUID derived from epoch 1767225600 (Limine 12.x layout)]
+    [MBR disk signature pinned to 79e881e1 plus 3 partition-entry Unique GUID derived from epoch 1767225600 (Limine 12.x layout)]
+  Dua penguasaan bersih SESUDAH koreksi (AUD-03 reproduksibilitas):
+    build 1: 4624384 B, SHA256 1569c17157b98c8aa29c9e9d18ccb6aeb931c883d1e1a25983864df4206c668c   (header GPT tidak ada: True)
+    build 2: 4624384 B, SHA256 1569c17157b98c8aa29c9e9d18ccb6aeb931c883d1e1a25983864df4206c668c
+    identik byte: YA; ISO yang ada di disk sekarang: 4624384 B, SHA256 1569c17157b98c8aa29c9e9d18ccb6aeb931c883d1e1a25983864df4206c668c, cocok dengan keduanya: YA
+    (ISO aktif di asl-kernel/target) 4624384 B, sha 1569c17157b98c8aa29c9e9d18ccb6aeb931c883d1e1a25983864df4206c668c, signature MBR 0x1B8=79e881e1
+    r3_b3_iso_A.iso                4624384 B, sha 2b4c4ac25c240823039ffdcf6396604b807c9313e013844c7494272713b6c453, signature MBR 0x1B8=dcf29bbf
+    r3_b3_iso_B.iso                4624384 B, sha 2b4c4ac25c240823039ffdcf6396604b807c9313e013844c7494272713b6c453, signature MBR 0x1B8=dcf29bbf
+    r3_b3_iso_M1.iso               4624384 B, sha 7aceaead2d12530d329fccd76381937c65db2160b6643ff78e48d6c0457db42f, signature MBR 0x1B8=93769861
+    r3_b3_iso_P1.iso               4624384 B, sha 1569c17157b98c8aa29c9e9d18ccb6aeb931c883d1e1a25983864df4206c668c, signature MBR 0x1B8=79e881e1
+    r3_b3_iso_P2.iso               4624384 B, sha 1569c17157b98c8aa29c9e9d18ccb6aeb931c883d1e1a25983864df4206c668c, signature MBR 0x1B8=79e881e1
+
+7. BOOT QEMU HEADLESS PADA ISO BARU - KELAS VERIFIED-ON-VM
+==========================================================
+  Serial 2518 B; stderr QEMU 0 B (nol = tidak ada galat host). Mata rantai yang dicari satu per satu:
+    M0:  : ADA
+    M1:  : ADA
+    M2:  : ADA
+    M3:  : ADA
+    M4:  : ADA
+    M5:  : ADA
+    M6:  : ADA
+  Prompt shell dibaca dari satu-sumbernya (konstanta SHELL_PROMPT di asl-kernel/asl-cockpit-shell/src/lib.rs):
+    'ASL-KERNEL />_ ' -> ditemukan di akhir serial: YA
+  Baris akhir serial: ASL-KERNEL />_
+  Ini bukti VM PERTAMA sejak blocker #50 terbuka: bagian VM yang sebelumnya dinyatakan TERBLOKIR
+  kini TERBUKA. Tidak ada klaim perangkat keras: VERIFIED-ON-HARDWARE tetap 0.
+
+8. GERBANG LANTAI MEMORI DIUKUR ULANG PADA ISO v12.9.4
+======================================================
+  Naskah gerbang tidak diubah. Prompt terukur dari sumber: 'ASL-KERNEL />_'.
+  Probe terkumpul (ukuran RAM -> himpunan hasil reached/m6/crash/serial B/stderr B):
+    3072K (= -m 3072K/3M)      : False/False/False/0/0
+    3136K (= -m 3136K)         : False/False/False/0/0
+    3200K (= -m 3200K)         : True/True/False/2500/0
+    3264K (= -m 3264K)         : True/True/False/2501/0
+    3328K (= -m 3328K)         : True/True/False/2501/0
+    3360K (= -m 3360K)         : True/True/False/2501/0
+    3392K (= -m 3392K)         : True/True/False/2501/0
+  Keputusan PER JALAN gerbang (satu jalan = dua probe + satu vonis; sha = ISO yang dipakai jalan itu):
+    [gerbang utama (janji 3M vs ratchet 3392K)]
+      ISO sha256 1569c17157b98c8aa29c9e9d18ccb6aeb931c883d1e1a25983864df4206c668c
+      probe A -m 3M      : False/False/False/0/0
+      probe B -m 3392K   : True/True/False/2501/0
+      KEPUTUSAN 2 (DEVIASI TERCATAT)
+    [tangga 1 (3360K vs 3328K)]
+      ISO sha256 1569c17157b98c8aa29c9e9d18ccb6aeb931c883d1e1a25983864df4206c668c
+      probe A -m 3360K   : True/True/False/2501/0
+      probe B -m 3328K   : True/True/False/2501/0
+      KEPUTUSAN 0 (HIJAU PENUH)
+    [tangga 1 (3360K vs 3328K)]
+      ISO sha256 1569c17157b98c8aa29c9e9d18ccb6aeb931c883d1e1a25983864df4206c668c
+      probe A -m 3360K   : True/True/False/2501/0
+      probe B -m 3360K   : True/True/False/2501/0
+      KEPUTUSAN 0 (HIJAU PENUH)
+    [tangga 2+3 (3264K/3200K lalu 3136K/3072K)]
+      ISO sha256 1569c17157b98c8aa29c9e9d18ccb6aeb931c883d1e1a25983864df4206c668c
+      probe A -m 3264K   : True/True/False/2501/0
+      probe B -m 3200K   : True/True/False/2500/0
+      KEPUTUSAN 0 (HIJAU PENUH)
+    [tangga 2+3 (3264K/3200K lalu 3136K/3072K)]
+      ISO sha256 1569c17157b98c8aa29c9e9d18ccb6aeb931c883d1e1a25983864df4206c668c
+      probe A -m 3136K   : False/False/False/0/0
+      probe B -m 3072K   : False/False/False/0/0
+      KEPUTUSAN 1 (REGRESI)
+  PERBANDINGAN LANTAI (lantai lama = DIBACA dari artefak pengukuran
+  logs/ram_floor_remeasure_36cf856.txt pada ISO SHA256 AA77806018D7A900...; lantai baru = pengukuran di atas,
+  ISO sha 1569c17157b9):
+    lama (terukur di artefak): -m 3M GAGAL | -m 3328K GAGAL | -m 3360K LULUS
+    baru (terukur unit ini)   : 3072K GAGAL | 3136K GAGAL | 3200K LULUS | 3264K LULUS | 3328K LULUS | 3360K LULUS | 3392K LULUS
+  Bacaan terukur: lantai boot ISO v12.9.4 TURUN. 3328K yang dulu GAGAL kini
+  LULUS, dan ukuran terkecil yang masih lulus adalah 3200K (batas terukur ada di antara
+  3136K GAGAL dan 3200K LULUS). Janji misi -m 3M (= 3072K) TETAP
+  GAGAL dengan serial 0 B: gerbang Bagian 5 berstatus MERAH pada tree ini dan vonis alat untuk jalan
+  utama adalah KEPUTUSAN 2 (DEVIASI TERCATAT).
+  Status merah TIDAK diubah menjadi hijau; deviasi tetap tercatat dan wajib muncul di LAPORAN-FINAL.
+  Ratchet regresi SENGAJA TIDAK dilonggarkan (tetap 3392K; hasil terukur LULUS) supaya penurunan lantai tidak dipakai diam-diam
+  untuk menurunkan ambang.
+
+9. ANGKA GERBANG: YANG DIWARISI DAN YANG DIUKUR ULANG
+=====================================================
+  Berkas .rs yang DIUBAH unit ini: 0 (nol pada diff pohon kerja, nol berkas .rs baru yang belum
+  terlacak). Sebagai konteks rentang misi: diff main..HEAD memuat 4 berkas .rs, semuanya lahir di
+  unit R1 sebelumnya dan TIDAK disentuh unit ini. Tidak ada perubahan kode Rust pada unit ini,
+  sehingga angka gerbang sisi-kompilasi DIWARISI secara eksplisit, dan angka yang sama DIUKUR ULANG
+  pada hosted CI atas 7108d84 (bukan disalin dari ekstrak lama):
+    ci_hosted_40090436807_2026-10-24.log: suite=30 passed=262 failed=0 bukan-ok=0 per_test_ok=262
+      Compiling per langkah (dihitung pada region langkah di berkas ekstrak): [1/2]=0 [2/2]=13 coverage=[4]; catatan ekstrak sendiri untuk [2/2]: 13 baris
+      warning/langkah[1/2]: 19 menurut ekstrak, baris 'warning:' tersalin di ekstrak=0 (ekstrak merangkum, tidak menyalin tiap baris warning); error=0 menurut ekstrak, baris 'error' tersalin=0
+      baris TOTAL di ekstrak (sumber kedua pada berkas yang sama): TOTAL 30 SUITE, 262 passed, 0 failed - sama dengan hitung alat di atas, diuji naskah dan naskah berhenti bila beda
+      (11192 B, 94 baris LF, nonASCII 0) headSha terukur di ekstrak: 7108d84e32633f3c4b961b343e6ee21d01ee327c
+      metadata run tertanam di ekstrak: event=push conclusion=success createdAt=2026-10-24T11:34:19Z runStartedAt=2026-10-24T11:34:19Z updatedAt=2026-10-24T11:35:32Z branch=feature/v1.0.2-r1 workflow=asl-ci-minimal
+    ci_hosted_40090440356_2026-10-24.log: suite=30 passed=262 failed=0 bukan-ok=0 per_test_ok=262
+      Compiling per langkah (dihitung pada region langkah di berkas ekstrak): [1/2]=0 [2/2]=13 coverage=[4]; catatan ekstrak sendiri untuk [2/2]: 13 baris
+      warning/langkah[1/2]: 19 menurut ekstrak, baris 'warning:' tersalin di ekstrak=0 (ekstrak merangkum, tidak menyalin tiap baris warning); error=0 menurut ekstrak, baris 'error' tersalin=0
+      baris TOTAL di ekstrak (sumber kedua pada berkas yang sama): TOTAL 30 SUITE, 262 passed, 0 failed - sama dengan hitung alat di atas, diuji naskah dan naskah berhenti bila beda
+      (11208 B, 94 baris LF, nonASCII 0) headSha terukur di ekstrak: 7108d84e32633f3c4b961b343e6ee21d01ee327c
+      metadata run tertanam di ekstrak: event=pull_request conclusion=success createdAt=2026-10-24T11:34:22Z runStartedAt=2026-10-24T11:34:22Z updatedAt=2026-10-24T11:35:33Z branch=feature/v1.0.2-r1 workflow=asl-ci-minimal
+    run API (gh api actions/runs?per_page=6): id=40090440356 event=pull_request status=completed conclusion=success createdAt=2026-10-24T11:34:22Z branch=feature/v1.0.2-r1 headSha=7108d84e32633f3c4b961b343e6ee21d01ee327c
+    run API (gh api actions/runs?per_page=6): id=40090436807 event=push status=completed conclusion=success createdAt=2026-10-24T11:34:19Z branch=feature/v1.0.2-r1 headSha=7108d84e32633f3c4b961b343e6ee21d01ee327c
+    run API (gh api actions/runs?per_page=6): id=40089276882 event=pull_request status=completed conclusion=success createdAt=2026-10-24T11:17:02Z branch=feature/v1.0.2-r1 headSha=526412dd4343f772ba983292311477175e10bef8
+    run API (gh api actions/runs?per_page=6): id=40089273157 event=push status=completed conclusion=success createdAt=2026-10-24T11:16:59Z branch=feature/v1.0.2-r1 headSha=526412dd4343f772ba983292311477175e10bef8
+    run API (gh api actions/runs?per_page=6): id=40084712236 event=pull_request status=completed conclusion=success createdAt=2026-10-24T10:08:17Z branch=feature/v1.0.2-r1 headSha=201fb0f367ff9e2adbd100b786d39f5038dea916
+    run API (gh api actions/runs?per_page=6): id=40084708640 event=push status=completed conclusion=success createdAt=2026-10-24T10:08:14Z branch=feature/v1.0.2-r1 headSha=201fb0f367ff9e2adbd100b786d39f5038dea916
+  ELF rilis diukur ulang di host (build target x86_64-unknown-none release): 312912 B, SHA256 fb4eeb31e26b1cf9a289e4c697e6cea8230cd83a1ad45424cd2312ee5eee5d59
+
+10. UTANG G8 ATAS 7108d84 (DITUTUP KOMIT INI)
+=============================================
+  Alat scripts/r1_debt_audit.py dijalankan 2026-10-24T11:55:27Z sampai 11:55:31Z, exit 0:
+    total commit cabang: 49; ekstrak ter-commit (pohon HEAD): 125
+    commit tanpa run sendiri: 10 -> 007d3dd, 54abf73, 4e865c0, 223e7f6, 6bbd77d, 939cc95, d6c5b12, 093a7d6, b9acd5b, ca582fa
+    baris BELUM saat audit (sebelum komit ini): 2 -> ['7108d84', '7108d84']
+    utang terbuka terukur: 7108d84 run 40090436807 (push), 7108d84 run 40090440356 (pull_request)
+  Aturan G8: satu komit TIDAK boleh memuat ekstrak untuk dirinya sendiri, jadi pasangan atas komit ini
+  menjadi utang komit berikutnya - konstruksi rantai, bukan kegagalan.
+
+11. BERKAS YANG DIKOMIT + HIGIENE TERUKUR
+=========================================
+  (kolom terukur per berkas: byte, jumlah CR/LF, byte >127, byte tertinggi, kontrol selain tab/LF/CR)
+  docs/TOOLING/LIMINE-PIN.json                     19493 B  CR=0    LF=395  nonASCII=0   maxOrd=126  ctrl=0
+  docs/TOOLING/LIMINE-PROVISIONING.md              12024 B  CR=0    LF=176  nonASCII=0   maxOrd=126  ctrl=0
+  .gitattributes                                     356 B  CR=0    LF=5    nonASCII=0   maxOrd=121  ctrl=0
+  asl-kernel/config/limine.conf                      197 B  CR=0    LF=9    nonASCII=0   maxOrd=121  ctrl=0
+  scripts/build_kernel.ps1                         16741 B  CR=328  LF=328  nonASCII=0   maxOrd=125  ctrl=0
+  scripts/check_limine.ps1                          5625 B  CR=0    LF=128  nonASCII=0   maxOrd=125  ctrl=0
+  scripts/stage_iso_root.ps1                        4378 B  CR=0    LF=93   nonASCII=0   maxOrd=125  ctrl=0
+  scripts/test_hv2_stack_overflow_qemu.ps1          4343 B  CR=87   LF=87   nonASCII=0   maxOrd=125  ctrl=0
+  docs/ROADMAP/ACCOUNTABILITY_FAULT_LOG.json      299674 B  CR=1169 LF=1169 nonASCII=195 maxOrd=226  ctrl=0
+  docs/ROADMAP/HANDOFF_STATE.json                 141771 B  CR=157  LF=157  nonASCII=0   maxOrd=125  ctrl=0
+  Analysis/reports/ci_hosted_40090436807_2026-10-24.log   11192 B  CR=0    LF=94   nonASCII=0   maxOrd=125  ctrl=0
+  Analysis/reports/ci_hosted_40090440356_2026-10-24.log   11208 B  CR=0    LF=94   nonASCII=0   maxOrd=125  ctrl=0
+  Pindai rahasia dijalankan 10 pola (surel, token, kunci privat, jalur personal bernama
+  pengguna, direktori ring kunci, domain surel, kunci awan) atas himpunan 12 berkas keluaran,
+  dua kali dengan cakupan berbeda:
+    [a] atas BARIS yang benar-benar ditambahkan komit ini (git diff -U0 untuk berkas ter-lacak,
+        isi penuh untuk berkas baru): 0 hit -> NOL
+    [b] atas SELURUH isi berkas (lebih ketat; ikut menandai teks yang sudah ada di HEAD sebelum
+        komit ini dan tidak ditulis ulang karena append-only):
+        docs/TOOLING/LIMINE-PROVISIONING.md pola direktori-ring-kunci = 1
+  Selisih [a] vs [b] = teks yang sudah ter-commit SEBELUM komit ini, jadi bukan bawaan komit ini:
+    docs/TOOLING/LIMINE-PROVISIONING.md (penuh=1, ditambahkan=0)
+  Artefak terproteksi TIDAK disentuh (nol pada daftar diff di atas): scripts/g9_final_p8_run.ps1,
+  CHECKLIST_STATE.json, 20 artefak Analysis/reports/g9_final_p8_* 2026-10-21, README.md:138, .log root.
+
+12. STATUS SEKARANG DAN LANGKAH BERIKUTNYA
+==========================================
+  TERBUKA : blocker #50 (perkakas bootloader) - tertutup sisi host + VM; kelas VERIFIED-ON-VM kembali ada.
+  BERLANJUT: BAGIAN 4 = K-6 fisik DITUNDA berotorisasi (nol tulis ESP/disk fisik; tetap terlarang mutlak).
+           BAGIAN 5 = ISO master dari tree bersih + SHA256 + serial + screendump; gerbang penuh diukur
+           ulang bila ada .rs berubah. BAGIAN 6 = jendela P8 VM TAK-disaksikan berprefiks baru
+           Analysis/reports/p8_unattended_*. BAGIAN 7 = merge PR #7, arsip-hapus v1.1.0 lokal, tag
+           ber-annotasi v1.0.2, rilis GitHub. BAGIAN 8 = LAPORAN-FINAL paling akhir.
+  TAHAN   : nol tulis ESP; nol amend/rebase/reset/force-push; artefak terproteksi tak disentuh; nol rilis
+           dari tree merah; nol hapus tag di luar BAGIAN 7.
+
+Akhir berkas bukti. Semua angka di atas dihitung alat pada 2026-10-24T12:36:12Z.

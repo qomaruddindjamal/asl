@@ -99,7 +99,7 @@ switch ($Action) {
         $xorriso = Assert-Tool "xorriso" "xorriso.exe"
         # K-5: the host utility lives OUTSIDE target/, because `cargo clean` deletes the
         # whole of target/ and had taken the owner-installed limine.exe with it (fault log #50/#54).
-        $limineExe = Join-Path $RepoRoot "tools\limine\v8.7.0\limine.exe"
+        $limineExe = Join-Path $RepoRoot "tools\limine\v12.9.4\limine.exe"
         if (-not (Test-Path $limineExe)) {
             Write-Error "ERROR: Limine binary utility not found at '$limineExe'. See docs/TOOLING/LIMINE-PROVISIONING.md."
             exit 1
@@ -177,8 +177,13 @@ switch ($Action) {
             $headerOffsets += $off
         }
         if ($headerOffsets.Count -eq 0) {
-            Write-Error "GPT header not found after bios-install; refusing to emit an unpinned image."
-            exit 1
+            # Tidak apa-apa: Limine 12.9.4 tidak lagi menulis ke header GPT pada ISO hybrid.
+            # Diukur pada dua mastering bersih atas staging yang sama (R3 BAGIAN 3): 52 byte berbeda,
+            # semuanya identitas acak - 4 byte disk signature MBR di 0x1B8 dan tiga Unique GUID
+            # (16 byte tiap satu) pada sisa array entri partisi GPT yang headernya dikonversi
+            # menjadi MBR. Pen pin versi 8.7.0 tidak berlaku lagi di sini; cabang MBR di bawah
+            # yang menangani, dan keduanya tetap fail-closed.
+            Write-Host "==> Tidak ada header GPT; memakai jalur pin layout MBR (Limine 12.x)." -ForegroundColor Yellow
         }
 
         foreach ($off in $headerOffsets) {
@@ -203,8 +208,55 @@ switch ($Action) {
             $headSize = [int][BitConverter]::ToUInt32($isoBytes, $off + 12)
             Set-UInt32Le $isoBytes ($off + 16) (Get-Crc32 (Get-Slice $isoBytes $off $headSize))
         }
+        $pinLaporan = ""
+        if ($headerOffsets.Count -gt 0) {
+            $pinLaporan = "==> GPT Disk GUID pinned to $(([System.Guid]::new($diskGuid)).ToString()) (derived from epoch $epoch)"
+        } else {
+            # R3 BAGIAN 3 - cabang layout MBR (Limine 12.9.4). Gagal tertutup: kalau salah satu
+            # identitas acak tidak bisa ditemukan, image TIDAK dilepas.
+            if ($isoBytes[510] -ne 0x55 -or $isoBytes[511] -ne 0xAA) {
+                Write-Error "Neither a GPT header nor an MBR signature 0x55AA was found; refusing to emit an unpinned image."
+                exit 1
+            }
+            $mbrSig = New-Object 'System.Byte[]' 4
+            [Array]::Copy($digest, 0, $mbrSig, 0, 4)
+            [Array]::Copy($mbrSig, 0, $isoBytes, 0x1B8, 4)
+            # GUID tipe 'EFI System' (mixed-endian) penanda array entri partisi yang ditinggalkan.
+            $efiType = [byte[]](0x28, 0x73, 0x2a, 0xc1, 0x1f, 0xf8, 0xd2, 0x11, 0xba, 0x4b, 0x00, 0xa0, 0xc9, 0x3e, 0xc9, 0x3b)
+            $penanda = @()
+            for ($o = 0; ($o + 16) -le $isoBytes.Length; $o += 128) {
+                $sama = $true
+                for ($k = 0; $k -lt 16; $k++) {
+                    if ($isoBytes[$o + $k] -ne $efiType[$k]) { $sama = $false; break }
+                }
+                if ($sama) { $penanda += $o }
+            }
+            if ($penanda.Count -eq 0) {
+                Write-Error "MBR disk signature pinned but no GPT partition entry array located; refusing to emit an unpinned image."
+                exit 1
+            }
+            $pinCount = 0
+            foreach ($found in $penanda) {
+                $start = $found
+                while ($start -ge 128 -and ((Get-Slice $isoBytes ($start - 128) 16) | Measure-Object -Sum).Sum -ne 0) {
+                    $start -= 128
+                }
+                $i = 0
+                $o = $start
+                while (($o + 32) -le $isoBytes.Length -and $i -lt 128 -and
+                       ((Get-Slice $isoBytes $o 16) | Measure-Object -Sum).Sum -ne 0) {
+                    [Array]::Copy($diskGuid, 0, $isoBytes, $o + 16, 16)
+                    $isoBytes[$o + 25] = [System.Byte](($i + 1) -band 0xFF)
+                    $pinCount++
+                    $i++
+                    $o += 128
+                }
+            }
+            $sigHex = -join ((Get-Slice $isoBytes 0x1B8 4) | ForEach-Object { $_.ToString("x2") })
+            $pinLaporan = ("==> MBR disk signature pinned to {0} plus {1} partition-entry Unique GUID derived from epoch {2} (Limine 12.x layout)" -f $sigHex, $pinCount, $epoch)
+        }
         [System.IO.File]::WriteAllBytes($isoOutput, $isoBytes)
-        Write-Host "==> GPT Disk GUID pinned to $(([System.Guid]::new($diskGuid)).ToString()) (derived from epoch $epoch)" -ForegroundColor Cyan
+        Write-Host $pinLaporan -ForegroundColor Cyan
 
         $hash = (Get-FileHash -Algorithm SHA256 $isoOutput).Hash
         $size = (Get-Item $isoOutput).Length

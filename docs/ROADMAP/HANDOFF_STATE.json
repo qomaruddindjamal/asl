@@ -242,5 +242,82 @@
       "nol hapus tag di luar BAGIAN 7",
       "UNIT TUNTAS = PUSH"
     ]
+  },
+  "v1_0_2_r3_b5_master_iso_dan_bukti_vm_state": {
+    "dicatat_pada_utc": "2026-10-24T14:31:48Z",
+    "komit_induk": "1ea73ad1b2c89f5b63772788306a1f560e0505b3",
+    "kelas_bukti": "VERIFIED-ON-HOST + VERIFIED-ON-VM + VERIFIED-ON-CI-API",
+    "perintah_pemilik_ditutup": [
+      "BAGIAN 5 - K-2: KUASAI ISO DARI TREE BERSIH (xorriso + LIMINE TER-PIN), CATAT SHA256",
+      "BAGIAN 5 - BOOT ISO DI QEMU HEADLESS: LOG SERIAL + SCREENDUMP = BUKTI VERIFIED-ON-VM",
+      "BAGIAN 5 - ANGKA GERBANG CABANG NOL .RS: DIAWARISI EKSPLISIT DENGAN BUKTI RUN",
+      "BAGIAN 5 - UTANG G8 DITUTUP KOMIT PERTAMA"
+    ],
+    "pohon_bersih": {
+      "cargo_clean_exit": 0,
+      "pesan_alat": "Removed 2054 files, 239.4MiB total",
+      "check_limine_setelah_clean": "BELUM SIAP (staging musnah) - fail-closed benar",
+      "stage_iso_root_exit": 0,
+      "check_limine_setelah_staging": "SIAP exit 0"
+    },
+    "iso_master": {
+      "bytes": 4624384,
+      "sha256": "1569c17157b98c8aa29c9e9d18ccb6aeb931c883d1e1a25983864df4206c668c",
+      "identik_byte_terhadap_bagian3": true,
+      "jalan_kedua_byte_berbeda": 0,
+      "metode": "cargo build release -> xorriso -as mkisofs (epoch dipaku 1767225600) -> limine 12.9.4 bios-install -> pin layout MBR (disk signature + 3 Unique GUID)"
+    },
+    "elf_rilis": {
+      "host_bytes": 312912,
+      "host_sha256": "fb4eeb31e26b1cf9a289e4c697e6cea8230cd83a1ad45424cd2312ee5eee5d59",
+      "sama_dengan_sebelum_clean": true,
+      "dilaporkan_ci_bytes": 312968,
+      "selisih_b": 56,
+      "catatan": "selisih dibiarkan terbuka (runner Linux vs host Windows); riwayat footprint append-only sudah ditambah satu baris"
+    },
+    "bukti_vm": {
+      "perintah": "qemu-system-x86_64 -machine q35 -vga std -m 256M -cdrom <ISO> -serial file:<serial> -display none -no-reboot -no-shutdown -qmp tcp:127.0.0.1:<port>,server,nowait",
+      "serial_mentah_bytes": 2518,
+      "serial_ternormalisasi_bytes": 2464,
+      "serial_baris": 54,
+      "stderr_bytes": 0,
+      "rantai_boot": "M0, M1, M2, M3, M4, M5, M6",
+      "prompt": "ASL-KERNEL />_",
+      "screendump_jumlah": 3,
+      "screendump_dimensi": "1024x768",
+      "png_ter_commit_bytes": 7541,
+      "png_ter_commit_sha256": "a0921569dacbc26b47d8aed8c08435e2ce0e738671c18e0a73e395474bc75684",
+      "iterasi_kelas_screendump": "3 dari maksimum 3 (2 kegagalan alat lalu berhasil)"
+    },
+    "gerbang_memori": {
+      "vonis_alat": "KEPUTUSAN: 2 (DEVIASI TERCATAT) - ratchet 3392K lulus, janji misi 3M TIDAK",
+      "m_3M_serial_bytes": 0,
+      "m_3392K_serial_bytes": 2501,
+      "status": "MERAH pada janji misi 3M; ratchet 3392K LULUS; deviasi diwarisi dari entri ke-23 (result=OPEN) dan WAJIB disebut di rilis + LAPORAN-FINAL",
+      "perbaikan_diusahakan": "TIDAK - keputusan P1/P3 mandat R3 membatasi lingkup; perubahan footprint memori = perubahan desain yang tidak diminta"
+    },
+    "gerbang_kompilasi_diwarisi": {
+      "rs_diubah_komit_induk": 0,
+      "rs_berubah_di_pohon_kerja": 0,
+      "ci": {
+        "run_push": 40099005776,
+        "run_pull_request": 40099009152,
+        "suite": 30,
+        "passed": 262,
+        "failed": 0,
+        "roster_ok": 262,
+        "warning_dari_log_mentah": 19,
+        "compiling": 13,
+        "himpunan_nilai_kedua_run_identik": true
+      }
+    },
+    "utang_g8": {
+      "total_commit_cabang": 51,
+      "ekstrak_ter_commit_saat_audit": 129,
+      "baris_belum_saat_audit": 2,
+      "ditutup_komit_ini": "pasangan atas 1ea73ad",
+      "utang_komit_berikutnya": "pasangan atas komit BAGIAN 5 ini sendiri (aturan G8)"
+    },
+    "langkah_berikutnya": "BAGIAN 6 - jendela penerimaan VM tak-disaksikan, bukti berprefiks BARU Analysis/reports/p8_unattended_*"
   }
 }

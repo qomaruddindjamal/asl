@@ -1340,5 +1340,164 @@
       }
     },
     "langkah_berikutnya": "Laporan konsolidasi BAGIAN 10 + verifikasi terukur sepuluh butir DEFINISI TUNTAS BAGIAN 11 di chat; RANTAI R3 BERHENTI DI SINI kecuali pemilik menugaskan pekerjaan baru"
+  },
+  "v1_0_2_k4_b1_audit_pra_jendela_state": {
+    "dicatat_pada_utc": "2026-10-24T22:07:43Z",
+    "komit_induk": "663fe8e00d51aeb33a2fd34f1a2885a0086d652a",
+    "mandat": "PROMPT K-4 JENDELA HARDWARE DISAKSIKAN (worklog pemilik: K4-PROMPT-1)",
+    "peran": "pemilik = semua tindakan fisik; qoder = menuntun, mencatat, transkrip, bukti",
+    "verdict_bagian_1": "START: audit lolos, jendela boleh dimulai",
+    "gerbang_iso": {
+      "iso_disk_sha256": "1569c17157b98c8aa29c9e9d18ccb6aeb931c883d1e1a25983864df4206c668c",
+      "iso_disk_bytes": 4624384,
+      "rilis_sha256sums_entri": "1569c17157b98c8aa29c9e9d18ccb6aeb931c883d1e1a25983864df4206c668c",
+      "identik_byte": true,
+      "ukuran_cocok_aset": true,
+      "digest_aset_cocok": true
+    },
+    "tag_v1_0_2": {
+      "identik_lokal_vs_origin": true,
+      "objek_lokal": "79d581f8291650679693e6014e0ce4b73b54faf7",
+      "objek_origin_lsremote": "79d581f8291650679693e6014e0ce4b73b54faf7",
+      "objek_ref_api": "79d581f8291650679693e6014e0ce4b73b54faf7",
+      "peel": "700481c22dc98b92be5bbd2059c54ea5bf97feb3",
+      "pesan": {
+        "berkas_bytes": 2921,
+        "berkas_sha256": "7d890006097ca3dbd9e70f92982699ce84f4aeba12322efae3da77e956cdf982",
+        "berkas_ter_commit": "C:\\asl\\Analysis\\reports\\r3_bagian7_pesan_tag_v1.0.2_2026-10-24.txt",
+        "bytes": 2921,
+        "identik_byte": true,
+        "sha256": "7d890006097ca3dbd9e70f92982699ce84f4aeba12322efae3da77e956cdf982"
+      },
+      "tipe": "tag"
+    },
+    "rilis": {
+      "aset": [
+        {
+          "digest": "1569c17157b98c8aa29c9e9d18ccb6aeb931c883d1e1a25983864df4206c668c",
+          "id": 672712293,
+          "nama": "asl-core-kernel-v1.0.2.iso",
+          "size": 4624384,
+          "state": "uploaded",
+          "url": "https://github.com/qomaruddindjamal/asl/releases/download/v1.0.2/asl-core-kernel-v1.0.2.iso"
+        },
+        {
+          "digest": "5c35c77f88a060fce723a55e8a857b6464ca241dc988a7e5542188eb655a3355",
+          "id": 672712295,
+          "nama": "SHA256SUMS.txt",
+          "size": 2034,
+          "state": "uploaded",
+          "url": "https://github.com/qomaruddindjamal/asl/releases/download/v1.0.2/SHA256SUMS.txt"
+        }
+      ],
+      "body_bytes": 7086,
+      "id": 422838293,
+      "published_at": "2026-10-24T16:14:39Z",
+      "tag": "v1.0.2",
+      "target_commitish": "main",
+      "url": "https://github.com/qomaruddindjamal/asl/releases/tag/v1.0.2"
+    },
+    "sha256sums_rilis_terunduh": {
+      "bytes": 2034,
+      "sha256": "5c35c77f88a060fce723a55e8a857b6464ca241dc988a7e5542188eb655a3355",
+      "n_baris": 19,
+      "n_entri": 1
+    },
+    "jam": {
+      "header_date_api_github": "Date: Sat, 24 Oct 2026 22:04:32 GMT",
+      "offset_jam_terukur": "+0700",
+      "powershell_lokal_utc": [
+        "2026-10-25T05:04:36",
+        "2026-10-24 22:04:36Z"
+      ],
+      "utc_dari_jam_mesin": "2026-10-24T22:04:35Z"
+    },
+    "repo": {
+      "artefak_terproteksi_kotor": [],
+      "entri_fault_log_terakhir": {
+        "date": "2026-10-24T19:28:15Z",
+        "nomor": 64,
+        "result": "LAPORAN-FINAL v1.0.2 TERKOMIT PALING AKHIR SESUAI BAGIAN 8: 15 bagian, 14 batasan jujur, 10 butir tertunda, 25219 B SHA256 1226874c74028434c6d04739a0e5f9837c3c1bf64ec79910fd86041b9d55a29d; DUA EKSTRAK PENUTUP UTANG G8 ATAS TIP MAIN c6e4c01 DAN KOMIT BAGIAN 7 f213098 DIKOMIT BERSAMANYA; KOREKSI APPEND-ONLY ATAS EMPAT HAL: klaim tag pesan terbit, asimetri objek v1.0.1, residu G8 terminal, dan angka tanpa sumber di laporan chat unit ini (diukur `run_klaim()`: run id 40117062850 ada=False, run tip 1 id 40112679699); NOL BERKAS .RS BERUBAH; RILIS https://github.com/qomaruddindjamal/asl/releases/tag/v1.0.2 DIBACA ULANG VIA API DAN TETAP SAH; VERIFIED-ON-HARDWARE TETAP 0; JANJI MISI '-m 3M' TETAP MERAH ([MERAH] fase 2: -m 3M tidak mencapai prompt pada ISO ini (serial). BUTIR 8 DEFINISI TUNTAS ('CI hosted hijau sesudah LAPORAN-FINAL') BARU SAH DIUKUR SESUDAH PUSH DAN ITU DICATAT DI LAPORAN KONSOLIDASI CHAT, BUKAN DIKLAIM DI SINI.",
+        "type": "F8_LAPORAN_FINAL_TERKOMIT_PALING_AKHIR_DENGAN_ASYMETRI_O"
+      },
+      "head": "663fe8e00d51aeb33a2fd34f1a2885a0086d652a",
+      "kunci_handoff": 53,
+      "kunci_handoff_terakhir": "version",
+      "n_untracked": 43,
+      "n_untracked_g9_final_p8": 20,
+      "perubahan_ter_track": 0,
+      "tip_origin": "663fe8e00d51aeb33a2fd34f1a2885a0086d652a"
+    },
+    "scan_usb_read_only": {
+      "disk_usb_terpasang": 0,
+      "metode": "Get-CimInstance Win32_DiskDrive | InterfaceType match USB",
+      "akibat": "BAGIAN 2 menunggu satu USB yang boleh dihapus"
+    },
+    "koreksi_append_only": {
+      "komit_terbit": "700481c",
+      "pasangan_salah": "5666 B dengan sha 55f43145fe8f4974",
+      "terukur": {
+        "kerja_b": 5787,
+        "kerja_h": "55f43145fe8f4974926c429879a61cba346fc399fe744f5785b290e96135450b",
+        "luruh_b": 5666,
+        "luruh_h": "6aac97b07e0fd66cfc556d6c9a016b1fbf145472a4814901c1a6ef433b975f11",
+        "blob_b": 5666,
+        "blob_h": "6aac97b07e0fd66cfc556d6c9a016b1fbf145472a4814901c1a6ef433b975f11"
+      },
+      "dokumen_ter_commit_terkena": 0,
+      "amend": false
+    },
+    "lembar_perintah": {
+      "n_baris": 17,
+      "sumber": "Analysis/reports/p8_unattended_serial_2026-10-24_15-36-39.log",
+      "dokumen": "Analysis/reports/k4_hardware_bagian3-rencana-dan-lembar-2026-10-25.txt"
+    },
+    "ekstrak_penutup_utang": {
+      "run": 40126027590,
+      "atas_komit": "663fe8e",
+      "event": "push",
+      "berkas": "Analysis/reports/ci_hosted_40126027590_2026-10-24.log",
+      "bytes": 11192,
+      "baris": 94,
+      "sha256": "22b2f57873b3b94dec09c50208b57e98469ff8fe6b0cd64d562b48631b717cd9",
+      "utang_terbuka_sebelum_komit": "663fe8e/40126027590/push"
+    },
+    "bukti_unit": [
+      {
+        "jalur": "Analysis/reports/k4_hardware_bagian1-audit_2026-10-25.txt",
+        "bytes": 5768,
+        "baris": 68,
+        "sha256": "a5e529f538653ce44345e71a9a3f989bf64ea80b6ff6f9044889a3b3f26a9682",
+        "nonASCII": 0
+      },
+      {
+        "jalur": "Analysis/reports/k4_hardware_bagian3-rencana-dan-lembar-2026-10-25.txt",
+        "bytes": 3721,
+        "baris": 65,
+        "sha256": "ffefefa5abc3fd4fab5eddbb0f2808e44efcee7a267e7808e646044d38744108",
+        "nonASCII": 0
+      }
+    ],
+    "kelas_bukti": [
+      "VERIFIED-ON-HOST",
+      "VERIFIED-ON-CI-API"
+    ],
+    "verified_on_hardware": 0,
+    "tahanan_berlaku": [
+      "nol tulis ke ESP/disk fisik (K-6 fisik hanya bila jendela LULUS dan hanya lewat lintasan yang sudah dirancang)",
+      "nol amend/rebase/reset/force-push",
+      "nol sentuh artefak g9_final_p8_* 2026-10-21, CHECKLIST_STATE.json, scripts/g9_final_p8_run.ps1, README.md milik pemilik, .log root repo",
+      "nol tag/rilis di luar daftar; objek tag 79d581f dan commit terbit tidak disentuh pasca-jendela (body rilis lewat gh release edit)"
+    ],
+    "hukum_jendela": "apa pun yang gagal di tengah jendela = STOP, catat, foto, tutup jendela; larang perbaikan atau improvisasi di tengah jendela; diagnosis di unit kerja baru setelah jendela ditutup",
+    "iterasi_scratch": {
+      "batas_per_kelas": 3,
+      "dipakai": {
+        "naskah scratch nol jalan": 1
+      },
+      "total_perbaikan": 1,
+      "nol_pekerjaan_ditahan": true
+    },
+    "langkah_berikutnya": "BAGIAN 0 (milik pemilik: jadwal, USB, listrik, kamera) -> BAGIAN 2 flash dengan metode dicatat apa adanya -> BAGIAN 3 checklist + lembar 17 baris -> BAGIAN 4 boot dan sesi dengan foto + transkrip -> BAGIAN 5 K-6 fisik bersyarat -> BAGIAN 6 hanya sesudah kata 'JENDELA LULUS' atau 'JENDELA GAGAL' di chat"
   }
 }

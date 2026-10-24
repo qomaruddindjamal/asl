@@ -1,0 +1,65 @@
+BUKTI K-4 BAGIAN 3 - RENCANA JENDELA + LEMBAR PERINTAH 17 BARIS
+========================================================================
+Misi     : K-4 JENDELA HARDWARE DISAKSIKAN (PEMILIK HADIR)
+Bagian   : 3
+Sumber   : MASTER PROMPT K-4 (tercatat di worklog pemilik sebagai K4-PROMPT-1)
+Jam      : utc_dari_jam_mesin=2026-10-24T22:04:35Z | powershell lokal=2026-10-25T05:04:36 utc=2026-10-24 22:04:36Z | offset=+0700
+Kelas    : VERIFIED-ON-HOST (semua angka di dokumen ini diukur oleh naskah, bukan dikelola dari ingatan)
+Peran    : PEMILIK melakukan seluruh tindakan fisik; QODER menuntun, mencatat, transkrip, mengelola bukti
+Tahan    : NOL tulis ke ESP/disk fisik, NOL amend/rebase/reset/force-push, NOL sentuh artefak g9_final_p8_* 2026-10-21, CHECKLIST_STATE.json, scripts/g9_final_p8_run.ps1, README.md milik pemilik
+
+1. LEMBAR PERINTAH DITURUNKAN OLEH NASKAH DARI BUKTI VM TER-COMMIT
+   sumber=Analysis\reports\p8_unattended_serial_2026-10-24_15-36-39.log (5787 B, sha256=55f43145fe8f4974926c429879a61cba346fc399fe744f5785b290e96135450b)
+   hasil parse: 17 baris diketik (gerbang naskah: tepat 17; kalau bukan, naskah berhenti)
+   kegunaan: sesi hardware memakai urutan yang SAMA supaya hardware vs VM dibandingkan baris demi baris
+
+2. URUTAN KETIK PEMILIK (17 BARIS, sama dengan jendela VM)
+    1. help
+    2. status
+    3. where
+    4. create-folder sesi
+    5. list
+    6. dir
+    7. cd sesi
+    8. where
+    9. create-file catatan.txt
+   10. write-file catatan.txt halo dari sesi p8
+   11. cat catatan.txt
+   12. delete-file catatan.txt
+   13. open /
+   14. delete-folder sesi
+   15. help tidakada
+   16. open
+   17. clear
+
+3. TAMPILAN YANG DIHARAPKAN SAAT BOOT (dibaca dari bukti VM, bukan dikarang)
+   M1 Limine Entry Stub -> M2 handover -> M3 transfer -> M0 fault infra -> M0+ secondary
+   -> M4 heap -> M4+ guard page -> M5 ARINC 653/scheduler -> M6 cold boot complete
+   banner 'ASL Kernel v1.0.2' (WAJIB terbaca v1.0.2, bukan v1.1.0)
+   empat baris '[ OK ]' lalu 'ASL kernel booted successfully.'
+   prompt 'ASL-KERNEL />_' dan berpindah menjadi 'ASL-KERNEL /sesi>_' setelah masuk sesi
+   tiga-dua baris penanda tambahan pada VM (Secondary Failover STANDBY ARMED, Local APIC
+   Timer, PCI Discovery, ASL-VTD probe) boleh berbeda pada hardware nyata; perbedaan itu
+   DICATAT, tidak dinyatakan kegagalan kecuali boot berhenti sebelum M6
+
+4. HUKUM JENDELA (berlaku penuh selama jendela)
+   apa pun yang gagal di tengah jendela = STOP, catat, foto, tutup jendela
+   DILARANG memperbaiki atau improvise di tengah jendela; diagnosis di unit kerja BARU
+   setelah jendela ditutup
+   boot memakai entri DEFAULT; janji lantai memori '-m 3M' BUKAN bagian jendela ini dan
+   tidak diuji di sini (tetap MERAH terdokumentasi, fault log entri ke-23 result OPEN)
+
+5. LANGKAH 2 MILIK PEMILIK (flash) YANG AKAN DICATAT APA ADANYA
+   nama perkakas + mode (DD/raw atau lainnya) ditulis verbatim dari yang pemilik pakai
+   verifikasi baca-ulang bila perkakas mendukung; bila tidak, batasannya ditulis jujur
+   setelah flash USB tidak dioperasikan ulang dan diberi label waktu
+
+6. BAGIAN 5 K-6 FISIK: BERSYARAT
+   hanya dijalankan bila jendela LULUS; scan ESP read-only dahulu dengan metode tercatat;
+   kelas kerusakan known -> satu lintasan perbaikan yang sudah dirancang + satu reboot
+   terfoto; kelas baru -> STOP, nol tulis ke ESP, fault log, keputusan kembali ke pemilik
+
+7. GERBANG PASCA-JENDELA
+   tidak ada proses pasca-jendela sebelum pemilik mengetik 'JENDELA LULUS' atau
+   'JENDELA GAGAL' di chat; pada LULUS, baris 'VERIFIED-ON-HARDWARE: 0' di body rilis
+   diganti lewat gh release edit TANPA menyentuh objek tag 79d581f maupun commit terbit

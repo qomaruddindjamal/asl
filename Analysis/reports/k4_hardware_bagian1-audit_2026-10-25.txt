@@ -1,0 +1,68 @@
+BUKTI K-4 BAGIAN 1 - AUDIT TERUKUR SEBELUM USB DISENTUH
+========================================================================
+Misi     : K-4 JENDELA HARDWARE DISAKSIKAN (PEMILIK HADIR)
+Bagian   : 1
+Sumber   : MASTER PROMPT K-4 (tercatat di worklog pemilik sebagai K4-PROMPT-1)
+Jam      : utc_dari_jam_mesin=2026-10-24T22:04:35Z | powershell lokal=2026-10-25T05:04:36 utc=2026-10-24 22:04:36Z | offset=+0700
+Kelas    : VERIFIED-ON-HOST (semua angka di dokumen ini diukur oleh naskah, bukan dikelola dari ingatan)
+Peran    : PEMILIK melakukan seluruh tindakan fisik; QODER menuntun, mencatat, transkrip, mengelola bukti
+Tahan    : NOL tulis ke ESP/disk fisik, NOL amend/rebase/reset/force-push, NOL sentuh artefak g9_final_p8_* 2026-10-21, CHECKLIST_STATE.json, scripts/g9_final_p8_run.ps1, README.md milik pemilik
+
+1. TAG ANNOTATED v1.0.2 (dibaca lokal + ls-remote + API)
+   tipe=tag objek=79d581f8291650679693e6014e0ce4b73b54faf7 peel(commit)=700481c22dc98b92be5bbd2059c54ea5bf97feb3
+   origin (git ls-remote)=79d581f8291650679693e6014e0ce4b73b54faf7 | API (git/ref/tags)=79d581f8291650679693e6014e0ce4b73b54faf7 | identik lokal vs origin=True
+   panjang pesan tag di objek=2921 B sha256=7d890006097ca3dbd9e70f92982699ce84f4aeba12322efae3da77e956cdf982 | berkas pesan ter-commit 2921 B sha256=7d890006097ca3dbd9e70f92982699ce84f4aeba12322efae3da77e956cdf982 | identik byte=True
+
+2. RILIS GITHUB (gh api repos/qomaruddindjamal/asl/releases/tags/v1.0.2)
+   id=422838293 url=https://github.com/qomaruddindjamal/asl/releases/tag/v1.0.2 tag=v1.0.2 published=2026-10-24T16:14:39Z
+   target_commitish='main' (API menyimpan string ref, bukan SHA - sumber sebenarnya ref tag)
+   body=7086 B | draft/prerelease = False/False (digerbang naskah audit)
+   aset asl-core-kernel-v1.0.2.iso     4624384 B state=uploaded digest_sha256=1569c17157b98c8aa29c9e9d18ccb6aeb931c883d1e1a25983864df4206c668c
+   aset SHA256SUMS.txt                 2034 B state=uploaded digest_sha256=5c35c77f88a060fce723a55e8a857b6464ca241dc988a7e5542188eb655a3355
+
+3. ASET SHA256SUMS.txt MILIK RILIS (diunduh read-only ke logs/, TIDAK masuk riwayat)
+   ukuran=2034 B sha256=5c35c77f88a060fce723a55e8a857b6464ca241dc988a7e5542188eb655a3355 | baris tidak kosong=19 | entri hash yang dikenali=1
+   (baris sisanya komentar berawalan '#': satu entri hash untuk satu berkas ISO adalah bentuk yang benar, bukan kekurangan parse)
+
+4. GERBANG MUTLAK: ISO DI DISK vs HASH MILIK RILIS
+   jalur=C:\asl\asl-kernel\target\asl-core-kernel.iso
+   ukuran=4624384 B sha256=1569c17157b98c8aa29c9e9d18ccb6aeb931c883d1e1a25983864df4206c668c
+   nama di SHA256SUMS='asl-core-kernel-v1.0.2.iso' | nama aset rilis='asl-core-kernel-v1.0.2.iso'
+   sha256 di SHA256SUMS rilis=1569c17157b98c8aa29c9e9d18ccb6aeb931c883d1e1a25983864df4206c668c
+   identik_byte=True | ukuran_cocok_aset=True | digest_aset_cocok=True
+   VONIS GERBANG: LOLOS - jendela boleh dimulai
+
+5. KEADAAN REPO (naskah audit menolak jalan bila tip lokal != tip origin)
+   HEAD=663fe8e00d51aeb33a2fd34f1a2885a0086d652a tip origin/feature/v1.0.2-r1=663fe8e00d51aeb33a2fd34f1a2885a0086d652a
+   berkas ter-track berubah=0 | untracked=43 (berprefiks g9_final_p8_=20, TIDAK disentuh)
+   artefak terproteksi yang kotor=(kosong)
+   fault log: entri terakhir #64 2026-10-24T19:28:15Z result=LAPORAN-FINAL v1.0.2 TERKOMIT PALING AKHIR SESUAI BAGIAN 8: 15 b
+   handoff: 53 kunci
+
+6. SCAN READ-ONLY MEDIA USB (Get-CimInstance Win32_DiskDrive, nol kata kerja tulis)
+   jumlah disk berinterface USB yang terpasang saat audit = 0
+   akibat: BAGIAN 2 (pemilik mem-flash) BELUM dapat dimulai sampai satu USB yang boleh dihapus terpasang; tidak ada media yang saya sentuh pada bagian ini
+
+7. REKONSILIASI HASH BERKAS SERIAL VM (ditemukan oleh naskah ini, diukur apa adanya)
+   berkas sumber=Analysis\reports\p8_unattended_serial_2026-10-24_15-36-39.log
+   byte di pohon kerja=5787 sha256(pohon kerja)=55f43145fe8f4974926c429879a61cba346fc399fe744f5785b290e96135450b
+   byte di blob git=5666 sha256(blob)=6aac97b07e0fd66cfc556d6c9a016b1fbf145472a4814901c1a6ef433b975f11
+   bentuk 'CR diluruhkan'=5666 B sha256=6aac97b07e0fd66cfc556d6c9a016b1fbf145472a4814901c1a6ef433b975f11
+   TEMUAN: pesan commit TERBIT 700481c (BAGIAN 6) memasangkan SHA256 55f43145fe8f... dengan bentuk 5666 B, sedangkan pengukuran hari ini menunjukkan pasangan yang benar adalah SHA256 6aac97b07e0f... untuk 5666 B
+   TINDAKAN: nol dokumen ter-commit memuat pasangan itu (pindai grep atas LAPORAN-FINAL, berkas bukti BAGIAN 6/8, dan dua ledger = 0 cocok), jadi tidak ada yang perlu dikoreksi di sisi dokumen; pesan commit terbit TIDAK diamend (tahan butir b) dan penyimpangan ini dibiarkan TERBUKA serta tercatat di sini
+
+8. VERDICT BAGIAN 1
+   START: audit lolos, jendela boleh dimulai
+   gerbang yang dihitung: identik_byte ISO vs SHA256SUMS rilis AND ukuran cocok aset AND tag identik lokal vs origin
+
+9. YANG BELUM ADA SEBELUM JENDELA DIBUKA (BAGIAN 0 adalah daftar milik pemilik)
+   [ ] jadwal jendela (tanggal + jam) dari pemilik
+   [ ] satu USB yang boleh dihapus, terpasang (saat audit: 0 disk USB)
+   [ ] status listrik: stabil / UPS / risiko padam (menentukan status K-6 fisik)
+   [ ] kamera ponsel terisi + penyimpanan cukup untuk foto M0..M6
+   [ ] kepastian butir 'PROMPT R3-NOTES' - teks prompt itu tidak pernah diterima agen ini, jadi tidak bisa diterapkan; dicatat sebagai butir terbuka, bukan asumsi selesai
+
+10. SUMBU BUKTI JENDELA NANTINYA
+   prefiks BARU: Analysis/reports/k4_hardware_* (artefak g9_final_p8_* 2026-10-21 tidak dipakai dan tidak disentuh)
+   sumber klaim hardware: foto pemilik + transkrip agen, tidak ada angka tanpa keduanya
+   gerbang pasca-jendela: kata pemilik di chat 'JENDELA LULUS' atau 'JENDELA GAGAL'

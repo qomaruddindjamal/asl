@@ -1,0 +1,184 @@
+================================================================================
+BUKTI K-6 LANGKAH 1-2 (PRA-KONDISI) - PERBAIKAN ESP TIDAK DILANJUTKAN
+================================================================================
+Unit   : cabang feature/v1.0.2-r1, sub-komit 5 dari unit K-5/K-6
+Perintah pemilik yang dijabarkan: KEPUTUSAN PEMILIK K-6 - urutan wajib lima langkah:
+  1. Siapkan jaring: USB pemulihan Windows / pastikan WinRE bisa diakses
+  2. UPS terpasang atau baterai penuh
+  3. Pindai baca-saja (Repair-Volume -Scan / huruf drive sementara), catat temuan
+  4. Bila ada kesalahan: SATU lintasan perbaikan terbatas, catat sebelum/sesudah
+  5. Verifikasi Get-Volume Healthy + reboot normal, catat sebagai entri lingkungan
+Kelas  : VERIFIED-ON-HOST. Tidak ada bagian VM, tidak ada perangkat keras baru.
+Nol tulis: TIDAK ada operasi tulis pada jalur boot. ESP tidak diberi huruf, tidak
+    di-scan, tidak diperbaiki. Yang dijalankan hanya pembaca kondisi (reagentc /info,
+    CIM query, Get-Volume, Get-Partition, fsutil dirty query, Get-WinEvent).
+
+--------------------------------------------------------------------------------
+BAGIAN 1 - WAKTU DAN UKURAN PENGUKURAN (dari jam mesin, bukan perkiraan)
+--------------------------------------------------------------------------------
+   probe dimulai UTC     = 2026-10-24T08:12:00Z
+   probe selesai UTC     = 2026-10-24T08:12:14Z   (durasi 14 detik pada jam mesin yang sama)
+   jam mesin lokal saat mulai = 2026-10-24 15:12:00 (UTC+7)
+   berkas keluaran       = logs/k6_pra_kondisi_out.txt, 5331 B, 88 baris, 40 baris berlabel
+   skrip probe           = logs/k6_pra_kondisi.ps1 (scratch, gitignored, read-only)
+   elevation             = IS_ADMIN=True (diperlukan untuk reagentc/CIM; tetap hanya membaca)
+
+--------------------------------------------------------------------------------
+BAGIAN 2 - LANGKAH 1: JARING PEMULIHAN - TERUKUR BELUM ADA
+--------------------------------------------------------------------------------
+   WinRE status                       = Disabled  (reagentc /info exit 0)
+   WinRE location (reagentc)          = (KOSONG)
+   berkas Winre.wim di System32\Recovery = NOL di C:\Windows\System32\Recovery (umum: wim hidup di partisi pemulihan, bukan di C:)
+   partisi Recovery di disk 0         = 1 baris PARTISI bertipe Recovery (ada, tetapi WinRE NONAKTIF):
+       disk=0 idx=4 tipe=Recovery ukuran=770703360 offset=255288410112 huruf= GPT= recovery=False gpttype={de94bba4-06d1-4d40-a16a-bfd50179d6ac}
+   media DriveType=2 (removable/USB)  = 0 baris DISK_LOGIS dengan DriveType=2 -> TIDAK ADA USB PEMULIHAN TERPASANG
+   logis yang terukur                 :
+       C: DriveType=3 Size=255060865024 Free=18475249664 Vol=WINDOWS
+       G: DriveType=3 Size=16106127360 Free=13244272640 Vol=Google Drive
+
+   Artinya: bila perbaikan ESP gagal, tidak ada WinRE aktif dan tidak ada media
+   pemulihan terpasang untuk memulihkan jalur boot. Langkah 1 perintah pemilik
+   mensyaratkan jaring ini DULU; ia belum terpenuhi, jadi urutan berhenti di sini.
+
+--------------------------------------------------------------------------------
+BAGIAN 3 - LANGKAH 2: DAYA - TERUKUR BELUM ADA
+--------------------------------------------------------------------------------
+   Win32_Battery                  = TIDAK ADA INSTANSI Win32_Battery
+   Win32_UninterruptiblePowerSupply = TIDAK ADA INSTANSI Win32_UninterruptiblePowerSupply
+   nama perangkat UPS             = NOL
+   Win32_SystemEnclosure.ChassisTypes = 3 (3 = desktop; mesin ini berjalan dari jala-jala)
+
+   Mesin ini adalah desktop tanpa baterai dan tanpa UPS, dan kejadian 2026-10-23
+   (fault log #54) adalah padamnya pasokan listrik. Memperbaiki struktur FAT32 pada
+   partisi sistem di mesin yang sama, tanpa perlindungan daya, berisiko mengulang
+   kerusakan pada objek yang sedang diperbaiki. Langkah 2 belum terpenuhi.
+
+--------------------------------------------------------------------------------
+BAGIAN 4 - OBJEK YANG AKAN DIPERBAIKI (KEADAAN SAAT INI, TERUKUR)
+--------------------------------------------------------------------------------
+   PARTISI (disk=0 idx=1 huruf=(KOSONG)):
+       disk=0 idx=1 tipe=System ukuran=209715200 offset=1048576 huruf= GPT= recovery=False gpttype={c12a7328-f81f-11d2-ba4b-00a0c93ec93b}
+   VOLUME FAT32:
+       huruf=: label= fs=FAT32 kapasitas= tersedia=167084032 health=Warning operasinya=Full Repair Needed objid={1}\\WIN-4GVVJE4AQE6\root/Microsoft/Windows/Storage/Providers_v2\WSP_Volume.ObjectId="{5912a7ba-effd-11ee-a52a-806e6f6e6963}:VO:\\?\Volume{142ac37b-2800-46b5-a187-5b4063659b87}\"
+   ukuran partisi ESP (baris PARTISI) = 209715200 B | tersedia (baris VOLUME) = 167084032 B |
+   health=Warning | operasinya=Full Repair Needed
+   catatan pengukuran: kolom kapasitas pada baris VOLUME tercetak KOSONG oleh alat
+   pada 3 dari 3 baris VOLUME, jadi ukuran partisi diambil dari baris PARTISI.
+   volume lain yang TIDAK Healthy: 0 (nol = hanya ESP yang bermasalah)
+   fsutil dirty query C:            = C| exit=0| Volume - C: is NOT Dirty
+   kejadian Chkdsk 30 hari terakhir = NOL KEJADIAN dalam 30 hari
+
+   ESP satu-satunya objek sakit; C: NTFS sehat dan tidak dirty; belum pernah ada
+   perjalanan Chkdsk. Catatan higiene: `chkdsk X:` pada FAT32 LANGSUNG MEMPERBAIKI
+   (bukan baca-saja) dan `/scan` hanya untuk NTFS, jadi pemindaian baca-saja yang
+   sah adalah Repair-Volume -DriveLetter <huruf> -Scan - ia TIDAK dijalankan karena
+   langkah 1 dan 2 belum lolos.
+
+--------------------------------------------------------------------------------
+BAGIAN 5 - KEPUTUSAN DAN YANG DIBUTUHKAN DARI PEMILIK
+--------------------------------------------------------------------------------
+   Keputusan agen: BERHENTI sebelum sentuh. Tidak ada huruf drive sementara, tidak
+   ada scan, tidak ada perbaikan, tidak ada reboot yang disengaja.
+   Untuk melanjutkan urutan pemilik, salah satu jaring ini perlu ada lebih dulu:
+     a. mengaktifkan WinRE (reagentc /enable) ATAU memastikan akses RecoveryDrive,
+     b. memasang USB pemulihan Windows yang bisa boot pada mesin ini,
+     c. memasang UPS atau menjalankan perbaikan saat pasokan terlindungi.
+   Semuanya adalah operasi pada jalur boot/daya mesin pemilik -> menunggu perintah.
+   Setelah jaring ada, langkah 3 yang sah: Get-Partition | Add-PartitionAccessLetter
+   pada disk=0 idx=1, lalu Repair-Volume -DriveLetter <huruf> -Scan, lalu
+   Remove-PartitionAccessLetter; catat sebelum/sesudah pada entri fault log yang sama.
+
+--------------------------------------------------------------------------------
+BAGIAN 6 - KELUARAN PROBE VERBATIM (88 BARIS, TIDAK DIUBAH)
+--------------------------------------------------------------------------------
+UKUR_MULAI_UTC=2026-10-24T08:12:00Z
+UKUR_MULAI_LOKAL=2026-10-24T15:12:00 +07:00
+
+==============================================================================
+== 1. STATUS ELEVASI (admin?)
+==============================================================================
+IS_ADMIN=True
+USER=WIN-4GVVJE4AQE6\Administrator
+
+==============================================================================
+== 2. WINRE (reagentc /info)
+==============================================================================
+REAGENTC_EXIT=0
+REAGENTC| Windows Recovery Environment (Windows RE) and system reset configuration
+REAGENTC| Information:
+REAGENTC| 
+REAGENTC|     Windows RE status:         Disabled
+REAGENTC|     Windows RE location:       
+REAGENTC|     Boot Configuration Data (BCD) identifier: 4e0f2e37-effd-11ee-b727-b757474dc764
+REAGENTC|     Recovery image location:   
+REAGENTC|     Recovery image index:      0
+REAGENTC|     Custom image location:     
+REAGENTC|     Custom image index:        0
+REAGENTC| 
+REAGENTC| REAGENTC.EXE: Operation Successful.
+REAGENTC|     
+
+==============================================================================
+== 3. SUMBER DAYA - baterai
+==============================================================================
+BATERAI| TIDAK ADA INSTANSI Win32_Battery
+
+==============================================================================
+== 4. SUMBER DAYA - UPS
+==============================================================================
+UPS| TIDAK ADA INSTANSI Win32_UninterruptiblePowerSupply
+PERANGKAT_NAMA_UPS| NOL
+
+==============================================================================
+== 5. JENIS CHASSIS
+==============================================================================
+CHASSIS_TYPES| 3
+LAPTOP_ATAU_TIDAK - lihat tabel ChassisTypes: 9=Notebook 10=Portable 12=Docking 3=Desktop 4=Low Profile 6=Mini Tower 9..12 berarti baterai
+PC_SYSTEM| Acer / Veriton N4660G / PCSystemType=1 / HibernationMode=
+
+==============================================================================
+== 6. MEDIA LEPASAN (huruf + kapasitas)
+==============================================================================
+DISK_LOGIS| C: DriveType=3 Size=255060865024 Free=18475249664 Vol=WINDOWS
+DISK_LOGIS| G: DriveType=3 Size=16106127360 Free=13244272640 Vol=Google Drive
+DriveType: 2=Removable 3=Fixed 4=Network 5=Optical
+REMCTRL| NOL INSTANSI
+
+==============================================================================
+== 7. PARTISIUM DI SETIAP DISK - adakah partisi pemulihan Windows?
+==============================================================================
+PARTISI| disk=0 idx=1 tipe=System ukuran=209715200 offset=1048576 huruf= GPT= recovery=False gpttype={c12a7328-f81f-11d2-ba4b-00a0c93ec93b}
+PARTISI| disk=0 idx=2 tipe=Reserved ukuran=16777216 offset=210763776 huruf= GPT= recovery=False gpttype={e3c9e316-0b5c-4db8-817d-f92df00215ae}
+PARTISI| disk=0 idx=3 tipe=Basic ukuran=255060869120 offset=227540992 huruf=C GPT= recovery=False gpttype={ebd0a0a2-b9e5-4433-87c0-68b6b72699c7}
+PARTISI| disk=0 idx=4 tipe=Recovery ukuran=770703360 offset=255288410112 huruf= GPT= recovery=False gpttype={de94bba4-06d1-4d40-a16a-bfd50179d6ac}
+
+DISK| 0 V-GEN08SM23AR256HY 256GB size=256060514304 partitionstyle=GPT health=Healthy operational=Online bus= isremovable= readonly=False
+
+==============================================================================
+== 8. Get-Volume SELURUHNYA (keadaan SEBELUM)
+==============================================================================
+VOLUME| huruf=: label= fs=FAT32 kapasitas= tersedia=167084032 health=Warning operasinya=Full Repair Needed objid={1}\\WIN-4GVVJE4AQE6\root/Microsoft/Windows/Storage/Providers_v2\WSP_Volume.ObjectId="{5912a7ba-effd-11ee-a52a-806e6f6e6963}:VO:\\?\Volume{142ac37b-2800-46b5-a187-5b4063659b87}\"
+VOLUME| huruf=: label= fs=NTFS kapasitas= tersedia=64634880 health=Healthy operasinya=OK objid={1}\\WIN-4GVVJE4AQE6\root/Microsoft/Windows/Storage/Providers_v2\WSP_Volume.ObjectId="{5912a7ba-effd-11ee-a52a-806e6f6e6963}:VO:\\?\Volume{35be2f7f-5454-4cc4-be11-19ae4f043f0f}\"
+VOLUME| huruf=C: label=WINDOWS fs=NTFS kapasitas= tersedia=18474995712 health=Healthy operasinya=OK objid={1}\\WIN-4GVVJE4AQE6\root/Microsoft/Windows/Storage/Providers_v2\WSP_Volume.ObjectId="{5912a7ba-effd-11ee-a52a-806e6f6e6963}:VO:\\?\Volume{827f0a9c-5121-472e-9d36-7f5f87acab17}\"
+
+==============================================================================
+== 9. STATUS KOTOR (dirty bit) - BACA-SAJA
+==============================================================================
+FSUTIL_DIRTY| C| exit=0| Volume - C: is NOT Dirty
+
+==============================================================================
+== 10. LOG EVENT CHKDSK (sumber Chkdsk, ID 1001) 30 HARI TERAKHIR
+==============================================================================
+CHKDSK_EVENT| NOL KEJADIAN dalam 30 hari
+
+==============================================================================
+== 11. RIWAYAT PEMULIHAN / WinRE pada partisi (Winre.wim ditemukan?)
+==============================================================================
+PATH_ADA| C:\$Recycle.Bin
+PATH_ADA| C:\Windows\System32\Recovery
+WINRE_WIM| NOL di C:\Windows\System32\Recovery (umum: wim hidup di partisi pemulihan, bukan di C:)
+
+UKUR_SELESAI_UTC=2026-10-24T08:12:14Z
+
+Dibuat oleh logs/k6_tulis_bukti.py dari logs/k6_pra_kondisi_out.txt; CRLF seragam,
+ASCII murni, nol CJK. Baris verbatim di BAGIAN 6 adalah keluaran alat apa adanya.

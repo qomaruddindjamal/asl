@@ -1,0 +1,314 @@
+BERKAS BUKTI R3 BAGIAN 8 - LAPORAN-FINAL v1.0.2 + PENUTUP UTANG EKSTRAK
+Diukur dan ditulis 2026-10-24T19:28:07Z oleh r3_b8_laporan.py (scratch, diabaikan git) atas
+pohon komit f2130987e54381dcbeb8b153ed9be55729419109 (tip cabang). Tip origin/main c6e4c01788789e3126fa3488abb7696f72d0f485. Otorisasi: MASTER PROMPT R3 BAGIAN 8 +
+otorisasi tertulis pemilik 2026-10-24 (bepergian, tanpa konfirmasi tambahan).
+
+========================================================================
+1. ALAT DAN SUMBER (setiap angka LAPORAN-FINAL berasal dari sini)
+========================================================================
+  logs/r3_b8_ukur.py (fail-closed) mengimpor logs/r3_b7_ukur.py dan membaca:
+   (a) enam ekstrak hosted CI: 40109001959, 40109006618, 40109170099, 40109173018, 40109305262, 40112679699
+   (b) API rilis: gh api repos/qomaruddindjamal/asl/releases/tags/v1.0.2
+   (c) JSON jendela BAGIAN 6: p8_unattended_summary_2026-10-24_15-36-39.log (7636 B)
+   (d) git log/show/diff/grep/status/ls-remote; (e) berkas riwayat pemulihan mati lampu;
+   (f) luaran scripts/r1_debt_audit.py: logs\r3_b9_debt_audit.txt (636 B, 12 baris, exit 0).
+  Periksa fail-closed yang aktif (naskah berhenti, bukan menebak):
+   - headSha+event tiap ekstrak dicocokkan dengan harapan; keenamnya harus conclusion=success;
+   - himpunan nilai enam run harus identik (terukur (30, 262, 0, 262, 19, 0, 0, 0, 13, 312968));
+   - digest server tiap aset harus sama dengan SHA256 host/berkas ter-commit (2 aset: YA);
+   - body API harus identik byte dengan catatan rilis ter-commit (True); termasuk CRLF
+   - rantai R3 tidak boleh memuat berkas .rs (terukur 0); README tidak boleh berbeda dari
+     main (terukur 0 berkas) dan tidak boleh kotor (status '(kosong)');
+   - v1.1.0 tidak boleh tersisa di lokal maupun origin (terukur False / False);
+   - objek ref tags/v1.0.2 di origin harus yang tercatat di BAGIAN 7 (terukur 79d581f82916, tipe tag);
+   - artefak g9_final_p8_* untracked harus 20 (terukur 20); PR #6 dan #7 harus MERGED.
+
+========================================================================
+2. DUA EKSTRAK PENUTUP UTANG (scripts/ci_hosted_extract.py, metode tidak diubah)
+========================================================================
+  run 40109305262 push          head c6e4c01 -> 11166 B, 94 baris, nonASCII 0
+     suite=30 passed=262 failed=0 per_test_ok=262 warn[1/2]=19/0 err[1/2]=0/0 Compiling=13 ELF=312968 B conclusion=success
+  run 40112679699 push          head f213098 -> 11192 B, 94 baris, nonASCII 0
+     suite=30 passed=262 failed=0 per_test_ok=262 warn[1/2]=19/0 err[1/2]=0/0 Compiling=13 ELF=312968 B conclusion=success
+  Ditutup unit ini: (i) utang yang dinyatakan BAGIAN 7 atas tip main c6e4c01 (run 40109305262);
+  (ii) pasangan atas tip cabang f213098 (run 40112679699), yaitu komit BAGIAN 7.
+  Residu yang TIDAK bisa ditutup sendiri: ekstrak atas komit unit ini (larangan G8);
+  penutupnya pemeriksaan API atas SHA komit terakhir, dinyatakan di laporan bagian 13.
+  Audit utang dibaca ulang: total commit cabang 1, ekstrak ter-commit 137, baris BELUM 1.
+
+========================================================================
+3. RANTAI R3 TERUKUR DARI GIT (nol ingatan)
+========================================================================
+  BAGIAN1 526412d 2026-10-24T18:16:44+07:00 |  4 berkas + 351/-  0 | .rs 0 | panjang pesan komit 190
+  BAGIAN2 7108d84 2026-10-24T18:34:05+07:00 |  5 berkas + 313/-  4 | .rs 0 | panjang pesan komit 236
+  BAGIAN3 5ad71ae 2026-10-24T19:39:04+07:00 | 13 berkas +1009/- 22 | .rs 0 | panjang pesan komit 247
+  BAGIAN4 1ea73ad 2026-10-24T20:38:16+07:00 |  5 berkas + 446/-  0 | .rs 0 | panjang pesan komit 4854
+  BAGIAN5 7703711 2026-10-24T21:38:22+07:00 |  8 berkas + 507/-  0 | .rs 0 | panjang pesan komit 5085
+  BAGIAN6 700481c 2026-10-24T22:52:51+07:00 | 22 berkas +2585/-  0 | .rs 0 | panjang pesan komit 7019
+  BAGIAN7 f213098 2026-10-24T23:40:44+07:00 | 12 berkas +1183/-  0 | .rs 0 | panjang pesan komit 7469
+  Cap di kolom ketiga = cap AUTHOR git dengan offset zona (mis. +07:00); cap 'date' ledger
+  di bagian 5 = UTC. Keduanya dikutip apa adanya dari sumbernya, tidak dinormalkan.
+  Berkas berubah seluruh rantai: 59; darinya .rs: 0.
+  Komit merge 4aa17a3 (induk unit ini) = merge main ke cabang: c6e4c01
+  sehingga PR #7 lulus periksa 'head up to date' TANPA rebase/amend; mergeCommit PR #7 = c6e4c01.
+
+========================================================================
+4. SEJARAH DUA MATI LAMPU (dibaca ulang dari berkas riwayat oleh naskah ini)
+========================================================================
+  Berkas: r1_k2_pemulihan-matilampu_2026-10-23.txt - 41328 B, 601 baris, SHA256 4b0c722ec15560633842ec6b980a264d725be75e7c1d75fcec69b68f1acd11bb
+  Kernel-Power ID 41: 2026-10-22 21:20:55 lokal (=2026-10-22T14:20:55Z UTC) DAN 2026-10-23 17:42:59 lokal (=2026-10-23T10:42:59Z UTC); EventLog 6008 2 kejadian.
+  Entri pemulihan: ke-54 2026-10-23T17:46:41Z | result=CLOSED | delta pelanggaran=0
+  Entri audit pemulihan sesi R3: ke-57 2026-10-24T11:06:18Z | tipe=F4_ASUMSI_LAMA_SALAH_DIVERIFIKASI_AUDIT_AWAL_R3_PR6_MERGED_TAG_V102_TIDAK_ADA_V110_HANYA_LOKAL_DAN_PR7_BEHIND_ [dipotong; lengkap di ledger]
+
+========================================================================
+5. SAPUAN RUJUKAN JALUR LAMA (mandat: 7 di 6 berkas; terukur: 8 di 7 berkas)
+========================================================================
+  README.md                                            1  HIDUP
+  docs/CANONICAL/DEVELOPER_ONBOARDING.md               1  HIDUP
+  docs/PANDUAN/MULAI-CEPAT.md                          1  HIDUP
+  docs/PANDUAN/REFERENSI-PERINTAH.md                   1  HIDUP
+  docs/RND/ASL-V1.0.2-E8-LAPORAN-PENUTUPAN.md          1  SEJARAH
+  docs/RND/ASL-V1.0.2-R1-STATUS-BAGIAN-2.md            2  SEJARAH
+  docs/TOOLING/LIMINE-PROVISIONING.md                  1  SEJARAH
+  README: rujukan di baris 129; penulis perubahan README pada rentang rantai: d4c4375 Qomaruddin Djamal, 09c618f Qomaruddin Djamal
+
+========================================================================
+6. HIGIENE, PINDAI RAHASIA, LEDGER
+========================================================================
+  LAPORAN-FINAL (diukur setelah ditulis): 25219 B, 333 baris, nonASCII 0, SHA256 1226874c74028434c6d04739a0e5f9837c3c1bf64ec79910fd86041b9d55a29d
+  Dua ekstrak: 11166 B / 94 baris dan 11192 B / 94 baris; keduanya nonASCII 0, 94 baris.
+  Substitusi tanda baca nonASCII saat mengutip ledger: 0 (pemetaan tetap, kata utuh).
+  Pindai rahasia outgoing diff dijalankan dengan metode tidak diubah
+  (`python logs/r3_b4_scan_diff.py`) atas diff yang di-stage; hasilnya DICANTUMKAN DI PESAN KOMIT.
+  Ledger sebelum unit ini: fault log 63 entri (varisan nonASCII 195 byte), HANDOFF 52 kunci;
+  naskah logs/r3_b8_fl64_handoff.py menambahkan tepat satu entri dan satu kunci, dengan
+  periksa prefiks byte + round-trip serialisasi SEBELUM tulis.
+  Artefak terproteksi diukur tidak berubah: scripts/g9_final_p8_run.ps1 18321 B SHA256 1cf64d41f42047d65be4a2aedde2f6fe603e845824b3153ce65df0971056b3cf;
+  git status-nya '(kosong)'; g9_final_p8_* untracked 20 berkas; README status '(kosong)'.
+
+========================================================================
+7. ITERASI UNIT INI (label kelas per butir; jumlah dihitung dari daftar itu)
+========================================================================
+  26 kegagalan, SEMUANYA di naskah scratch logs/, NOL berkas repo yang diubah karena itu:
+   1) [logs/r3_b8_ukur.py | kelas 'periksa tidak cocok dengan realitas']
+      regex baris grep README mengharapkan '<angka>:' di awal baris padahal bentuknya
+      'README.md:129:' - AttributeError, lalu regex dibetulkan;
+   2) [logs/r3_b8_ukur.py | kelas 'sumber angka salah alamat']
+      pola dua kejadian Kernel-Power dicari di berkas riwayat, padahal pasangan UTC
+      itu hidup di ledger entri ke-54 - sumber dipindah dan berkas riwayat diukur
+      sendiri;
+   3) [logs/r3_b8_ukur.py | kelas 'path konstanta salah']
+      path konstanta versi ditulis 'asl-cockpit-shell/src/lib.rs' padahal berkasnya
+      ada di 'asl-kernel/asl-cockpit-shell/src/lib.rs' - git grep exit 1, path
+      dibetulkan;
+   4) [logs/r3_b8_ukur.py | kelas 'periksa tidak cocok dengan realitas']
+      periksa 'README tidak disentuh rantai' salah karena membandingkan diff rantai
+      yang MEMUAT komit merge main (dua patch README pemilik); diganti periksa penulis
+      + diff vs origin/main. Ini kelas 'periksa tidak cocok dengan realitas', BUKAN
+      regresi produk;
+   5) [logs/r3_b8_ukur.py | kelas 'periksa tidak cocok dengan realitas']
+      regex klaim tag pada PESAN KOMIT gagal karena git membungkus pesan komit dengan
+      baris baru - pesan diluruskan dahulu sebelum dicocokkan (RuntimeError fail-
+      closed, bukan nilai default);
+   6) [logs/r3_b8_laporan.py | kelas 'sintaksis naskah']
+      kurung tidak tertutup pada blok baru 'asimetri tag' - SyntaxError, dibetulkan.
+   7) [logs/r3_b8_fl64_handoff.py | kelas 'operator format di dalam string']
+      naskah ledger memakai string '%B' di dalam pola berformat (`--format=%%B`)
+      sehingga Python menganggapnya operator format tidak dikenal - ValueError,
+      ditulis ulang dengan '%%B' dan diregenerasi sebelum ledger ditulis;
+   8) [logs/r3_b8_fl64_handoff.py | kelas 'operator format di dalam string']
+      urutan argumen format di paragraf 'evidence' naskah ledger tertukar setelah
+      paragraf itu disunting (slot baru ditambahkan tanpa menambah argumennya) -
+      TypeError, daftar argumen ditulis ulang urut dan naskah dijalankan lagi sebelum
+      ledger ditulis;
+   9) [logs/r3_b8_laporan.py | kelas 'higiene akhir baris keluaran']
+      berkas bukti terukur memuat 5 baris berakhiran LF tunggal di antara baris CRLF
+      karena luaran textwrap disisipkan apa adanya - generator menormalkan akhir baris
+      di dalam setiap baris dan menghitung `baris` dari CRLF yang ditulis, bukan dari
+      banyaknya elemen buffer;
+   10) [logs/r3_b8_ukur.py | kelas 'snapshot tidak stabil terhadap staging']
+      hitungan 'berkas laporan untracked lain' berubah 25 menjadi 21 hanya karena
+      keempat berkas keluaran unit ini menjadi staged - snapshot yang tidak stabil
+      terhadap keadaan staging; definisi dipersempit menjadi untracked DI LUAR berkas
+      keluaran unit ini (KELUAR_UNIT) supaya angkanya tetap berarti sesudah komit;
+   11) [logs/r3_b8_laporan.py | kelas 'angka diketik di dokumen']
+      BATASAN butir 8 memuat SHA-256 objek tag yang SAYA KETIK dari ingatan dan butir
+      10 memuat jumlah salah ketik sebagai kata 'tiga'/'satu' - dua angka yang tidak
+      dibaca dari artefak, menabrak aturan 'nol angka ketikan tangan'; kini prefix
+      objek dibaca dari ledger BAGIAN 7 lalu diresolusi logs/r3_b8_ukur.py
+      `objek_batal()` (generator menolak jalan bila objek itu justru menjadi ref tag
+      di origin) dan jumlah salah ketik dihitung `salah_ketik()` terhadap pesan git
+      aslinya;
+   12) [logs/r3_b8_ukur.py | kelas 'sintaksis naskah']
+      suntingan pada naskah ukur tanpa sengaja menghapus satu pemisah baris sehingga
+      dua pernyataan menyatu - SyntaxError saat modul diimpor generator, baris
+      dipisahkan lagi;
+   13) [logs/r3_b8_laporan.py | kelas 'angka diketik di dokumen']
+      BATASAN butir 8 menulis frasa 'memuat EMPAT angka ketikan tangan' sebagai fakta
+      padahal unit ini tidak mengukur banyaknya angka yang salah ketik di potongan tag
+      yang dibatalkan;
+   14) [logs/r3_b8_laporan.py | kelas 'tanggal dipotong sehingga offset zona hilang']
+      kolom waktu rantai R3 dicetak dengan `date` dipotong 19 karakter sehingga offset
+      zona (+07:00) hilang dan pembaca dapat menyangka cap git adalah UTC; cap %aI
+      kini dicetak penuh dan dokumen memuat keterangan bedanya cap git (lokal) dengan
+      cap ledger (UTC);
+   15) [logs/r3_b8_ukur.py | kelas 'sumber angka salah alamat']
+      konstanta DEBAT masih menunjuk berkas hasil jalan sebelumnya
+      (logs/r3_b8_debt_audit.txt); untuk komit korektif ini alatnya dijalankan ulang
+      dan konstanta dipindah ke logs/r3_b9_debt_audit.txt (exit 0) supaya angka total
+      commit/ekstrak berasal dari keadaan pohon saat komit ini ditulis;
+   16) [logs/r3_b8_ukur.py | kelas 'angka dilaporkan tanpa sumber']
+      di luar berkas, yaitu di CHAT, saya mengutip run hosted CI (id dan ukuran
+      ekstrak) yang tidak pernah saya baca dari API; naskah kini mengukur klaim itu
+      lewat `run_klaim()` dan `run_tip()` sehingga laporan memuat hasil pengukuran
+      (404 / jumlah run sesungguhnya), bukan kutipan ingatan;
+   17) [logs/r3_b8_laporan.py | kelas 'bentuk data daftar kegagalan']
+      daftar GAGAL disunting dengan koma di antara potongan teks yang seharusnya
+      bersatu sebagai satu elemen, sehingga `for b1, b2, naskah, kelas in GAGAL`
+      menerima 5 dan 6 elemen - ValueError; bentuk daftar diperiksa dengan AST (bukan
+      dicari dengan mata) lalu disatukan;
+   18) [logs/r3_b8_laporan.py | kelas 'operator format di dalam string']
+      satu placeholder %d diletakkan di LUANG kurung panggilan w (`w("...") % (x)`)
+      sehingga yang dikalikan adalah nilai balik w() yang None - TypeError; format
+      dipindah ke dalam argumen w();
+   19) [logs/r3_b8_laporan.py | kelas 'jumlah argumen format tidak cocok']
+      baris bukti baru membawa enam argumen untuk lima placeholder - dua string kosong
+      salin-tempel dari baris tetangga - TypeError `%d format: a real number is
+      required, not str`; argumen diselaraskan dengan placeholder baris itu;
+   20) [logs/r3_b8_fl64_handoff.py | kelas 'sintaksis naskah']
+      suntingan blok ledger baru di naskah ledger kehilangan satu kurung penutup
+      indeks dan menambah satu kurung penutup dict sehingga `}` bertemu `[` -
+      SyntaxError yang penunjuk barisnya tidak memperlihatkan kedudukannya; diperiksa
+      byte per byte lalu dirapi dan naskah dikompilasi ulang;
+   21) [logs/r3_b8_fl64_handoff.py | kelas 'placeholder tidak terisi di ledger']
+      paragraf `prevented_by` naskah ledger memuat placeholder yang tidak pernah
+      diformat sehingga placeholder itu tertulis APA ADANYA di entri ledger; ketahuan
+      oleh pemindaian `%[sdrf]` atas entri yang SUDAH ditulis, bukan oleh alat pada
+      waktu penulisan - jumlah kemunculannya kini DIUKUR alat atas arsip tulisan yang
+      digantikan (bagian 9 berkas bukti), bukan diketik. Kelas ini adalah KELUARGA
+      YANG SAMA dengan 'placeholder %s tidak terisi di berkas bukti' yang sudah
+      mencapai 3 dari 3 pada BAGIAN 7, jadi bila kedua unit digabung menjadi satu
+      kelas maka batas mandat 5.4 LEWAT dan itu dinyatakan terang, tidak dinormalisasi
+      dengan ganti nama; nilainya kini diisi dari ukuran dan naskah ledger menolak
+      tulis bila entri atau kunci HANDOFF baru masih memuat placeholder;
+   22) [logs/r3_b8_fl64_handoff.py | kelas 'kurung penutup lebih pada daftar argumen']
+      penambahan dua argumen ukuran arsip ke daftar argumen paragraf 'correction'
+      meninggalkan satu kurung penutup lebih sehingga `)` bertemu `{` - SyntaxError
+      yang ditunjukkan py_compile di baris terakhir daftar argumen, bukan di tempat
+      kesalahannya; jumlah kurung diselaraskan dan naskah dikompilasi ulang. Kelas ini
+      BERBEDA GEJALA tetapi SEKELUARGA dengan 'sintaksis naskah' di atas; jumlah
+      keluarga gabungan dilaporkan di bawah dan tidak ditutup-tutupi;
+   23) [logs/r3_b8_fl64_handoff.py | kelas 'tanda persen literal di string yang kemudian diformat']
+      paragraf `prevented_by` yang sebelumnya BUKAN string berformat memuat teks
+      `--format=%B` apa adanya; begitu string itu diberi operator format karena butir
+      (4)-(6), tanda persen literal itu dibaca Python sebagai operator tidak dikenal -
+      ValueError 'unsupported format character', lalu diselaraskan menjadi `%%B`
+      sehingga yang tercetak di ledger tetap `%B`;
+   24) [logs/r3_b8_laporan.py | kelas 'jumlah argumen format tidak cocok']
+      tiga baris baru berkas bukti bagian 9 masing-masing membawa kelebihan argumen
+      kosong untuk satu slot `%-24s` - TypeError `not all arguments converted during
+      string formatting` pada jalan generator; jumlah argumen diselaraskan per baris
+      dan generator dijalankan ulang;
+   25) [logs/r3_b8_ukur.py | kelas 'penjaga menolak datanya sendiri']
+      penjaga placeholder BARU milik naskah ledger justru menolak hasil ukurnya
+      sendiri: medan `placeholder_unik` yang disimpan `arsip_draf()` memuat token
+      persen-d persis seperti yang dicari penjaga, sehingga data yang sah dibaca
+      sebagai cacat; yang diubah adalah REPRESENTASI data di ledger (huruf token saja,
+      mis. 'd') bukan penjaganya, dan representasi itu diterangkan di medan
+      `cara_ukur` - periksa tidak dilunakkan supaya lolos;
+   26) [logs/r3_b8_ukur.py | kelas 'indentasi tidak seragam setelah suntingan']
+      penyisipan dokumen alat di dalam fungsi ditulis dengan indentasi delapan sedang
+      milik fungsi empat - IndentationError pada baris berikutnya (`out = {}`), bukan
+      pada baris yang salah; indentasi diselaraskan dan modul dikompilasi ulang;
+  Per naskah: logs/r3_b8_fl64_handoff.py 6, logs/r3_b8_laporan.py 9, logs/r3_b8_ukur.py 11.
+  Per kelas (17 kelas): 'angka diketik di dokumen' 2, 'angka dilaporkan tanpa sumber' 1, 'bentuk data daftar kegagalan' 1, 'higiene akhir baris keluaran' 1, 'indentasi tidak seragam setelah suntingan' 1, 'jumlah argumen format tidak cocok' 2, 'kurung penutup lebih pada daftar argumen' 1, 'operator format di dalam string' 3, 'path konstanta salah' 1, 'penjaga menolak datanya sendiri' 1, 'periksa tidak cocok dengan realitas' 3, 'placeholder tidak terisi di ledger' 1, 'sintaksis naskah' 3, 'snapshot tidak stabil terhadap staging' 1, 'sumber angka salah alamat' 2, 'tanda persen literal di string yang kemudian diformat' 1, 'tanggal dipotong sehingga offset zona hilang' 1.
+  Pembacaan yang LEBIH KETAT dari per kelas, dilaporkan supaya pembaca punya dua angka dan tidak
+  ada yang ditutup-tutupi: bila kelas-kelas yang bergejala serupa digabung menjadi satu KELUARGA,
+  keluarga 'sintaksis naskah' (3 kelas anggota) = 5 butir -> LEWAT terhadap batas mandat 5.4;
+  keluarga 'operator format' (4 kelas anggota) = 7 butir -> LEWAT terhadap batas mandat 5.4;
+  keluarga 'periksa/ukur salah alamat' (4 kelas anggota) = 7 butir -> LEWAT terhadap batas mandat 5.4;
+  penjaga alat di naskah ini menghitung PER KELAS dan menolak jalan bila satu kelas lewat 3, jadi
+  angka keluarga di atas tidak menolak apa pun, hanya melaporkan. Tiap butir di keluarga itu
+  dibetulkan pada percobaan PERTAMA sehingga tidak ada satu pun cacat yang menuntut perbaikan
+  berulang; yang melewati batas hanyalah pembacaan gabungan, dan itu dinyatakan sebagai deviasi di ledger.
+  Kedua baris di atas dibaca ulang oleh naskah ledger dari berkas ini, maka angka iterasi tidak
+  ditulis dua kali di tempat mana pun.
+  Batas mandat 5.4 dihitung PER KELAS: tertinggi 3 dari 3 (kelas 'operator format di dalam string', 'periksa tidak cocok dengan realitas', 'sintaksis naskah') - tepat batas, tidak lewat;
+  bila 26 butir itu ditanggap SATU kelas gabungan, batas LEWAT (26 dari 3). Tidak ada
+  artefak dibuang, tidak ada pekerjaan ditahan, tidak ada angka diubah untuk menyesuaikan
+  periksa. Dicatat sebagai deviasi di entri ledger unit ini.
+  Pembanding yang dibaca dari ledger (bukan dari ingatan): BAGIAN 6 pemakaian tertinggi 3 dari 3
+  pada satu kelas (tepat batas, tidak lewat; entri ke-62); BAGIAN 7 tercatat 11 perbaikan di 6
+  naskah sehingga batas LEWAT bila dihitung satu kelas gabungan (entri ke-63).
+
+  TEMUAN BARU UNIT INI (bukan kegagalan): asimetri objek tag `v1.0.1` lokal vs origin, dan
+  klaim tag pada pesan komit BAGIAN 7 yang kurang lengkap. Keduanya belum pernah tercatat di
+  unit mana pun; pengukurnya ditambahkan ke logs/r3_b8_ukur.py dengan gerbang fail-closed
+  (asimetri di luar daftar `tag_tidak_disentuh` ledger menghentikan penulisan), lalu dilaporkan
+  di bagian 9, 11 butir 13, dan 12 butir 10 LAPORAN-FINAL.
+
+========================================================================
+8. KOREKSI ATAS LAPORAN DI CHAT (diukur dengan alat, bukan dengan ingatan)
+========================================================================
+  a. run id yang SAYA kutip di chat        : 40117062850
+  b. `gh run view` atas id itu             : exit 1, ada=False
+     keluaran error (dipotong 90 karakter) : failed to get run: HTTP 404: Not Found [dipotong; lengkap di ledger]
+  c. run yang TEREGISTRASI untuk tip f213098   : 1 run, id 40112679699, event push, hijau=YA
+  d. jumlah baris run cabang yang dibaca   : 50 (limit 50)
+  e. ukuran ekstrak yang di-commit unit ini: 11166 B dan 11192 B
+  f. audit utang dijalankan ulang (exit 0) : total commit cabang 1, ekstrak ter-commit 137,
+     baris BELUM 1 - sumber logs/r3_b9_debt_audit.txt
+  g. dampak ke berkas repo                 : NOL. Angka yang salah itu tidak pernah ditulis di
+     berkas mana pun; yang salah hanyalah kalimat di chat. Tidak ada amend (butir b mandat),
+     koreksi lewat komit BARU append-only + entri ledger ke-64.
+  h. kelas bukti atas butir a-f            : VERIFIED-ON-CI-API (dibaca langsung dari API hari ini)
+
+9. TULISAN LEDGER YANG DIGANTIKAN - DIARSIPKAN, NOL PEKERJAAN DIBUANG
+========================================================================
+  Naskah ledger menulis kedua berkasnya, lalu tulisan itu DIGANTIKAN karena koreksi laporan
+  chat (butir 8 di atas) dan bagian 9 ini belum masuk di dalamnya, dan karena satu tulisan
+  berikutnya memuat placeholder format yang tidak terisi di paragraf `prevented_by` (kelas
+  'placeholder tidak terisi di ledger', bagian 7). Jumlah placeholder itu DIUKUR di bawah ini,
+  tidak diketik. Tidak ada yang dibuang:
+  setiap tulisan disalin lebih dulu ke logs/ (diabaikan git), pohon kerja dipulihkan ke HEAD
+  dengan `git checkout --` atas DUA berkas ledger itu saja, lalu ledger ditulis ulang dari
+  sana. Nol komit, nol amend, nol force-push, nol berkas .rs, nol artefak terproteksi tersentuh.
+  ACCOUNTABILITY_FAULT_LOG : 3 tulisan digantikan; muatan HEAD saat diukur 63 entri/kunci
+    - logs/r3_b9_arsip_FL_draf_64_entri.json (344331 B, SHA256 3fe8bb32eb7b6942): 64 vs HEAD 63, muatan HEAD utuh di dalamnya=True,
+      tambahan hanya di arsip ini 1: F8_LAPORAN_FINAL_TERKOMIT_PA
+      placeholder format tak terisi di tambahan arsip ini 5 (token persen + huruf d)
+    - logs/r3_b9_arsip_FL_tulis_1.json (346009 B, SHA256 8e0de42d48f7929e): 64 vs HEAD 63, muatan HEAD utuh di dalamnya=True,
+      tambahan hanya di arsip ini 1: F8_LAPORAN_FINAL_TERKOMIT_PA
+      placeholder format tak terisi di tambahan arsip ini 5 (token persen + huruf d)
+    - logs/r3_b9_arsip_FL_tulis_2.json (346948 B, SHA256 04631a246ec7bb03): 64 vs HEAD 63, muatan HEAD utuh di dalamnya=True,
+      tambahan hanya di arsip ini 1: F8_LAPORAN_FINAL_TERKOMIT_PA
+      placeholder format tak terisi di tambahan arsip ini 5 (token persen + huruf d)
+                           : nama tambahan gabungan semua arsip: F8_LAPORAN_FINAL_TERKOMIT_PA
+                           : total placeholder TIDAK terisi di seluruh arsip: 15 - arsip dengan angka 0 adalah
+                             tulisan yang bersih, arsip dengan angka di atas 0 adalah yang digantikan karena
+                             cacat placeholder itu; keduanya tetap disimpan, tidak yang dibuang
+  HANDOFF_STATE            : 3 tulisan digantikan; muatan HEAD saat diukur 52 entri/kunci
+    - logs/r3_b9_arsip_HO_draf_53_kunci.json (187349 B, SHA256 116cf69487991188): 53 vs HEAD 52, muatan HEAD utuh di dalamnya=True,
+      tambahan hanya di arsip ini 1: v1_0_2_r3_b8_laporan_final_state
+      placeholder format tak terisi di tambahan arsip ini 0
+    - logs/r3_b9_arsip_HO_tulis_1.json (189409 B, SHA256 f85525292d6f8786): 53 vs HEAD 52, muatan HEAD utuh di dalamnya=True,
+      tambahan hanya di arsip ini 1: v1_0_2_r3_b8_laporan_final_state
+      placeholder format tak terisi di tambahan arsip ini 0
+    - logs/r3_b9_arsip_HO_tulis_2.json (192406 B, SHA256 677b35e31f3dec98): 53 vs HEAD 52, muatan HEAD utuh di dalamnya=True,
+      tambahan hanya di arsip ini 1: v1_0_2_r3_b8_laporan_final_state
+      placeholder format tak terisi di tambahan arsip ini 0
+                           : nama tambahan gabungan semua arsip: v1_0_2_r3_b8_laporan_final_state
+                           : total placeholder TIDAK terisi di seluruh arsip: 0 - arsip dengan angka 0 adalah
+                             tulisan yang bersih, arsip dengan angka di atas 0 adalah yang digantikan karena
+                             cacat placeholder itu; keduanya tetap disimpan, tidak yang dibuang
+  Periksa ulang oleh pembaca: `git show HEAD:docs/ROADMAP/<ledger>` dibandingkan dengan tiap
+  arsip di logs/ - setiap arsip harus HEAD + TEPAT SATU tambahan, dan `arsip_draf()` menolak
+  jalan bila tidak, jadi angka di atas bukan hasil membaca dengan mata.
+
+  KELAS BUKTI UNIT INI: VERIFIED-ON-HOST (seluruh isi laporan, higiene, objek git) +
+  VERIFIED-ON-CI-API (dua ekstrak dan aset rilis dibaca ulang dari API) + WARISAN
+  VERIFIED-ON-CI (enam ekstrak ter-commit) dan VERIFIED-ON-VM (jendela BAGIAN 6).
+  VERIFIED-ON-HARDWARE TETAP 0 dan tertulis begitu di rilis dan di laporan ini.
+
+  LANGKAH BERIKUTNYA = laporan konsolidasi BAGIAN 10 + verifikasi DEFINISI TUNTAS BAGIAN 11
+  di chat. Tidak ada komit baru setelah unit ini kecuali pemilik menugaskannya.

@@ -703,5 +703,642 @@
       "PPM tangkapan layar jendela tetap tidak di-commit (2,3 MB per berkas); SHA256-nya tercatat di berkas bukti BAGIAN 6"
     ],
     "langkah_berikutnya": "BAGIAN 8 - LAPORAN-FINAL-v1.0.2.md paling akhir (tabel kelas bukti, dua pemulihan mati lampu, URL rilis, batas jujur) dan tutup utang ekstrak atas tip main"
+  },
+  "v1_0_2_r3_b8_laporan_final_state": {
+    "dicatat_pada_utc": "2026-10-24T19:28:15Z",
+    "komit_induk": "f2130987e54381dcbeb8b153ed9be55729419109",
+    "catatan_tip": "komit unit ini sendiri belum ada saat angka ditulis; tip cabang berpindah satu langkah dari f213098 ke komit baru, dan SHA komit baru tercatat di pesan komit serta laporan chat",
+    "kelas_bukti": "VERIFIED-ON-HOST + VERIFIED-ON-CI-API (warisan VERIFIED-ON-CI dari enam ekstrak dan VERIFIED-ON-VM dari BAGIAN 6); VERIFIED-ON-HARDWARE TETAP 0",
+    "perintah_pemilik_ditutup": [
+      "BAGIAN 8 - LAPORAN-FINAL-v1.0.2.md ditulis PALING AKHIR setelah rilis",
+      "BAGIAN 8 - jalur lengkap mandat + keputusan P1..P4 dengan pemetaan butir 7",
+      "BAGIAN 8 - dua mati lampu dan pemulihannya dari sejarah, diukur ulang",
+      "BAGIAN 8 - bukti jendela VM dan status asimetri tag lokal vs origin",
+      "BAGIAN 8 - sapuan rujukan jalur lama dengan README.md milik pemilik TIDAK disentuh",
+      "BAGIAN 8 - batasan jujur + butir tertunda",
+      "BAGIAN 8 - tutup utang ekstrak atas tip main dan atas tip cabang",
+      "BAGIAN 9 - append-only penuh, kelas bukti berdasar sumber pengukuran, pindai rahasia sebelum push"
+    ],
+    "laporan_final": {
+      "berkas": "Analysis/reports/LAPORAN-FINAL-v1.0.2.md",
+      "bytes": 25219,
+      "sha256": "1226874c74028434c6d04739a0e5f9837c3c1bf64ec79910fd86041b9d55a29d",
+      "baris": 333,
+      "nonascii": 0,
+      "bagian": 15,
+      "batasan_jujur": 14,
+      "butir_tertunda": 10,
+      "ditulis_setelah": "rilis v1.0.2 terbit dan terverifikasi API (entri ke-64)",
+      "determinisme_diukur": "generator dijalankan ulang dari dalam naskah ledger ini: LAPORAN-FINAL menghasilkan byte identik (SHA256 1226874c74028434c6d04739a0e5f9837c3c1bf64ec79910fd86041b9d55a29d sebelum dan sesudah); berkas bukti bergerak 1 baris dari 314 baris dan SEMUA baris yang bergerak adalah cap waktu UTC ('Diukur dan ditulis 2026-10-24T19:27:52Z oleh r3_b8_laporan.py (scratch, diabai'), diperiksa fail-closed baris lain tidak boleh bergerak; bukti sebelum 265cdd73c9dba5ae sesudah eab30712e17de9d1, identik=False"
+    },
+    "koreksi_laporan_chat": {
+      "apa": "laporan antar-tahap di kanal chat unit ini mengutip run hosted CI dan ukuran ekstrak yang belum pernah muncul di luaran alat pada saat itu; angka itu sekarang diukur",
+      "run_dikutip": {
+        "id": 40117062850,
+        "ada_di_api": false,
+        "gh_run_view_exit": 1,
+        "keluaran_error_dipetik": "failed to get run: HTTP 404: Not Found [dipotong; lengkap di ledger]",
+        "sumber": "logs/r3_b8_ukur.py run_klaim()"
+      },
+      "run_ter_REGISTRASI_untuk_tip": {
+        "n": 1,
+        "id": [
+          40112679699
+        ],
+        "event": [
+          "push"
+        ],
+        "n_baris_cabang_dibaca": 50,
+        "sumber": "logs/r3_b8_ukur.py run_tip()"
+      },
+      "ukuran_ekstrak_sebenarnya": {
+        "ci_hosted_40109305262_2026-10-24.log.bytes": 11166,
+        "ci_hosted_40112679699_2026-10-24.log.bytes": 11192,
+        "sumber": "U.b() pada berkas yang ada di repo"
+      },
+      "dampak_ke_repo": "NOL - angka itu tidak pernah ditulis di berkas mana pun",
+      "kelas_bukti_koreksi": "VERIFIED-ON-CI-API",
+      "nol_amend": "pesan komit BAGIAN 7 dan laporan chat lama tidak di-retract dengan amend; koreksi dibawa sebagai catatan baru di entri ini, LAPORAN-FINAL bagian 11 butir 14, dan berkas bukti bagian 8"
+    },
+    "arsip_draf_ledger": {
+      "apa": "naskah ledger ini menulis DUA berkas ledger lebih dari sekali, lalu tulisannya DIGANTIKAN - pertama karena koreksi laporan chat belum masuk, kemudian karena satu paragraf tulisan berikutnya memuat token placeholder format yang tidak terisi; draf disalin ke logs/ (diabaikan git), pohon kerja dipulihkan ke HEAD dengan `git checkout --` atas dua berkas ledger itu saja, lalu ledger ditulis ulang - nol komit, nol amend, nol force-push, nol berkas .rs, nol artefak terproteksi tersentuh",
+      "n_arsip": {
+        "fault_log": 3,
+        "handoff": 3
+      },
+      "muatan_head_di_arsip": {
+        "fault_log_head_entri": 63,
+        "handoff_head_kunci": 52
+      },
+      "placeholder_tak_terisi_di_tambahan_arsip": {
+        "fault_log": 15,
+        "handoff": 0,
+        "cara_ukur": "logs/r3_b8_ukur.py arsip_draf(): pemindaian token format pada JSON bagian tambahan (bukan seluruh berkas) tiap arsip; arsip bersih bernilai 0; yang disimpan hanyalah huruf token (mis. 'd' untuk token persen-d) supaya ledger tidak memuat token yang sama dengan yang dicari penjaga naskah ini",
+        "dilaporkan_di": "LAPORAN-FINAL bagian 13 dan berkas bukti bagian 9"
+      },
+      "arsip_fault_log": [
+        {
+          "berkas": "logs/r3_b9_arsip_FL_draf_64_entri.json",
+          "bytes": 344331,
+          "sha256": "3fe8bb32eb7b6942e4bea0c30ad1c726daff77718e3ed783f7653279af79a5f2",
+          "n_draf": 64,
+          "n_head": 63,
+          "isi_head_utuh_di_draf": true,
+          "tambahan_hanya_di_draf": 1,
+          "nama_tambahan": [
+            "F8_LAPORAN_FINAL_TERKOMIT_PA"
+          ],
+          "placeholder_di_tambahan": 5,
+          "placeholder_unik": [
+            "d"
+          ]
+        },
+        {
+          "berkas": "logs/r3_b9_arsip_FL_tulis_1.json",
+          "bytes": 346009,
+          "sha256": "8e0de42d48f7929e4e8c770c07fbb0ecfaf4b3687e2da9e47a2f80e1e9030629",
+          "n_draf": 64,
+          "n_head": 63,
+          "isi_head_utuh_di_draf": true,
+          "tambahan_hanya_di_draf": 1,
+          "nama_tambahan": [
+            "F8_LAPORAN_FINAL_TERKOMIT_PA"
+          ],
+          "placeholder_di_tambahan": 5,
+          "placeholder_unik": [
+            "d"
+          ]
+        },
+        {
+          "berkas": "logs/r3_b9_arsip_FL_tulis_2.json",
+          "bytes": 346948,
+          "sha256": "04631a246ec7bb0372a805b130688983574bd5c6342b6042ca8bddd4163ccc6d",
+          "n_draf": 64,
+          "n_head": 63,
+          "isi_head_utuh_di_draf": true,
+          "tambahan_hanya_di_draf": 1,
+          "nama_tambahan": [
+            "F8_LAPORAN_FINAL_TERKOMIT_PA"
+          ],
+          "placeholder_di_tambahan": 5,
+          "placeholder_unik": [
+            "d"
+          ]
+        }
+      ],
+      "arsip_handoff": [
+        {
+          "berkas": "logs/r3_b9_arsip_HO_draf_53_kunci.json",
+          "bytes": 187349,
+          "sha256": "116cf694879911882bf7df2a7f066796cdd44344f842ec0d09048b09ba5c260b",
+          "n_draf": 53,
+          "n_head": 52,
+          "isi_head_utuh_di_draf": true,
+          "tambahan_hanya_di_draf": 1,
+          "nama_tambahan": [
+            "v1_0_2_r3_b8_laporan_final_state"
+          ],
+          "placeholder_di_tambahan": 0,
+          "placeholder_unik": []
+        },
+        {
+          "berkas": "logs/r3_b9_arsip_HO_tulis_1.json",
+          "bytes": 189409,
+          "sha256": "f85525292d6f8786b0c05ab69f62851b634c9d5ab6f34cd2a96f4127850a6b35",
+          "n_draf": 53,
+          "n_head": 52,
+          "isi_head_utuh_di_draf": true,
+          "tambahan_hanya_di_draf": 1,
+          "nama_tambahan": [
+            "v1_0_2_r3_b8_laporan_final_state"
+          ],
+          "placeholder_di_tambahan": 0,
+          "placeholder_unik": []
+        },
+        {
+          "berkas": "logs/r3_b9_arsip_HO_tulis_2.json",
+          "bytes": 192406,
+          "sha256": "677b35e31f3dec98c200383daa200981f48074507ba6ce5ee774af8921f1cdc3",
+          "n_draf": 53,
+          "n_head": 52,
+          "isi_head_utuh_di_draf": true,
+          "tambahan_hanya_di_draf": 1,
+          "nama_tambahan": [
+            "v1_0_2_r3_b8_laporan_final_state"
+          ],
+          "placeholder_di_tambahan": 0,
+          "placeholder_unik": []
+        }
+      ],
+      "tambahan_hanya_di_arsip": {
+        "fault_log": [
+          "F8_LAPORAN_FINAL_TERKOMIT_PA"
+        ],
+        "handoff": [
+          "v1_0_2_r3_b8_laporan_final_state"
+        ]
+      },
+      "diperiksa_oleh_alat": "logs/r3_b8_ukur.py arsip_draf() menolak jalan bila muatan HEAD tidak utuh di dalam draf atau bila tambahannya bukan tepat satu entri/kunci",
+      "dilaporkan_di": "berkas bukti unit bagian 9"
+    },
+    "bukti_unit": {
+      "berkas": "Analysis/reports/r3_bagian8-laporan-final_2026-10-24.txt",
+      "bytes": 25716,
+      "sha256": "eab30712e17de9d134c4eeb8ef2d892da555fa33e5b38507210723a600422956",
+      "baris": 314,
+      "mengutip_sha256_laporan": true
+    },
+    "iterasi_scratch": {
+      "total_kegagalan": 26,
+      "per_naskah": {
+        "logs/r3_b8_fl64_handoff.py": 6,
+        "logs/r3_b8_laporan.py": 9,
+        "logs/r3_b8_ukur.py": 11
+      },
+      "per_kelas": {
+        "angka diketik di dokumen": 2,
+        "angka dilaporkan tanpa sumber": 1,
+        "bentuk data daftar kegagalan": 1,
+        "higiene akhir baris keluaran": 1,
+        "indentasi tidak seragam setelah suntingan": 1,
+        "jumlah argumen format tidak cocok": 2,
+        "kurung penutup lebih pada daftar argumen": 1,
+        "operator format di dalam string": 3,
+        "path konstanta salah": 1,
+        "penjaga menolak datanya sendiri": 1,
+        "periksa tidak cocok dengan realitas": 3,
+        "placeholder tidak terisi di ledger": 1,
+        "sintaksis naskah": 3,
+        "snapshot tidak stabil terhadap staging": 1,
+        "sumber angka salah alamat": 2,
+        "tanda persen literal di string yang kemudian diformat": 1,
+        "tanggal dipotong sehingga offset zona hilang": 1
+      },
+      "jumlah_kelas": 17,
+      "pemakaian_tertinggi_satu_kelas": 3,
+      "kelas_tertinggi": [
+        "operator format di dalam string",
+        "periksa tidak cocok dengan realitas",
+        "sintaksis naskah"
+      ],
+      "verdict_batas_mandat": "'26 dari 3' LEWAT bila dihitung satu kelas gabungan; tidak ada kelas tunggal yang lewat (tertinggi 3 dari 3)",
+      "rincian": "berkas bukti unit bagian 7 (daftar butir per kegagalan, tiap butir berlabel kelas)",
+      "nol_berkas_repo_diubah_oleh_perbaikan": true
+    },
+    "ekstrak_penutup_utang": [
+      {
+        "run_id": 40109305262,
+        "event": "push",
+        "head_sha": "c6e4c01788789e3126fa3488abb7696f72d0f485",
+        "head_branch": "main",
+        "conclusion": "success",
+        "workflow": "asl-ci-minimal",
+        "created_at": "2026-10-24T15:57:14Z",
+        "berkas": "ci_hosted_40109305262_2026-10-24.log",
+        "bytes": 11166,
+        "baris": 94,
+        "sha256": "78b8467ab2b22e73d8f881f3043e37e6634f14cd8d4c636a3b5affd4863d4fa7",
+        "ditutup_untuk_komit": "c6e4c01"
+      },
+      {
+        "run_id": 40112679699,
+        "event": "push",
+        "head_sha": "f2130987e54381dcbeb8b153ed9be55729419109",
+        "head_branch": "feature/v1.0.2-r1",
+        "conclusion": "success",
+        "workflow": "asl-ci-minimal",
+        "created_at": "2026-10-24T16:40:52Z",
+        "berkas": "ci_hosted_40112679699_2026-10-24.log",
+        "bytes": 11192,
+        "baris": 94,
+        "sha256": "5ee15d6998488d5a8decc8475e56e3f6c956d82e0d4ee5b0da032a80c232e27f",
+        "ditutup_untuk_komit": "f213098"
+      }
+    ],
+    "gerbang_enam_run": {
+      "run": [
+        {
+          "run_id": 40109001959,
+          "event": "push",
+          "head": "700481c",
+          "head_branch": "feature/v1.0.2-r1",
+          "conclusion": "success",
+          "ekstrak": "ci_hosted_40109001959_2026-10-24.log",
+          "ekstrak_bytes": 11192,
+          "ekstrak_sha256": "9e1a48518d19571c3a56bd4188d406ece328f42445f39163d49a1d7f0a42c7b9"
+        },
+        {
+          "run_id": 40109006618,
+          "event": "pull_request",
+          "head": "700481c",
+          "head_branch": "feature/v1.0.2-r1",
+          "conclusion": "success",
+          "ekstrak": "ci_hosted_40109006618_2026-10-24.log",
+          "ekstrak_bytes": 11208,
+          "ekstrak_sha256": "c7ef1ea88f47bb0026374c997e6d4c2bd9abad5c996749aef02ada0d6e5d50de"
+        },
+        {
+          "run_id": 40109170099,
+          "event": "push",
+          "head": "4aa17a3",
+          "head_branch": "feature/v1.0.2-r1",
+          "conclusion": "success",
+          "ekstrak": "ci_hosted_40109170099_2026-10-24.log",
+          "ekstrak_bytes": 11192,
+          "ekstrak_sha256": "a3b9cf27513f323065549a9081337aa12014141b16a9fc2d0a747830e060a266"
+        },
+        {
+          "run_id": 40109173018,
+          "event": "pull_request",
+          "head": "4aa17a3",
+          "head_branch": "feature/v1.0.2-r1",
+          "conclusion": "success",
+          "ekstrak": "ci_hosted_40109173018_2026-10-24.log",
+          "ekstrak_bytes": 11208,
+          "ekstrak_sha256": "c00deef6cd5c50e75035209de3605622eab936d24fb2103dc983d29e013b456e"
+        },
+        {
+          "run_id": 40109305262,
+          "event": "push",
+          "head": "c6e4c01",
+          "head_branch": "main",
+          "conclusion": "success",
+          "ekstrak": "ci_hosted_40109305262_2026-10-24.log",
+          "ekstrak_bytes": 11166,
+          "ekstrak_sha256": "78b8467ab2b22e73d8f881f3043e37e6634f14cd8d4c636a3b5affd4863d4fa7"
+        },
+        {
+          "run_id": 40112679699,
+          "event": "push",
+          "head": "f213098",
+          "head_branch": "feature/v1.0.2-r1",
+          "conclusion": "success",
+          "ekstrak": "ci_hosted_40112679699_2026-10-24.log",
+          "ekstrak_bytes": 11192,
+          "ekstrak_sha256": "5ee15d6998488d5a8decc8475e56e3f6c956d82e0d4ee5b0da032a80c232e27f"
+        }
+      ],
+      "nilai": {
+        "suite": 30,
+        "passed": 262,
+        "failed": 0,
+        "per_test_ok": 262,
+        "warning1": 19,
+        "warning2": 0,
+        "error1": 0,
+        "error2": 0,
+        "Compiling": 13,
+        "ELF_runner": 312968
+      },
+      "himpunan_nilai_identik": true,
+      "elf_host_bytes": 312912,
+      "elf_host_sha256": "fb4eeb31e26b1cf9a289e4c697e6cea8230cd83a1ad45424cd2312ee5eee5d59",
+      "selisih_elf_dibiarkan_terbuka": 56,
+      "run_baseline_cabang_sebelum_unit_ini": {
+        "conclusion": "success",
+        "databaseId": 40112679699,
+        "headBranch": "feature/v1.0.2-r1",
+        "headSha": "f2130987e54381dcbeb8b153ed9be55729419109",
+        "status": "completed"
+      }
+    },
+    "rantai_r3": {
+      "rentang": "526412d~1..f213098 (tujuh unit + komit merge PR #7)",
+      "unit": [
+        {
+          "bagian": "BAGIAN1",
+          "komit": "526412d",
+          "tanggal": "2026-10-24T18:16:44+07:00",
+          "berkas": 4,
+          "tambah": 351,
+          "kurang": 0,
+          "rs": 0
+        },
+        {
+          "bagian": "BAGIAN2",
+          "komit": "7108d84",
+          "tanggal": "2026-10-24T18:34:05+07:00",
+          "berkas": 5,
+          "tambah": 313,
+          "kurang": 4,
+          "rs": 0
+        },
+        {
+          "bagian": "BAGIAN3",
+          "komit": "5ad71ae",
+          "tanggal": "2026-10-24T19:39:04+07:00",
+          "berkas": 13,
+          "tambah": 1009,
+          "kurang": 22,
+          "rs": 0
+        },
+        {
+          "bagian": "BAGIAN4",
+          "komit": "1ea73ad",
+          "tanggal": "2026-10-24T20:38:16+07:00",
+          "berkas": 5,
+          "tambah": 446,
+          "kurang": 0,
+          "rs": 0
+        },
+        {
+          "bagian": "BAGIAN5",
+          "komit": "7703711",
+          "tanggal": "2026-10-24T21:38:22+07:00",
+          "berkas": 8,
+          "tambah": 507,
+          "kurang": 0,
+          "rs": 0
+        },
+        {
+          "bagian": "BAGIAN6",
+          "komit": "700481c",
+          "tanggal": "2026-10-24T22:52:51+07:00",
+          "berkas": 22,
+          "tambah": 2585,
+          "kurang": 0,
+          "rs": 0
+        },
+        {
+          "bagian": "BAGIAN7",
+          "komit": "f213098",
+          "tanggal": "2026-10-24T23:40:44+07:00",
+          "berkas": 12,
+          "tambah": 1183,
+          "kurang": 0,
+          "rs": 0
+        }
+      ],
+      "berkas_berubah_satu_set": 59,
+      "berkas_rs_satu_set": 0,
+      "catatan_unit_ini": "BAGIAN 8 belum ter-commit saat angka diambil, jadi tidak ada di daftar tujuh itu"
+    },
+    "rilis_dibaca_ulang": {
+      "url": "https://github.com/qomaruddindjamal/asl/releases/tag/v1.0.2",
+      "id": 422838293,
+      "tag": "v1.0.2",
+      "draft": false,
+      "prerelease": false,
+      "created": "2026-10-24T16:11:23Z",
+      "published": "2026-10-24T16:14:39Z",
+      "target_commitish": "main",
+      "body_bytes": 7086,
+      "body_identik_byte_dengan_catatan_ter_commit": true,
+      "aset": [
+        {
+          "nama": "asl-core-kernel-v1.0.2.iso",
+          "bytes": 4624384,
+          "state": "uploaded",
+          "digest_sha256": "1569c17157b98c8aa29c9e9d18ccb6aeb931c883d1e1a25983864df4206c668c",
+          "unduhan": 0,
+          "id": 672712293,
+          "url": "https://github.com/qomaruddindjamal/asl/releases/download/v1.0.2/asl-core-kernel-v1.0.2.iso"
+        },
+        {
+          "nama": "SHA256SUMS.txt",
+          "bytes": 2034,
+          "state": "uploaded",
+          "digest_sha256": "5c35c77f88a060fce723a55e8a857b6464ca241dc988a7e5542188eb655a3355",
+          "unduhan": 0,
+          "id": 672712295,
+          "url": "https://github.com/qomaruddindjamal/asl/releases/download/v1.0.2/SHA256SUMS.txt"
+        }
+      ],
+      "iso_disk_cocok_dengan_aset": true
+    },
+    "tag_silik_lokal_vs_origin": {
+      "nama_dibandingkan": 4,
+      "identik_objek": [
+        "v1.0.0",
+        "v1.0.2"
+      ],
+      "beda_objek": {
+        "v1.0.1": {
+          "lokal_tipe": "tag",
+          "lokal_objek": "f7875f4ef67cbfddde883e7b6f39b99632a40cb7",
+          "lokal_peel": "b478ee5bbbce4d644f39793135224b1727a3013a",
+          "origin_tipe": "commit",
+          "origin_objek": "b47c24c1e2ac73c7e495c317d32cd01892e7d247"
+        }
+      },
+      "hanya_lokal": [
+        "v1.0.1-alfa"
+      ],
+      "hanya_origin": [],
+      "daftar_ledger_tag_tidak_disentuh": [
+        "v1.0.0",
+        "v1.0.1",
+        "v1.0.1-alfa"
+      ],
+      "asal_temuan": "DITEMUKAN unit ini oleh logs/r3_b8_ukur.py::tag_silik(); rantai R3 tidak menyentuh kedua objek itu (nol tulis, nol hapus, nol force-push)",
+      "tindakan": "DIDAFTARKAN sebagai butir tertunda; dua aksi lain dilarang mandat (butir b anti force-push, butir e larangan hapus tag di luar BAGIAN 7)"
+    },
+    "koreksi_append_only": {
+      "klaim_pesan_komit_b7": "v1.0.0 v1.0.1 v1.0.2",
+      "kutipan_terbaca_dari": "git log -1 --format=%B f213098 dengan spasi baris diluruskan",
+      "tag_lokal_terukur": [
+        "v1.0.0",
+        "v1.0.1",
+        "v1.0.1-alfa",
+        "v1.0.2"
+      ],
+      "tidak_disebut_di_klaim": [
+        "v1.0.1-alfa"
+      ],
+      "dampak": "nol data hilang (berkas bukti BAGIAN 7 dan kunci ledger memuat 4 nama); ringkasan pesan terbit kurang lengkap",
+      "tidak_di_amend": "larangan butir b; koreksi ditulis di LAPORAN-FINAL bagian 11 dan di entri ke-64"
+    },
+    "sapuan_rujukan_jalur_lama": {
+      "pola": "limine_v8_binary",
+      "total_rujukan": 8,
+      "n_berkas": 7,
+      "berkas_hidup": [
+        [
+          "README.md",
+          1
+        ],
+        [
+          "docs/CANONICAL/DEVELOPER_ONBOARDING.md",
+          1
+        ],
+        [
+          "docs/PANDUAN/MULAI-CEPAT.md",
+          1
+        ],
+        [
+          "docs/PANDUAN/REFERENSI-PERINTAH.md",
+          1
+        ]
+      ],
+      "berkas_sejarah": [
+        [
+          "README.md",
+          1
+        ],
+        [
+          "docs/CANONICAL/DEVELOPER_ONBOARDING.md",
+          1
+        ],
+        [
+          "docs/PANDUAN/MULAI-CEPAT.md",
+          1
+        ],
+        [
+          "docs/PANDUAN/REFERENSI-PERINTAH.md",
+          1
+        ],
+        [
+          "docs/RND/ASL-V1.0.2-E8-LAPORAN-PENUTUPAN.md",
+          1
+        ],
+        [
+          "docs/RND/ASL-V1.0.2-R1-STATUS-BAGIAN-2.md",
+          2
+        ],
+        [
+          "docs/TOOLING/LIMINE-PROVISIONING.md",
+          1
+        ]
+      ],
+      "readme_baris_terukur": 129,
+      "perbedaan_terhadap_mandat": "mandat menyebut 7 rujukan di 6 berkas; terukur 8 di 7 karena BAGIAN 3 menambahkan docs/TOOLING/LIMINE-PROVISIONING.md (rujukan benar ke jalur ter-pin)",
+      "keputusan": "empat dokumen hidup TIDAK diubah (wilayah pemilik dan mandat membatasi perubahan); didaftarkan sebagai butir tertunda"
+    },
+    "mati_lampu": {
+      "sumber": "Analysis/reports/r1_k2_pemulihan-matilampu_2026-10-23.txt",
+      "bytes_sumber": 41328,
+      "baris_sumber": 601,
+      "sha256_sumber": "4b0c722ec15560633842ec6b980a264d725be75e7c1d75fcec69b68f1acd11bb",
+      "kejadian_lokal": [
+        "2026-10-23 17:42:59",
+        "2026-10-22 21:20:55"
+      ],
+      "kejadian_utc_dikutip_ledger": [
+        "2026-10-23T10:42:59Z",
+        "2026-10-22T14:20:55Z"
+      ],
+      "eventlog_6008": 2,
+      "eventlog_6006": 0,
+      "entri_pemulihan": "ke-54 tanggal 2026-10-23T17:46:41Z result=CLOSED",
+      "audit_keadaan_awal": "ke-57 tanggal 2026-10-24T11:06:18Z result=CLOSED"
+    },
+    "footprint": {
+      "sumber": "Analysis/reports/elf_footprint_history.txt",
+      "baris_data": 6,
+      "ukuran_baris_terakhir": 312912,
+      "bytes": 3708,
+      "baris": 19
+    },
+    "satu_sumber_versi_prompt": {
+      "sumber": "asl-kernel/asl-cockpit-shell/src/lib.rs",
+      "baris_versi": "34",
+      "kemunculan_versi": 1,
+      "kemunculan_prompt": 6
+    },
+    "utang_g8": {
+      "audit": "logs/r3_b9_debt_audit.txt",
+      "audit_bytes": 636,
+      "audit_baris": 12,
+      "total_commit_cabang_terukur": 1,
+      "ekstrak_ter_commit": 137,
+      "utang_terbuka_saat_audit": "[('f213098', 40112679699, 'push')]",
+      "ditutup_komit_ini": [
+        "pasangan atas tip main c6e4c01 (run push 40109305262)",
+        "pasangan atas komit BAGIAN 7 f213098 (run push 40112679699)"
+      ],
+      "residu_terminal": "ekstrak atas komit unit ini TIDAK dapat dibawa oleh komit itu sendiri (aturan G8); penutupnya pemeriksaan API atas SHA komit terakhir dan itu dilaporkan di laporan konsolidasi chat - residu oleh konstruksi, bukan kegagalan"
+    },
+    "keputusan_unit_tanpa_pr_kedua": {
+      "apa": "unit ini commit + push ke feature/v1.0.2-r1 SAJA; nol merge baru, nol tag baru, nol perubahan rilis",
+      "alasan": [
+        "mandat BAGIAN 8 hanya menuntut 'Commit + push; pastikan CI hosted hijau di tip final'",
+        "catatan rilis v1.0.2 ter-commit memuat nol rujukan ke LAPORAN-FINAL",
+        "merge kedua akan melebarkan jarak peel tag v1.0.2 (700481c) terhadap main c6e4c01"
+      ],
+      "bukti_baseline": {
+        "conclusion": "success",
+        "databaseId": 40112679699,
+        "headBranch": "feature/v1.0.2-r1",
+        "headSha": "f2130987e54381dcbeb8b153ed9be55729419109",
+        "status": "completed"
+      }
+    },
+    "deviasi_dinyatakan": [
+      "iterasi mandat 5.4: 26 kegagalan scratch di 3 naskah dan 17 kelas; per kelas tidak ada yang lewat (tertinggi 3 pada kelas 'operator format di dalam string, periksa tidak cocok dengan realitas, sintaksis naskah'), satu kelas gabungan '26 dari 3' LEWAT",
+      "klaim tag pada pesan komit BAGIAN 7 yang sudah terbit KURANG LENGKAP (tanpa v1.0.1-alfa) - dikoreksi append-only, tidak di-amend",
+      "asimetri objek tag v1.0.1 lokal vs origin DITEMUKAN dan DIDAFTARKAN, tidak diperbaiki",
+      "LAPORAN CHAT ANTAR-TAHAP UNIT INI memuat angka tanpa sumber (run id 40117062850 ada=False di API); dikoreksi dengan alat baru dan tercatat di kunci `koreksi_laporan_chat` - dampak ke repo NOL",
+      "butir 8 definisi tuntas ('CI hijau sesudah LAPORAN-FINAL') diukur SESUDAH push, jadi entri ini tidak mengklaimnya lebih dulu",
+      "residu utang G8 atas komit terakhir rantai (terminal oleh konstruksi)"
+    ],
+    "batasan_jujur": [
+      "VERIFIED-ON-HARDWARE tetap 0 - tidak satu pun bukti di perangkat keras pemilik",
+      "janji misi '-m 3M' MERAH: [MERAH] fase 2: -m 3M tidak mencapai prompt pada ISO ini (serial=0 byte).",
+      "jendela penerimaan VM tidak disaksikan manusia (keputusan P4, entri ke-62); masukan sesi lewat serial ANSI, bukan PS/2",
+      "K-6 fisik DITUNDA berotorisasi, nol byte ditulis ke ESP (entri ke-60)",
+      "rantai R3 mengubah nol berkas .rs: angka gerbang diwarisi + dibuktikan hosted CI, bukan diukur ulang dari nol di host",
+      "selisih ELF runner vs host 56 B dibiarkan terbuka",
+      "ISO tidak di-commit; sidik jarinya tercatat di pesan tag, catatan rilis, SHA256SUMS.txt dan laporan ini",
+      "target_commitish rilis berisi string 'main' bukan SHA; sumber sebenarnya ref tag",
+      "jumlah per naskah dan per kelas dihitung dari daftar butir di berkas bukti unit ini dan dibaca ulang naskah ledger dari berkas itu (scratch hidup di logs/ yang diabaikan git); label kelas tiap butir adalah attribution saya sendiri, tidak ada alat yang mencatat kelas"
+    ],
+    "artefak_terproteksi_terukur_tidak_berubah": {
+      "scripts/g9_final_p8_run.ps1": {
+        "bytes": 18321,
+        "sha256": "1cf64d41f42047d65be4a2aedde2f6fe603e845824b3153ce65df0971056b3cf",
+        "git_status": "(kosong)"
+      },
+      "g9_final_p8_untracked": 20,
+      "root_log_terlacak": 0,
+      "README.md": {
+        "status": "(kosong)",
+        "beda_vs_origin_main": 0,
+        "penulis_rantai": [
+          "d4c4375 Qomaruddin Djamal",
+          "09c618f Qomaruddin Djamal"
+        ]
+      }
+    },
+    "langkah_berikutnya": "Laporan konsolidasi BAGIAN 10 + verifikasi terukur sepuluh butir DEFINISI TUNTAS BAGIAN 11 di chat; RANTAI R3 BERHENTI DI SINI kecuali pemilik menugaskan pekerjaan baru"
   }
 }

@@ -2,7 +2,9 @@
 //! =====================================================
 //! Standar DO-178C DAL-A & Allocation-Free Command Interpreter.
 //! Menghadirkan prompt interaktif:
-//! `ASL-KERNEL> ` (satu-sumber: konstanta `SHELL_PROMPT` di berkas ini)
+//! `ASL-KERNEL <posisi>>_ ` (satu-sumber: `SHELL_PROMPT_PREFIX` +
+//! `SHELL_PROMPT_SUFFIX` di berkas ini; `render_prompt` menyusunnya)
+//!
 //! Perintah bawaan:
 //! - `help`    : Menampilkan daftar perintah
 //! - `clear`   : Membersihkan layar
@@ -17,12 +19,287 @@
 
 pub const SHELL_BUFFER_MAX: usize = 128;
 
+/// Jumlah baris riwayat yang dipegang shell (F7). Empat baris cukup untuk
+/// mengulang perintah yang baru saja dijalankan dan adalah Kompromi memori:
+/// setiap slot selebar [`SHELL_BUFFER_MAX`] byte, sehingga seluruh pool hanya
+/// menambah 512 byte pada bingkai `kernel_main`.
+pub const HIST_MAKS: usize = 4;
+
+/// Penanda bahwa tidak ada entri riwayat yang sedang dimandangi, sehingga
+/// panah atas mulai dari entri paling baru.
+pub const HIST_TIDAK_MEMANDANG: usize = usize::MAX;
+
 /// Identitas rilis kernel: SATU-SUMBER untuk lima situs tampil
 /// (logo, VGA, framebuffer, serial, uname) di asl-kernel-core.
 pub const KERNEL_VERSION: &str = "v1.0.2";
 
-/// Prompt shell: SATU-SUMBER untuk seluruh situs tampil. Tanpa posisi folder.
-pub const SHELL_PROMPT: &str = "ASL-KERNEL> ";
+/// Awalan prompt shell: SATU-SUMBER. Posisi direktori aktif ditulis setelahnya
+/// oleh [`render_prompt`], jadi awalan ini tidak pernah berubah sendiri.
+pub const SHELL_PROMPT_PREFIX: &str = "ASL-KERNEL ";
+
+/// Akhiran prompt shell: SATU-SUMBER, menandai tempat ketikan dimulai.
+pub const SHELL_PROMPT_SUFFIX: &str = ">_ ";
+
+/// Panjang prompt tanpa posisi: [`SHELL_PROMPT_PREFIX`] + [`SHELL_PROMPT_SUFFIX`].
+pub const SHELL_PROMPT_FIXED_LEN: usize = SHELL_PROMPT_PREFIX.len() + SHELL_PROMPT_SUFFIX.len();
+
+/// Prompt pada direktori AKAR, hasil [`render_prompt("/")`] yang dipromosikan
+/// menjadi konstanta karena perkakas gerbang membaca nilainya lewat pola
+/// `pub const SHELL_PROMPT : &str = "..."` dan memakainya untuk mengenali
+/// "shell sudah siap" pada keluaran serial.
+pub const SHELL_PROMPT: &str = "ASL-KERNEL />_ ";
+
+/// Label galat SATU-SUMBER untuk semua keluaran kesalahan perintah (F3):
+/// galat VFS, galat normalisasi path, jumlah argumen tidak sesuai, dan perintah
+/// tak dikenal. Jalur perbaikan E8 sudah memakai teks yang sama, jadi operator
+/// hanya mengenali satu merek kesalahan.
+pub const MSG_ERROR: &str = "Kesalahan: ";
+
+/// Bagian tengah baris galat argumen: `Kesalahan: <ini><sintaks-asli>`.
+pub const MSG_BAD_ARITY: &str = "jumlah argumen tidak sesuai - ";
+
+/// Awalan keterangan sintaks pada baris galat argumen, sehingga barisnya
+/// berbunyi `Kesalahan: jumlah argumen tidak sesuai - Sintaks: <sintaks>`.
+pub const MSG_SYNTAX: &str = "Sintaks: ";
+
+/// Penghubung label galat dengan keterangan perintah tak dikenal, sehingga
+/// barisnya berbunyi `Kesalahan: perintah tidak dikenal: <nama>`.
+pub const MSG_UNKNOWN: &str = "perintah tidak dikenal: ";
+
+/// Awalan baris ruang kerja aktif (`where`, `open` direktori, `up`).
+pub const MSG_WORKDIR: &str = "Ruang kerja: ";
+
+/// Baris `up` ketika ruang kerja sudah di akar dan sengaja tidak berpindah.
+pub const MSG_WORKDIR_AT_ROOT: &str = "Ruang kerja tetap di akar: ";
+
+/// Awalan baris hasil `create-folder`.
+pub const MSG_DIR_CREATED: &str = "Direktori dibuat: ";
+
+/// Awalan baris hasil `create-file`.
+pub const MSG_FILE_CREATED: &str = "Berkas dibuat: ";
+
+/// Awalan baris hasil `delete-file`.
+pub const MSG_FILE_DELETED: &str = "Berkas dihapus: ";
+
+/// Awalan baris hasil `delete-folder`.
+pub const MSG_DIR_DELETED: &str = "Direktori dihapus: ";
+
+/// Awalan angka pada baris hasil `write-file`.
+pub const MSG_WRITTEN: &str = "Tertulis ";
+
+/// Penghubung antara jumlah byte dan path pada baris hasil `write-file`.
+pub const MSG_WRITTEN_TO: &str = " byte di ";
+
+/// Awalan keterangan pemangkasan: ` - <n> byte isi lama dihapus` (F3; keputusan
+/// pemilik: `write-file` tanpa argumen isi boleh dan pemangkasannya HARUS
+/// diumumkan, begitu juga pemangkasan tulis yang lebih pendek dari isi lama).
+pub const MSG_TRUNCATED: &str = " - ";
+
+/// Penutup keterangan pemangkasan.
+pub const MSG_TRUNCATED_END: &str = " byte isi lama dihapus";
+
+/// Penanda bahwa `write-file` membuat berkas lebih dulu sebelum menulis.
+pub const MSG_NEW_FILE: &str = " (berkas baru)";
+
+/// Awalan kepala daftar hasil `list` dan kepala isi hasil `open`.
+pub const MSG_LIST: &str = "Daftar isi ";
+
+/// Kurung buka bersama untuk semua keterangan jumlah di akhir baris.
+pub const MSG_PAREN_OPEN: &str = " (";
+
+/// Penutup kepala daftar hasil `list`.
+pub const MSG_LIST_TAIL: &str = " entri):";
+
+/// Awalan kepala isi berkas hasil `open` pada berkas.
+pub const MSG_CONTENT: &str = "Isi ";
+
+/// Penutup kepala isi berkas, setelah jumlah byte.
+pub const MSG_CONTENT_TAIL: &str = " byte):";
+
+/// Penanda keluaran kosong (`list` nol entri, `open` berkas nol byte).
+pub const MSG_EMPTY: &str = "(kosong)";
+
+/// Penanda jumlah nol pada keterangan kurung (`(0 byte)`, `(0 entri)`).
+pub const MSG_ZERO_BYTES: &str = " (0 byte)";
+
+/// Salinan [`MSG_ZERO_BYTES`] untuk hitungan entri.
+pub const MSG_ZERO_ENTRIES: &str = " (0 entri)";
+
+/// Penutup jumlah byte yang dibebaskan `delete-file`.
+pub const MSG_FREED_TAIL: &str = " byte dibebaskan)";
+
+/// Penanda argumen yang DIPOTONG pada tokenisasi, untuk baris galat F4:
+/// `Kesalahan: <64 byte pertama>... - argumen melebihi batas <n> byte, perintah
+/// tidak dijalankan`. Ini bukan potongan diam-diam: jalur lama memotong tanpa
+/// memberi tahu, sehingga nama berkas berekstensi bisa berubah menjadi nama
+/// tanpa ekstensi dan berkas tercipta dengan nama yang tidak diketik operator.
+pub const MSG_ARG_CUT: &str = "... - argumen melebihi batas ";
+
+/// Penutup baris galat argumen terpotong.
+pub const MSG_ARG_CUT_TAIL: &str = " byte, perintah tidak dijalankan";
+
+/// Awalan keterangan isi yang tidak tertulis pada `write-file` (F4):
+/// `... - isi dipotong pada batas <n> byte; sisa tidak tertulis`.
+pub const MSG_ISI_CUT: &str = " - isi dipotong pada batas ";
+
+/// Penutup keterangan isi terpotong.
+pub const MSG_ISI_CUT_TAIL: &str = " byte; sisa tidak tertulis";
+
+/// Glif penanda kursor saat idle (F5). Baris kosong menampilkan karakter ini
+/// pada sel kursor; mesin pemindai serial tidak pernah menerimanya sebagai
+/// bagian prompt baru karena glif yang sama sudah hidup di akhiran prompt.
+pub const CURSOR_IDLE_GLYPH: u8 = b'_';
+
+/// Panjang satu siklus kursor dalam satuan detik jam perangkat keras (F5).
+/// Nilai dua berarti: satu detik nampak, satu detik padam.
+pub const CURSOR_BLINK_PERIODE: u64 = 2;
+
+/// Fase kursor pada detik jam ke-`detik` (F5). Murni dan dapat diuji dari sisi
+/// host; sumber detiknya (jam CMOS di kernel) hanya menghitung detik.
+pub const fn kursor_nyala(detik: u64) -> bool {
+    detik.is_multiple_of(CURSOR_BLINK_PERIODE)
+}
+
+/// Batas nama yang dikumpulkan mode berpanduan: sama dengan satu token argumen
+/// supaya jalur berpanduan tidak punya aturan panjang sendiri.
+pub const GUIDED_NAME_MAX: usize = MAX_ARG_LEN;
+
+/// Batas isi yang dikumpulkan mode berpanduan. Angka ini DIPEGANG oleh
+/// `test_f5_batas_pemanduan_sama_dengan_slot_ramdisk` di `asl-kernel-core`,
+/// yang mengikatnya ke `RAMDISK_FILE_SLOT_BYTES`; bila slot berubah tanpa
+/// menyunting konstanta ini, test itu menjadi MERAH.
+pub const GUIDED_ISI_MAKS: usize = 8192;
+
+/// Penyangga minimum untuk satu label mode berpanduan.
+pub const LABEL_BUF_MAX: usize = 112;
+
+/// Label permintaan nama direktori (F5): `Nama folder baru: `.
+pub const MSG_LABEL_FOLDER: &str = "Nama folder baru: ";
+
+/// Label permintaan nama berkas (F5): `Nama berkas: `.
+pub const MSG_LABEL_BERKAS: &str = "Nama berkas: ";
+
+/// Pembuka nomor baris pada label isi (F5), dipakai sebagai
+/// `Isi <nama> (baris <n>): `.
+pub const MSG_BARIS_OPEN: &str = " (baris ";
+
+/// Penutup label isi beserta satu spasi agar ketikan operator menempel rapi.
+pub const MSG_BARIS_TAIL: &str = "): ";
+
+/// Awalan baris galat nama terlalu panjang pada mode berpanduan (F5):
+/// `Kesalahan: nama lebih panjang dari batas <n> byte - perintah tidak
+/// dijalankan`.
+pub const MSG_LABEL_NAMA_PANJANG: &str = "nama lebih panjang dari batas ";
+
+/// Penutup baris galat nama terlalu panjang pada mode berpanduan.
+pub const MSG_LABEL_NAMA_PANJANG_TAIL: &str = " byte - perintah tidak dijalankan";
+
+/// Awalan baris pembatalan mode berpanduan (F5): `Dibatalkan: <keterangan>`.
+pub const MSG_BATAL: &str = "Dibatalkan: ";
+
+/// Akhiran pembatalan untuk mode nama direktori.
+pub const MSG_BATAL_FOLDER: &str = "nama folder kosong - direktori tidak dibuat";
+
+/// Akhiran pembatalan untuk mode nama dan isi berkas.
+pub const MSG_BATAL_BERKAS: &str = "nama berkas kosong - tidak ada yang ditulis";
+
+/// Awalan pengumuman isi berpanduan mencapai kapasitas satu slot (F4 memotong
+/// isi pada tulis; F5 berhenti menerima baris tambahan):
+/// `Isi berhenti pada kapasitas satu slot <n> byte; sisa baris tidak diterima`.
+pub const MSG_ISI_PENUH: &str = "Isi berhenti pada kapasitas satu slot ";
+
+/// Penutup pengumuman isi berpanduan penuh.
+pub const MSG_ISI_PENUH_TAIL: &str = " byte; sisa baris tidak diterima";
+
+/// Awalan baris sukses rename satu berkas (F6): `Berkas diganti nama: `.
+pub const MSG_RENAMED_FILE: &str = "Berkas diganti nama: ";
+
+/// Awalan baris sukses rename satu direktori (F6): `Direktori diganti nama: `.
+pub const MSG_RENAMED_FOLDER: &str = "Direktori diganti nama: ";
+
+/// Pemisah path lama dan path baru pada baris rename (F6).
+pub const MSG_RENAME_ARROW: &str = " -> ";
+
+/// Penutup baris rename direktori beserta jumlah turunannya (F6), dipakai
+/// sesudah `(` dan angka: `(12 entri subtree ikut bergeser)`.
+pub const MSG_RENAME_SUBTREE: &str = " entri subtree ikut bergeser)";
+
+/// Penjelasan galat rename karena nama tujuan sama dengan nama sumber (F6).
+pub const MSG_RENAME_SAMA: &str = "nama tujuan sama dengan nama sumber - tidak ada yang diganti";
+
+/// Penjelasan galat rename karena nama tujuan memuat garis miring (F6):
+/// `rename` hanya bekerja di satu direktori, jadi memindahkan adalah wilayah
+/// lain dan tidak dilakukan diam-diam.
+pub const MSG_RENAME_MIRING: &str =
+    "nama tujuan rename tidak boleh memuat garis miring - perintah ini tidak memindahkan objek";
+
+/// Ekoran galat rename yang ditolak karena nama tujuan sudah ada (F6):
+/// menegaskan bahwa sumber tidak ikut berubah.
+pub const MSG_RENAME_KEKAL: &str = " - sumber tidak diubah";
+
+/// Penutup baris rename berkas beserta ukuran isinya (F6), dipakai sesudah
+/// `(` dan angka: `(17 byte tetap tersimpan)`. Ganti nama tidak menyentuh isi,
+/// jadi angka inilah yang diumumkan agar operator tahu isinya tidak hilang.
+pub const MSG_RENAME_BYTES: &str = " byte tetap tersimpan)";
+
+/// Penjelasan galat rename yang sasaran atau basisnya adalah akar RAMDISK (F6).
+pub const MSG_RENAME_AKAR: &str = "objek akar tidak dapat diganti nama";
+
+/// Kepala daftar kandidat completion (F7): `Pilihan perintah: ` disusul satu
+/// nama per baris, hasil `kandidat_perintah` dari registry.
+pub const MSG_KANDIDAT: &str = "Pilihan perintah: ";
+
+/// Baris pembatalan Ctrl+C (F7): baris yang sedang diketik dibuang dan tidak
+/// pernah sampai ke parser.
+pub const MSG_CTRL_C: &str = "Baris dibatalkan: tidak ada perintah dijalankan";
+
+/// Ekoran baris galat perintah tak dikenal pada jalur lama (F7): penghubung
+/// Indonesia bagi operator yang sebelumnya membaca kalimat Inggris
+/// `Unknown command. Type 'help' for available commands.`
+pub const MSG_UNKNOWN_PANDUAN: &str = " - ketik help untuk daftar perintah";
+
+/// Susun prompt berposisi ke penyangga pemberi panggilan: nol alokasi heap,
+/// nol `alloc`, target `no_std` (G1). Posisi yang tidak muat dipotong pada
+/// batas penyangga sementara akhiran tetap utuh; seluruh jalur shell ASCII
+/// jadi pemotongan byte tidak pernah membelah karakter.
+///
+/// Penyangga harus sekurang-kurangnya [`SHELL_PROMPT_FIXED_LEN`] byte; bila
+/// lebih kecil, yang kembali adalah [`SHELL_PROMPT_PREFIX`] seadanya.
+pub fn render_prompt<'b>(position: &str, buf: &'b mut [u8]) -> &'b str {
+    let prefix = SHELL_PROMPT_PREFIX.as_bytes();
+    let suffix = SHELL_PROMPT_SUFFIX.as_bytes();
+    if buf.len() < prefix.len() + suffix.len() {
+        return SHELL_PROMPT_PREFIX;
+    }
+    let ruang = buf.len() - prefix.len() - suffix.len();
+    let posisi = position.as_bytes();
+    let ikut = if posisi.len() <= ruang {
+        posisi.len()
+    } else {
+        ruang
+    };
+    let mut i = 0;
+    while i < prefix.len() {
+        buf[i] = prefix[i];
+        i += 1;
+    }
+    let mut j = 0;
+    while j < ikut {
+        buf[i] = posisi[j];
+        i += 1;
+        j += 1;
+    }
+    let mut k = 0;
+    while k < suffix.len() {
+        buf[i] = suffix[k];
+        i += 1;
+        k += 1;
+    }
+    match core::str::from_utf8(&buf[..i]) {
+        Ok(s) => s,
+        Err(_) => SHELL_PROMPT,
+    }
+}
 
 /// Perintah Shell yang dikenali
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -59,9 +336,33 @@ pub struct CockpitShell {
     /// Panjang baris aktif saat ini.
     pub line_len: usize,
     pub is_active: bool,
-    /// Mesin sekuens escape: 0 = normal, 1 = ESC, 2 = ESC [, 3 = ESC [ <angka>.
+    /// Salinan baris yang TERAKHIR diserahkan (ENTER). Mode berpanduan F5
+    /// membacanya setelah penyangga aktif dibersihkan; tanpa salinan ini
+    /// jembatan kernel harus menyunting ulang baris yang sudah hilang.
+    last_line: [u8; SHELL_BUFFER_MAX],
+    last_len: usize,
+    /// Mesin sekuens escape: 0 = normal, 1 = ESC, 2 = ESC [, 3 = ESC [ <angka>,
+    /// 4 = ESC O.
     esc_state: u8,
-    esc_digit: u8,
+    /// Angka terkumpul pada sekuens `ESC [ <angka> <akhir>`; ditumpuk per digit
+    /// supaya `ESC [ 1 1 ~` (F1) terbedakan dari `ESC [ 3 ~` (Delete).
+    esc_param: u8,
+    /// Jumlah karakter baris ini yang SUDAH tercetak pada penampil. Shell
+    /// memegangnya karena hanya dia yang tahu efek setiap langkah penyuntingan:
+    /// sisip (+1), backspace (-1), hapus-maju (0, penampil tidak bisa
+    /// menggeser teks). Penampil memakai angka ini saat menghapus baris untuk
+    /// riwayat/Tab/Esc, sehingga tidak pernah menghapus prompt atau label.
+    echo_len: usize,
+    /// Cincin baris riwayat (F7). `hist_next` adalah slot tulis, `hist_count`
+    /// jumlah slot terisi, `hist_view` entri yang sedang dimandangi.
+    hist: [[u8; SHELL_BUFFER_MAX]; HIST_MAKS],
+    hist_len: [usize; HIST_MAKS],
+    hist_next: usize,
+    hist_count: usize,
+    hist_view: usize,
+    /// `true` bila Tab terakhir sudah tidak membawa kemajuan; Tab berikutnya
+    /// mencetak daftar kandidat alih-alih mencoba melengkapi lagi (F7).
+    tab_siaga: bool,
 }
 
 impl CockpitShell {
@@ -71,8 +372,17 @@ impl CockpitShell {
             cursor_pos: 0,
             line_len: 0,
             is_active: true,
+            last_line: [0u8; SHELL_BUFFER_MAX],
+            last_len: 0,
             esc_state: 0,
-            esc_digit: 0,
+            esc_param: 0,
+            echo_len: 0,
+            hist: [[0u8; SHELL_BUFFER_MAX]; HIST_MAKS],
+            hist_len: [0usize; HIST_MAKS],
+            hist_next: 0,
+            hist_count: 0,
+            hist_view: HIST_TIDAK_MEMANDANG,
+            tab_siaga: false,
         }
     }
 
@@ -199,7 +509,9 @@ impl CockpitShell {
 // ============================================================================
 
 /// Jumlah perintah kanonik yang dijanjikan misi v1.0.2 Bagian 1.2.
-pub const CANONICAL_COMMAND_COUNT: usize = 11;
+/// F1 menghitung 11; F2 menambahkan `up` sehingga menjadi 12; F6 menambahkan
+/// `rename` sehingga menjadi 13 - daftar final yang dijanjikan R1.
+pub const CANONICAL_COMMAND_COUNT: usize = 13;
 
 /// Jumlah maksimum argumen yang bisa ditangkap satu baris perintah.
 pub const MAX_ARGS: usize = 2;
@@ -241,9 +553,11 @@ pub enum CanonicalId {
     Where,
     List,
     Open,
+    Up,
     CreateFolder,
     CreateFile,
     WriteFile,
+    Rename,
     DeleteFile,
     DeleteFolder,
     Status,
@@ -346,7 +660,7 @@ impl ShellEntry for WhereCmd {
         "where"
     }
     fn summary(&self) -> &'static str {
-        "Tampilkan direktori kerja saat ini; prompt sengaja polos tanpa posisi folder."
+        "Tampilkan direktori kerja aktif; posisi yang sama juga tampil pada prompt."
     }
     fn category(&self) -> CommandCategory {
         CommandCategory::Workspace
@@ -414,6 +728,35 @@ impl ShellEntry for OpenCmd {
     }
     fn max_args(&self) -> usize {
         1
+    }
+}
+
+#[derive(Debug, Copy, Clone)]
+pub struct UpCmd;
+impl ShellEntry for UpCmd {
+    fn id(&self) -> CanonicalId {
+        CanonicalId::Up
+    }
+    fn name(&self) -> &'static str {
+        "up"
+    }
+    fn aliases(&self) -> &'static [&'static str] {
+        &[]
+    }
+    fn syntax(&self) -> &'static str {
+        "up"
+    }
+    fn summary(&self) -> &'static str {
+        "Naik satu tingkat ke direktori induk; sudah di akar berarti tetap di akar."
+    }
+    fn category(&self) -> CommandCategory {
+        CommandCategory::Workspace
+    }
+    fn min_args(&self) -> usize {
+        0
+    }
+    fn max_args(&self) -> usize {
+        0
     }
 }
 
@@ -504,6 +847,35 @@ impl ShellEntry for WriteFileCmd {
     }
     fn rest_is_one_arg(&self) -> bool {
         true
+    }
+}
+
+#[derive(Debug, Copy, Clone)]
+pub struct RenameCmd;
+impl ShellEntry for RenameCmd {
+    fn id(&self) -> CanonicalId {
+        CanonicalId::Rename
+    }
+    fn name(&self) -> &'static str {
+        "rename"
+    }
+    fn aliases(&self) -> &'static [&'static str] {
+        &["mv"]
+    }
+    fn syntax(&self) -> &'static str {
+        "rename <lama> <baru>"
+    }
+    fn summary(&self) -> &'static str {
+        "Ganti nama satu berkas atau direktori di direktori kerja saat ini; nama tujuan yang sudah ada ditolak."
+    }
+    fn category(&self) -> CommandCategory {
+        CommandCategory::File
+    }
+    fn min_args(&self) -> usize {
+        2
+    }
+    fn max_args(&self) -> usize {
+        2
     }
 }
 
@@ -601,9 +973,11 @@ pub static REGISTRY: [&dyn ShellEntry; CANONICAL_COMMAND_COUNT] = [
     &WhereCmd,
     &ListCmd,
     &OpenCmd,
+    &UpCmd,
     &CreateFolderCmd,
     &CreateFileCmd,
     &WriteFileCmd,
+    &RenameCmd,
     &DeleteFileCmd,
     &DeleteFolderCmd,
     &StatusCmd,
@@ -629,20 +1003,88 @@ pub fn find_entry(token: &str) -> Option<&'static dyn ShellEntry> {
     None
 }
 
+/// Isi `buf` dengan nama perintah KANONIK yang berawalan `prefix`, mengikuti
+/// urutan registry; kembalikan jumlah kandidat yang muat. Sumber kandidat adalah
+/// [`REGISTRY`], jadi daftar yang dilihat operator lewat `help` dan daftar yang
+/// dilengkapi Tab tidak bisa berpisah (F7).
+pub fn kandidat_perintah(prefix: &str, buf: &mut [&'static str; CANONICAL_COMMAND_COUNT]) -> usize {
+    let mut n = 0;
+    let mut i = 0;
+    while i < REGISTRY.len() && n < buf.len() {
+        let nama = REGISTRY[i].name();
+        if nama.starts_with(prefix) {
+            buf[n] = nama;
+            n += 1;
+        }
+        i += 1;
+    }
+    n
+}
+
+/// Berapa byte yang dapat DITAMBAHKAN dengan pasti pada `prefix` dari
+/// sekelompok kandidat: panjang awalan bersama semua kandidat dikurangi panjang
+/// `prefix`. Nol berarti Tab tidak membawa kemajuan.
+fn perpanjangan_bersama(
+    prefix: &str,
+    buf: &[&'static str; CANONICAL_COMMAND_COUNT],
+    jumlah: usize,
+) -> usize {
+    if jumlah == 0 {
+        return 0;
+    }
+    let mut ujung = buf[0].len();
+    if ujung < prefix.len() {
+        return 0;
+    }
+    let mut k = 1;
+    while k < jumlah {
+        let b = buf[k].as_bytes();
+        let a = buf[0].as_bytes();
+        let mut i = prefix.len();
+        while i < ujung && i < b.len() && a[i] == b[i] {
+            i += 1;
+        }
+        ujung = i;
+        k += 1;
+    }
+    ujung - prefix.len()
+}
+
 /// Satu perintah kanonik yang sudah terurai beserta argumennya.
 ///
-/// Argumen disalin dari penyangga baris ke penyangga tetap milik `Invocation`
-/// supaya pemanggil tetap bisa memegang argumen setelah baris dibersihkan.
+/// Argumen disalin dari penyangga baris ke penyangga tetap milik `Invocation`/// supaya pemanggil tetap bisa memegang argumen setelah baris dibersihkan.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct Invocation {
     pub id: CanonicalId,
     pub name: &'static str,
     pub argc: usize,
     pub arg_len: [usize; MAX_ARGS],
+    /// Bit `1 << i` berarti argumen ke-`i` lebih panjang dari [`MAX_ARG_LEN`]
+    /// dan baru saja DIPOTONG oleh tokenisasi (F4). Dispatch wajib memeriksa
+    /// flag ini sebelum memakai argumen: potongan bukan input operator.
+    pub arg_cut: u8,
     args: [[u8; MAX_ARG_LEN]; MAX_ARGS],
 }
 
 impl Invocation {
+    /// Argumen ke-`i` DIPOTONG oleh tokenisasi, jadi isinya bukan input
+    /// operator. Kebijakan perintah yang memutuskan apakah potongan boleh
+    /// dipakai atau harus ditolak (F4 untuk satu nama, F6 untuk dua nama).
+    pub fn arg_terpotong(&self, i: usize) -> bool {
+        i < MAX_ARGS && self.arg_cut & (1u8 << i) != 0
+    }
+
+    /// Argumen pertama (nama/path) terpotong, jadi tidak boleh dipakai.
+    pub fn nama_terpotong(&self) -> bool {
+        self.arg_terpotong(0)
+    }
+
+    /// Argumen isi `write-file` terpotong; bagian yang muat tetap sah ditulis,
+    /// sisa wajib diumumkan.
+    pub fn isi_terpotong(&self) -> bool {
+        self.arg_terpotong(1)
+    }
+
     /// Isi argumen ke-`i` sebagai `&str`; `""` bila indeks di luar argc.
     pub fn arg(&self, i: usize) -> &str {
         if i >= self.argc || i >= MAX_ARGS {
@@ -686,11 +1128,11 @@ fn push_arg(inv: &mut Invocation, tok: &str) {
         return;
     }
     let bytes = tok.as_bytes();
-    let n = if bytes.len() > MAX_ARG_LEN {
-        MAX_ARG_LEN
-    } else {
-        bytes.len()
-    };
+    let terpotong = bytes.len() > MAX_ARG_LEN;
+    let n = if terpotong { MAX_ARG_LEN } else { bytes.len() };
+    if terpotong {
+        inv.arg_cut |= 1 << inv.argc;
+    }
     let mut i = 0;
     while i < n {
         inv.args[inv.argc][i] = bytes[i];
@@ -724,6 +1166,7 @@ pub fn parse_line(line: &str) -> LineOutcome {
         name: entry.name(),
         argc: 0,
         arg_len: [0usize; MAX_ARGS],
+        arg_cut: 0,
         args: [[0u8; MAX_ARG_LEN]; MAX_ARGS],
     };
     let mut extra_words = 0usize;
@@ -765,6 +1208,299 @@ pub fn parse_line(line: &str) -> LineOutcome {
         return LineOutcome::BadArity(entry.syntax());
     }
     LineOutcome::Ready(inv)
+}
+
+// ============================================================================
+// MODE BERPANDUAN + PENANDA KURSOR (misi v1.0.2 F5)
+// ----------------------------------------------------------------------------
+// Keputusan pemilik: mode berpanduan HANYA terbuka sesudah baris galat arity
+// tercetak, jadi test penjaga arity yang lama tidak berubah dan operator yang
+// mengetik lengkap tetap memakai satu baris. Yang ditambah hanyalah label
+// konteks dan penerimaan baris berikutnya sebagai argumen yang hilang.
+//
+// Mesinnya murni (tanpa I/O, tanpa alokasi) supaya dapat diuji dari host; sisi
+// kernel yang mencetak label, membaca jam, dan menjalankan VFS.
+//
+// Lingkup sadar: hanya tiga perintah PEMBUATAN yang dibimbing
+// (`create-folder`, `create-file`, `write-file`). `open`, `delete-file`, dan
+// `delete-folder` tetap hanya mencetak galat arity, karena baris kosong pada
+// perintah penghapusan akan berarti "hapus tanpa sasaran".
+// ============================================================================
+
+/// Mode pengumpulan input berpanduan (F5).
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub enum ModeInput {
+    /// Shell sedang tidak menunggu baris panduan.
+    Tidak,
+    /// Menunggu nama direktori.
+    NamaFolder,
+    /// Menunggu nama berkas.
+    NamaBerkas,
+    /// Menunggu baris isi berkas, satu per satu sampai baris kosong.
+    IsiBerkas,
+}
+
+/// Perintah pembuatan yang argumennya sedang dikumpulkan (F5).
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub enum TujuanPemandu {
+    TidakAda,
+    BuatFolder,
+    BuatBerkas,
+    TulisBerkas,
+}
+
+impl TujuanPemandu {
+    /// Label pertama yang diminta mode ini.
+    pub const fn mode_pertama(self) -> ModeInput {
+        match self {
+            TujuanPemandu::BuatFolder => ModeInput::NamaFolder,
+            TujuanPemandu::BuatBerkas | TujuanPemandu::TulisBerkas => ModeInput::NamaBerkas,
+            TujuanPemandu::TidakAda => ModeInput::Tidak,
+        }
+    }
+}
+
+/// Tentukan mode berpanduan dari baris sintaks yang baru saja ditolak
+/// [`parse_line`]. `LineOutcome::BadArity` hanya membawa sintaks, jadi sintaks
+/// itulah kunci pencocokan dan registry tetap satu-sumber: bila sintaks sebuah
+/// perintah diubah, pemetaan ini ikut berpindah tanpa perlu suntingan kedua.
+pub fn resolusi_pemandu(sintaks: &str) -> TujuanPemandu {
+    let mut i = 0;
+    while i < REGISTRY.len() {
+        let e = REGISTRY[i];
+        if e.syntax() == sintaks {
+            return match e.id() {
+                CanonicalId::CreateFolder => TujuanPemandu::BuatFolder,
+                CanonicalId::CreateFile => TujuanPemandu::BuatBerkas,
+                CanonicalId::WriteFile => TujuanPemandu::TulisBerkas,
+                _ => TujuanPemandu::TidakAda,
+            };
+        }
+        i += 1;
+    }
+    TujuanPemandu::TidakAda
+}
+
+/// Hasil satu baris yang diterima mode berpanduan.
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub enum AksiPemandu {
+    /// Argumen belum lengkap: cetak label berikutnya dan tunggu satu baris lagi.
+    Lanjut,
+    /// Baris kosong pada mode nama: perintah TIDAK dijalankan.
+    Batal,
+    /// Nama lebih panjang dari satu token argumen: perintah TIDAK dijalankan
+    /// (F4 melarang potongan diam-diam, jadi mode berpanduan menolak, bukan
+    /// memotong).
+    NamaTerlaluPanjang,
+    /// Nama direktori terkumpul.
+    BuatFolder,
+    /// Nama berkas terkumpul; `create-file` tidak meminta isi.
+    BuatBerkas,
+    /// Baris isi terkumpul (nol baris juga sah) dan siap ditulis.
+    TulisBerkas,
+}
+
+/// State mode berpanduan: nol alokasi heap, penyangga tetap (G1).
+///
+/// Sisi kernel menyimpan satu-satunya nilai ini di `.bss` (`static mut
+/// PEMANDU`) karena penyangga isi selebar satu slot RAMDISK tidak boleh
+/// turun ke tumpuan saat boot.
+pub struct Pemandu {
+    tujuan: TujuanPemandu,
+    mode: ModeInput,
+    nama: [u8; GUIDED_NAME_MAX],
+    nama_len: usize,
+    isi: [u8; GUIDED_ISI_MAKS],
+    isi_len: usize,
+    baris: usize,
+    isi_penuh: bool,
+}
+
+impl Pemandu {
+    /// State kosong; dapat dipakai sebagai inisial `static mut`.
+    pub const fn kosong() -> Self {
+        Self {
+            tujuan: TujuanPemandu::TidakAda,
+            mode: ModeInput::Tidak,
+            nama: [0u8; GUIDED_NAME_MAX],
+            nama_len: 0,
+            isi: [0u8; GUIDED_ISI_MAKS],
+            isi_len: 0,
+            baris: 0,
+            isi_penuh: false,
+        }
+    }
+
+    /// Mulai mode berpanduan untuk satu perintah; state lama dibuang lebih
+    /// dulu supaya sisa baris dari mode sebelumnya tidak pernah ikut tertulis.
+    pub fn mulai(&mut self, tujuan: TujuanPemandu) {
+        *self = Self::kosong();
+        self.tujuan = tujuan;
+        self.mode = tujuan.mode_pertama();
+    }
+
+    /// Hentikan mode dan buang seluruh terkumpul.
+    pub fn berhenti(&mut self) {
+        *self = Self::kosong();
+    }
+
+    pub fn mode(&self) -> ModeInput {
+        self.mode
+    }
+
+    pub fn tujuan(&self) -> TujuanPemandu {
+        self.tujuan
+    }
+
+    /// `true` selama baris berikutnya masih menjadi milik mode berpanduan.
+    /// Aksi terminal menetapkan ini `false` tetapi menahan `nama()`/`isi()`
+    /// sampai jembatan kernel selesai memakai keduanya.
+    pub fn aktif(&self) -> bool {
+        self.mode != ModeInput::Tidak
+    }
+
+    pub fn nama(&self) -> &str {
+        core::str::from_utf8(&self.nama[..self.nama_len]).unwrap_or("")
+    }
+
+    pub fn isi(&self) -> &[u8] {
+        &self.isi[..self.isi_len]
+    }
+
+    /// Jumlah baris isi yang sudah diterima.
+    pub fn baris_terkumpul(&self) -> usize {
+        self.baris
+    }
+
+    /// `true` bila satu slot RAMDISK penuh dan baris sisa tidak diterima;
+    /// jembatan kernel memakainya untuk mencetak pengumuman.
+    pub fn isi_penuh(&self) -> bool {
+        self.isi_penuh
+    }
+
+    /// Label satu baris untuk state sekarang, atau `""` bila mode tidak aktif.
+    /// Label isi disusun dari potongan registry/konstanta yang sama dengan
+    /// keluaran `open`, jadi `Isi notes.txt (baris 2): ` memakai merek yang
+    /// sudah dikenal operator.
+    pub fn label<'b>(&self, buf: &'b mut [u8; LABEL_BUF_MAX]) -> &'b str {
+        match self.mode {
+            ModeInput::Tidak => "",
+            ModeInput::NamaFolder => MSG_LABEL_FOLDER,
+            ModeInput::NamaBerkas => MSG_LABEL_BERKAS,
+            ModeInput::IsiBerkas => {
+                let mut n = 0usize;
+                let angka = self.baris + 1;
+                let mut digit = [0u8; 8];
+                let mut i = digit.len();
+                let mut nilai = angka;
+                loop {
+                    i -= 1;
+                    digit[i] = b'0' + (nilai % 10) as u8;
+                    nilai /= 10;
+                    if nilai == 0 {
+                        break;
+                    }
+                }
+                let angka = core::str::from_utf8(&digit[i..]).unwrap_or("1");
+                let pieces = [
+                    MSG_CONTENT,
+                    self.nama(),
+                    MSG_BARIS_OPEN,
+                    angka,
+                    MSG_BARIS_TAIL,
+                ];
+                let mut k = 0;
+                while k < pieces.len() {
+                    let b = pieces[k].as_bytes();
+                    let mut t = 0;
+                    while t < b.len() && n < buf.len() {
+                        buf[n] = b[t];
+                        n += 1;
+                        t += 1;
+                    }
+                    k += 1;
+                }
+                match core::str::from_utf8(&buf[..n]) {
+                    Ok(s) => s,
+                    Err(_) => MSG_LABEL_BERKAS,
+                }
+            }
+        }
+    }
+
+    /// Terima satu baris yang baru saja diketik operator pada mode aktif.
+    pub fn terima(&mut self, baris_tulis: &str) -> AksiPemandu {
+        match self.mode {
+            ModeInput::Tidak => AksiPemandu::Batal,
+            ModeInput::NamaFolder | ModeInput::NamaBerkas => {
+                let nama = baris_tulis.trim();
+                if nama.is_empty() {
+                    self.mode = ModeInput::Tidak;
+                    return AksiPemandu::Batal;
+                }
+                let b = nama.as_bytes();
+                if b.len() > GUIDED_NAME_MAX {
+                    self.mode = ModeInput::Tidak;
+                    return AksiPemandu::NamaTerlaluPanjang;
+                }
+                let mut i = 0;
+                while i < b.len() {
+                    self.nama[i] = b[i];
+                    i += 1;
+                }
+                self.nama_len = i;
+                match self.tujuan {
+                    TujuanPemandu::BuatFolder => {
+                        self.mode = ModeInput::Tidak;
+                        AksiPemandu::BuatFolder
+                    }
+                    TujuanPemandu::BuatBerkas => {
+                        self.mode = ModeInput::Tidak;
+                        AksiPemandu::BuatBerkas
+                    }
+                    TujuanPemandu::TulisBerkas => {
+                        self.mode = ModeInput::IsiBerkas;
+                        self.baris = 0;
+                        AksiPemandu::Lanjut
+                    }
+                    TujuanPemandu::TidakAda => {
+                        self.mode = ModeInput::Tidak;
+                        AksiPemandu::Batal
+                    }
+                }
+            }
+            ModeInput::IsiBerkas => {
+                if baris_tulis.is_empty() {
+                    self.mode = ModeInput::Tidak;
+                    return AksiPemandu::TulisBerkas;
+                }
+                if self.isi_penuh {
+                    return AksiPemandu::Lanjut;
+                }
+                let b = baris_tulis.as_bytes();
+                let perlu_pisah = if self.isi_len > 0 { 1 } else { 0 };
+                let sisa = GUIDED_ISI_MAKS.saturating_sub(self.isi_len + perlu_pisah);
+                let ikut = if b.len() <= sisa { b.len() } else { sisa };
+                if ikut > 0 {
+                    if perlu_pisah == 1 {
+                        self.isi[self.isi_len] = b'\n';
+                        self.isi_len += 1;
+                    }
+                    let mut i = 0;
+                    while i < ikut {
+                        self.isi[self.isi_len] = b[i];
+                        self.isi_len += 1;
+                        i += 1;
+                    }
+                    self.baris += 1;
+                }
+                if ikut < b.len() {
+                    self.isi_penuh = true;
+                }
+                AksiPemandu::Lanjut
+            }
+        }
+    }
 }
 
 /// Bantalan spasi untuk kolom nama `help`.
@@ -891,6 +1627,19 @@ pub enum Edit {
     RemovedForward,
     /// Baris selesai (Enter): gema baris baru lalu eksekusi.
     Submitted,
+    /// Baris diganti SELURUHNYA oleh riwayat, completion Tab, atau Esc. Bawaan
+    /// adalah jumlah karakter yang sudah tercetak dan harus dihapus sebelum
+    /// baris baru dicetak; penampil tidak perlu menggeser teks, hanya menghapus
+    /// ke belakang dan mengetik ulang.
+    Replaced(usize),
+    /// Tab kedua tanpa kemajuan: penampil mencetak daftar kandidat.
+    CandidateList,
+    /// Ctrl+C: baris dibuang tanpa pernah dijalankan.
+    Cancelled,
+    /// Ctrl+L: layar dibersihkan, baris aktif ikut hilang dari layar.
+    ScreenClear,
+    /// F1: blok bantuan dicetak, baris aktif tetap utuh.
+    HelpView,
 }
 
 /// Permintaan gema ke penampil.
@@ -900,6 +1649,18 @@ pub enum Echo {
     Char(u8),
     Backspace,
     Newline,
+    /// Hapus `n` karakter yang tercetak, lalu cetak ulang
+    /// [`CockpitShell::current_line`] apa adanya.
+    Rewrite(usize),
+    /// Cetak kepala daftar kandidat dan seluruh kandidat pada baris baru, lalu
+    /// susun ulang prompt dan baris aktif.
+    Candidates,
+    /// Hapus baris, akhiri baris, susun ulang prompt.
+    Cancel,
+    /// Bersihkan kedua penampil lalu susun ulang prompt.
+    ClearScreen,
+    /// Cetak blok bantuan, lalu susun ulang prompt dan baris aktif.
+    Help,
 }
 
 /// Status mesin sekuens escape sederhana (ESC [ <akhir> dan ESC [ <angka> ~).
@@ -907,21 +1668,193 @@ const ESC_IDLE: u8 = 0;
 const ESC_GOT_ESC: u8 = 1;
 const ESC_GOT_BRACKET: u8 = 2;
 const ESC_GOT_PARAM: u8 = 3;
+/// `ESC O <huruf>`: bentuk SS3 yang dipakai F1 pada banyak terminal.
+const ESC_GOT_SS3: u8 = 4;
 
 impl CockpitShell {
-    /// Bersihkan baris setelah ENTER; status escape ikut direset.
+    /// Bersihkan baris setelah ENTER; status escape ikut direset. Baris yang
+    /// dibersihkan tersimpan sebagai [`CockpitShell::last_submitted`] sehingga
+    /// mode berpanduan F5 masih bisa membacanya.
     pub fn clear_line(&mut self) {
+        let mut i = 0;
+        while i < self.line_len && i < SHELL_BUFFER_MAX {
+            self.last_line[i] = self.line_buffer[i];
+            i += 1;
+        }
+        self.last_len = i;
         self.line_len = 0;
         self.cursor_pos = 0;
         self.esc_state = ESC_IDLE;
-        self.esc_digit = 0;
+        self.esc_param = 0;
+        self.echo_len = 0;
+        self.hist_view = HIST_TIDAK_MEMANDANG;
+        self.tab_siaga = false;
         self.line_buffer[0] = 0;
     }
 
-    /// Satu langkah penyuntingan baris: sisip di posisi kursor, hapus, dan
-    /// navigasi kursor lewat sekuens escape. Append-only seperti perilaku lama
-    /// tetap berlaku bila kursor tidak pernah dipindah.
+    /// Buang baris aktif TANPA menyalinnya ke [`CockpitShell::last_submitted`]:
+    /// Ctrl+C dan Esc bukan penyerahan, jadi tidak boleh menyisakan jejak yang
+    /// bisa dibaca jalur berpanduan. Penyangga riwayat tidak disentuh: apa yang
+    /// sudah pernah ENTER tetap tersimpan.
+    fn buang_baris(&mut self) {
+        let mut i = 0;
+        while i < self.line_len && i < SHELL_BUFFER_MAX {
+            self.line_buffer[i] = 0;
+            i += 1;
+        }
+        self.line_len = 0;
+        self.cursor_pos = 0;
+        self.echo_len = 0;
+        self.hist_view = HIST_TIDAK_MEMANDANG;
+        self.tab_siaga = false;
+    }
+
+    /// Jumlah karakter baris aktif yang sudah tercetak pada penampil; dipakai
+    /// kernel untuk tahu berapa banyak backspace yang harus dikirim sebelum
+    /// mencetak ulang baris.
+    pub fn echoed_len(&self) -> usize {
+        self.echo_len
+    }
+
+    /// Simpan baris yang baru saja diserahkan ENTER ke cincin riwayat (F7).
+    /// Dipanggil kernel HANYA untuk baris perintah, tidak untuk baris argumen
+    /// mode berpanduan, sehingga isi berkas yang diketik lewat label panduan
+    /// tidak masuk ke riwayat perintah.
+    ///
+    /// Panjang baris yang diserahkan tidak pernah melebihi penyangga baris
+    /// shell, jadi riwayat tidak pernah memotong diam-diam. Dua keadaan yang
+    /// sengaja tidak disimpan: baris kosong, dan baris yang sama dengan entri
+    /// paling baru (mengulang satu perintah dengan ENTER tidak menggeser isi
+    /// riwayat).
+    pub fn catat_riwayat_terakhir(&mut self) {
+        let panjang = self.last_len;
+        if panjang == 0 || panjang > SHELL_BUFFER_MAX {
+            return;
+        }
+        if self.hist_count > 0 {
+            let baru = self.slot_riwayat(0);
+            if self.hist_len[baru] == panjang {
+                let mut sama = true;
+                let mut i = 0;
+                while i < panjang {
+                    if self.hist[baru][i] != self.last_line[i] {
+                        sama = false;
+                        break;
+                    }
+                    i += 1;
+                }
+                if sama {
+                    self.hist_view = HIST_TIDAK_MEMANDANG;
+                    return;
+                }
+            }
+        }
+        let slot = self.hist_next;
+        let mut i = 0;
+        while i < panjang {
+            self.hist[slot][i] = self.last_line[i];
+            i += 1;
+        }
+        self.hist_len[slot] = i;
+        self.hist_next = (self.hist_next + 1) % HIST_MAKS;
+        if self.hist_count < HIST_MAKS {
+            self.hist_count += 1;
+        }
+        self.hist_view = HIST_TIDAK_MEMANDANG;
+    }
+
+    /// Slot cincin untuk entri riwayat ke-`posisi`, dihitung dari yang paling
+    /// baru (posisi 0 = terakhir kali ENTER).
+    fn slot_riwayat(&self, posisi: usize) -> usize {
+        (self.hist_next + HIST_MAKS - 1 - posisi) % HIST_MAKS
+    }
+
+    /// Isi baris aktif dengan entri riwayat ke-`posisi`; kembalikan efek
+    /// penyuntingannya. Kursor selalu mendarat di akhir baris yang dimuat, jadi
+    /// operator bisa langsung ENTER atau mengetik tambahan tanpa memindahkan
+    /// kursor di dalam baris.
+    fn muat_riwayat(&mut self, posisi: usize) -> Edit {
+        let slot = self.slot_riwayat(posisi);
+        let panjang = self.hist_len[slot];
+        let lama = self.line_len;
+        let mut i = 0;
+        while i < panjang && i < SHELL_BUFFER_MAX - 1 {
+            self.line_buffer[i] = self.hist[slot][i];
+            i += 1;
+        }
+        let mut k = i;
+        while k < lama && k < SHELL_BUFFER_MAX {
+            self.line_buffer[k] = 0;
+            k += 1;
+        }
+        self.line_len = i;
+        self.cursor_pos = i;
+        let hapus = self.echo_len;
+        self.echo_len = self.line_len;
+        Edit::Replaced(hapus)
+    }
+
+    /// Panah atas: mundur ke entri riwayat yang lebih tua.
+    fn riwayat_mundur(&mut self) -> Edit {
+        if self.hist_count == 0 {
+            return Edit::Ignored;
+        }
+        let tujuan = if self.hist_view == HIST_TIDAK_MEMANDANG {
+            0
+        } else {
+            self.hist_view + 1
+        };
+        if tujuan >= self.hist_count {
+            return Edit::Ignored;
+        }
+        self.hist_view = tujuan;
+        self.muat_riwayat(tujuan)
+    }
+
+    /// Panah bawah: maju ke entri yang lebih baru. Dari entri paling baru hasil
+    ///nya baris kosong: draf yang belum ENTER tidak dipegang riwayat (batas
+    /// yang dinyatakan di dokumen).
+    fn riwayat_maju(&mut self) -> Edit {
+        if self.hist_view == HIST_TIDAK_MEMANDANG {
+            return Edit::Ignored;
+        }
+        if self.hist_view == 0 {
+            self.hist_view = HIST_TIDAK_MEMANDANG;
+            let hapus = self.echo_len;
+            self.buang_baris_isi();
+            return Edit::Replaced(hapus);
+        }
+        self.hist_view -= 1;
+        let tujuan = self.hist_view;
+        self.muat_riwayat(tujuan)
+    }
+
+    /// Kosongkan baris aktif tanpa menyentuh status riwayat/escape yang lain.
+    fn buang_baris_isi(&mut self) {
+        let mut i = 0;
+        while i < self.line_len && i < SHELL_BUFFER_MAX {
+            self.line_buffer[i] = 0;
+            i += 1;
+        }
+        self.line_len = 0;
+        self.cursor_pos = 0;
+        self.echo_len = 0;
+    }
+
+    /// Baris terakhir yang diserahkan ENTER, apa adanya (tanpa `trim`).
+    pub fn last_submitted(&self) -> &str {
+        core::str::from_utf8(&self.last_line[..self.last_len]).unwrap_or("")
+    }
+
+    /// Satu langkah penyuntingan baris: sisip di posisi kursor, hapus,
+    /// completion Tab, pembatalan baris, dan navigasi lewat sekuens escape.
+    /// Append-only seperti perilaku lama tetap berlaku bila kursor tidak pernah
+    /// dipindah.
     pub fn edit(&mut self, c: u8) -> Edit {
+        // Riwayat siaga-tab hanya bertahan selama Tab ditekan berturut-turut.
+        if c != b'\t' {
+            self.tab_siaga = false;
+        }
         // 1. Mesin sekuens escape.
         if self.esc_state != ESC_IDLE {
             return self.edit_escape(c);
@@ -929,10 +1862,22 @@ impl CockpitShell {
         match c {
             0x1B => {
                 self.esc_state = ESC_GOT_ESC;
-                self.esc_digit = 0;
-                return Edit::Ignored;
+                self.esc_param = 0;
+                Edit::Ignored
             }
-            b'\n' | b'\r' => return Edit::Submitted,
+            b'\n' | b'\r' => Edit::Submitted,
+            // Ctrl+C: baris dibuang, tidak pernah sampai ke parser.
+            0x03 => {
+                self.buang_baris();
+                Edit::Cancelled
+            }
+            // Ctrl+L: layar dibersihkan; baris aktif ikut dibuang supaya isi
+            // penyangga dan isi layar tidak berbeda.
+            0x0C => {
+                self.buang_baris();
+                Edit::ScreenClear
+            }
+            b'\t' => self.tab_lengkapi(),
             b'\x08' | 0x7F => {
                 if self.cursor_pos > 0 {
                     let mut i = self.cursor_pos - 1;
@@ -943,6 +1888,7 @@ impl CockpitShell {
                     self.cursor_pos -= 1;
                     self.line_len -= 1;
                     self.line_buffer[self.line_len] = 0;
+                    self.echo_len -= 1;
                     return Edit::Removed;
                 }
                 return Edit::Ignored;
@@ -959,60 +1905,155 @@ impl CockpitShell {
                 self.line_buffer[self.cursor_pos] = c;
                 self.cursor_pos += 1;
                 self.line_len += 1;
+                self.echo_len += 1;
                 return Edit::Inserted;
             }
             _ => return Edit::Ignored,
         }
     }
 
-    /// Lanjutan sekuens escape: panah kiri/kanan, Home, End, Delete.
-    /// Panah atas/bawah sengaja tidak melakukan apa pun: riwayat baris tidak
-    /// dijanjikan misi v1.0.2 Bagian 1 (dicatat sebagai lingkup tertunda).
+    /// Completion Tab (F7). Lingkuppnya sengaja nama perintah saja:
+    /// - kursor harus berada di AKHIR baris, karena penyisipan di tengah baris
+    ///   menuntut teks bergeser dan kedua penampil tidak dapat menggeser teks;
+    /// - baris tidak boleh memuat spasi, jadi argumen dan path tidak dilengkapi
+    ///   (dan tidak ada completion isi path yang menyentuh VFS);
+    /// - satu Tab menambahkan sepanjang awalan bersama (longest common prefix)
+    ///   dari kandidat registry; Tab berikutnya yang tidak membawa kemajuan
+    ///   mencetak daftar kandidat.
+    ///
+    /// Yang dilengkapi adalah NAMA KANONIK, bukan alias: keluaran `help` adalah
+    /// daftar yang dilihat operator, dan nama kanonik adalah sumber tunggalnya.
+    fn tab_lengkapi(&mut self) -> Edit {
+        if self.cursor_pos != self.line_len {
+            return Edit::Ignored;
+        }
+        let ada_spasi = (0..self.line_len).any(|i| self.line_buffer[i] == b' ');
+        if ada_spasi {
+            return Edit::Ignored;
+        }
+        let panjang = self.line_len;
+        let mut awalan = [0u8; SHELL_BUFFER_MAX];
+        let mut i = 0;
+        while i < panjang {
+            awalan[i] = self.line_buffer[i];
+            i += 1;
+        }
+        let prefix = core::str::from_utf8(&awalan[..panjang]).unwrap_or("");
+        let mut buf = [""; CANONICAL_COMMAND_COUNT];
+        let jumlah = kandidat_perintah(prefix, &mut buf);
+        if jumlah == 0 {
+            return Edit::Ignored;
+        }
+        // Sepanjang mungkin tambahkan tanpa menebak: awalan bersama kandidat.
+        let tambah = perpanjangan_bersama(prefix, &buf, jumlah);
+        if tambah > 0 && self.line_len + tambah < SHELL_BUFFER_MAX {
+            let tujuan = self.line_len;
+            let mut k = 0;
+            while k < tambah {
+                self.line_buffer[tujuan + k] = buf[0].as_bytes()[prefix.len() + k];
+                k += 1;
+            }
+            self.line_len += tambah;
+            self.cursor_pos = self.line_len;
+            let hapus = self.echo_len;
+            self.echo_len = self.line_len;
+            self.tab_siaga = false;
+            return Edit::Replaced(hapus);
+        }
+        // Tidak ada kemajuan: Tab pertama menandai siaga, Tab kedua mendaftar.
+        if self.tab_siaga {
+            self.tab_siaga = false;
+            self.echo_len = self.line_len;
+            return Edit::CandidateList;
+        }
+        self.tab_siaga = true;
+        Edit::Ignored
+    }
+
+    /// Lanjutan sekuens escape: panah kiri/kanan, Home, End, Delete, panah
+    /// atas/bawah untuk riwayat (F7), `ESC O P` dan `ESC [ 1 1 ~` untuk F1.
     fn edit_escape(&mut self, c: u8) -> Edit {
         match self.esc_state {
             ESC_GOT_ESC => {
-                self.esc_state = if c == b'[' { ESC_GOT_BRACKET } else { ESC_IDLE };
-                Edit::Ignored
+                if c == b'[' {
+                    self.esc_state = ESC_GOT_BRACKET;
+                    return Edit::Ignored;
+                }
+                if c == b'O' {
+                    self.esc_state = ESC_GOT_SS3;
+                    return Edit::Ignored;
+                }
+                // ESC yang disusul byte lain: tombol Esc ditekan sendiri, jadi
+                // baris dikosongkan. Byte penutup ikut dikonsumsi (mesin
+                // naif tanpa pewaktu: Esc murni baru pasti dikenali saat byte
+                // berikutnya tiba — batas yang dinyatakan di dokumen).
+                self.esc_state = ESC_IDLE;
+                self.esc_param = 0;
+                let hapus = self.echo_len;
+                self.buang_baris();
+                Edit::Replaced(hapus)
             }
-            ESC_GOT_BRACKET => {
-                match c {
-                    b'D' => {
-                        if self.cursor_pos > 0 {
-                            self.cursor_pos -= 1;
-                        }
-                        self.esc_state = ESC_IDLE;
+            ESC_GOT_BRACKET => match c {
+                b'D' => {
+                    if self.cursor_pos > 0 {
+                        self.cursor_pos -= 1;
                     }
-                    b'C' => {
-                        if self.cursor_pos < self.line_len {
-                            self.cursor_pos += 1;
-                        }
-                        self.esc_state = ESC_IDLE;
+                    self.esc_state = ESC_IDLE;
+                    Edit::Ignored
+                }
+                b'C' => {
+                    if self.cursor_pos < self.line_len {
+                        self.cursor_pos += 1;
                     }
-                    b'H' => {
-                        self.cursor_pos = 0;
-                        self.esc_state = ESC_IDLE;
-                    }
-                    b'F' => {
-                        self.cursor_pos = self.line_len;
-                        self.esc_state = ESC_IDLE;
-                    }
-                    b'A' | b'B' => {
-                        self.esc_state = ESC_IDLE;
-                    }
-                    b'0'..=b'9' => {
-                        self.esc_digit = c - b'0';
-                        self.esc_state = ESC_GOT_PARAM;
-                    }
-                    _ => {
-                        self.esc_state = ESC_IDLE;
-                    }
+                    self.esc_state = ESC_IDLE;
+                    Edit::Ignored
+                }
+                b'H' => {
+                    self.cursor_pos = 0;
+                    self.esc_state = ESC_IDLE;
+                    Edit::Ignored
+                }
+                b'F' => {
+                    self.cursor_pos = self.line_len;
+                    self.esc_state = ESC_IDLE;
+                    Edit::Ignored
+                }
+                b'A' => {
+                    self.esc_state = ESC_IDLE;
+                    self.riwayat_mundur()
+                }
+                b'B' => {
+                    self.esc_state = ESC_IDLE;
+                    self.riwayat_maju()
+                }
+                b'0'..=b'9' => {
+                    self.esc_param = self.esc_param.saturating_mul(10).saturating_add(c - b'0');
+                    self.esc_state = ESC_GOT_PARAM;
+                    Edit::Ignored
+                }
+                _ => {
+                    self.esc_state = ESC_IDLE;
+                    Edit::Ignored
+                }
+            },
+            ESC_GOT_SS3 => {
+                self.esc_state = ESC_IDLE;
+                if c == b'P' {
+                    self.echo_len = self.line_len;
+                    return Edit::HelpView;
                 }
                 Edit::Ignored
             }
             _ => {
-                // ESC_GOT_PARAM: ESC [ 3 ~ = Delete (hapus di depan kursor).
+                // ESC_GOT_PARAM: `ESC [ 3 ~` = Delete (hapus di depan kursor),
+                // `ESC [ 1 1 ~` = F1. Angka lain dikenali tapi tidak dipakai:
+                // PageUp/Down dan F2-F12 ada di backlog.
+                if c.is_ascii_digit() {
+                    self.esc_param = self.esc_param.saturating_mul(10).saturating_add(c - b'0');
+                    return Edit::Ignored;
+                }
                 if c == b'~' {
-                    if self.esc_digit == 3 && self.cursor_pos < self.line_len {
+                    if self.esc_param == 3 && self.cursor_pos < self.line_len {
                         let mut i = self.cursor_pos;
                         while i + 1 < self.line_len {
                             self.line_buffer[i] = self.line_buffer[i + 1];
@@ -1021,12 +2062,18 @@ impl CockpitShell {
                         self.line_len -= 1;
                         self.line_buffer[self.line_len] = 0;
                         self.esc_state = ESC_IDLE;
-                        self.esc_digit = 0;
+                        self.esc_param = 0;
                         return Edit::RemovedForward;
+                    }
+                    if self.esc_param == 11 {
+                        self.esc_state = ESC_IDLE;
+                        self.esc_param = 0;
+                        self.echo_len = self.line_len;
+                        return Edit::HelpView;
                     }
                 }
                 self.esc_state = ESC_IDLE;
-                self.esc_digit = 0;
+                self.esc_param = 0;
                 Edit::Ignored
             }
         }
@@ -1044,6 +2091,11 @@ impl CockpitShell {
             Edit::Removed => (Echo::Backspace, None),
             Edit::RemovedForward => (Echo::None, None),
             Edit::Ignored => (Echo::None, None),
+            Edit::Replaced(hapus) => (Echo::Rewrite(hapus), None),
+            Edit::CandidateList => (Echo::Candidates, None),
+            Edit::Cancelled => (Echo::Cancel, None),
+            Edit::ScreenClear => (Echo::ClearScreen, None),
+            Edit::HelpView => (Echo::Help, None),
             Edit::Submitted => {
                 let legacy = self.parse_current_line();
                 let outcome = parse_line(self.current_line());
@@ -1134,14 +2186,48 @@ mod tests {
 
     #[test]
     fn test_release_identity_single_source() {
-        // Janji misi v1.0.2 Bagian 1.1: prompt polos, TANPA posisi folder di prompt.
-        assert_eq!(SHELL_PROMPT, "ASL-KERNEL> ");
-        assert!(SHELL_PROMPT.ends_with("> "));
-        assert!(!SHELL_PROMPT.contains('/'));
+        // F1 (misi v1.0.2-R1 Bagian 2) menggantikan janji lama Bagian 1.1
+        // "prompt polos tanpa posisi folder": posisi aktif kini bagian dari
+        // prompt, dan keduanya tetap dibaca dari satu sumber.
+        assert_eq!(SHELL_PROMPT_PREFIX, "ASL-KERNEL ");
+        assert_eq!(SHELL_PROMPT_SUFFIX, ">_ ");
+        assert_eq!(SHELL_PROMPT_FIXED_LEN, SHELL_PROMPT.len() - 1);
+        let mut akar = [0u8; 64];
+        assert_eq!(render_prompt("/", &mut akar), SHELL_PROMPT);
+        assert!(SHELL_PROMPT.starts_with(SHELL_PROMPT_PREFIX));
+        assert!(SHELL_PROMPT.ends_with(SHELL_PROMPT_SUFFIX));
         assert!(!SHELL_PROMPT.contains('\\'));
         // Identitas rilis dibaca dari satu konstanta oleh seluruh situs tampil.
         assert_eq!(KERNEL_VERSION, "v1.0.2");
         assert!(KERNEL_VERSION.starts_with('v'));
+    }
+
+    /// Janji F1: prompt menunjuk direktori kerja aktif, bukan hanya nama kernel.
+    #[test]
+    fn test_f1_prompt_shows_active_position() {
+        let mut buf = [0u8; SHELL_PROMPT_FIXED_LEN + 128];
+        assert_eq!(render_prompt("/hello", &mut buf), "ASL-KERNEL /hello>_ ");
+        assert_eq!(
+            render_prompt("/log/note", &mut buf),
+            "ASL-KERNEL /log/note>_ "
+        );
+        // Penyangga yang sama dipakai ulang tanpa alokasi (G1).
+        assert_eq!(render_prompt("/", &mut buf), SHELL_PROMPT);
+    }
+
+    /// Posisi lebih panjang dari penyangga: dipotong aman, akhiran tidak hilang.
+    #[test]
+    fn test_f1_prompt_truncates_long_position_and_keeps_suffix() {
+        let posisi = [b'/'; 200];
+        let panjang = core::str::from_utf8(&posisi).unwrap();
+        let mut buf = [0u8; SHELL_PROMPT_FIXED_LEN + 128];
+        let p = render_prompt(panjang, &mut buf);
+        assert!(p.starts_with(SHELL_PROMPT_PREFIX));
+        assert!(p.ends_with(SHELL_PROMPT_SUFFIX));
+        assert_eq!(p.len(), SHELL_PROMPT_FIXED_LEN + 128);
+        // Penyangga terlalu kecil: tetap keluar awalan yang sah, bukan panic.
+        let mut kecil = [0u8; 4];
+        assert_eq!(render_prompt("/log", &mut kecil), SHELL_PROMPT_PREFIX);
     }
 
     /// Ambil nilai dari satu baris dokumen berformat `- <prefix><nilai>`.
@@ -1348,6 +2434,487 @@ mod tests {
         );
     }
 
+    /// Semua label keluaran shell (F3, dua tambahan F4, sebelas tambahan F5,
+    /// sembilan tambahan F6, tiga tambahan F7) sebagai pasangan `(nama, teks)`.
+    fn f3_labels() -> [(&'static str, &'static str); 51] {
+        [
+            ("MSG_ERROR", MSG_ERROR),
+            ("MSG_BAD_ARITY", MSG_BAD_ARITY),
+            ("MSG_SYNTAX", MSG_SYNTAX),
+            ("MSG_UNKNOWN", MSG_UNKNOWN),
+            ("MSG_WORKDIR", MSG_WORKDIR),
+            ("MSG_WORKDIR_AT_ROOT", MSG_WORKDIR_AT_ROOT),
+            ("MSG_DIR_CREATED", MSG_DIR_CREATED),
+            ("MSG_FILE_CREATED", MSG_FILE_CREATED),
+            ("MSG_FILE_DELETED", MSG_FILE_DELETED),
+            ("MSG_DIR_DELETED", MSG_DIR_DELETED),
+            ("MSG_WRITTEN", MSG_WRITTEN),
+            ("MSG_WRITTEN_TO", MSG_WRITTEN_TO),
+            ("MSG_TRUNCATED", MSG_TRUNCATED),
+            ("MSG_TRUNCATED_END", MSG_TRUNCATED_END),
+            ("MSG_NEW_FILE", MSG_NEW_FILE),
+            ("MSG_LIST", MSG_LIST),
+            ("MSG_PAREN_OPEN", MSG_PAREN_OPEN),
+            ("MSG_LIST_TAIL", MSG_LIST_TAIL),
+            ("MSG_CONTENT", MSG_CONTENT),
+            ("MSG_CONTENT_TAIL", MSG_CONTENT_TAIL),
+            ("MSG_EMPTY", MSG_EMPTY),
+            ("MSG_ZERO_BYTES", MSG_ZERO_BYTES),
+            ("MSG_ZERO_ENTRIES", MSG_ZERO_ENTRIES),
+            ("MSG_FREED_TAIL", MSG_FREED_TAIL),
+            ("MSG_ARG_CUT", MSG_ARG_CUT),
+            ("MSG_ARG_CUT_TAIL", MSG_ARG_CUT_TAIL),
+            ("MSG_ISI_CUT", MSG_ISI_CUT),
+            ("MSG_ISI_CUT_TAIL", MSG_ISI_CUT_TAIL),
+            ("MSG_LABEL_FOLDER", MSG_LABEL_FOLDER),
+            ("MSG_LABEL_BERKAS", MSG_LABEL_BERKAS),
+            ("MSG_BARIS_OPEN", MSG_BARIS_OPEN),
+            ("MSG_BARIS_TAIL", MSG_BARIS_TAIL),
+            ("MSG_LABEL_NAMA_PANJANG", MSG_LABEL_NAMA_PANJANG),
+            ("MSG_LABEL_NAMA_PANJANG_TAIL", MSG_LABEL_NAMA_PANJANG_TAIL),
+            ("MSG_BATAL", MSG_BATAL),
+            ("MSG_BATAL_FOLDER", MSG_BATAL_FOLDER),
+            ("MSG_BATAL_BERKAS", MSG_BATAL_BERKAS),
+            ("MSG_ISI_PENUH", MSG_ISI_PENUH),
+            ("MSG_ISI_PENUH_TAIL", MSG_ISI_PENUH_TAIL),
+            ("MSG_RENAMED_FILE", MSG_RENAMED_FILE),
+            ("MSG_RENAMED_FOLDER", MSG_RENAMED_FOLDER),
+            ("MSG_RENAME_ARROW", MSG_RENAME_ARROW),
+            ("MSG_RENAME_SUBTREE", MSG_RENAME_SUBTREE),
+            ("MSG_RENAME_BYTES", MSG_RENAME_BYTES),
+            ("MSG_RENAME_AKAR", MSG_RENAME_AKAR),
+            ("MSG_RENAME_SAMA", MSG_RENAME_SAMA),
+            ("MSG_RENAME_MIRING", MSG_RENAME_MIRING),
+            ("MSG_RENAME_KEKAL", MSG_RENAME_KEKAL),
+            ("MSG_KANDIDAT", MSG_KANDIDAT),
+            ("MSG_CTRL_C", MSG_CTRL_C),
+            ("MSG_UNKNOWN_PANDUAN", MSG_UNKNOWN_PANDUAN),
+        ]
+    }
+
+    /// Penjaga F3 bagian kode: teks tiap label dipatok harfiah (mengganti
+    /// merek keluaran harus lewat suntingan test ini, bukan diam-diam di
+    /// dispatch), tidak ada label kosong, tidak ada dua label dengan teks
+    /// sama, dan seluruhnya ASCII murni sehingga pemotongan penyangga
+    /// tidak pernah membelah karakter (G10 juga melarang CJK di sini).
+    #[test]
+    fn test_f3_labels_keluaran_satu_sumber() {
+        let labels = f3_labels();
+
+        // (1) Teks dipatok harfiah, berurutan sama dengan daftar di atas.
+        let hoped: [&str; 51] = [
+            "Kesalahan: ",
+            "jumlah argumen tidak sesuai - ",
+            "Sintaks: ",
+            "perintah tidak dikenal: ",
+            "Ruang kerja: ",
+            "Ruang kerja tetap di akar: ",
+            "Direktori dibuat: ",
+            "Berkas dibuat: ",
+            "Berkas dihapus: ",
+            "Direktori dihapus: ",
+            "Tertulis ",
+            " byte di ",
+            " - ",
+            " byte isi lama dihapus",
+            " (berkas baru)",
+            "Daftar isi ",
+            " (",
+            " entri):",
+            "Isi ",
+            " byte):",
+            "(kosong)",
+            " (0 byte)",
+            " (0 entri)",
+            " byte dibebaskan)",
+            "... - argumen melebihi batas ",
+            " byte, perintah tidak dijalankan",
+            " - isi dipotong pada batas ",
+            " byte; sisa tidak tertulis",
+            "Nama folder baru: ",
+            "Nama berkas: ",
+            " (baris ",
+            "): ",
+            "nama lebih panjang dari batas ",
+            " byte - perintah tidak dijalankan",
+            "Dibatalkan: ",
+            "nama folder kosong - direktori tidak dibuat",
+            "nama berkas kosong - tidak ada yang ditulis",
+            "Isi berhenti pada kapasitas satu slot ",
+            " byte; sisa baris tidak diterima",
+            "Berkas diganti nama: ",
+            "Direktori diganti nama: ",
+            " -> ",
+            " entri subtree ikut bergeser)",
+            " byte tetap tersimpan)",
+            "objek akar tidak dapat diganti nama",
+            "nama tujuan sama dengan nama sumber - tidak ada yang diganti",
+            "nama tujuan rename tidak boleh memuat garis miring - perintah ini tidak memindahkan objek",
+            " - sumber tidak diubah",
+            "Pilihan perintah: ",
+            "Baris dibatalkan: tidak ada perintah dijalankan",
+            " - ketik help untuk daftar perintah",
+        ];
+        let mut i = 0;
+        while i < labels.len() {
+            assert_eq!(labels[i].1, hoped[i], "{} teks berubah", labels[i].0);
+            assert!(!labels[i].1.is_empty(), "{} kosong", labels[i].0);
+            let b = labels[i].1.as_bytes();
+            let mut k = 0;
+            while k < b.len() {
+                assert!(
+                    b[k] < 0x80,
+                    "{} memuat byte non-ASCII (G10 nol CJK, pemotongan byte tidak aman)",
+                    labels[i].0
+                );
+                k += 1;
+            }
+            // Label tidak membawa ganti baris: dispatch yang mencetak "\n"
+            // sendiri, jadi satu baris bisa disusun dari beberapa potongan.
+            assert!(
+                !labels[i].1.contains('\n'),
+                "{} memuat ganti baris",
+                labels[i].0
+            );
+            let mut j = i + 1;
+            while j < labels.len() {
+                assert_ne!(
+                    labels[i].1, labels[j].1,
+                    "dua label memakai teks sama: {} dan {}",
+                    labels[i].0, labels[j].0
+                );
+                j += 1;
+            }
+            i += 1;
+        }
+
+        // (2) Satu label galat. Potongan galat lain tidak boleh mengulang
+        // mereknya, dan tidak boleh berdiri sendiri sebagai galat.
+        assert!(!MSG_BAD_ARITY.starts_with(MSG_ERROR));
+        assert!(!MSG_UNKNOWN.starts_with(MSG_ERROR));
+        assert!(!MSG_SYNTAX.starts_with(MSG_ERROR));
+        let mut ganda = 0usize;
+        let mut n = 0;
+        while n < labels.len() {
+            if labels[n].1.starts_with(MSG_ERROR) {
+                ganda += 1;
+            }
+            n += 1;
+        }
+        assert_eq!(ganda, 1, "lebih dari satu label galat di satu-sumber");
+
+        // (3) Bentuk baris utuh yang DIJANJIKAN Pasal 7, disusun dari potongan
+        // dengan urutan yang sama seperti dispatch. Test ini mengunci janji dan
+        // urutan antarpotongan; ia tidak menangkap jalur tulis kernel.
+        let mut buf = [0u8; 128];
+        assert_eq!(
+            rangkai(
+                &[MSG_ERROR, MSG_BAD_ARITY, MSG_SYNTAX, "open <jalan>"],
+                &mut buf
+            ),
+            "Kesalahan: jumlah argumen tidak sesuai - Sintaks: open <jalan>"
+        );
+        assert_eq!(
+            rangkai(&[MSG_ERROR, MSG_UNKNOWN, "zzz"], &mut buf),
+            "Kesalahan: perintah tidak dikenal: zzz"
+        );
+        assert_eq!(
+            rangkai(
+                &[
+                    MSG_WRITTEN,
+                    "5",
+                    MSG_WRITTEN_TO,
+                    "/log/note.txt",
+                    MSG_NEW_FILE,
+                    MSG_TRUNCATED,
+                    "12",
+                    MSG_TRUNCATED_END,
+                ],
+                &mut buf
+            ),
+            "Tertulis 5 byte di /log/note.txt (berkas baru) - 12 byte isi lama dihapus"
+        );
+        assert_eq!(
+            rangkai(
+                &[
+                    MSG_FILE_DELETED,
+                    "/log/note.txt",
+                    MSG_PAREN_OPEN,
+                    "5",
+                    MSG_FREED_TAIL
+                ],
+                &mut buf
+            ),
+            "Berkas dihapus: /log/note.txt (5 byte dibebaskan)"
+        );
+        assert_eq!(
+            rangkai(
+                &[MSG_LIST, "/log", MSG_PAREN_OPEN, "0", MSG_LIST_TAIL],
+                &mut buf
+            ),
+            "Daftar isi /log (0 entri):"
+        );
+        assert_eq!(
+            rangkai(
+                &[
+                    MSG_CONTENT,
+                    "/log/note.txt",
+                    MSG_PAREN_OPEN,
+                    "5",
+                    MSG_CONTENT_TAIL
+                ],
+                &mut buf
+            ),
+            "Isi /log/note.txt (5 byte):"
+        );
+        assert_eq!(
+            rangkai(&[MSG_WORKDIR_AT_ROOT, "/"], &mut buf),
+            "Ruang kerja tetap di akar: /"
+        );
+        // Dua baris F4: argumen terpotong. Nama -> perintah tidak dijalankan;
+        // isi -> bagian yang muat tetap ditulis dan sisanya diumumkan.
+        assert_eq!(
+            rangkai(
+                &[
+                    MSG_ERROR,
+                    "nama-panjang",
+                    MSG_ARG_CUT,
+                    "64",
+                    MSG_ARG_CUT_TAIL
+                ],
+                &mut buf
+            ),
+            "Kesalahan: nama-panjang... - argumen melebihi batas 64 byte, perintah tidak dijalankan"
+        );
+        assert_eq!(
+            rangkai(
+                &[
+                    MSG_WRITTEN,
+                    "64",
+                    MSG_WRITTEN_TO,
+                    "/log/note.txt",
+                    MSG_ISI_CUT,
+                    "64",
+                    MSG_ISI_CUT_TAIL
+                ],
+                &mut buf
+            ),
+            "Tertulis 64 byte di /log/note.txt - isi dipotong pada batas 64 byte; sisa tidak tertulis"
+        );
+    }
+
+    /// Rakit potongan menjadi satu baris ke penyangga pemberi panggilan:
+    /// nol alokasi, seperti shell yang memakai `out.text()` berulang.
+    fn rangkai<'b>(pieces: &[&str], buf: &'b mut [u8]) -> &'b str {
+        let mut n = 0usize;
+        let mut i = 0;
+        while i < pieces.len() {
+            let b = pieces[i].as_bytes();
+            let mut k = 0;
+            while k < b.len() {
+                buf[n] = b[k];
+                n += 1;
+                k += 1;
+            }
+            i += 1;
+        }
+        core::str::from_utf8(&buf[..n]).unwrap_or("")
+    }
+
+    /// Penjaga F3 bagian dokumen: semua label keluaran harus tertulis apa
+    /// adanya di Pasal 7 `docs/PANDUAN/REFERENSI-PERINTAH.md`. Dua penghubung
+    /// murni (`MSG_TRUNCATED` dan `MSG_PAREN_OPEN`) dikecualikan karena teksnya
+    /// ("- " dan " (") muncul di mana saja sehingga pemeriksaan itu tidak
+    /// membuktikan apa pun; teks keduanya tetap dipatok oleh test di atas.
+    #[test]
+    fn test_f3_dokumen_memuat_setiap_label_keluaran() {
+        const DOC: &str = include_str!("../../../docs/PANDUAN/REFERENSI-PERINTAH.md");
+        let labels = f3_labels();
+        let mut i = 0;
+        let mut ditagihkan = 0usize;
+        while i < labels.len() {
+            let nama = labels[i].0;
+            let teks = labels[i].1;
+            if nama == "MSG_TRUNCATED" || nama == "MSG_PAREN_OPEN" {
+                i += 1;
+                continue;
+            }
+            assert!(
+                DOC.contains(teks),
+                "dokumen tidak memuat label {} {:?}",
+                nama,
+                teks
+            );
+            ditagihkan += 1;
+            i += 1;
+        }
+        assert_eq!(
+            ditagihkan, 49,
+            "jumlah label yang ditagihkan ke dokumen berubah (51 dikurangi 2 penghubung)"
+        );
+
+        // Pasal 7 harus memberi contoh baris UTUH, bukan daftar label saja.
+        assert!(
+            DOC.contains("Kesalahan: <jalan> tidak ditemukan"),
+            "dokumen tidak memberi contoh baris galat VFS dengan path"
+        );
+        assert!(
+            DOC.contains("(berkas baru)"),
+            "dokumen tidak menjelaskan penanda berkas baru `write-file`"
+        );
+        assert!(
+            DOC.contains("byte isi lama dihapus"),
+            "dokumen tidak mengumumkan pemangkasan isi lama"
+        );
+        assert!(
+            DOC.contains("path hasil normalisasi melebihi batas "),
+            "dokumen tidak memuat galat normalisasi path (angkanya dijaga asl-storage)"
+        );
+    }
+
+    /// Ambil bilangan bulat pertama yang muncul sesudah penanda di dokumen,
+    /// tanpa alokasi: angka dibaca langsung dari byte.
+    fn number_after(doc: &str, marker: &str) -> Option<usize> {
+        let mut bytes = doc.split(marker).nth(1)?.bytes();
+        let mut value = 0usize;
+        let mut digits = 0usize;
+        for b in bytes.by_ref() {
+            if b.is_ascii_digit() {
+                value = value * 10 + (b - b'0') as usize;
+                digits += 1;
+            } else if digits > 0 {
+                break;
+            }
+        }
+        if digits == 0 {
+            None
+        } else {
+            Some(value)
+        }
+    }
+
+    /// Penjaga F4 bagian parser: tokenisasi tidak boleh lagi memotong argumen
+    /// tanpa jejak. Yang berubah adalah potongan kini TERDANDA, sehingga sisi
+    /// dispatch dapat menolaknya alih-alih memakai nama rusak.
+    #[test]
+    fn test_f4_argumen_terpotong_ditandai_bukan_disembunyikan() {
+        // Nama 78 byte berekstensi: dulu berkas tercipta dengan nama 64 byte
+        // tanpa ekstensi karena ekor ".txt" terpotong di tengah kata.
+        const NAMA: &str =
+            "laporan-tahunan-2026-versi-final-revisi-draf-acuan-terakhir-sebelum-terbit.txt";
+        const BARIS: &str =
+            "write-file laporan-tahunan-2026-versi-final-revisi-draf-acuan-terakhir-sebelum-terbit.txt isi";
+        assert_eq!(NAMA.len(), 78);
+        match parse_line(BARIS) {
+            LineOutcome::Ready(inv) => {
+                assert!(inv.nama_terpotong(), "nama terpotong tidak ditandai");
+                assert!(!inv.isi_terpotong(), "isi pendek tidak boleh ditandai");
+                assert_eq!(inv.arg(0).len(), MAX_ARG_LEN);
+                assert!(
+                    NAMA.starts_with(inv.arg(0)),
+                    "arg(0) bukan awalan nama yang diketik"
+                );
+                assert_eq!(inv.arg(1), "isi");
+                assert_eq!(inv.arg_cut, 0b01);
+            }
+            other => panic!("baris nama panjang seharusnya Ready, dapat {:?}", other),
+        }
+
+        // Isi panjang: nama tetap utuh, hanya isi yang terpotong.
+        const ISI: &str = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
+        const BARIS_ISI: &str = "write-file note.txt xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
+        assert_eq!(ISI.len(), 100);
+        match parse_line(BARIS_ISI) {
+            LineOutcome::Ready(inv) => {
+                assert!(!inv.nama_terpotong(), "nama pendek tidak boleh ditandai");
+                assert!(inv.isi_terpotong(), "isi 100 byte tidak ditandai");
+                assert_eq!(inv.arg(0), "note.txt");
+                assert_eq!(inv.arg(1).len(), MAX_ARG_LEN);
+                assert_eq!(inv.arg_cut, 0b10);
+            }
+            other => panic!("baris isi panjang seharusnya Ready, dapat {:?}", other),
+        }
+    }
+
+    /// Penjaga F6 bagian parser: `rename` memakai dua nama, jadi tanda
+    /// pemotongan harus bisa dibaca per posisi. Tanpa flag per posisi, sisi
+    /// dispatch hanya melihat argumen pertama dan nama tujuan yang terpotong
+    /// akan dipakai diam-diam sebagai nama 64 byte.
+    #[test]
+    fn test_f6_rename_argumen_terpotong_dapat_dibaca_per_posisi() {
+        const TUJUAN: &str = "tujuan-ganti-nama-yang-sangat-panjang-melewati-batas-token-argumen";
+        const BARIS: &str =
+            "rename sumber.txt tujuan-ganti-nama-yang-sangat-panjang-melewati-batas-token-argumen";
+        assert_eq!(TUJUAN.len(), 66);
+        assert!(BARIS.ends_with(TUJUAN), "BARIS bukan tujuan yang diuji");
+        match parse_line(BARIS) {
+            LineOutcome::Ready(inv) => {
+                assert_eq!(inv.id, CanonicalId::Rename);
+                assert!(!inv.arg_terpotong(0), "sumber pendek tidak boleh ditandai");
+                assert!(inv.arg_terpotong(1), "tujuan 66 byte tidak ditandai");
+                assert_eq!(inv.arg(1).len(), MAX_ARG_LEN);
+                assert!(
+                    TUJUAN.starts_with(inv.arg(1)),
+                    "arg(1) bukan awalan nama tujuan yang diketik"
+                );
+                assert_eq!(inv.arg_cut, 0b10);
+            }
+            other => panic!("baris rename seharusnya Ready, dapat {:?}", other),
+        }
+        // Posisi pertama tetap punya tanda sendiri, jadi penolakan F4 untuk
+        // sumber yang terpotong tidak berubah makna.
+        const BARIS_SUMBER: &str =
+            "rename tujuan-ganti-nama-yang-sangat-panjang-melewati-batas-token-argumen sasaran.txt";
+        match parse_line(BARIS_SUMBER) {
+            LineOutcome::Ready(inv) => {
+                assert!(inv.arg_terpotong(0), "sumber terpotong tidak ditandai");
+                assert!(!inv.arg_terpotong(1), "sasaran pendek tidak boleh ditandai");
+                assert_eq!(inv.arg_cut, 0b01);
+            }
+            other => panic!("baris sumber panjang seharusnya Ready, dapat {:?}", other),
+        }
+    }
+
+    /// Penjaga F4 bagian janji misi: nama berkas sampai batas argumen tetap
+    /// utuh dan tidak ditandai terpotong.
+    #[test]
+    fn test_f4_nama_sampai_batas_argumen_tetap_utuh() {
+        const NAMA64: &str = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+        const BARIS: &str =
+            "write-file aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa isi";
+        assert_eq!(NAMA64.len(), MAX_ARG_LEN);
+        match parse_line(BARIS) {
+            LineOutcome::Ready(inv) => {
+                assert_eq!(inv.arg(0), NAMA64, "nama tepat batas berubah");
+                assert_eq!(inv.arg(1), "isi");
+                assert_eq!(inv.arg_cut, 0, "nama tepat batas tidak boleh ditandai");
+            }
+            other => panic!("nama tepat batas seharusnya Ready utuh, dapat {:?}", other),
+        }
+
+        // Baris harian tidak tersentuh flag baru.
+        match parse_line("write-file a.txt halo dunia") {
+            LineOutcome::Ready(inv) => {
+                assert_eq!(inv.arg(0), "a.txt");
+                assert_eq!(inv.arg(1), "halo dunia");
+                assert_eq!(inv.arg_cut, 0);
+            }
+            other => panic!("dapat {:?}", other),
+        }
+    }
+
+    /// Penjaga F4 bagian dokumen: Pasal 7 memuat angka batas argumen yang sama
+    /// dengan konstanta parser, bukan tebakan.
+    #[test]
+    fn test_f4_dokumen_memuat_batas_argumen() {
+        const DOC: &str = include_str!("../../../docs/PANDUAN/REFERENSI-PERINTAH.md");
+        assert_eq!(
+            number_after(DOC, "argumen pada satu baris perintah "),
+            Some(MAX_ARG_LEN),
+            "Pasal 7 dokumen memuat batas argumen yang bukan dari konstanta"
+        );
+    }
+
     /// Bangun keluaran `help` (daftar atau detail) ke penyangga milik pemanggil.
     /// Modul tes tidak boleh menuntut `alloc`, jadi penampungnya array tetap.
     fn capture_help<'a>(token: Option<&str>, buf: &'a mut [u8; 8192]) -> &'a str {
@@ -1373,9 +2940,9 @@ mod tests {
     }
 
     #[test]
-    fn test_registry_has_eleven_canonical_commands() {
+    fn test_registry_has_thirteen_canonical_commands() {
         assert_eq!(REGISTRY.len(), CANONICAL_COMMAND_COUNT);
-        assert_eq!(CANONICAL_COMMAND_COUNT, 11);
+        assert_eq!(CANONICAL_COMMAND_COUNT, 13);
 
         let mut alias_total = 0usize;
         let mut i = 0;
@@ -1394,8 +2961,9 @@ mod tests {
             }
             i += 1;
         }
-        // Empat perintah ber-alias: list(2), open(5), create-folder(1), delete-file(1).
-        assert_eq!(alias_total, 9);
+        // Lima perintah ber-alias: list(2), open(5), create-folder(1),
+        // delete-file(1), rename(1).
+        assert_eq!(alias_total, 10);
 
         // Nama dan identitas kanonik tidak boleh kembar.
         let mut j = 0;
@@ -1422,12 +2990,15 @@ mod tests {
             ("read-file", "open"),
             ("open-file", "open"),
             ("open", "open"),
+            ("up", "up"),
             ("mkdir", "create-folder"),
             ("create-folder", "create-folder"),
             ("rm", "delete-file"),
             ("delete-file", "delete-file"),
             ("create-file", "create-file"),
             ("write-file", "write-file"),
+            ("mv", "rename"),
+            ("rename", "rename"),
             ("delete-folder", "delete-folder"),
             ("where", "where"),
             ("status", "status"),
@@ -1476,6 +3047,27 @@ mod tests {
             }
             other => panic!("perlu Ready, dapat {:?}", other),
         }
+    }
+
+    #[test]
+    fn test_f2_up_command_is_canonical_and_takes_no_argument() {
+        // F2: `up` menjadi perintah kanonik ke-12, tanpa alias, tanpa argumen.
+        let e = find_entry("up").expect("`up` harus terurai lewat registry");
+        assert_eq!(e.id(), CanonicalId::Up);
+        assert_eq!(e.name(), "up");
+        assert_eq!(e.syntax(), "up");
+        assert_eq!(e.category(), CommandCategory::Workspace);
+        assert_eq!(e.aliases().len(), 0);
+        assert_eq!(e.min_args(), 0);
+        assert_eq!(e.max_args(), 0);
+
+        assert!(matches!(parse_line("up"), LineOutcome::Ready(_)));
+        match parse_line("up hello") {
+            LineOutcome::BadArity(s) => assert_eq!(s, "up"),
+            other => panic!("perlu BadArity, dapat {:?}", other),
+        }
+        // Nama lama tidak boleh direbut: `up` bukan nama yang sudah dipakai jalur lama.
+        assert_eq!(find_entry("cd").unwrap().id(), CanonicalId::Open);
     }
 
     #[test]
@@ -1553,7 +3145,9 @@ mod tests {
         assert_eq!(shell.edit(b'\x08'), Edit::Ignored);
         assert_eq!(shell.current_line(), "b");
 
-        // Panah atas/bawah tidak dijanjikan Bagian 1: baris tetap utuh.
+        // Panah atas/bawah pada shell yang riwayatnya masih kosong: baris
+        // tetap utuh (riwayat F7 baru terisi sesudah ENTER, lihat
+        // test_f7_riwayat_naik_turun).
         for b in b"\x1B[A" {
             shell.edit(*b);
         }
@@ -1562,7 +3156,8 @@ mod tests {
         }
         assert_eq!(shell.current_line(), "b");
 
-        // Karakter kontrol tak dikenal diabaikan.
+        // Karakter kontrol tak dikenal diabaikan; Tab di TENGAH baris (kursor
+        // belum di akhir) juga ditolak: completion tidak dapat menggeser teks.
         assert_eq!(shell.edit(0x07), Edit::Ignored);
         assert_eq!(shell.edit(b'\t'), Edit::Ignored);
     }
@@ -1672,5 +3267,860 @@ mod tests {
         let mut n = 0usize;
         assert!(!write_help_for("bukan-perintah", |t| n += t.len()));
         assert_eq!(n, 0);
+    }
+
+    // ---------------------------------------------------------------------
+    // E8: regresi "masukan pengguna -> nilai balik, bukan panic".
+    // Setiap test di bawah memakai payload yang dikirim pada LANGKAH 1
+    // (skrip sesi adversarial) dan berhasil bila proses uji selesai tanpa
+    // panik; assert hanya memastikan hasilnya tetap masuk akal.
+    // ---------------------------------------------------------------------
+
+    /// Serahkan `nama + ekor` ke `pakai` sebagai satu baris tersusun. Pinjaman
+    /// berakhir di dalam fungsi supaya penyangga boleh dipakai ulang per iterasi.
+    fn dengan_baris(nama: &str, ekor: &str, pakai: impl FnOnce(&str)) {
+        let mut buf = [0u8; SHELL_BUFFER_MAX];
+        let mut n = 0usize;
+        for b in nama.as_bytes() {
+            buf[n] = *b;
+            n += 1;
+        }
+        for b in ekor.as_bytes() {
+            buf[n] = *b;
+            n += 1;
+        }
+        let baris = core::str::from_utf8(&buf[..n]).unwrap_or("");
+        pakai(baris);
+    }
+
+    #[test]
+    fn panic_guard_baris_sangat_panjang_dari_pengguna() {
+        // 4096 ketikan tanpa jeda: penyangga editor berhenti tumbuh, baris yang
+        // dikirim tetap masuk parser dan keluar sebagai nilai.
+        let mut shell = CockpitShell::new();
+        for _ in 0..4096 {
+            let _ = shell.handle_input(b'x');
+        }
+        assert!(shell.current_line().len() <= SHELL_BUFFER_MAX);
+        assert_eq!(
+            shell.handle_input(b'\n').1,
+            Some((ShellCommand::Unknown, LineOutcome::NotCanonical))
+        );
+
+        // 100.000 karakter: argumen dipotong ke MAX_ARG_LEN, aritas tetap sah.
+        const PANJANG: usize = 100_000;
+        let mut raw = [b'z'; PANJANG];
+        let kata = b"create-file ";
+        let mut i = 0usize;
+        while i < kata.len() {
+            raw[i] = kata[i];
+            i += 1;
+        }
+        let baris = core::str::from_utf8(&raw).unwrap_or("");
+        match parse_line(baris) {
+            LineOutcome::Ready(inv) => assert_eq!(inv.arg(0).len(), MAX_ARG_LEN),
+            other => panic!("perlu Ready, dapat {:?}", other),
+        }
+
+        // Baris hanya spasi dan baris kosong: jalur aritas, bukan panik.
+        assert_eq!(
+            parse_line("                                     "),
+            LineOutcome::NotCanonical
+        );
+        assert_eq!(parse_line(""), LineOutcome::NotCanonical);
+    }
+
+    #[test]
+    fn panic_guard_byte_kendali_nul_dan_utf8_rusak() {
+        // Kasus `-Kind bytes` LANGKAH 1: NUL, BEL, BS, TAB, ESC, '[', DEL,
+        // dan byte tak-UTF-8. Tiga jalur masuk dijalankan agar semua cabang
+        // mesin baris terkena.
+        for b in [0u8, 7, 8, 9, 27, 91, 0x7F, 0x80, 0xC3, 0xFF] {
+            let mut shell = CockpitShell::new();
+            let _ = shell.edit(b);
+            let mut shell2 = CockpitShell::new();
+            let _ = shell2.handle_char(b);
+            let mut shell3 = CockpitShell::new();
+            let _ = shell3.handle_input(b);
+            let _ = shell3.handle_input(b'\n');
+            assert!(shell3.current_line().is_empty());
+        }
+
+        // NUL dan ESC di dalam argumen: token pertama bukan nama registry.
+        assert_eq!(
+            parse_line("\u{0}create-file nama"),
+            LineOutcome::NotCanonical
+        );
+        assert!(matches!(
+            parse_line("open \u{1B}nama\u{7F}"),
+            LineOutcome::Ready(_)
+        ));
+    }
+
+    #[test]
+    fn panic_guard_argumen_berlebih_kutip_dan_indeks_di_luar() {
+        for e in REGISTRY.iter() {
+            let nama = e.name();
+            dengan_baris(nama, " a b c d e f g h i j", |baris| {
+                match parse_line(baris) {
+                    LineOutcome::Ready(inv) => {
+                        assert!(inv.argc <= MAX_ARGS);
+                        assert!(inv.argc >= e.min_args());
+                        assert!(inv.argc <= e.max_args());
+                    }
+                    LineOutcome::BadArity(syntax) => assert_eq!(syntax, e.syntax()),
+                    LineOutcome::NotCanonical => panic!("{} bukan kanonik", nama),
+                }
+            });
+
+            // Kutip dan garis miring menggantung hanyalah byte biasa.
+            for ekor in [" \"satu", " a\"b", " /", " //", " ..", " ../..", " nama/"] {
+                dengan_baris(nama, ekor, |b2| {
+                    assert!(matches!(
+                        parse_line(b2),
+                        LineOutcome::Ready(_)
+                            | LineOutcome::BadArity(_)
+                            | LineOutcome::NotCanonical
+                    ));
+                });
+            }
+        }
+
+        // Indeks di luar argc: string kosong, bukan keluar batas.
+        match parse_line("open satu") {
+            LineOutcome::Ready(inv) => {
+                assert_eq!(inv.arg(1), "");
+                assert_eq!(inv.arg(MAX_ARGS), "");
+                assert_eq!(inv.arg(MAX_ARGS + 7), "");
+                assert_eq!(inv.args()[0], "satu");
+                assert_eq!(inv.entry().name(), "open");
+            }
+            other => panic!("perlu Ready, dapat {:?}", other),
+        }
+    }
+
+    // ---------------------------------------------------------------------
+    // F5: indikator input. Dua hal diuji di sini: fase kursor yang murni, dan
+    // mesin mode berpanduan yang hanya terbuka SESUDAH baris galat arity
+    // (keputusan pemilik). Sisi kernel hanya mencetak dan menjalankan VFS.
+    // ---------------------------------------------------------------------
+
+    /// Penjaga F5 bagian kursor: glif penanda HARUS sudah hidup di dalam
+    /// prompt, karena blink hanya menggambar ulang sel framebuffer dan tidak
+    /// pernah menambah byte serial. Kalau akhiran prompt berubah sampai tidak
+    /// memuat glif ini, test ini merah dan blink harus dinyatakan ulang.
+    #[test]
+    fn test_f5_kursor_nyala_beralternasi() {
+        assert_eq!(CURSOR_IDLE_GLYPH, b'_');
+        assert!(SHELL_PROMPT_SUFFIX.as_bytes().contains(&CURSOR_IDLE_GLYPH));
+        assert!(SHELL_PROMPT.as_bytes().contains(&CURSOR_IDLE_GLYPH));
+
+        assert!(kursor_nyala(0));
+        assert!(!kursor_nyala(1));
+        assert!(kursor_nyala(2));
+        assert!(!kursor_nyala(3));
+        assert!(kursor_nyala(58));
+        assert!(!kursor_nyala(59));
+        assert_eq!(CURSOR_BLINK_PERIODE, 2);
+    }
+
+    /// Penjaga F5 bagian pintu masuk: hanya tiga perintah pembuatan yang
+    /// punya mode berpanduan, pemetaannya dibaca dari registry, dan baris
+    /// yang ditolak arity tetap menjadi `BadArity` apa adanya.
+    #[test]
+    fn test_f5_mode_hanya_masuk_setelah_galat_arity() {
+        assert_eq!(
+            resolusi_pemandu("create-folder <nama>"),
+            TujuanPemandu::BuatFolder
+        );
+        assert_eq!(
+            resolusi_pemandu("create-file <nama>"),
+            TujuanPemandu::BuatBerkas
+        );
+        assert_eq!(
+            resolusi_pemandu("write-file <nama> <teks>"),
+            TujuanPemandu::TulisBerkas
+        );
+        assert_eq!(resolusi_pemandu("open <jalan>"), TujuanPemandu::TidakAda);
+        assert_eq!(
+            resolusi_pemandu("delete-file <nama>"),
+            TujuanPemandu::TidakAda
+        );
+        assert_eq!(
+            resolusi_pemandu("delete-folder <nama>"),
+            TujuanPemandu::TidakAda
+        );
+        assert_eq!(
+            resolusi_pemandu("sintaks-asli-palsu"),
+            TujuanPemandu::TidakAda
+        );
+
+        // Registry tetap satu-sumber: tepat tiga entri yang terbimbing, dan
+        // tiap sintaks yang terbimbing memang menghasilkan BadArity tanpa
+        // argumen (jalur galat lama tidak berubah).
+        let mut terbimbing = 0usize;
+        let mut i = 0;
+        while i < REGISTRY.len() {
+            let e = REGISTRY[i];
+            let t = resolusi_pemandu(e.syntax());
+            if t != TujuanPemandu::TidakAda {
+                terbimbing += 1;
+                match parse_line(e.name()) {
+                    LineOutcome::BadArity(s) => assert_eq!(s, e.syntax()),
+                    other => panic!(
+                        "{} tanpa argumen harus BadArity, dapat {:?}",
+                        e.name(),
+                        other
+                    ),
+                }
+            }
+            i += 1;
+        }
+        assert_eq!(terbimbing, 3, "jumlah perintah berpanduan berubah");
+    }
+
+    /// Alur `create-folder` lewat: satu label, satu baris nama, selesai.
+    #[test]
+    fn test_f5_pemanduan_nama_folder() {
+        let mut p = Pemandu::kosong();
+        assert!(!p.aktif());
+        assert_eq!(p.mode(), ModeInput::Tidak);
+
+        p.mulai(TujuanPemandu::BuatFolder);
+        assert!(p.aktif());
+        let mut buf = [0u8; LABEL_BUF_MAX];
+        assert_eq!(p.label(&mut buf), "Nama folder baru: ");
+
+        assert_eq!(p.terima("laporan"), AksiPemandu::BuatFolder);
+        assert_eq!(p.nama(), "laporan");
+        assert_eq!(p.tujuan(), TujuanPemandu::BuatFolder);
+        assert!(!p.aktif(), "mode terminal harus berhenti sendiri");
+
+        // Spasi di ujung nama bukan bagian nama: dipangkas seperti token.
+        p.mulai(TujuanPemandu::BuatFolder);
+        assert_eq!(p.terima("  laporan 2026  "), AksiPemandu::BuatFolder);
+        assert_eq!(p.nama(), "laporan 2026");
+        assert!(!p.aktif());
+    }
+
+    /// Alur `write-file` lewat: nama, lalu baris isi bernomor, lalu baris
+    /// kosong menutup; baris joined dengan `\n` apa adanya.
+    #[test]
+    fn test_f5_pemanduan_isi_multi_baris_dan_nomor() {
+        let mut p = Pemandu::kosong();
+        p.mulai(TujuanPemandu::TulisBerkas);
+        let mut buf = [0u8; LABEL_BUF_MAX];
+        assert_eq!(p.label(&mut buf), "Nama berkas: ");
+
+        assert_eq!(p.terima("notes.txt"), AksiPemandu::Lanjut);
+        assert_eq!(p.mode(), ModeInput::IsiBerkas);
+        assert_eq!(p.label(&mut buf), "Isi notes.txt (baris 1): ");
+
+        assert_eq!(p.terima("satu"), AksiPemandu::Lanjut);
+        assert_eq!(p.label(&mut buf), "Isi notes.txt (baris 2): ");
+        assert_eq!(p.terima("dua tiga"), AksiPemandu::Lanjut);
+        assert_eq!(p.label(&mut buf), "Isi notes.txt (baris 3): ");
+        assert_eq!(p.baris_terkumpul(), 2);
+
+        assert_eq!(p.terima(""), AksiPemandu::TulisBerkas);
+        assert_eq!(p.isi(), b"satu\ndua tiga");
+        assert_eq!(p.nama(), "notes.txt");
+        assert!(!p.aktif());
+        assert!(!p.isi_penuh());
+
+        // Isi satu baris tidak boleh membawa pemisah.
+        p.mulai(TujuanPemandu::TulisBerkas);
+        p.terima("a.txt");
+        p.terima("hanya satu baris");
+        assert_eq!(p.terima(""), AksiPemandu::TulisBerkas);
+        assert_eq!(p.isi(), b"hanya satu baris");
+    }
+
+    /// Baris kosong berarti batal pada mode nama dan selesai pada mode isi
+    /// (keputusan pemilik: `write-file` tanpa isi boleh, pemangkasannya harus
+    /// diumumkan oleh sisi kernel).
+    #[test]
+    fn test_f5_pemanduan_batal_baris_kosong() {
+        let mut p = Pemandu::kosong();
+        p.mulai(TujuanPemandu::BuatFolder);
+        assert_eq!(p.terima(""), AksiPemandu::Batal);
+        assert!(!p.aktif());
+
+        p.mulai(TujuanPemandu::BuatBerkas);
+        assert_eq!(p.terima("   "), AksiPemandu::Batal);
+        assert!(!p.aktif());
+
+        p.mulai(TujuanPemandu::TulisBerkas);
+        assert_eq!(p.terima("kosong.txt"), AksiPemandu::Lanjut);
+        assert_eq!(p.terima(""), AksiPemandu::TulisBerkas);
+        assert_eq!(p.isi(), b"");
+        assert_eq!(p.baris_terkumpul(), 0);
+
+        // Mode tidak aktif tidak pernah menerima baris.
+        assert_eq!(p.terima("apa pun"), AksiPemandu::Batal);
+    }
+
+    /// Nama terlalu panjang DITOLAK, bukan dipotong diam-diam (akar F4 tidak
+    /// boleh hidup lagi di jalur panduan). Batasnya sama dengan satu token.
+    #[test]
+    fn test_f5_nama_panduan_terlalu_panjang_ditolak() {
+        assert_eq!(GUIDED_NAME_MAX, MAX_ARG_LEN);
+        let panjang = [b'x'; GUIDED_NAME_MAX + 1];
+        let pas = [b'x'; GUIDED_NAME_MAX];
+        let s_panjang = core::str::from_utf8(&panjang).unwrap();
+        let s_pas = core::str::from_utf8(&pas).unwrap();
+
+        let mut p = Pemandu::kosong();
+        p.mulai(TujuanPemandu::BuatFolder);
+        assert_eq!(p.terima(s_pas), AksiPemandu::BuatFolder);
+        assert_eq!(p.nama().len(), GUIDED_NAME_MAX);
+
+        p.mulai(TujuanPemandu::BuatFolder);
+        assert_eq!(p.terima(s_panjang), AksiPemandu::NamaTerlaluPanjang);
+        assert!(!p.aktif());
+        assert_eq!(p.nama(), "", "nama tertolak tidak boleh tertinggal");
+    }
+
+    /// Isi berpanduan berhenti pada satu slot RAMDISK dan menandai keadaannya
+    /// supaya sisi kernel mengumumkan; baris sesudahnya tidak diterima.
+    #[test]
+    fn test_f5_isi_panduan_berhenti_di_satu_slot() {
+        let baris = [b'y'; 100];
+        let s = core::str::from_utf8(&baris).unwrap();
+        let mut p = Pemandu::kosong();
+        p.mulai(TujuanPemandu::TulisBerkas);
+        p.terima("besar.bin");
+        let mut iter = 0usize;
+        while !p.isi_penuh() && iter < 200 {
+            assert_eq!(p.terima(s), AksiPemandu::Lanjut);
+            iter += 1;
+        }
+        assert!(p.isi_penuh(), "kapasitas satu slot tidak pernah tercapai");
+        assert_eq!(p.isi().len(), GUIDED_ISI_MAKS);
+
+        // Baris tambahan sesudah penuh tidak mengubah isi maupun nomor.
+        let sebelum = p.baris_terkumpul();
+        let panjang_sebelum = p.isi().len();
+        assert_eq!(p.terima(s), AksiPemandu::Lanjut);
+        assert_eq!(p.isi().len(), panjang_sebelum);
+        assert_eq!(p.baris_terkumpul(), sebelum);
+        assert_eq!(p.terima(""), AksiPemandu::TulisBerkas);
+    }
+
+    /// `create-file` terbimbing berhenti pada nama: perintah itu dibuat untuk
+    /// berkas kosong, jadi tidak layak meminta baris isi.
+    #[test]
+    fn test_f5_pemanduan_create_file_tanpa_isi() {
+        let mut p = Pemandu::kosong();
+        p.mulai(TujuanPemandu::BuatBerkas);
+        assert_eq!(p.mode(), ModeInput::NamaBerkas);
+        assert_eq!(p.terima("kosong.txt"), AksiPemandu::BuatBerkas);
+        assert_eq!(p.nama(), "kosong.txt");
+        assert_eq!(p.isi(), b"");
+    }
+
+    /// Baris yang diserahkan ENTER masih bisa dibaca setelah penyangga aktif
+    /// dibersihkan; inilah yang dipakai jembatan kernel untuk mode panduan.
+    #[test]
+    fn test_f5_baris_terakhir_tersimpan_setelah_submit() {
+        let mut shell = CockpitShell::new();
+        for b in b"create-folder" {
+            shell.handle_char(*b);
+        }
+        assert_eq!(
+            shell.handle_char(b'\n'),
+            Some(ShellCommand::Unknown),
+            "jalur enumerasi lama tidak berubah: create-folder bukan perintah lama"
+        );
+        assert_eq!(shell.current_line(), "");
+        assert_eq!(shell.last_submitted(), "create-folder");
+
+        for b in b"laporan" {
+            shell.handle_char(*b);
+        }
+        shell.handle_char(b'\n');
+        assert_eq!(shell.last_submitted(), "laporan");
+    }
+
+    /// Penjaga F5 bagian dokumen: label mode berpanduan tertulis apa adanya di
+    /// Pasal 7 `docs/PANDUAN/REFERENSI-PERINTAH.md`.
+    #[test]
+    fn test_f5_dokumen_memuat_label_mode() {
+        const DOC: &str = include_str!("../../../docs/PANDUAN/REFERENSI-PERINTAH.md");
+        assert!(
+            DOC.contains("Nama folder baru: "),
+            "dokumen tidak memuat label nama folder"
+        );
+        assert!(
+            DOC.contains("Isi notes.txt (baris 1): "),
+            "dokumen tidak memuat contoh label isi bernomor"
+        );
+        assert!(
+            DOC.contains("Dibatalkan: nama folder kosong - direktori tidak dibuat"),
+            "dokumen tidak memuat baris pembatalan"
+        );
+        assert!(
+            DOC.contains("MODE BERPANDUAN"),
+            "dokumen tidak menyatakan mode berpanduan sebagai seksi"
+        );
+        assert!(
+            DOC.contains("baris kosong"),
+            "dokumen tidak menjelaskan arti baris kosong"
+        );
+    }
+
+    /// helper F7: ketik lalu ENTER satu baris perintah, lalu daftarkan ke
+    /// riwayat seperti yang dilakukan jembatan kernel.
+    fn ketik_dan_daftarkan(shell: &mut CockpitShell, baris: &str) {
+        for b in baris.bytes() {
+            shell.handle_input(b);
+        }
+        shell.handle_input(b'\n');
+        shell.catat_riwayat_terakhir();
+    }
+
+    /// helper F7: tekan satu tombol tanpa mengharapkan penyerahan baris;
+    /// kembalikan gema yang diminta ke penampil.
+    fn tekan(shell: &mut CockpitShell, c: u8) -> Echo {
+        shell.handle_input(c).0
+    }
+
+    /// helper F7: tekan satu sekuens byte dan kembalikan gema byte TERAKHIR
+    /// (gema tengah sekuens escape selalu `Echo::None`).
+    fn tekan_sekuens(shell: &mut CockpitShell, b: &[u8]) -> Echo {
+        let mut terakhir = Echo::None;
+        let mut i = 0;
+        while i < b.len() {
+            terakhir = shell.handle_input(b[i]).0;
+            i += 1;
+        }
+        terakhir
+    }
+
+    /// Riwayat F7: hanya baris yang pernah ENTER yang tersimpan, urut dari yang
+    /// paling baru, sebanyak [`HIST_MAKS`] entri, tanpa duplikat berturut-turut
+    /// dan tanpa baris kosong.
+    #[test]
+    fn test_f7_riwayat_naik_turun() {
+        let mut shell = CockpitShell::new();
+
+        // Pool kosong: panah atas tidak menyentuh baris.
+        assert_eq!(tekan(&mut shell, b'a'), Echo::Char(b'a'));
+        assert_eq!(tekan_sekuens(&mut shell, b"\x1B[A"), Echo::None);
+        assert_eq!(shell.current_line(), "a");
+        // Baris 'a' yang belum ENTER dibuang lewat Esc (Esc + byte penutup),
+        // supaya pengisian riwayat dimulai dari pool yang benar-benar kosong.
+        assert_eq!(tekan_sekuens(&mut shell, b"\x1Bb"), Echo::Rewrite(1));
+        assert_eq!(shell.current_line(), "");
+        assert_eq!(shell.echo_len, 0);
+
+        ketik_dan_daftarkan(&mut shell, "help");
+        // ENTER yang sama persis tidak menggeser isi riwayat.
+        ketik_dan_daftarkan(&mut shell, "help");
+        assert_eq!(shell.hist_count, 1);
+        ketik_dan_daftarkan(&mut shell, "status");
+        assert_eq!(shell.hist_count, 2);
+
+        // Naik: paling baru, lalu yang lebih tua. Bawaan Rewrite adalah jumlah
+        // byte yang sudah tercetak dan harus dihapus lebih dulu.
+        assert_eq!(tekan_sekuens(&mut shell, b"\x1B[A"), Echo::Rewrite(0));
+        assert_eq!(shell.current_line(), "status");
+        assert_eq!(shell.cursor_pos, 6);
+        assert_eq!(tekan_sekuens(&mut shell, b"\x1B[A"), Echo::Rewrite(6));
+        assert_eq!(shell.current_line(), "help");
+
+        // Sudah paling tua: tidak ada perubahan.
+        assert_eq!(tekan_sekuens(&mut shell, b"\x1B[A"), Echo::None);
+        assert_eq!(shell.current_line(), "help");
+
+        // Turun kembali ke yang lebih baru.
+        assert_eq!(tekan_sekuens(&mut shell, b"\x1B[B"), Echo::Rewrite(4));
+        assert_eq!(shell.current_line(), "status");
+
+        // Turun dari entri paling baru: baris dikosongkan.
+        assert_eq!(tekan_sekuens(&mut shell, b"\x1B[B"), Echo::Rewrite(6));
+        assert_eq!(shell.current_line(), "");
+        assert_eq!(shell.echo_len, 0);
+
+        // Kapasitas: entri kelima membuang yang paling tua.
+        let mut shell2 = CockpitShell::new();
+        ketik_dan_daftarkan(&mut shell2, "satu");
+        ketik_dan_daftarkan(&mut shell2, "dua");
+        ketik_dan_daftarkan(&mut shell2, "tiga");
+        ketik_dan_daftarkan(&mut shell2, "empat");
+        ketik_dan_daftarkan(&mut shell2, "lima");
+        assert_eq!(shell2.hist_count, HIST_MAKS);
+        let mut dilihat = 0usize;
+        while dilihat < HIST_MAKS {
+            shell2.handle_input(b'\x1B');
+            shell2.handle_input(b'[');
+            shell2.handle_input(b'A');
+            dilihat += 1;
+        }
+        assert_eq!(shell2.current_line(), "dua");
+        // Entri keenam ke atas tidak lagi tersedia.
+        shell2.handle_input(b'\x1B');
+        shell2.handle_input(b'[');
+        assert_eq!(shell2.handle_input(b'A'), (Echo::None, None));
+        assert_eq!(shell2.current_line(), "dua");
+    }
+
+    /// Baris kosong tidak pernah masuk riwayat (ENTER tanpa isi adalah Enter
+    /// biasa, bukan perintah yang layak diulang).
+    #[test]
+    fn test_f7_riwayat_menolak_baris_kosong() {
+        let mut shell = CockpitShell::new();
+        shell.handle_input(b'\n');
+        shell.catat_riwayat_terakhir();
+        assert_eq!(shell.hist_count, 0);
+        assert_eq!(
+            shell.handle_input(b'\x1B').0,
+            Echo::None,
+            "ESC sendiri belum mengubah baris"
+        );
+        assert_eq!(shell.handle_input(b'A').0, Echo::Rewrite(0));
+        assert_eq!(shell.current_line(), "");
+    }
+
+    /// Completion Tab F7: satu Tab menambah awalan bersama, Tab kedua yang tidak
+    /// membawa kemajuan meminta daftar, dan hanya nama perintah yang dilengkapi.
+    #[test]
+    fn test_f7_tab_melengkapi_dan_mendaftar() {
+        let mut shell = CockpitShell::new();
+
+        // Kandidat tunggal: "wh" hanya `where`, jadi lengkap sampai sana.
+        assert_eq!(tekan(&mut shell, b'w'), Echo::Char(b'w'));
+        assert_eq!(tekan(&mut shell, b'h'), Echo::Char(b'h'));
+        assert_eq!(tekan(&mut shell, b'\t'), Echo::Rewrite(2));
+        assert_eq!(shell.current_line(), "where");
+        assert_eq!(shell.cursor_pos, shell.line_len);
+
+        // Tab sesudah lengkap: tidak ada kemajuan -> siaga, lalu mendaftar.
+        assert_eq!(tekan(&mut shell, b'\t'), Echo::None);
+        assert_eq!(tekan(&mut shell, b'\t'), Echo::Candidates);
+        assert_eq!(shell.current_line(), "where");
+
+        // Dua kandidat "w" (where, write-file) tidak punya awalan bersama
+        // tambahan: Tab pertama tidak mengubah apa pun, Tab kedua mendaftar.
+        let mut sw = CockpitShell::new();
+        assert_eq!(tekan(&mut sw, b'w'), Echo::Char(b'w'));
+        assert_eq!(tekan(&mut sw, b'\t'), Echo::None);
+        assert_eq!(sw.current_line(), "w");
+        assert_eq!(tekan(&mut sw, b'\t'), Echo::Candidates);
+        assert_eq!(sw.current_line(), "w");
+
+        // Kandidat ganda: "cr" punya dua entri, awalan bersamanya "create-f".
+        let mut s2 = CockpitShell::new();
+        assert_eq!(tekan(&mut s2, b'c'), Echo::Char(b'c'));
+        assert_eq!(tekan(&mut s2, b'r'), Echo::Char(b'r'));
+        assert_eq!(tekan(&mut s2, b'\t'), Echo::Rewrite(2));
+        assert_eq!(s2.current_line(), "create-f");
+        assert_eq!(tekan(&mut s2, b'\t'), Echo::None);
+        assert_eq!(tekan(&mut s2, b'\t'), Echo::Candidates);
+
+        // Baris penuh kandidat lain tidak mengubah apa pun.
+        let mut s3 = CockpitShell::new();
+        assert_eq!(tekan(&mut s3, b'z'), Echo::Char(b'z'));
+        assert_eq!(tekan(&mut s3, b'\t'), Echo::None);
+        assert_eq!(s3.current_line(), "z");
+
+        // Tab di tengah baris ditolak: penyisipan di sana menuntut teks
+        // bergeser, dan kedua penampil tidak dapat menggeser teks.
+        let mut s4 = CockpitShell::new();
+        for b in b"rename" {
+            s4.handle_input(*b);
+        }
+        s4.cursor_pos = 3;
+        assert_eq!(tekan(&mut s4, b'\t'), Echo::None);
+        assert_eq!(s4.current_line(), "rename");
+
+        // Tab tidak menyentuh argumen: baris berspasi dibiarkan apa adanya.
+        let mut s5 = CockpitShell::new();
+        for b in b"list /lo" {
+            s5.handle_input(*b);
+        }
+        assert_eq!(tekan(&mut s5, b'\t'), Echo::None);
+        assert_eq!(s5.current_line(), "list /lo");
+
+        // Ketikan biasa mematikan siaga-tab: Tab berikutnya melengkapi lagi.
+        let mut s6 = CockpitShell::new();
+        for b in b"cr" {
+            s6.handle_input(*b);
+        }
+        s6.handle_input(b'\t');
+        assert_eq!(s6.current_line(), "create-f");
+        assert_eq!(tekan(&mut s6, b'i'), Echo::Char(b'i'));
+        assert_eq!(s6.current_line(), "create-fi");
+        assert_eq!(tekan(&mut s6, b'\t'), Echo::Rewrite(9));
+        assert_eq!(s6.current_line(), "create-file");
+        assert_eq!(tekan_sekuens(&mut s6, b"\x1B[A"), Echo::None);
+    }
+
+    /// Hasil completion harus benar-benar nama perintah yang ada di registry,
+    /// bukan tebakan yang lolos parser. Pemeriksaan memakai `find_entry`, jadi
+    /// perintah yang menuntut argumen (`open`) tidak salah dianggap gagal.
+    #[test]
+    fn test_f7_tab_menghasilkan_perintah_registry_sah() {
+        // Prefix yang berkandidat tunggal; Tab harus membawa ke nama kanonik.
+        for awalan in [
+            "h",
+            "cl",
+            "wh",
+            "li",
+            "op",
+            "u",
+            "create-fi",
+            "create-fo",
+            "wr",
+            "re",
+            "delete-fil",
+            "delete-fold",
+            "stat",
+        ] {
+            let mut shell = CockpitShell::new();
+            for b in awalan.bytes() {
+                shell.handle_input(b);
+            }
+            shell.handle_input(b'\t');
+            let lengkap = shell.current_line();
+            let entri = find_entry(lengkap)
+                .unwrap_or_else(|| panic!("completion {:?} -> {:?}", awalan, lengkap));
+            assert_eq!(
+                entri.name(),
+                lengkap,
+                "completion untuk {:?} menghasilkan {:?}",
+                awalan,
+                lengkap
+            );
+        }
+    }
+
+    /// Sumber kandidat adalah REGISTRY: jumlah kandidat per awalan dipatok, dan
+    /// alias tidak ditawarkan (yang dilihat operator adalah nama `help`).
+    #[test]
+    fn test_f7_kandidat_perintah_hanya_nama_kanonik() {
+        let mut buf = [""; CANONICAL_COMMAND_COUNT];
+        // Awalan kosong menawarkan seluruh registry, dalam urutan registry.
+        assert_eq!(kandidat_perintah("", &mut buf), CANONICAL_COMMAND_COUNT);
+        let mut i = 0;
+        while i < CANONICAL_COMMAND_COUNT {
+            assert_eq!(
+                buf[i],
+                REGISTRY[i].name(),
+                "urutan kandidat = urutan registry"
+            );
+            i += 1;
+        }
+        assert_eq!(kandidat_perintah("c", &mut buf), 3);
+        assert_eq!(kandidat_perintah("d", &mut buf), 2);
+        assert_eq!(kandidat_perintah("rename", &mut buf), 1);
+        assert_eq!(kandidat_perintah("z", &mut buf), 0);
+        assert_eq!(
+            kandidat_perintah("mv", &mut buf),
+            0,
+            "alias tidak dilengkapi"
+        );
+        assert_eq!(kandidat_perintah("help", &mut buf), 1);
+    }
+
+    /// Ctrl+C membatalkan baris: parser tidak pernah melihat isinya, penyangga
+    /// baris kosong, dan riwayat tidak tersentuh.
+    #[test]
+    fn test_f7_ctrl_c_membatalkan_baris() {
+        let mut shell = CockpitShell::new();
+        ketik_dan_daftarkan(&mut shell, "help");
+        for b in b"create-folder rahasia" {
+            shell.handle_input(*b);
+        }
+        assert_eq!(shell.echo_len, 21);
+        assert_eq!(shell.handle_input(0x03), (Echo::Cancel, None));
+        assert_eq!(shell.current_line(), "");
+        assert_eq!(shell.cursor_pos, 0);
+        assert_eq!(shell.echo_len, 0);
+        assert_eq!(
+            shell.last_submitted(),
+            "help",
+            "Ctrl+C bukan penyerahan: baris terakhir tidak boleh ikut berubah"
+        );
+        assert_eq!(shell.hist_count, 1);
+
+        // Esk yang berdiri sendiri (ESC disusul huruf biasa) mengosongkan baris
+        // dan menutup mesin: byte penutup ikut dikonsumsi, ketikan berikutnya
+        // masuk seperti biasa.
+        assert_eq!(shell.edit(0x1B), Edit::Ignored);
+        assert_eq!(shell.edit(b'A'), Edit::Replaced(0));
+        assert_eq!(shell.handle_input(b'x'), (Echo::Char(b'x'), None));
+        assert_eq!(shell.current_line(), "x");
+    }
+
+    /// Ctrl+L meminta layar dibersihkan dan F1 meminta bantuan; keduanya lewat
+    /// kedua pengkodean tombol fungsi yang dikirim terminal serial.
+    #[test]
+    fn test_f7_ctrl_l_dan_f1() {
+        let mut shell = CockpitShell::new();
+        for b in b"status" {
+            shell.handle_input(*b);
+        }
+        assert_eq!(shell.handle_input(0x0C), (Echo::ClearScreen, None));
+        assert_eq!(shell.current_line(), "");
+        assert_eq!(shell.echo_len, 0);
+
+        // F1 bentuk SS3: ESC O P. Baris aktif tetap utuh.
+        for b in b"help" {
+            shell.handle_input(*b);
+        }
+        assert_eq!(shell.handle_input(0x1B), (Echo::None, None));
+        assert_eq!(shell.handle_input(b'O'), (Echo::None, None));
+        assert_eq!(shell.handle_input(b'P'), (Echo::Help, None));
+        assert_eq!(shell.current_line(), "help");
+
+        // F1 bentuk CSI: ESC [ 1 1 ~ (dua digit, jadi mesin harus menumpuk).
+        assert_eq!(shell.handle_input(0x1B), (Echo::None, None));
+        assert_eq!(shell.handle_input(b'['), (Echo::None, None));
+        assert_eq!(shell.handle_input(b'1'), (Echo::None, None));
+        assert_eq!(shell.handle_input(b'1'), (Echo::None, None));
+        assert_eq!(shell.handle_input(b'~'), (Echo::Help, None));
+        assert_eq!(shell.current_line(), "help");
+
+        // Home lalu Delete (ESC [ 3 ~): penumpukan digit tidak merusak Delete.
+        assert_eq!(tekan_sekuens(&mut shell, b"\x1B[H"), Echo::None);
+        assert_eq!(shell.cursor_pos, 0);
+        assert_eq!(tekan_sekuens(&mut shell, b"\x1B[3~"), Echo::None);
+        assert_eq!(shell.current_line(), "elp");
+
+        // Tombol fungsi lain dikenal tapi belum dipakai (backlog F2-F12).
+        assert_eq!(tekan_sekuens(&mut shell, b"\x1B[12~"), Echo::None);
+        assert_eq!(shell.current_line(), "elp");
+    }
+
+    /// Esc yang tidak diikuti `[` atau `O` adalah tombol Esc: baris dikosongkan.
+    #[test]
+    fn test_f7_esc_kosongkan_baris() {
+        let mut shell = CockpitShell::new();
+        for b in b"abc" {
+            shell.handle_input(*b);
+        }
+        assert_eq!(shell.echo_len, 3);
+        assert_eq!(shell.handle_input(0x1B), (Echo::None, None));
+        // Byte penutup ikut dikonsumsi: Esc dikenali saat byte itu tiba.
+        assert_eq!(shell.handle_input(b'x'), (Echo::Rewrite(3), None));
+        assert_eq!(shell.current_line(), "");
+        assert_eq!(shell.echo_len, 0);
+        // Sesudah itu mesin kembali normal.
+        assert_eq!(shell.handle_input(b'y'), (Echo::Char(b'y'), None));
+        assert_eq!(shell.current_line(), "y");
+
+        // Esc dengan baris yang sudah kosong: tetap minta cetak ulang (nol
+        // hapus), karena operator menekan tombol dan layar tidak boleh
+        // kehilangan penanda tempat mengetik.
+        assert_eq!(shell.handle_input(0x1B), (Echo::None, None));
+        assert_eq!(shell.handle_input(b'z'), (Echo::Rewrite(1), None));
+        assert_eq!(shell.current_line(), "");
+    }
+
+    /// Gema `echo_len` adalah jumlah byte yang sudah tercetak, bukan panjang
+    /// penyangga: hapus-maju tidak menggeser teks di layar, jadi hitungannya
+    /// sengaja tidak turun.
+    #[test]
+    fn test_f7_gema_dihitung_dari_langkah_sunting() {
+        let mut shell = CockpitShell::new();
+        assert_eq!(shell.echo_len, 0);
+        shell.handle_input(b'a');
+        shell.handle_input(b'b');
+        shell.handle_input(b'c');
+        assert_eq!(shell.echo_len, 3);
+        shell.handle_input(b'\x08');
+        assert_eq!(shell.echo_len, 2);
+        // Home lalu Delete: baris kehilangan satu byte (baris jadi "b"), layar
+        // tidak bergeser, jadi hitungan yang tercetak tetap.
+        for b in b"\x1B[H" {
+            shell.handle_input(*b);
+        }
+        for b in b"\x1B[3~" {
+            shell.handle_input(*b);
+        }
+        assert_eq!(shell.current_line(), "b");
+        assert_eq!(
+            shell.echo_len, 2,
+            "hapus-maju tidak mengurangi yang tercetak"
+        );
+        // Riwayat kosong -> panah atas tidak menyentuh hitungan.
+        shell.handle_input(b'\x1B');
+        shell.handle_input(b'[');
+        shell.handle_input(b'A');
+        assert_eq!(shell.echo_len, 2);
+        // ENTER menghapus hitungan bersama barisnya.
+        shell.handle_input(b'\n');
+        assert_eq!(shell.echo_len, 0);
+    }
+
+    /// F7 - Shift dan CapsLock. Jalur masukan hanya mengirim byte hasil, jadi
+    /// keadaan modifier tidak pernah bisa diamati; yang bisa dijamin adalah
+    /// bentuk galatnya. Registry berisi nama huruf kecil, sehingga `HELP` dari
+    /// operator dengan CapsLock menyala keluar sebagai galat anggun berbahasa
+    /// Indonesia - bukan panik dan bukan perintah.
+    #[test]
+    fn test_f7_huruf_besar_ditolak_dengan_galat_anggun() {
+        assert!(find_entry("HELP").is_none());
+        assert!(find_entry("Help").is_none());
+        assert!(find_entry("help").is_some());
+
+        let mut shell = CockpitShell::new();
+        for byte in b"HELP\n" {
+            let (_, keluar) = shell.handle_input(*byte);
+            if let Some((cmd, jalur)) = keluar {
+                assert_eq!(cmd, ShellCommand::Unknown);
+                assert_eq!(jalur, LineOutcome::NotCanonical);
+            }
+        }
+
+        // Baris campuran besar-kecil di posisi nama pun tetap masuk jalur lama.
+        assert!(matches!(parse_line("Status"), LineOutcome::NotCanonical));
+        // Di luar posisi nama, huruf besar adalah data operator: argumen
+        // dikirim apa adanya, tidak dinormalkan.
+        if let LineOutcome::Ready(inv) = parse_line("create-file BERKAS.TXT") {
+            assert_eq!(inv.arg(0), "BERKAS.TXT");
+        } else {
+            panic!("create-file dengan argumen huruf besar tidak lagi Ready");
+        }
+    }
+
+    /// Penjaga F7 bagian dokumen: seksi navigasi keyboard dan label barunya
+    /// tertulis apa adanya di `docs/PANDUAN/REFERENSI-PERINTAH.md`.
+    #[test]
+    fn test_f7_dokumen_memuat_bagian_navigasi() {
+        const DOC: &str = include_str!("../../../docs/PANDUAN/REFERENSI-PERINTAH.md");
+        assert!(
+            DOC.contains("NAVIGASI KEYBOARD"),
+            "dokumen tidak memuat seksi navigasi keyboard"
+        );
+        assert!(
+            DOC.contains("Pilihan perintah: "),
+            "dokumen tidak memuat kepala daftar kandidat"
+        );
+        assert!(
+            DOC.contains("Baris dibatalkan: tidak ada perintah dijalankan"),
+            "dokumen tidak memuat baris pembatalan Ctrl+C"
+        );
+        assert!(
+            DOC.contains(" - ketik help untuk daftar perintah"),
+            "dokumen tidak memuat penghubung Indonesia perintah tak dikenal"
+        );
+        assert!(
+            DOC.contains("riwayat baris (panah atas/bawah) TIDAK tersimpan pada galang PS/2"),
+            "dokumen tidak menyatakan batas galang PS/2 untuk riwayat"
+        );
+        assert!(
+            DOC.contains("Shift dan CapsLock tidak dapat diverifikasi sebagai keadaan"),
+            "dokumen tidak menyatakan batas verifikasi Shift/CapsLock"
+        );
+        assert!(
+            DOC.contains("PageUp/Down, Insert, F2-F12, dan penempelan"),
+            "dokumen tidak memuat backlog tombol yang belum dikerjakan"
+        );
+        assert!(
+            !DOC.contains("Riwayat baris (panah atas/bawah) sengaja tidak dijanjikan dan tidak\n  diimplementasikan."),
+            "dokumen masih menyatakan riwayat tidak diimplementasikan"
+        );
     }
 }

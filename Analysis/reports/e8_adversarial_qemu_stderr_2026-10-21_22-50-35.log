@@ -1,0 +1,1 @@
+C:\Program Files\qemu\qemu-system-x86_64.exe: -chardev socket,id=ser0,server=on,wait=on,host=127.0.0.1,port=14721: info: QEMU waiting for connection on: disconnected:tcp:127.0.0.1:14721,server=on

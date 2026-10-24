@@ -1,0 +1,4 @@
+id	label	hasil_pokok	jenis_kirim	byte_kirim	detik_mm	kiriminput_terlihat	teks_balasan_terpotong
+S01	SIAP: buat direktori uji	OK	line	20	453	create-folder e8uji	create-folder e8uji | Direktori dibuat: /e8uji | ASL-KERNEL />_ 
+S02	SIAP: masuk direktori uji	GANTUNG	line	11	600021	open e8uji	open e8uji | Ruang kerja: /e8uji | ASL-KERNEL /e8uji>_ 
+S03	SIAP: buat berkas a.txt	GANTUNG	line	18	600010	create-file a.txt	create-file a.txt | Berkas dibuat: /e8uji/a.txt | ASL-KERNEL /e8uji>_ bj===<BS> <BS><BS> <BS><BS> <BS><BS> <BS><BS> <BS>

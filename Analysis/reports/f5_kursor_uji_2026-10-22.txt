@@ -1,0 +1,16 @@
+prompt akar terlihat, serial 2519 byte
+percobaan screendump tambahan (retry): 0
+periode ambil 14 gambar dalam 5.21 s (jarak rata-rata 0.40 s)
+deret diff bersebelahan: [0, 0, 8, 0, 0, 8, 0, 8, 0, 8, 0, 0, 8]
+gabungan bbox perubahan: (120, 302, 127, 302) -> 8 x 1 piksel
+deret keadaan (1=glif ada, 0=sel kosong): [0, 0, 0, 1, 1, 1, 0, 0, 1, 1, 0, 0, 0, 1]
+waktu transisi (s dari mulai): ['1.18', '2.39', '3.20', '4.00', '5.21']
+jarak antar transisi: ['1.21', '0.81', '0.81', '1.21']
+serial selama sampling: 2519 -> 2519 byte (tambah 0)
+=== RINGKASAN ===
+LULUS  perubahan hanya selebar satu kolom karakter  (8 x 1)
+LULUS  kedua fase kursor muncul (nyala dan padam)  (6/14 gambar berglif)
+LULUS  transisi cukup banyak untuk menyebut kedipan  (5 transisi)
+LULUS  tidak ada kedip ganda di bawah 0,4 s (bukan noise)  (jarak min 0.81)
+LULUS  rata-rata jarak transisi sesuai periode dua detik (0,5 - 2,5 s)  (rata-rata 1.01)
+LULUS  serial tidak bertambah selama blink idle  (delta 0 byte)

@@ -1,0 +1,546 @@
+UNIT F6 - PERINTAH rename (BERKAS + DIREKTORI, SUBTREE BERGESER, REGISTRY 13)
+=========================================================================
+Tanggal             : 2026-10-22
+Cabang              : feature/v1.0.2-r1
+Induk commit        : 87cf8fd ([V1.0.2-R1-F5-PANDUAN])
+Mandat              : F6 dari MASTER PROMPT R1-REVISI - "rename <lama> <baru>"
+                      untuk berkas dan folder; dilarang menimpa nama yang sudah
+                      ada (pesan error); rename folder menggeser seluruh subtree
+                      path anak di VFS; keluaran sesuai F3. Registry final 13.
+Kelas bukti         : VERIFIED-ON-HOST (gerbang, test, build, ELF, ISO),
+                      VERIFIED-ON-VM (boot + dua sesi serial),
+                      VERIFIED-ON-VM-VISIBLE (piksel screendump terukur),
+                      VERIFIED-ON-CI-API (dua ekstrak atas tip F5).
+                      VERIFIED-ON-HARDWARE tetap 0.
+
+0. APA YANG DIBUAT
+------------------
+(1) SATU PERINTAH BARU, SATU SUMBER: `rename <lama> <baru>` masuk REGISTRY
+    kanonik (12 -> 13) dengan alias `mv`
+    (asl-cockpit-shell/src/lib.rs:814; CANONICAL_COMMAND_COUNT = 13 di :465;
+    penjaga `test_registry_has_thirteen_canonical_commands` di :2541).
+(2) EMPAT PENOLAKAN SEBELUM VFS DISENTUH, satu label `Kesalahan: `
+    (jalankan_rename asl-kernel-core/src/lib.rs:1614; pieces_rename_ditolak
+    :1471; print_rename_ditolak :1484):
+      - nama tujuan memuat garis miring -> perintah ini bukan alat pindah;
+      - nama tujuan identik dengan nama sumber -> tidak ada yang diganti;
+      - nama tujuan sudah ada -> `Kesalahan: <jalur> sudah ada - sumber tidak
+        diubah`, sumber tetap utuh;
+      - nama tujuan adalah hasil PEMOTONGAN token -> ditolak (lihat butir 4).
+    Penjaga urutan: sumber diurai dan dibuka LEBIH DULU, baru tujuan dinilai,
+    sehingga setiap penolakan bisa dites dengan `open <sumber>` sesudahnya.
+(3) KELUARAN SESUAI F3, dengan angka yang dihitung, bukan dikira:
+      berkas    : `Berkas diganti nama: <lama> -> <baru> (N byte tetap
+                  tersimpan)`
+      direktori : `Direktori diganti nama: <lama> -> <baru> (N entri subtree
+                  ikut bergeser)`
+    (pieces_rename :1493 membedakan jenis objek; pieces_rename_sudah_ada :1508
+    menyebut tujuan DAN sumber yang kekal; pesan AlreadyExists dari VFS tidak
+    pernah bocor apa adanya.)
+(4) KELAS BUG F4 HIDUP KEMBALI, DI ARGUMEN KEDUA. Pemotongan token 64 byte dulu
+    hanya dilaporkan untuk argumen pertama, jadi `rename <sumber> <nama-tujuan-
+    panjang>` diam-diam mengganti nama dengan potongan. Akar: satu bendera
+    `arg_cut` per invocation. Perbaikan: flag dibaca per posisi
+    (rename_argumen_terpotong :1602) dan kebijakan dispatch per perintah -
+    untuk `rename` POTONGAN PADA POSISI AKTIF menolak perintah, bukan hanya
+    memaklumi. Dijaga dua test:
+    `test_f6_rename_argumen_kedua_terpotong_punya_kebijakan_sendiri` (kernel-core)
+    dan `test_f6_rename_argumen_terpotong_dapat_dibaca_per_posisi` (cockpit-shell).
+(5) RUANG KERJA IKUT BERGESER HANYA BILA POSISI TERKENA
+    (geser_cwd_rename :1530, enum GeserCwd :1518):
+      - pencocokan pada BATAS PEMISAH, bukan awalan byte: `/logo` tidak tersentuh
+        oleh rename `/log`;
+      - rename BERKAS tidak menggeser ruang kerja (induknya, bukan turunannya);
+      - direktori SEMUA ikut terbawa: `/log/bulan/2026` -> `/catatan/bulan/2026`;
+      - bila path baru tidak muat dalam penyangga: TIDAK ADA pemotongan diam-diam,
+        operator menerima tanda `TerlaluPanjang` dan ruang kerja tetap seperti
+        semula (kelas bug makna-diam yang ditutup F4 tidak diizinkan lahir lagi).
+(6) `rename` BUKAN perintah berpanduan: mode nama (F5) hanya untuk tiga perintah
+    pembuatan, jadi baris kosong pada rename tidak berarti "ganti nama tanpa
+    sumber". Penjaga: `test_f6_rename_tidak_dibimbing_mode_panduan` dan bukti VM
+    "rename membuka mode berpanduan = tidak ada label Nama ".
+(7) ROSTER LABEL: 39 -> 48 konstanta `MSG_*`; dokumen PETA-KANONIK dan
+    REFERENSI-PERINTAH dibaca oleh test dari konstanta, bukan angka tangan.
+
+1. GERBANG NOL-BARU (diukur pada tree final ini)
+------------------------------------------------
+`python scripts/r1_new_only_gate_check.py fmt`
+  asl-kernel-core/src/lib.rs   : baris saya 497, ingin diubah rustfmt 100, IRISAN BARU 0
+  asl-cockpit-shell/src/lib.rs : baris saya 147, ingin diubah rustfmt  28, IRISAN BARU 0
+  asl-storage/src/ramdisk.rs   : baris saya 266, ingin diubah rustfmt  19, IRISAN BARU 0
+  TOTAL deviasi/diagnostik BARU = 0
+`python scripts/r1_new_only_gate_check.py clippy`
+  (penangkapan lebih dulu: cargo clippy --workspace --lib --target
+   x86_64-unknown-none --message-format=short -- -A
+   clippy::not_unsafe_ptr_arg_deref > logs/clippy_r1_allow.txt)
+  tiga berkas cakupan: IRISAN BARU 0; TOTAL diagnostik BARU = 0.
+  Warisan dilaporkan apa adanya: 138 diagnostik di seluruh workspace.
+Test host: `cargo test --workspace --lib` = 249 LULUS / 0 GAGAL
+  Delta dari tree F5 = +17 test baru: kernel-core 25 -> 33 (delapan test_f6_*),
+  asl-storage/ramdisk.rs 13 -> 21 (delapan test_f6_rename_*), cockpit-shell
+  36 -> 37 (registry 13 + argumen terpotong per posisi).
+  Per crate yang berubah: asl_cockpit_shell 37, asl_kernel_core 33, asl_storage 57.
+Build host: 0 error; 14 warning, seluruhnya di luar tiga berkas cakupan F6
+  (asl-ont-gpon 5, asl-do178c-cert 5, asl-power10-loongson 3,
+   asl-fleet-regression 1) + 5 ringkasan crate.
+
+2. BUILD, REPRODUSIBILITAS, DAN LANTAI MEMORI
+---------------------------------------------
+ELF kernel : 307.896 B  SHA256 B1E4D620E8DC60404393D8860D9C3AAA09527979903AF2716837EEE3925FB3CC
+ISO        : 4.184.064 B SHA256 6AF6D9F5FB215655AA8AC75EA16F4B073B6985EB5D39BF47BDCA348AF8DD519B
+             dua mastering terpisah (logs/f6_iso_a.iso / logs/f6_iso_b.iso)
+             BYTE-IDENTIK, GPT Disk GUID pin e181e879-31ec-3d41-a200-b4997a320a0d,
+             epoch 1767225600. Delta ISO terhadap F5 (4.177.920 B) = +6.144 B.
+
+Delta bagian ELF F6 terhadap F5 (pembacaan header bagian dari berkas ELF tree
+ini; angka F5 dari laporan unit F5):
+  .text   177.519 -> 181.631  delta +4.112
+  .rodata  30.150 ->  30.950  delta   +800   (sembilan label MSG_* F6)
+  .bss    852.096 -> 852.096  delta     0    (tidak ada state baru)
+  .symtab   8.256 ->   8.544  delta   +288
+  .strtab  22.851 ->  23.891  delta +1.040
+  TOTAL DELTA berkas = +5.424 B
+Tidak ada regresi footprint: .text bertambah 4.112 B dan ratchet lantai boot
+tetap lulus pada ukuran yang sama seperti F5.
+
+Gerbang `scripts/test_ram_floor_3mb.ps1` pada tree F6 = KEPUTUSAN 2
+(DEVIASI TERCATAT; berkas kerja logs/f6_lantai_run.txt):
+  -m 3M    : TIDAK boot (serial 0 B, reached=False) -> MERAH, tidak diubah hijau
+  -m 3392K : boot penuh (serial 2.501 B, prompt akar) -> LULUS
+  crash=False pada keduanya; prompt dibaca dari satu-sumbernya (SHELL_PROMPT).
+Angka gerbang, nama berkas, dan alat tidak saya sentuh.
+
+3. SESI QEMU - RENAME (VERIFIED-ON-VM, 43 dari 43)
+--------------------------------------------------
+Alat       : logs/f6_qemu_check.py
+Seri       : Analysis/reports/f6_rename_serial_2026-10-22_10-02-18.log (6.293 B)
+Stderr     : Analysis/reports/f6_rename_qemu_stderr_2026-10-22_10-02-18.log
+             (197 B: satu baris `info: QEMU waiting for connection`, bukan galat.
+             Naskah unit ini sempat mencatatnya 0 B; angka dikoreksi dari
+             pengukuran berkas sebelum commit, lihat Bagian 5 butir h)
+Sesi awal  : ..._09-33-55 (7 MERAH, seluruhnya alat - lihat Bagian 5) dan
+             ..._10-00-34 (43 dari 43); artefak semua disimpan.
+Vonis kunci (angka dari artefak, bukan ringkasan tangan):
+  rename berkas + byte            Berkas diganti nama: /log/a.txt -> /log/b.txt
+                                  (4 byte tetap tersimpan)
+  ruang kerja tidak bergerak      Ruang kerja: /log        (rename Berkas)
+  isi lewat nama baru             Isi /log/b.txt (4 byte):  dan isinya utuh
+  galat arity rename              Kesalahan: jumlah argumen tidak sesuai -
+                                  Sintaks: rename <lama> <baru>
+  rename TIDAK berpanduan         tidak ada label "Nama " sesudah galat arity
+  nama tujuan identik             Kesalahan: nama tujuan sama dengan nama sumber
+  nama tujuan berupa path         Kesalahan: nama tujuan rename tidak boleh
+                                  memuat garis miring
+  nama tujuan terpotong           ... - argumen melebihi batas 64 byte, perintah
+                                  tidak dijalankan
+  menimpa nama dilarang           Kesalahan: /log/bulan sudah ada - sumber tidak
+                                  diubah
+  sumber utuh sesudah 3 tolakan   open b.txt masih 4 byte, tiap kali
+  subtree bergeser                Direktori diganti nama: /log/bulan ->
+                                  /log/catatan (2 entri subtree ikut bergeser)
+  turunan terbaca                 Isi /log/catatan/t.txt (3 byte):
+  rename sambil berdiri di dalamnya
+                                  /log/catatan -> /log/katalog, lalu
+                                  Ruang kerja: /log/katalog dan prompt
+                                  ASL-KERNEL /log/katalog>_
+  delete-folder tetap butuh kosong Kesalahan: /log/katalog direktori masih berisi
+  alias mv                        Berkas diganti nama ... (3 byte tetap tersimpan)
+  akar ditolak                    Kesalahan: objek akar tidak dapat diganti nama
+  registry terlihat dari luar     Perintah kanonik: 13  dan  help memuat
+                                  `rename <lama> <baru>`
+  beres-beres                     Entri hidup     : 1  (RAMDISK kembali satu
+                                  entri)
+Klaim layar (VERIFIED-ON-VM-VISIBLE): sesudah satu rename subtree, beda dua
+bingkai = 172.040 piksel dengan baris glif 612 -> 628, dibandingkan terhadap
+bingkai kedipan kursor yang terukur 8 piksel. Kriteria lama "jumlah baris glif
+bertambah" sengaja ditinggalkan karena jenuh ketika layar menggulir.
+
+4. SESI QEMU - POSISI PENANDA KURSOR (VERIFIED-ON-VM-VISIBLE, 47 dari 47)
+-------------------------------------------------------------------------
+Alat       : logs/f5f6_kursor_posisi_check.py
+Seri       : Analysis/reports/f5f6_kursor_posisi_serial_2026-10-22_10-13-04.log
+             (4.145 B)
+Stderr     : Analysis/reports/f5f6_kursor_posisi_qemu_stderr_2026-10-22_10-13-04.log
+Metode baru: keadaan diam diukur dengan ENAM screendump berjarak 0,5 detik;
+  hanya beda yang MUAT DALAM SATU SEL (maks 16 x 32 piksel) dihitung sebagai
+  kedipan; beda yang lebih besar dicatat sebagai KONFLIK dan menggagalkan
+  periksa. Lebar kolom dan titik asal TIDAK ditebak: dikalibrasi dari dua
+  keadaan yang saya kendali (prompt akar lalu sesudah `create-fold` = 11
+  karakter) -> geser 88 piksel habis terbagi 11, cw = 8 piksel, x0 = 0.
+  Sisanya adalah uji PREDIKSI posisi, bukan pembacaan gambar.
+Kalibrasi  : cw = 8 piksel/kolom, x0 = 0; baris idle dan baris ketik sama.
+Posisi terukur (kolom = panjang teks yang memang kita cetak):
+  idle akar                      x=120  kolom 15  (prompt `ASL-KERNEL />_ `)
+  sesudah 11 ketikan             x=208  kolom 26
+  `Nama folder baru: ` + 6       x=192  kolom 24
+  sesudah backspace              x=184  kolom 23  (MUNDUR satu sel)
+  sesudah submit                 x=120  kolom 15, BARIS 334 -> 366
+                                 (sel tidak tertinggal di baris terkirim)
+  prompt berposisi /panduan     x=176  kolom 22
+  `Nama berkas: `                x=104  kolom 13
+  `Isi catat.txt (baris 1): `    x=200  kolom 25
+  `Isi catat.txt (baris 2): `    x=200  kolom 25
+  sesudah submit isi             x=176  kolom 22 di ujung prompt /panduan
+  sesudah clear                  x=176  dan y=30 (baris ikut naik, layar 13
+                                 baris glif)
+  tengah baris rename            x=376  kolom 47 (22 prompt + 25 ketikan)
+  sesudah rename berkas          x=176  kolom 22
+  dua ketikan di /panduan/bulan  x=240  kolom 30
+  rename ruang kerja             x=240  kolom 30, y=190 pada prompt baru
+                                 `ASL-KERNEL /panduan/purnama>_ `
+Konflik nol pada SELURUH 15 keadaan (tidak ada sel kedua yang ikut berkedip).
+Serial byte-per-byte (mandat F5 "satu baris yang sama"):
+  - `Nama folder baru: ` lalu `pandua` -> TANPA CR antara label dan karakter
+    pertama; gema backspace persis `BS spasi BS`;
+  - `Nama berkas: ` lalu `catat.txt`, kemudian SATU CRLF sebelum
+    `Isi catat.txt (baris 1): ` (periksa `\r\n` + label, bukan `\r\n\r\n`);
+  - isi menempel pada label isi; nama `panduan` dan `catatan.txt` selesai.
+Sambungan F6: posisi juga membuktikan prompt berposisi (F1) dan pergeseran
+ruang kerja oleh rename (F6) terlihat pada kursor, bukan hanya di teks serial.
+
+5. KEKELIRUAN CHECKER SAYA SENDIRI (dilaporkan, artefak tidak dibuang)
+----------------------------------------------------------------------
+(a) Sesi rename pertama 7 MERAH: harapan memakai nama RELATIF padahal produk
+    memecah jalur relatif terhadap ruang kerja (`katalog` dari dalam
+    /log/katalog = /log/katalog/katalog). Produk benar, alat saya salah ->
+    beres-beres dan sumber rename dijadikan jalur absolut.
+(b) Teks harapan `Entri aktif   : 1`; satu-sumber keluaran adalah
+    `Entri hidup     : 1` (asl-kernel-core/src/lib.rs:2026).
+(c) Kriteria layar "baris glif bertambah" rapuh terhadap scroll -> diganti piksel
+    berbeda yang dibandingkan dengan bingkai kedipan 8 piksel.
+(d) Empat cacat pada sesi posisi SEBELUM pertama kali jalan: `cek_sel`
+    mengembalikan boolean ketika tidak ada sel padahal pemanggilnya mengakses
+    tuple; kolom baris rename ditulis tangan 30 sementara panjang ketikan 25;
+    harapan `14 byte dibebaskan` padahal jalur panduan menyambung baris isi
+    TANPA newline penutup sehingga berkas itu 13 byte; dan sumber rename relatif
+    (butir a terulang di sesi kedua).
+(e) Run pertama sesi posisi berhenti di tengah: `screendump` dibaca selagi QEMU
+    masih menulis, menghasilkan PPM 36.864 byte dari 2.359.311 dan
+    AssertionError. Alat kini menunggu ukuran berkas STABIL sebelum membaca;
+    run ketiga menghasilkan 47 dari 47.
+(f) Sesi posisi pertama (10-09-12) 44 dari 47 disimpan sebagai artefak: tiga
+    MERAH-nya adalah butir (a) dan (d), dan ia memuat baris produk yang benar
+    `Kesalahan: /panduan direktori masih berisi`.
+(g) Satu glif CJK nyasar ke berkas KERJA (logs/f6_input_probe.py) dan satu
+    percobaan glif CJK lagi tertangkap oleh pemindaian sebelum alat handoff
+    ditulis. Kejadian (g) adalah kelas pelanggaran G10 yang KETIGA (lihat
+    fault entri ke-24); tidak ada glif yang masuk berkas ter-commit, dan
+    pemindaian pola CJK kini menjadi langkah wajib sebelum alat dijalankan.
+
+(h) Ukuran stderr QEMU sesi rename pertama saya catat `0 B` pada naskah ini
+    padahal berkasnya 197 byte (satu baris `info: QEMU waiting for connection`
+    yang normal). Bagian 3 sudah dikoreksi atas kejadian ini; koreksi terjadi
+    SEBELUM commit sehingga tidak ada artefak yang berubah setelah ter-commit.
+    Aturan baru: angka ukuran berasal dari pengukuran berkas pada saat naskah
+    ditulis, bukan dari ingatan sesi sebelumnya.
+
+Rekonsiliasi angka: ACCOUNTABILITY_FAULT_LOG entri ke-48 menyebut LIMA
+kekeliruan checker karena entri itu ditulis sebelum butir (g) dan (h) di
+sini ada, dan sebelum empat cacat pada butir (d) terhitung satu per satu.
+Log bersifat append-only sehingga teks lama tidak disunting; daftar
+delapan butir di Bagian 5 ini yang berlaku sebagai rincian lengkap.
+
+6. TEMUAN GALANG MASUKAN: SATU KALI, TIDAK TER-REPRODUKSI (fault ke-49, OPEN)
+-----------------------------------------------------------------------------
+Pada sesi rename pertama, empat karakter asing muncul pada prompt padahal tidak
+ada satu pun string yang saya kirim memuat huruf itu. Yang terukur di kode:
+PS/2 dibaca lebih dulu (`asl-driver-ps2-keyboard/src/lib.rs:224-245`) dan COM1
+hanya diperiksa bila PS/2 kosong (`asl-kernel-core/src/lib.rs:2496-2514`), lalu
+KEDUA sumber masuk ke SATU penyangga baris tanpa penanda asal. Bentuk karakter
+cocok dengan kode make i8042 yang bersebelahan, jadi dugaannya perangkat, bukan
+parser - tapi dugaan bukan bukti.
+Probe sistematis (`logs/f6_input_probe.py`, artefak
+`Analysis/reports/f6_sidik_masukan_*`):
+  fase A 45 detik sunyi .................. 0 byte asing
+  fase B 8 baris kirim biasa ............. 0 dari 8 menyimpang
+  fase C 8 baris kirim + 8 screendump .... 0 dari 8 menyimpang
+Mitigasi untuk sesi sesudahnya: QEMU dijalankan dengan `-display none`; pada
+mode itu framebuffer TERBUKTI tetap hidup (sesi posisi: 157 baris glif dari
+1024x768, dan seluruh klaim piksel di Bagian 3-4 diambil dari mode itu).
+Status jujur: temuan satu-kali, mekanisme belum terbukti, BUKAN bug yang
+dipastikan; tidak ada perubahan kode untuk itu.
+
+7. PERKAKAS MASTERING ISO HILANG - BUTUH TINDAKAN PEMILIK (fault ke-50, OPEN)
+-----------------------------------------------------------------------------
+`cargo clean` yang saya jalankan di `asl-kernel/` (untuk memisahkan pengaruh
+kode terhadap ukuran artefak) menghapus `target/limine_v8_binary/limine.exe`
+dan `target/iso_root/boot/limine/*`. Kedua jalur terverifikasi tidak ada lagi,
+dan keduanya BUKAN bagian repository: perkakasnya dipasang oleh pemilik, jadi
+pemulihannya juga milik pemilik (aturan: saya tidak memasang alat sendiri).
+Akibat: `scripts/build_kernel.ps1:100-102` berhenti dengan galat, sehingga
+MASTERING ISO baru TERBLOKIR. Unit F7 membutuhkan ISO baru untuk bukti VM.
+Yang tidak hilang: ISO unit F6 (4.184.064 B, `6AF6D9F5...`) sudah dibangun
+sebelum kejadian dan tersimpan dua salinan byte-identik, jadi semua bukti F6
+tetap dapat direproduksi dan sesi QEMU berikutnya masih bisa memakai berkas itu.
+Aturan proses baru untuk saya: periksa isi `target/` sebelum membersihkannya,
+dan pakai pembersihan selektif alih-alih `cargo clean`.
+
+8. DOKUMEN DAN GOVERNANCE YANG SINKRON
+--------------------------------------
+- docs/PANDUAN/REFERENSI-PERINTAH.md : pasal `rename` (sintaks, empat penolakan,
+  subtree, ruang kerja, alias `mv`, bukan-panduan, bukan-pindah) + roster
+  keluaran + pembacaan registry dari konstanta (96 baris berubah).
+- docs/PANDUAN/MULAI-CEPAT.md Pasal 4: satu baris `rename note.txt catatan.txt`
+  pada turunan sesi dan janji yang bisa dibaca operator.
+- docs/ROADMAP/PETA-KANONIK.md : registry 12 -> 13, roster 39 -> 48, Pasal 2B
+  tentang rename dan pergeseran subtree/ruang kerja (28 baris berubah).
+- docs/RND/ASL-V1.0.2-E8-AKAR-PENYEBAB-DAN-STATUS.md : Bagian 3.2 menambah dua
+  baris temuan (fallback `Unknown command` berbahasa Inggris yang masih muncul
+  di layar, dan sisip byte asing satu-kali dengan angka probe), butir 5
+  "yang belum selesai" mencatat registry 13 + kedua sesi bukti.
+- docs/RND/ASL-V1.0.2-E8-LAPORAN-PENUTUPAN.md Bagian 6: pengulangan jendela E8
+  pasca-F6 dinyatakan TETAP TERBUKA, karena penyesuaian
+  `scripts/e8_adversarial_run.ps1` ditunda ke R2 oleh keputusan pemilik.
+- docs/ROADMAP/ACCOUNTABILITY_FAULT_LOG.json : entri ke-48 CLOSED (laporan-diri
+  metode + kekeliruan checker + glif CJK + cargo clean), ke-49 OPEN (galang
+  masukan), ke-50 OPEN (perkakas ISO). Log append-only: 47 -> 50 entri, naskah
+  lama tidak diedit, CJK = 0, konvensi CRLF dipertahankan.
+- docs/ROADMAP/HANDOFF_STATE.json : kunci baru `v1_0_2_r1_f6_state` +
+  `next_immediate_step` + `timestamp` (satu kunci baru di ujung, konvensi lama).
+- Higiene bukti unit F5 (ikut pada commit ini): keluaran konsol alat atas
+  kedua sesi pemandu disalin apa adanya menjadi artefak baru
+  Analysis/reports/f5_pemandu_harness_vonis_2026-10-22_08-13-46.txt dan
+  ..._08-20-02.txt, lalu dua nomor itu dikutip pada
+  Analysis/reports/f5_pemandu_uji_2026-10-22.txt - angka 31 periksa dan 28
+  periksa kini punya berkas sumber, bukan hanya ingatan sesi.
+- Utang ekstrak hosted CI G8 atas tip F5 `87cf8fd` DITUTUP pada unit ini:
+  Analysis/reports/ci_hosted_39749060881_2026-10-22.log (push) dan
+  ci_hosted_39749065750_2026-10-22.log (pull_request) - masing-masing
+  232 lulus / 0 gagal pada 30 suite, 13 Compiling, 0 warning 0 error.
+  Audit utang sebelum commit: Analysis/reports/f6_audit-utang-ekstrak_2026-10-22.txt
+  (kedua run itu masih tertulis BELUM - aturan G8: run milik HEAD ditutup pada
+  commit berikutnya; satu hash commit ini baru dirujuk di commit BERIKUTNYA).
+
+9. BATAS JUJUR
+--------------
+- VERIFIED-ON-HARDWARE TETAP 0: semua angka di atas berasal dari QEMU pada
+  mesin kerja, bukan dari perangkat keras target.
+- Klaim layar adalah DELTA PIKSEL terukur dari `screendump`, bukan pembacaan
+  teks gambar; tidak ada tangkapan layar yang dikutip sebagai bukti.
+- Janji misi "boot pada -m 3M" TETAP MERAH (KEPUTUSAN 2 = deviasi tercatat).
+- Pengulangan jendela E8 pada tree F6 BELUM dijalankan dan tidak dinyatakan
+  lulus; alasannya alat, dan penyesuaian alat itu ditunda ke R2 oleh pemilik.
+- Temuan byte asing (Bagian 6) dan hilangnya perkakas bootloader (Bagian 7)
+  dilaporkan sebagai OPEN, bukan ditutup dengan asumsi.
+- F6 tidak mengubah parser arity, registry perintah lain, maupun batas
+  8192 B per slot berkas; satu-sumber `MAX_ARG_LEN = 64` tetap dan kini
+  dijaga juga untuk posisi argumen kedua.
+- `scripts/ci_local.ps1` tidak dijalankan (menimpa artefak bukti ter-commit);
+  `scripts/g9_final_p8_run.ps1` dan `CHECKLIST_STATE.json` tidak disentuh;
+  20 artefak `Analysis/reports/g9_final_p8_*` tanggal 2026-10-21 dibiarkan
+  apa adanya dan tetap untracked.
+- Berkas kerja (logs/*.py, logs/*.txt, logs/*.ppm, logs/*.iso,
+  logs/ci_raw_*.txt) tidak di-commit dan dibersihkan pada higiene unit.
+
+
+LAMPIRAN A - VONIS MESIN SESI RENAME (dihasilkan alat, tidak disunting)
+-----------------------------------------------------------------------
+boot sampai prompt
+buat /log                                  LULUS  Direktori dibuat: /log (0 entri)
+masuk /log                                 LULUS  Ruang kerja: /log
+tulis a.txt                                LULUS  Tertulis 4 byte di /log/a.txt (berkas baru)
+rename berkas + byte                       LULUS  Berkas diganti nama: /log/a.txt -> /log/b.txt (4 byte tetap ters
+ruang kerja tidak bergerak                 LULUS  Ruang kerja: /log
+isi lewat nama baru                        LULUS  Isi /log/b.txt (4 byte):
+isi tetap halo                             LULUS  halo
+galat arity rename                         LULUS  Kesalahan: jumlah argumen tidak sesuai - Sintaks: rename <lama> 
+tidak masuk mode berpanduan                LULUS
+nama tujuan identik                        LULUS  Kesalahan: nama tujuan sama dengan nama sumber - tidak ada yang 
+nama tujuan berupa path                    LULUS  Kesalahan: nama tujuan rename tidak boleh memuat garis miring - 
+sumber utuh sesudah tolak path             LULUS  Isi /log/b.txt (4 byte):
+sumber tidak ditemukan                     LULUS  Kesalahan: /log/tidakada.txt tidak ditemukan
+nama tujuan terpotong ditolak              LULUS  ... - argumen melebihi batas 64 byte, perintah tidak dijalankan
+sumber utuh sesudah tolak potongan         LULUS  Isi /log/b.txt (4 byte):
+buat /log/bulan                            LULUS  Direktori dibuat: /log/bulan (0 entri)
+menimpa nama dilarang                      LULUS  Kesalahan: /log/bulan sudah ada - sumber tidak diubah
+sumber utuh sesudah tolak timpa            LULUS  Isi /log/b.txt (4 byte):
+masuk /log/bulan                           LULUS  Ruang kerja: /log/bulan
+tulis turunan                              LULUS  Tertulis 3 byte di /log/bulan/t.txt (berkas baru)
+buat cucu                                  LULUS  Direktori dibuat: /log/bulan/dalam (0 entri)
+kembali ke /log                            LULUS  Ruang kerja: /log
+rename direktori berisi                    LULUS  Direktori diganti nama: /log/bulan -> /log/catatan (2 entri subt
+path turunan baru                          LULUS  Ruang kerja: /log/catatan
+isi turunan terbaca                        LULUS  Isi /log/catatan/t.txt (3 byte):
+rename sambil berdiri di dalamnya          LULUS  Direktori diganti nama: /log/catatan -> /log/katalog (2 entri su
+ruang kerja diumumkan ulang                LULUS  Ruang kerja: /log/katalog
+prompt ikut bergeser                       LULUS  ASL-KERNEL /log/katalog>_
+delete-folder tetap butuh kosong           LULUS  Kesalahan: /log/katalog direktori masih berisi
+layar sebelum/sesudah rename subtree: baris glif 612 -> 628, 172040 piksel beda
+alias mv                                   LULUS  Berkas diganti nama: /log/katalog/t.txt -> /log/katalog/q.txt (3
+isi lewat nama alias                       LULUS  Isi /log/katalog/q.txt (3 byte):
+akar ditolak                               LULUS  Kesalahan: objek akar tidak dapat diganti nama
+status menyebut tiga belas perintah        LULUS  Perintah kanonik: 13
+help memuat sintaks rename                 LULUS  rename <lama> <baru>
+beres cucu                                 LULUS  Direktori dihapus: /log/katalog/dalam (0 entri)
+beres q.txt                                LULUS  Berkas dihapus: /log/katalog/q.txt (3 byte dibebaskan)
+kembali ke /log                            LULUS  Ruang kerja: /log
+beres katalog                              LULUS  Direktori dihapus: /log/katalog (0 entri)
+beres b.txt                                LULUS  Berkas dihapus: /log/b.txt (4 byte dibebaskan)
+kembali ke akar                            LULUS  Ruang kerja: /
+beres /log                                 LULUS  Direktori dihapus: /log (0 entri)
+RAMDISK kembali satu entri                 LULUS  Entri hidup     : 1
+serial: 6293 byte -> Analysis\reports\f6_rename_serial_2026-10-22_10-02-18.log
+
+=== RINGKASAN ===
+LULUS  buat /log  (Direktori dibuat: /log (0 entri))
+LULUS  masuk /log  (Ruang kerja: /log)
+LULUS  tulis a.txt  (Tertulis 4 byte di /log/a.txt (berkas baru))
+LULUS  rename berkas + byte  (Berkas diganti nama: /log/a.txt -> /log/b.txt (4 byte tetap tersimpan))
+LULUS  ruang kerja tidak bergerak  (Ruang kerja: /log)
+LULUS  isi lewat nama baru  (Isi /log/b.txt (4 byte):)
+LULUS  isi tetap halo  (halo)
+LULUS  galat arity rename  (Kesalahan: jumlah argumen tidak sesuai - Sintaks: rename <lama> <baru>)
+LULUS  rename membuka mode berpanduan  (tidak ada label panduan)
+LULUS  nama tujuan identik  (Kesalahan: nama tujuan sama dengan nama sumber - tidak ada yang diganti)
+LULUS  nama tujuan berupa path  (Kesalahan: nama tujuan rename tidak boleh memuat garis miring - perintah ini)
+LULUS  sumber utuh sesudah tolak path  (Isi /log/b.txt (4 byte):)
+LULUS  sumber tidak ditemukan  (Kesalahan: /log/tidakada.txt tidak ditemukan)
+LULUS  nama tujuan terpotong ditolak  (... - argumen melebihi batas 64 byte, perintah tidak dijalankan)
+LULUS  sumber utuh sesudah tolak potongan  (Isi /log/b.txt (4 byte):)
+LULUS  buat /log/bulan  (Direktori dibuat: /log/bulan (0 entri))
+LULUS  menimpa nama dilarang  (Kesalahan: /log/bulan sudah ada - sumber tidak diubah)
+LULUS  sumber utuh sesudah tolak timpa  (Isi /log/b.txt (4 byte):)
+LULUS  masuk /log/bulan  (Ruang kerja: /log/bulan)
+LULUS  tulis turunan  (Tertulis 3 byte di /log/bulan/t.txt (berkas baru))
+LULUS  buat cucu  (Direktori dibuat: /log/bulan/dalam (0 entri))
+LULUS  kembali ke /log  (Ruang kerja: /log)
+LULUS  rename direktori berisi  (Direktori diganti nama: /log/bulan -> /log/catatan (2 entri subtree ikut ber)
+LULUS  path turunan baru  (Ruang kerja: /log/catatan)
+LULUS  isi turunan terbaca  (Isi /log/catatan/t.txt (3 byte):)
+LULUS  rename sambil berdiri di dalamnya  (Direktori diganti nama: /log/catatan -> /log/katalog (2 entri subtree ikut b)
+LULUS  ruang kerja diumumkan ulang  (Ruang kerja: /log/katalog)
+LULUS  prompt ikut bergeser  (ASL-KERNEL /log/katalog>_)
+LULUS  delete-folder tetap butuh kosong  (Kesalahan: /log/katalog direktori masih berisi)
+LULUS  rename subtree mengubah layar (piksel terukur)  (piksel beda 172040 vs bingkai kedipan 8 px; baris 612->628)
+LULUS  alias mv  (Berkas diganti nama: /log/katalog/t.txt -> /log/katalog/q.txt (3 byte tetap )
+LULUS  isi lewat nama alias  (Isi /log/katalog/q.txt (3 byte):)
+LULUS  akar ditolak  (Kesalahan: objek akar tidak dapat diganti nama)
+LULUS  status menyebut tiga belas perintah  (Perintah kanonik: 13)
+LULUS  help memuat sintaks rename  (rename <lama> <baru>)
+LULUS  beres cucu  (Direktori dihapus: /log/katalog/dalam (0 entri))
+LULUS  beres q.txt  (Berkas dihapus: /log/katalog/q.txt (3 byte dibebaskan))
+LULUS  kembali ke /log  (Ruang kerja: /log)
+LULUS  beres katalog  (Direktori dihapus: /log/katalog (0 entri))
+LULUS  beres b.txt  (Berkas dihapus: /log/b.txt (4 byte dibebaskan))
+LULUS  kembali ke akar  (Ruang kerja: /)
+LULUS  beres /log  (Direktori dihapus: /log (0 entri))
+LULUS  RAMDISK kembali satu entri  (Entri hidup     : 1)
+TOTAL 43 LULUS / 43 periksa
+
+
+LAMPIRAN B - VONIS MESIN SESI POSISI KURSOR (dihasilkan alat, tidak disunting)
+------------------------------------------------------------------------------
+framebuffer hidup dengan -display none               LULUS  baris glif 157 dari 1024x768
+  ukur idle-akar        sel=(120, 302) toggle=3 piksel=[8, 8, 8] konflik=0
+idle: ada sel yang berkedip minimal dua kali         LULUS  toggle 3 konflik 0
+  ukur ketik-11         sel=(208, 302) toggle=3 piksel=[8, 8, 8] konflik=0
+kalibrasi: geser 11 karakter habis terbagi 11        LULUS  geser 88 px
+kalibrasi: lebar sel satu glif (8-16 px)             LULUS  cw=8 px, x0=0
+duga: sel sesudah 11 ketikan ada di kolom 26         LULUS  ukur (208,302) kolom 26 -> prediksi x=208 | cw=8 x0=0 | konflik 
+galat arity create-folder                            LULUS  Kesalahan: jumlah argumen tidak sesuai - Sintaks: create-folder 
+label Nama folder baru                               LULUS  Nama folder baru: 
+serial: enam ketikan pertama menempel pada label     LULUS  harap b'pandua' dapat b'pandua'
+  ukur label-6ketik     sel=(192, 334) toggle=3 piksel=[8, 8, 8] konflik=0
+posisi: label + 6 karakter                           LULUS  ukur (192,334) kolom 24 -> prediksi x=192 | cw=8 x0=0 | konflik 
+serial: gema backspace `BS spasi BS`                 LULUS  harap b'\x08 \x08' dapat b'\x08 \x08'
+  ukur hapus-1          sel=(184, 334) toggle=3 piksel=[8, 8, 8] konflik=0
+posisi: sesudah backspace sel mundur satu sel        LULUS  ukur (184,334) kolom 23 -> prediksi x=184 | cw=8 x0=0 | konflik 
+create-folder panduan selesai                        LULUS  Direktori dibuat: /panduan (0 entri)
+  ukur sesudah-submit   sel=(120, 366) toggle=4 piksel=[8, 8, 8, 8] konflik=0
+sesudah submit: sel tidak tertinggal di baris terkirim LULUS  baris label (192, 334) -> baris kini (120, 366)
+sesudah submit: baris berpindah DAN kolom kembali ke ujung prompt LULUS  x=120 prediksi=120
+sesudah submit: tidak ada sel lain yang ikut berkedip LULUS  konflik 0
+masuk /panduan                                       LULUS  Ruang kerja: /panduan
+  ukur prompt-panduan   sel=(176, 398) toggle=4 piksel=[8, 8, 8, 8] konflik=0
+posisi: prompt berposisi /panduan                    LULUS  ukur (176,398) kolom 22 -> prediksi x=176 | cw=8 x0=0 | konflik 
+galat arity write-file                               LULUS  Kesalahan: jumlah argumen tidak sesuai - Sintaks: write-file <na
+label Nama berkas                                    LULUS  Nama berkas: 
+  ukur label-berkas     sel=(104, 430) toggle=4 piksel=[8, 8, 8, 8] konflik=0
+posisi: ujung label Nama berkas                      LULUS  ukur (104,430) kolom 13 -> prediksi x=104 | cw=8 x0=0 | konflik 
+serial: nama berkas menempel pada label              LULUS  harap b'catat.txt' dapat b'catat.txt'
+serial: satu CRLF antara nama terkirim dan label isi LULUS  harap b'\r\nIsi catat.txt (baris 1): ' dapat b'\r\nIsi catat.txt
+  ukur label-isi-1      sel=(200, 446) toggle=3 piksel=[8, 8, 8] konflik=0
+posisi: ujung label isi baris 1                      LULUS  ukur (200,446) kolom 25 -> prediksi x=200 | cw=8 x0=0 | konflik 
+serial: isi menempel pada label isi                  LULUS  harap b'satu dua tiga' dapat b'satu dua tiga'
+Isi catat.txt (baris 2):                             LULUS  Isi catat.txt (baris 2): 
+  ukur label-isi-2      sel=(200, 462) toggle=3 piksel=[8, 8, 8] konflik=0
+posisi: ujung label isi baris 2                      LULUS  ukur (200,462) kolom 25 -> prediksi x=200 | cw=8 x0=0 | konflik 
+tulis selesai 13 byte                                LULUS  Tertulis 13 byte di /panduan/catat.txt (berkas baru)
+  ukur kembali-panduan  sel=(176, 494) toggle=3 piksel=[8, 8, 8] konflik=0
+sesudah submit isi: sel di ujung prompt /panduan     LULUS  ukur (176,494) kolom 22 -> prediksi x=176 | cw=8 x0=0 | konflik 
+  ukur setelah-clear    sel=(176, 30) toggle=4 piksel=[8, 8, 8, 8] konflik=0
+clear menyisakan layar hampir kosong                 LULUS  baris glif 13
+posisi sesudah clear: ujung prompt baris pertama     LULUS  ukur (176,30) kolom 22 -> prediksi x=176 | cw=8 x0=0 | konflik 0
+posisi sesudah clear: baris ikut naik ke atas layar  LULUS  y=30
+  ukur rename-ketik     sel=(376, 30) toggle=4 piksel=[8, 8, 8, 8] konflik=0
+posisi: tengah baris rename (25 ketikan)             LULUS  ukur (376,30) kolom 47 -> prediksi x=376 | cw=8 x0=0 | konflik 0
+rename berkas 13 byte                                LULUS  Berkas diganti nama: /panduan/catat.txt -> /panduan/catatan.txt 
+  ukur rename-selesai   sel=(176, 62) toggle=4 piksel=[8, 8, 8, 8] konflik=0
+sesudah rename: sel kembali ke ujung prompt          LULUS  ukur (176,62) kolom 22 -> prediksi x=176 | cw=8 x0=0 | konflik 0
+buat /panduan/bulan                                  LULUS  Direktori dibuat: /panduan/bulan (0 entri)
+masuk /panduan/bulan                                 LULUS  Ruang kerja: /panduan/bulan
+  ukur dalam-bulan      sel=(240, 126) toggle=4 piksel=[8, 8, 8, 8] konflik=0
+posisi: dua ketikan di dalam /panduan/bulan          LULUS  ukur (240,126) kolom 30 -> prediksi x=240 | cw=8 x0=0 | konflik 
+rename sambil berdiri di dalamnya                    LULUS  Direktori diganti nama: /panduan/bulan -> /panduan/purnama (0 en
+ruang kerja diumumkan ulang                          LULUS  Ruang kerja: /panduan/purnama
+prompt ikut bergeser                                 LULUS  ASL-KERNEL /panduan/purnama>_
+  ukur sesudah-rename-cwd sel=(240, 190) toggle=3 piksel=[8, 8, 8] konflik=0
+sesudah rename cwd: sel di ujung prompt path baru    LULUS  ukur (240,190) kolom 30 -> prediksi x=240 | cw=8 x0=0 | konflik 
+beres catatan.txt                                    LULUS  Berkas dihapus: /panduan/catatan.txt (13 byte dibebaskan)
+naik ke /panduan                                     LULUS  Ruang kerja: /panduan
+beres purnama                                        LULUS  Direktori dihapus: /panduan/purnama (0 entri)
+naik ke akar                                         LULUS  Ruang kerja: /
+beres panduan                                        LULUS  Direktori dihapus: /panduan (0 entri)
+RAMDISK kembali satu entri                           LULUS  Entri hidup     : 1
+serial: 4145 byte -> Analysis\reports\f5f6_kursor_posisi_serial_2026-10-22_10-13-04.log
+keadaan terukur: 15 (lihat ringkasan)
+
+=== RINGKASAN ===
+LULUS  framebuffer hidup dengan -display none  (baris glif 157 dari 1024x768)
+LULUS  idle: ada sel yang berkedip minimal dua kali  (toggle 3 konflik 0)
+LULUS  kalibrasi: geser 11 karakter habis terbagi 11  (geser 88 px)
+LULUS  kalibrasi: lebar sel satu glif (8-16 px)  (cw=8 px, x0=0)
+LULUS  duga: sel sesudah 11 ketikan ada di kolom 26  (ukur (208,302) kolom 26 -> prediksi x=208 | cw=8 x0=0 | konflik 0)
+LULUS  galat arity create-folder  (Kesalahan: jumlah argumen tidak sesuai - Sintaks: create-folder )
+LULUS  label Nama folder baru  (Nama folder baru: )
+LULUS  serial: enam ketikan pertama menempel pada label  (harap b'pandua' dapat b'pandua')
+LULUS  posisi: label + 6 karakter  (ukur (192,334) kolom 24 -> prediksi x=192 | cw=8 x0=0 | konflik 0)
+LULUS  serial: gema backspace `BS spasi BS`  (harap b'\x08 \x08' dapat b'\x08 \x08')
+LULUS  posisi: sesudah backspace sel mundur satu sel  (ukur (184,334) kolom 23 -> prediksi x=184 | cw=8 x0=0 | konflik 0)
+LULUS  create-folder panduan selesai  (Direktori dibuat: /panduan (0 entri))
+LULUS  sesudah submit: sel tidak tertinggal di baris terkirim  (baris label (192, 334) -> baris kini (120, 366))
+LULUS  sesudah submit: baris berpindah DAN kolom kembali ke ujung prompt  (x=120 prediksi=120)
+LULUS  sesudah submit: tidak ada sel lain yang ikut berkedip  (konflik 0)
+LULUS  masuk /panduan  (Ruang kerja: /panduan)
+LULUS  posisi: prompt berposisi /panduan  (ukur (176,398) kolom 22 -> prediksi x=176 | cw=8 x0=0 | konflik 0)
+LULUS  galat arity write-file  (Kesalahan: jumlah argumen tidak sesuai - Sintaks: write-file <na)
+LULUS  label Nama berkas  (Nama berkas: )
+LULUS  posisi: ujung label Nama berkas  (ukur (104,430) kolom 13 -> prediksi x=104 | cw=8 x0=0 | konflik 0)
+LULUS  serial: nama berkas menempel pada label  (harap b'catat.txt' dapat b'catat.txt')
+LULUS  serial: satu CRLF antara nama terkirim dan label isi  (harap b'\r\nIsi catat.txt (baris 1): ' dapat b'\r\nIsi catat.txt (bari)
+LULUS  posisi: ujung label isi baris 1  (ukur (200,446) kolom 25 -> prediksi x=200 | cw=8 x0=0 | konflik 0)
+LULUS  serial: isi menempel pada label isi  (harap b'satu dua tiga' dapat b'satu dua tiga')
+LULUS  Isi catat.txt (baris 2):   (Isi catat.txt (baris 2): )
+LULUS  posisi: ujung label isi baris 2  (ukur (200,462) kolom 25 -> prediksi x=200 | cw=8 x0=0 | konflik 0)
+LULUS  tulis selesai 13 byte  (Tertulis 13 byte di /panduan/catat.txt (berkas baru))
+LULUS  sesudah submit isi: sel di ujung prompt /panduan  (ukur (176,494) kolom 22 -> prediksi x=176 | cw=8 x0=0 | konflik 0)
+LULUS  clear menyisakan layar hampir kosong  (baris glif 13)
+LULUS  posisi sesudah clear: ujung prompt baris pertama  (ukur (176,30) kolom 22 -> prediksi x=176 | cw=8 x0=0 | konflik 0)
+LULUS  posisi sesudah clear: baris ikut naik ke atas layar  (y=30)
+LULUS  posisi: tengah baris rename (25 ketikan)  (ukur (376,30) kolom 47 -> prediksi x=376 | cw=8 x0=0 | konflik 0)
+LULUS  rename berkas 13 byte  (Berkas diganti nama: /panduan/catat.txt -> /panduan/catatan.txt )
+LULUS  sesudah rename: sel kembali ke ujung prompt  (ukur (176,62) kolom 22 -> prediksi x=176 | cw=8 x0=0 | konflik 0)
+LULUS  buat /panduan/bulan  (Direktori dibuat: /panduan/bulan (0 entri))
+LULUS  masuk /panduan/bulan  (Ruang kerja: /panduan/bulan)
+LULUS  posisi: dua ketikan di dalam /panduan/bulan  (ukur (240,126) kolom 30 -> prediksi x=240 | cw=8 x0=0 | konflik 0)
+LULUS  rename sambil berdiri di dalamnya  (Direktori diganti nama: /panduan/bulan -> /panduan/purnama (0 en)
+LULUS  ruang kerja diumumkan ulang  (Ruang kerja: /panduan/purnama)
+LULUS  prompt ikut bergeser  (ASL-KERNEL /panduan/purnama>_)
+LULUS  sesudah rename cwd: sel di ujung prompt path baru  (ukur (240,190) kolom 30 -> prediksi x=240 | cw=8 x0=0 | konflik 0)
+LULUS  beres catatan.txt  (Berkas dihapus: /panduan/catatan.txt (13 byte dibebaskan))
+LULUS  naik ke /panduan  (Ruang kerja: /panduan)
+LULUS  beres purnama  (Direktori dihapus: /panduan/purnama (0 entri))
+LULUS  naik ke akar  (Ruang kerja: /)
+LULUS  beres panduan  (Direktori dihapus: /panduan (0 entri))
+LULUS  RAMDISK kembali satu entri  (Entri hidup     : 1)
+TOTAL 47 LULUS / 47 periksa

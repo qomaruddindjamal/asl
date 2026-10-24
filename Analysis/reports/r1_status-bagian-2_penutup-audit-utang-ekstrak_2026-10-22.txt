@@ -1,0 +1,85 @@
+AUDIT UTANG EKSTRAK HOSTED CI - UNIT PENUTUP BAGIAN 2 - DIUKUR 2026-10-22 (UTC)
+================================================================================
+Alat: scripts/r1_debt_audit.py dijalankan tanpa perubahan dari akar repo.
+Keluaran di bawah disalin apa adanya; angka tidak ditulis sebagai harapan.
+Rentang waktu pengukuran: timestamp UTC dari jam mesin yang sama dengan
+gerbang host pada unit ini.
+
+DUA BARIS BELUM PADA TABEL DI BAWAH (70431dd / 39844995227 push dan
+70431dd / 39845003304 pull_request) adalah pasangan yang ditutup oleh commit
+unit penutup ini: kedua berkas ekstrak ter-commit bersama berkas ini.
+Pengukuran dilakukan SEBELUM commit sehingga BELUM adalah keadaan saat itu.
+
+AUDIT UTANG EKSTRAK HOSTED CI - cabang feature/v1.0.2-r1
+HEAD saat audit dijalankan: 70431dd (run milik HEAD belum ter-commit, memang begitu aturan G8)
+SUMBER: `git rev-list main..HEAD`, `gh api .../actions/runs?branch=...`, `git ls-tree -r HEAD Analysis/reports`.
+SUDUT BACA: baris BELUM di bawah adalah utang yang ditutup commit BERIKUTNYA, bukan kegagalan.
+
+commit   run-id       event  koncl  ekstrak-di-repo
+007d3dd  TIDAK ADA RUN -      -      -
+54abf73  TIDAK ADA RUN -      -      -
+4e865c0  TIDAK ADA RUN -      -      -
+17570f6  39596587533  push   success ADA
+17570f6  39596659449  pull_request success ADA
+a141640  39597097768  push   success ADA
+a141640  39597103437  pull_request success ADA
+223e7f6  TIDAK ADA RUN -      -      -
+6bbd77d  TIDAK ADA RUN -      -      -
+939cc95  TIDAK ADA RUN -      -      -
+97d1834  39624903214  push   success ADA
+97d1834  39624911155  pull_request success ADA
+d6c5b12  TIDAK ADA RUN -      -      -
+093a7d6  TIDAK ADA RUN -      -      -
+b9acd5b  TIDAK ADA RUN -      -      -
+ca582fa  TIDAK ADA RUN -      -      -
+08ddd71  39632688905  push   success ADA
+08ddd71  39632700077  pull_request success ADA
+53e226f  39634616449  push   success ADA
+53e226f  39634624636  pull_request success ADA
+1e2035f  39635248616  push   success ADA
+1e2035f  39635257738  pull_request success ADA
+8f56625  39635662050  push   success ADA
+8f56625  39635669557  pull_request success ADA
+12adcf1  39637458058  push   success ADA
+12adcf1  39637464118  pull_request success ADA
+1f3e3c2  39639275684  push   success ADA
+1f3e3c2  39639284164  pull_request success ADA
+4de1dfb  39643487647  push   success ADA
+4de1dfb  39643495816  pull_request success ADA
+b17a175  39644006778  push   success ADA
+b17a175  39644011859  pull_request success ADA
+4c3e0d2  39697869147  push   success ADA
+4c3e0d2  39697876437  pull_request success ADA
+d8c002a  39698870788  push   success ADA
+d8c002a  39698875695  pull_request success ADA
+5812c77  39703399191  push   success ADA
+5812c77  39703405130  pull_request success ADA
+c94f8b0  39704463256  push   success ADA
+c94f8b0  39704468088  pull_request success ADA
+c3a9f2e  39710147801  push   success ADA
+c3a9f2e  39710152877  pull_request success ADA
+c3a8343  39714508881  push   success ADA
+c3a8343  39714514694  pull_request success ADA
+e60f0a7  39716468849  push   success ADA
+e60f0a7  39716474359  pull_request success ADA
+a44fbaf  39732124375  push   success ADA
+a44fbaf  39732130192  pull_request success ADA
+87cf8fd  39749060881  push   success ADA
+87cf8fd  39749065750  pull_request success ADA
+791a88d  39764470372  push   success ADA
+791a88d  39764476332  pull_request success ADA
+235d44b  39764997805  push   success ADA
+235d44b  39765004319  pull_request success ADA
+6f2af6e  39787427791  push   success ADA
+6f2af6e  39787438189  pull_request success ADA
+9750724  39788285251  push   success ADA
+9750724  39788292764  pull_request success ADA
+38b3bcc  39844518151  push   success ADA
+38b3bcc  39844527147  pull_request success ADA
+70431dd  39844995227  push   success BELUM
+70431dd  39845003304  pull_request success BELUM
+
+total commit cabang: 36
+commit tanpa run sendiri: 007d3dd, 54abf73, 4e865c0, 223e7f6, 6bbd77d, 939cc95, d6c5b12, 093a7d6, b9acd5b, ca582fa (10)
+utang terbuka (run ada, ekstrak belum di repo): [('70431dd', 39844995227, 'push'), ('70431dd', 39845003304, 'pull_request')]
+ekstrak ter-commit total: 99

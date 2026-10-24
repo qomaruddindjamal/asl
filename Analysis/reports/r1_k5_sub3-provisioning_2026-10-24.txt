@@ -1,0 +1,178 @@
+================================================================================
+BUKTI K-5 SUB-KOMIT 3 - LEDGER PROVISIONING VERSI-DIKUNCI + ALAT PERIKSA
+================================================================================
+Unit   : cabang feature/v1.0.2-r1, di atas tip 76fe9a1
+Tugas  : perintah pemilik K-5 butir 'Disarankan tambah: skrip/checklist provisioning
+         versi-dikunci + checksum supaya perkakas bisa dibangun ulang dari nol -
+         menutup akar penyebab #50/#54 permanen'.
+Kelas  : VERIFIED-ON-HOST. Tidak ada bagian VM yang berjalan; VERIFIED-ON-HARDWARE = 0.
+Nol    : berkas .rs disentuh -> nol irisan fmt baru, nol irisan clippy baru (134 warisan).
+Catat  : semua nilai di bawah adalah keluaran alat yang tertangkap di logs/ (scratch,
+         gitignored) dan dikutip VERBATIM di artefak ini. Keluaran alat yang memuat CR
+         dinormalisasi ke CRLF seragam; tidak ada isi yang diubah selain penyusunan baris.
+
+--------------------------------------------------------------------------------
+BAGIAN 1 - TIGA BERKAS BARU (diukur saat artefak ini ditulis)
+--------------------------------------------------------------------------------
+   LIMINE-PIN.json                                   9462 B  barisLF=212 CR=0 CRLF=0 nonASCII=0 CJK=0 ctrl=0 sha256=696cffb09e2116e5...
+   LIMINE-PROVISIONING.md                            6746 B  barisLF=119 CR=0 CRLF=0 nonASCII=0 CJK=0 ctrl=0 sha256=e1c8cda64592c4f2...
+   check_limine.ps1                                  5214 B  barisLF=119 CR=0 CRLF=0 nonASCII=0 CJK=0 ctrl=0 sha256=06a1b9a843febb71...
+
+  JSON round-trip (json.dumps(indent=2, ensure_ascii=False)+newline == byte berkas):
+    $ python -c '...json round-trip...'  (exit 0)
+    identik= True kunci_top= 21
+  PERINGATAN LINE ENDING (terukur, bukan asumsi): `git config core.autocrlf` = 'true'
+  -> hash di BAGIAN 1 adalah hash POHON KERJA saat artefak ini ditulis (berkas ditulis LF).
+     Blob yang tersimpan di repository dinormalisasi Git; hasil `git checkout` di mesin lain
+     bisa berbeda byte-nya. Karena itu hash ini dipakai sebagai catatan waktu-tulis, BUKAN
+     sebagai rujukan byte; rujukan byte yang sah hanyalah payload boot di BAGIAN 5 ledger
+     (rujukan_payload_v8_7_0_selamat) yang memang artefak binari, bukan teks.
+
+--------------------------------------------------------------------------------
+BAGIAN 2 - ALAT PERIKSA DIBACA-SAJA, HASILNYA FAIL-CLOSED
+--------------------------------------------------------------------------------
+Perintah: powershell -NoProfile -File C:\asl\scripts\check_limine.ps1
+Skrip tidak menulis apa pun (hanya Test-Path/Get-Item/Get-FileHash/--version pada
+artefak yang ada). Alat dijalankan TIGA kali di unit ini; tiap jalan exit 1.
+   daftar sebab: jalan1 6 butir, jalan2 6 butir, jalan3 6 butir; jalan1==jalan2: True, jalan2==jalan3: True
+   selisih baris keluaran jalan2 vs jalan3 (bukan-kosong, 20 vs 20 baris): posisi [1] - hanya baris 'Waktu ledger ditulis' yang berubah karena ledger ditulis ulang di antaranya.
+
+[jalan 1] 2026-10-24T08:28:19Z
+
+[jalan 2] exit=1 start=2026-10-24T08:32:41Z end=2026-10-24T08:32:41Z
+
+[jalan 3 - YANG DIKOMIT, sepasang dengan ledger di sub-komit ini] start=2026-10-24T08:40:09Z end=2026-10-24T08:40:10Z exit=1
+== LEDGER: pinned_version=8.7.0 install_root=C:\asl\tools\limine\v8.7.0
+== Waktu ledger ditulis (UTC): 2026-10-24T08:40:09Z
+
+-- 1. Utilitas host pada jalur pin
+   C:\asl\tools\limine\v8.7.0 : TIDAK ADA (direktori pin belum dibuat)
+
+-- 2. Payload pada jalur pin vs rujukan ledger (byte-identik)
+   BOOTX64.EFI          : TIDAK ADA di jalur pin (rujukan 249856 B, 51ca2b20ed14bbc6)...
+   limine-bios-cd.bin   : TIDAK ADA di jalur pin (rujukan 24576 B, a94c1cf610c67f13)...
+   limine-bios.sys      : TIDAK ADA di jalur pin (rujukan 216644 B, b94bd7ae8a7faf58)...
+   limine-uefi-cd.bin   : TIDAK ADA di jalur pin (rujukan 2949120 B, 0ea0aa408c464014)...
+
+-- 3. Staging ISO (target/iso_root/boot/limine)
+   C:\asl\asl-kernel\target\iso_root\boot\limine : TIDAK ADA - isi ulang setelah setiap cargo clean (akar fault log #50/#54)
+
+== RINGKASAN
+BELUM SIAP - 6 sebab:
+   - direktori pin tidak ada
+   - payload BOOTX64.EFI tidak ada
+   - payload limine-bios-cd.bin tidak ada
+   - payload limine-bios.sys tidak ada
+   - payload limine-uefi-cd.bin tidak ada
+   - staging ISO tidak ada
+Proses provisioning: docs/TOOLING/LIMINE-PROVISIONING.md bagian 5.
+
+  exit=1 = benar: alat menolak menyatakan 'SIAP' bila perkakas belum ada, sesuai
+  aturan fail-closed. Tidak ada ISO yang dibuat, tidak ada artefak lama yang ditimpa.
+
+--------------------------------------------------------------------------------
+BAGIAN 3 - FAKTA RILIS RESMI YANG MENGUBAH RENCANA (gh api, terukur)
+--------------------------------------------------------------------------------
+Rilis v8.7.0 (diterbitkan 2025-01-10T13:58:05Z), seluruh aset:
+   - ChangeLog
+   - limine-8.7.0.tar.bz2
+   - limine-8.7.0.tar.gz
+   - limine-8.7.0.tar.lz
+   - limine-8.7.0.tar.xz
+   - limine-8.7.0.tar.zst
+   aset ber-kata-kunci 'binary': NOL
+
+Sensus seluruh rilis yang terunduh untuk pemeriksaan:
+   rilis unik teriksa            = 408
+   rilis yang punya aset 'binary' = 8
+   tag v8.x terdaftar             = 8, yang punya binari = 0 (NOL)
+   rilis PALING TUA berbinari     = v12.6.1 (2026-08-24T21:43:46Z)
+   metode: gh api 'repos/limine-bootloader/limine/releases?per_page=100&page=N' (N=1..5), nama aset disaring kata 'binary'
+
+Konsekuensi: pin 'Limine v8.7.0 resmi' TIDAK BISA dipenuhi dengan mengunduh paket
+binari resmi - yang ada hanya tarball sumber. Ini dicatat, bukan dipaksakan.
+
+--------------------------------------------------------------------------------
+BAGIAN 4 - TANDA TANGAN BINARI v12.9.4 TIDAK DAPAT DIWERIFIKASI DI MESIN INI
+--------------------------------------------------------------------------------
+Perintah: gpg --verify limine-binary.zip.sig limine-binary.zip (di tools/limine/_inspeksi)
+gpg: Signature made Mon Oct 19 23:10:35 2026 SEAST
+gpg:                using RSA key 05D29860D0A0668AAEFB9D691F3C021BECA23821
+gpg: Can't check signature: No public key
+gpg_exit=2
+
+  Tidak ada kunci publik penanda yang diimpor. Efek samping yang dicatat: gpg membuat
+  ring kunci baru di C:\Users\Administrator\.gnupg. Tidak ada konfigurasi gpg lama yang diubah.
+  Berkas .sig dan zip HANYA diunduh untuk pengukuran; tidak dipasang ke jalur pin.
+
+--------------------------------------------------------------------------------
+BAGIAN 5 - LEDGER: KUNCI DAN NILAI KUNCI (dikutip dari LIMINE-PIN.json)
+--------------------------------------------------------------------------------
+Kunci top-level (21):
+   schema_version, tool, perintah_pemilik, pinned_version, install_root, host_utility_expected_path
+   host_utility_expected_version_string, ledger_ditulis_utc, hash_utilitas_host_yang_dicatat
+   status, dipakai_oleh, payload_panggung_bangun, payload_panggung_bangun_ada_saat_ukur
+   catatan_panggung, aset_resmi_v8_7_0, ketersediaan_paket_binari_resmi, kandidat_v12_9_4
+   rujukan_payload_v8_7_0_selamat, perbandingan_payload
+   perkakas_yang_diperlukan_untuk_membangun_dari_sumber, pilihan_untuk_pemilik
+
+   pinned_version                           = "8.7.0"
+   install_root                             = "C:\\asl\\tools\\limine\\v8.7.0"
+   host_utility_expected_path               = "C:\\asl\\tools\\limine\\v8.7.0\\limine.exe"
+   host_utility_expected_version_string     = "8.7.0"
+   ledger_ditulis_utc                       = "2026-10-24T08:40:09Z"
+   status                                   = "TERBLOKIR - tidak ada aset binari resmi untuk v8.7.0; pemenuhan pin menunggu keputusan pemilik (lihat pilihan)"
+   payload_panggung_bangun                  = "C:\\asl\\asl-kernel\\target\\iso_root\\boot\\limine"
+   payload_panggung_bangun_ada_saat_ukur    = false
+   hash_utilitas_host_yang_dicatat = {"catatan": "Diisi SEBELUM artefak dipakai (syarat pemilik K-5). null = belum dicatat karena perkakas pada versi pin belum ada.", "sha256": null, "bytes": null, "diukur_utc": null}
+
+Perbandingan payload (rujukan v8.7.0 selamat vs kandidat v12.9.4), dari ledger:
+   BOOTX64.EFI          rujukan   249856 B  kandidat   385024 B  delta  +135168 B  sha256_sama=false
+   limine-bios-cd.bin   rujukan    24576 B  kandidat    26624 B  delta    +2048 B  sha256_sama=false
+   limine-bios.sys      rujukan   216644 B  kandidat   339788 B  delta  +123144 B  sha256_sama=false
+   limine-uefi-cd.bin   rujukan  2949120 B  kandidat  3145728 B  delta  +196608 B  sha256_sama=false
+
+Pilihan untuk pemilik (verbatim ledger):
+   [A] Pindahkan pin ke v12.9.4 (paket binari resmi, termasuk limine.exe Windows)
+        Keempat payload BEDA hash dan BEDA ukuran terhadap salinan v8.7.0 yang selamat (lihat perbandingan_payload), jadi ISO dan ukurannya berubah dan semua dokumen yang menyebut 8.7.0 perlu dikoreksi; bootloader versi baru berarti perilaku boot baru sehingga wajib jendela bukti VM.
+   [B] Bangun v8.7.0 dari tarball sumber resmi
+        Butuh perkakas yang terukur TIDAK ADA di mesin ini (kompilator C, make, clang+lld lintas arsitektur, atau distro WSL); pemilik memasang perkakasnya lebih dulu, lalu payload dapat dicocokkan byte-per-byte dengan salinan pemulihan.
+   [C] Pemilik memasang sendiri limine.exe v8.7.0 seperti sebelumnya
+        Jalur pin sudah siap (sub-komit 2); setelah berkas ada, scripts/check_limine.ps1 yang membandingkan terhadap ledger jadi langkah pembuka K-2. Catatan: tuliskan asal-usul berkas (URL rilis atau berkas lokal) karena repo tidak pernah melacak perkakas ini.
+
+--------------------------------------------------------------------------------
+BAGIAN 6 - YANG TIDAK DILAKUKAN UNIT INI
+--------------------------------------------------------------------------------
+  - Tidak memasang perkakas apa pun ke jalur pin (tools/limine/v8.7.0 masih TIDAK ADA,
+    terbukti oleh BAGIAN 2). Unduhan hanya masuk tools/limine/_inspeksi (gitignored).
+  - Tidak menjalankan gerbang host ulang; angka yang berlaku tetap hasil pengukuran
+    ulang di 4335e41: 30 suite, 262 lulus, 0 gagal, 19 baris warning; fmt irisan baru 0;
+    clippy irisan baru 0 dengan 134 warisan; ELF rilis 312.912 B sha256
+    fb4eeb31e26b1cf9a289e4c697e6cea8230cd83a1ad45424cd2312ee5eee5d59.
+  - Tidak menyentuh README.md dan tiga dokumen panduan yang masih menyebut jalur lama
+    (git grep di bawah), karena README adalah wilayah pemilik di main dan cabang R1
+    dipertahankan nol konflik.
+
+  $ git grep -n limine_v8_binary -- "*.md"  (exit 0, rujukan lama TETAP ADA, tidak dikoreksi tanpa perintah)
+    README.md:138:C:\asl\asl-kernel\target\limine_v8_binary\limine.exe bios-install C:\asl\asl-kernel\target\asl-core-kernel ...[dipotong pada 120 karakter; baris utuh ada di berkas yang disebut]
+    docs/CANONICAL/DEVELOPER_ONBOARDING.md:72:C:\asl\asl-kernel\target\limine_v8_binary\limine.exe bios-install C:\asl\asl-k ...[dipotong pada 120 karakter; baris utuh ada di berkas yang disebut]
+    docs/PANDUAN/MULAI-CEPAT.md:18:  `asl-kernel\target\limine_v8_binary\limine.exe`; bila berkas itu tidak ada,
+    docs/PANDUAN/REFERENSI-PERINTAH.md:495:  penguasaan ISO tidak dapat dijalankan karena `target/limine_v8_binary/limine.ex ...[dipotong pada 120 karakter; baris utuh ada di berkas yang disebut]
+    docs/RND/ASL-V1.0.2-E8-LAPORAN-PENUTUPAN.md:223:  (`target/limine_v8_binary/limine.exe` tidak ada di pohon kerja).
+    docs/RND/ASL-V1.0.2-R1-STATUS-BAGIAN-2.md:52:  `ls: cannot access 'asl-kernel/target/limine_v8_binary': No such file or
+    docs/RND/ASL-V1.0.2-R1-STATUS-BAGIAN-2.md:55:  `target\limine_v8_binary\limine.exe`. Selama berkas itu tidak ada, TIDAK  ...[dipotong pada 120 karakter; baris utuh ada di berkas yang disebut]
+    docs/TOOLING/LIMINE-PROVISIONING.md:112:- Empat rujukan dokumen lama ke `target\limine_v8_binary\limine.exe` masih ada
+  Rujukan di berkas Markdown terhitung 8 baris. Selain itu frasa yang sama muncul di
+  artefak bukti dan ledger append-only (Analysis/reports/*, docs/ROADMAP/*.json) sebagai
+  kutipan sejarah - itu BUKAN instruksi jalur sehingga dibiarkan apa adanya.
+
+--------------------------------------------------------------------------------
+BAGIAN 7 - LANGKAH BERIKUTNYA
+--------------------------------------------------------------------------------
+  1. Sub-komit 4: tutup utang G8 untuk dua pasangan CI atas 65f6137 dan 76fe9a1.
+  2. Sub-komit 5: bukti pra-kondisi K-6 + entri fault log lingkungan + kunci handoff.
+  3. K-2 masih TERBLOKIR sampai pemilik memilih A/B/C (BAGIAN 5).
+  4. K-6 LANGKAH 3-5 masih TERBLOKIR: jaring keselamatan (WinRE / media pemulihan /
+     UPS-baterai) terukur belum ada, jadi ESP tidak disentuh.
+
+Dibuat oleh logs/k5_tulis_bukti_sub3.py (scratch, gitignored) pada 2026-10-24T08:41:07Z UTC.

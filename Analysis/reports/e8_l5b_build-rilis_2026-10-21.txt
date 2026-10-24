@@ -1,0 +1,3 @@
+   Compiling asl-kernel-core v0.1.0 (C:\asl\asl-kernel\asl-kernel-core)
+   Compiling asl-kernel-bin v0.1.0 (C:\asl\asl-kernel\asl-kernel-bin)
+    Finished `release` profile [optimized] target(s) in 4.71s

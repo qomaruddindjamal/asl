@@ -1,0 +1,267 @@
+BUKTI UNIT F3 - KELUARAN EXPLISIT DAN SATU LABEL GALAT - DIUKUR 2026-10-22
+==========================================================================
+Semua angka di bawah disalin dari keluaran alat pada hari dan mesin yang sama
+(lingkungan pengembangan, QEMU 256M, cargo 1.x profil host). Tidak ada angka
+yang dijelaskan sebagai harapan; baris yang tidak terukur ditulis tidak
+terukur.
+Tree yang diukur = isi HEAD `c3a9f2e` plus suntingan unit F3 (tiga berkas `.rs`,
+dua berkas dokumen PANDUAN). Hash commit hasil unit ini tidak dikutip di sini
+karena satu hash hanya dirujuk pada commit berikutnya.
+
+[1] YANG DIUBAH PADA KELUARAN
+    Satu label galat:
+    - `print_vfs_error` (asl-kernel-core) sekarang memakai label satu-sumber
+      `Kesalahan: ` (konstanta `MSG_ERROR`), lalu PATH yang gagal, lalu
+      penjelasan. Bentuk lama `Galat: <penjelasan>` tanpa penyebutan sasaran
+      HABIS dari shell: nol literal `Galat` tersisa di sumber dan nol kemunculan
+      pada serial mesin (lihat [7]).
+    - Galat normalisasi path tidak lagi berbunyi "path terlalu panjang" tanpa
+      konteks; bentuknya `Kesalahan: <argumen> - path hasil normalisasi melebihi
+      batas <MAX_PATH_LEN> byte` dan angkanya ditulis dari konstanta, bukan
+      teks tangan.
+    - Baris argumen tidak sesuai sekarang menandai dirinya sebagai galat:
+      `Kesalahan: jumlah argumen tidak sesuai - Sintaks: <sintaks registry>`.
+      Bentuk lama hanya `Sintaks: ...` sehingga operator tidak diberi tahu
+      bahwa yang barusan terjadi adalah kegagalan.
+    - Perintah tak dikenal pada `help <nama>` memakai label yang sama:
+      `Kesalahan: perintah tidak dikenal: <nama>` (bentuk lama
+      `Perintah tidak dikenal: <nama>`).
+    Jumlah yang diumumkan:
+    - `create-folder` dan `delete-folder` menambah `(0 entri)`; `create-file`
+      menambah `(0 byte)`.
+    - `delete-file` menampilkan ukuran yang dibebaskan: `(<n> byte dibebaskan)`;
+      angkanya dibaca lewat `vfs.open` SEBELUM penghapusan.
+    - Kepala `open` pada berkas kini `Isi <jalan> (<n> byte):` (bentuk lama
+      `<jalan>:`); berkas nol byte tetap mencetak `(kosong)`.
+    - Kepala `list` tidak berubah teksnya tetapi kini disusun dari konstanta.
+    Keputusan pemilik yang diimplementasikan (2026-10-22, ditanyakan sebelum
+    kode ditulis): (a) SATU label `Kesalahan:` plus path; (b) `write-file`
+    TANPA argumen isi boleh jalan, dan pemangkasan isi lama WAJIB diumumkan.
+    Karena itu `write-file` kini membaca ukuran lama lebih dulu dan mencetak
+    `- <m> byte isi lama dihapus` hanya bila `m > 0`, plus penanda
+    `(berkas baru)` bila berkas dibuat lebih dulu oleh perintah yang sama.
+    Satu-sumber teks: 24 konstanta `MSG_*` di asl-cockpit-shell. Dispatch
+    asl-kernel-core tidak lagi menulis teks keluaran sendiri.
+    Tidak diubah dengan sengaja: lima pemanggilan `early_serial_write_str`
+    ber-teks `Kesalahan: ...` pada jalur diagnostik Gate 3D (teks sudah sama,
+    tetapi jalur itu sudah disaksikan pemilik dan bukan bagian lingkup F3), dan
+    penanda baris daftar `  d ` / `  - ` / ` B`.
+
+[2] UJI HOST
+    perintah : cargo test --workspace --lib
+    hasil    : 212 lulus / 0 gagal pada 30 suite
+    delta    : +5 test atas baseline F2 (207) =
+               tests::test_f3_labels_keluaran_satu_sumber,
+               tests::test_f3_dokumen_memuat_setiap_label_keluaran,
+               fs_tests::test_f3_dokumen_memuat_batas_panjang_path,
+               hardening_tests::test_f3_error_pieces_selalu_label_path_penjelasan,
+               hardening_tests::test_f3_byte_terpotong_hanya_saat_tulisan_lebih_pendek
+    profil   : 19 baris `warning`, 0 baris `error` - identik dengan baseline F2,
+               seluruhnya warisan penamaan dan satu impor tak terpakai di crate
+               di luar cakupan. Tidak ada warning baru dari crate yang disentuh.
+    GERBANG SINKRON DOKUMEN: saat Pasal 7 ditulis dengan subjudul `### `,
+    tests::test_docs_command_reference_matches_registry MERAH dengan pesan
+    "dokumen punya blok ke-13 melewati registry" - parser dokumen memakai `### `
+    sebagai penanda blok perintah. Subjudul Pasal 7 diturunkan menjadi `#### `
+    dan test kembali hijau. Karena itu perubahan kode, test, dan dokumen masuk
+    SATU commit yang sama.
+    Penjaga baru yang bekerja: test dokumen menagihkan 22 dari 24 label (dua
+    penghubung murni "- " dan " (" dikecualikan karena teksnya muncul di mana
+    saja), dan test asl-storage membaca angka 128 pada dokumen dari konstanta
+    `MAX_PATH_LEN`, bukan dari tulisan tangan.
+
+[3] GERBANG NOL BARU (fmt + clippy)
+    perintah : python scripts/r1_new_only_gate_check.py fmt
+    hasil    : asl-kernel-core   baris saya 138, ingin diubah rustfmt 107, IRISAN BARU 0
+               asl-cockpit-shell baris saya 332, ingin diubah rustfmt 28,  IRISAN BARU 0
+               asl-storage/ramdisk baris saya 14, ingin diubah rustfmt 19, IRISAN BARU 0
+               TOTAL deviasi/diagnostik BARU = 0
+    perintah : cargo clippy --workspace --lib --target x86_64-unknown-none
+               --message-format=short -- -A clippy::not_unsafe_ptr_arg_deref
+               lalu python scripts/r1_new_only_gate_check.py clippy
+    hasil    : 137 diagnostik ber-baris seluruh workspace (warisan, jumlah sama
+               dengan baseline rantai ini), IRISAN BARU 0 pada ketiga berkas.
+    Dua diagnostik BARU sempat muncul pada baris kerja sendiri dan DIPERBAIKI,
+    bukan di-allow: satu lifetime eksplisit yang bisa dihilangkan pada
+    `error_pieces`, satu `manual arithmetic check` pada `byte_terpotong` yang
+    diganti `saturating_sub` (semantik sama: selisih tidak pernah berputar ke
+    bawah). Dua deviasi fmt baru juga dirapikan sesuai keluaran rustfmt.
+    Catatan: angka warisan sengaja tidak diperbaiki pada unit fitur; perbaikan
+    gaya ditunda ke R2 sesuai keputusan pemilik.
+
+[4] BUILD RELEASE DAN REPRODUSIBILITAS
+    perintah : CARGO_TARGET_DIR=<scratch-2> cargo build --release
+               --target x86_64-unknown-none -p asl-kernel-bin   (dari nol)
+    hasil    : 13 baris `Compiling`, 0 `warning`, 0 `error`, exit 0 per build
+    ELF      : 337.792 byte
+               SHA256 A950FD78188943D35C7AE91CB13360FB83D90DE937E420BDAB37ED9CDCB8C9B3
+    reproduksi: tiga direktori build berbeda pada tree yang sama
+               (asl-kernel/target, logs/target_f3check, logs/target_f3check2)
+               menghasilkan SHA256 ELF yang SAMA.
+
+[5] SIDIK JARI ISO DAN SELISIH
+    ISO      : 4.212.736 byte
+               SHA256 8BC56058A88A49BBB85C8A7100C07A2E9CACEDC6B1738E7FED068C158900F841
+               (mastering scripts/build_kernel.ps1 -Action iso; GUID GPT pin
+               e181e879-31ec-3d41-a200-b4997a320a0d)
+    dua invokasi: dua mastering berurutan pada tree yang sama menghasilkan
+               berkas BYTE-IDENTIK (`cmp` keluar 0, SHA256 sama).
+    isi      : byte ELF utuh ditemukan di dalam berkas ISO pada offset 3.520.512
+               (337.792 dari 4.212.736) - jadi ISO yang di-boot adalah ELF yang
+               diuji.
+    vs F2    : ELF 329.600 -> 337.792 (+8.192); ISO 4.204.544 -> 4.212.736
+               (+8.192); SHA256 ISO berubah 5E5433F6 -> 8BC56058.
+    Efek yang terukur dari tambahan itu pada keluaran boot (bukan asumsi):
+    serial lantai memori di -m 3392K berubah 2.501 -> 2.499 byte, dan diff
+    barisnya memperlihatkan tabel MEMMAP bergeser (satu entri `typ: 0`
+    terbelah menjadi dua entri, `len` 12288 -> 16384, dan alamat image
+    `phys=0x108000` -> `0x104000`). Penyebab rinci pertumbuhan ELF tidak
+    diukur pada unit ini: ELF F2 tidak diarsipkan sehingga pembandingan bagian
+    (section) tidak dapat dilakukan.
+
+[6] LANTAI MEMORI (tidak diubah menjadi hijau)
+    perintah : powershell -File scripts/test_ram_floor_3mb.ps1
+    [A] -m 3M    : reached=False m6=False crash=False serial=0 B stderr=0 B
+    [B] -m 3392K : reached=True  m6=True  crash=False serial=2499 B stderr=0 B
+    keputusan: 2 (DEVIASI TERCATAT), sama dengan F1, F2, dan baseline E8.
+               Rantai regresi tidak rusak; janji misi 3 MB tetap MERAH dan
+               dilaporkan apa adanya.
+
+[7] SESI QEMU UNTUK KELUARAN F3 (VERIFIED-ON-VM)
+    alat     : logs/f3_qemu_check.py (scratch, tidak di-commit)
+    berkas   : Analysis/reports/f3_keluaran_serial_2026-10-22_02-48-01.log (5.511 byte)
+               Analysis/reports/f3_keluaran_qemu_stderr_2026-10-22_02-48-01.log (197 byte)
+    ISO sesi : 4.212.736 byte SHA256 8BC56058A88A49BBB85C8A7100C07A2E9CACEDC6B1738E7FED068C158900F841
+               - sama dengan ISO pada [5], jadi sesi berjalan di tree F3.
+    25 perintah, deret prompt terukur (26) == deret harapan (26), termasuk
+    ruang kerja /f3, akar, dan dua tingkat jalur 122 karakter.
+    penanda teks: 27 dari 27 tuntutan ditemukan pada potongan serial yang benar.
+    Yang terukur persis seperti janji Pasal 7:
+      "Ruang kerja: /"                                  (where)
+      "Direktori dibuat: /f3 (0 entri)"
+      "Berkas dibuat: /f3/a.txt (0 byte)"
+      "Tertulis 10 byte di /f3/a.txt"                   (menimpa berkas 0 byte)
+      "Tertulis 3 byte di /f3/b.txt (berkas baru)"
+      "Isi /f3/a.txt (10 byte):" diikuti "halo dunia"
+      "Tertulis 2 byte di /f3/a.txt - 8 byte isi lama dihapus"
+      "Tertulis 0 byte di /f3/a.txt - 2 byte isi lama dihapus"  (write-file tanpa isi)
+      "Isi /f3/a.txt (0 byte):" diikuti "(kosong)"
+      "Daftar isi /f3 (2 entri):"
+      "Berkas dihapus: /f3/b.txt (3 byte dibebaskan)"
+      "Kesalahan: /f3/b.txt tidak ditemukan"            (label + path)
+      "Kesalahan: jumlah argumen tidak sesuai - Sintaks: up"
+      "Kesalahan: perintah tidak dikenal: zzz"
+      "Kesalahan: /f3 direktori masih berisi"
+      "Berkas dihapus: /f3/a.txt (0 byte dibebaskan)"
+      "Direktori dihapus: /f3 (0 entri)"
+      "Kesalahan: aaaa...(60) - path hasil normalisasi melebihi batas 128 byte"
+    pencacahan serial: `Kesalahan` 5 kali, `ASL-KERNEL ` 26 kali, literal
+    `Galat` TIDAK ADA, penanda crash (ASL-CORE-PANIC / ASL EXCEPTION / FATAL)
+    TIDAK ADA.
+    Nilai tambah yang baru terlihat oleh operator pada sesi ini: langkah
+    percobaan `delete-folder f3` dijalankan dari dalam /f3 dan keluaran baru
+    menyebut sasarannya (`Kesalahan: /f3/f3 tidak ditemukan`), sehingga
+    kejutan resolusi relatif terbaca dari barisnya sendiri. Bentuk lama
+    ("Galat: tidak ditemukan") tidak memberi petunjuk itu - terukur pada
+    sumber pra-F3: `print_vfs_error(out, err)` hanya menyambung label dengan
+    penjelasan, tanpa path. Sesi pertama ini berhenti karena HARAPAN SAYA yang
+    salah (saya menuntut "direktori masih berisi" pada langkah itu), bukan
+    karena produk; tuntutan itu dibetulkan menjadi `delete-folder /f3` sebelum
+    sesi yang rapor [7]-nya dibaca di atas dijalankan.
+    KEJADIAN YANG SAYA CATAT SENDIRI (entri ke-45): artefak sesi pertama
+    (stamp 02-45-57) saya hapus setelah penyebabnya terbukti, dan jumlah
+    byte-nya tidak sempat saya ukur. Draf paragraf ini sebelumnya menulis
+    "5.511 byte pada stamp 02-45-57" - angka itu BUKAN hasil ukur sesi pertama,
+    melainkan ukuran artefak sesi kedua (5.511 byte, terukur `ls -l`), jadi
+    angka itu saya cabut dari kalimat. Karena berkasnya tidak ada lagi, baris
+    `Kesalahan: /f3/f3 tidak ditemukan` kini hanya hidup di paragraf ini; ia
+    TIDAK ada di artefak yang ter-commit - terukur: `grep -c "f3/f3 tidak
+    ditemukan"` pada Analysis/reports/f3_keluaran_serial_2026-10-22_02-48-01.log
+    = 0, dan artefak itu justru memuat `delete-folder /f3` (jalur mutlak) yang
+    dibalas `Kesalahan: /f3 direktori masih berisi` serta `delete-folder f3`
+    dari akar yang dibalas `Direktori dihapus: /f3 (0 entri)`.
+
+[7b] SESI ULANG TERBATAS UNTUK MEMULIHKAN SATU KENYATAAN (VERIFIED-ON-VM)
+    Sesi ini BUKAN rekaman sesi pertama yang saya hapus - rekaman itu hilang dan
+    tidak bisa dipulihkan. Sesi ini dijalankan setelah kenyataan itu tercatat
+    hanya sebagai kalimat, supaya ada berkas yang membacanya.
+    alat     : logs/f3_relpath_recovery.py (scratch, tidak di-commit)
+    berkas   : Analysis/reports/f3_relpath_serial_2026-10-22_03-08-43.log (2.929 byte)
+               Analysis/reports/f3_relpath_qemu_stderr_2026-10-22_03-08-43.log (197 byte)
+    ISO sesi : 4.212.736 byte SHA256 8BC56058A88A49BBB85C8A7100C07A2E9CACEDC6B1738E7FED068C158900F841
+               - terukur sama dengan ISO pada [5], jadi sesi berjalan di tree F3.
+    8 perintah, deret prompt terukur (9) == deret harapan (9):
+      1 ASL-KERNEL />_     (boot)
+      2 ASL-KERNEL />_     (sesudah `create-folder f3`)
+      3 ASL-KERNEL /f3>_   (sesudah `cd f3`)
+      4 ASL-KERNEL /f3>_   (sesudah `where`)
+      5 ASL-KERNEL /f3>_   (sesudah `delete-folder f3` - TIDAK berpindah)
+      6 ASL-KERNEL /f3>_   (sesudah `where` kedua - ruang kerja masih /f3)
+      7 ASL-KERNEL />_     (sesudah `up`)
+      8 ASL-KERNEL />_     (sesudah `delete-folder f3` dari akar)
+      9 ASL-KERNEL />_     (sesudah `list`)
+    penanda teks 8 dari 8 ditemukan pada potongan serial yang benar, sebaris per
+    perintah, dalam urutan eksekusi:
+      `create-folder f3`      -> "Direktori dibuat: /f3"
+      `cd f3`                 -> "Ruang kerja: /f3"
+      `where`                 -> "Ruang kerja: /f3"
+      `delete-folder f3`      -> "Kesalahan: /f3/f3 tidak ditemukan"
+      `where`                 -> "Ruang kerja: /f3"  (ruang kerja tidak berubah)
+      `up`                    -> "Ruang kerja: /"
+      `delete-folder f3`      -> "Direktori dihapus: /f3 (0 entri)"  (dari akar)
+      `list`                  -> "Daftar isi / (0 entri):"
+    penanda crash (ASL-CORE-PANIC / ASL EXCEPTION / FATAL): TIDAK ADA.
+    Kelas: VERIFIED-ON-VM yang dijalankan agen; tidak menaikkan kelas apa pun.
+    Yang sesi ini BUKTIKAN: jalur relatif pada `delete-folder` dipetakan terhadap
+    ruang kerja (/f3 + f3 = /f3/f3) dan baris galatnya menyebut sasaran hasil
+    pemetaan itu, sementara ruang kerja tidak berubah. Yang tetap TIDAK terbukti:
+    bahwa urutan peristiwa pada sesi pertama identik dengan sesi ini - sesi
+    pertama mengandung langkah lain yang tidak saya ulang.
+
+[8] YANG TIDAK DIBUKTIKAN UNIT INI
+    - Tidak ada klaim VERIFIED-ON-HARDWARE; semuanya emulator.
+    - Kelas sesi [7] adalah VERIFIED-ON-VM yang dijalankan agen; tidak ada
+      jendela yang disaksikan pemilik pada unit ini, sehingga jumlah
+      VERIFIED-ON-HARDWARE rantai tetap nol.
+    - Keluaran pada jalur perbaikan E8 (panic guard, pesan operator tombol
+      penghenti) tidak disentuh unit ini; yang berubah hanya dispatch perintah
+      kanonik dan galat VFS-nya.
+    - Jendela G9-LITE/E8 diulang TIDAK dijalankan pada ISO 8BC56058. Kewajiban
+      pengulangan jendela sudah berpindah ke R2 dengan alasan tercatat (entri
+      ke-42), dan unit ini menambah alasan kedua: transkrip jendela yang
+      disaksikan pemilik memuat label lama, jadi transkrip itu tidak lagi dapat
+      dipakai sebagai pencocokan keluaran (entri ke-44).
+    - Alat gerbang yang mengenali keluaran lama tidak disesuaikan pada R1
+      (aturan pemilik). Terukur dari teks alat: `scripts/g9_final_p8_run.ps1`
+      baris 118 menuntut penanda `Perintah tidak dikenal: ` yang sejak unit ini
+      tidak pernah tercetak lagi, dan baris 95 mengutip nomor baris sumber yang
+      sudah bergeser. Angka komentar alat itu bukan hasil ukur produk.
+    - SENSUS PENANDA g9 pada tree ini (12 penanda bersumber kernel + 1 isi yang
+      diketik operator), dihitung dari string yang sungguh ada di sumber:
+      SEBELAS penanda tetap cocok harfiah - `Status Cockpit Shell ` (tetap
+      literal di asl-kernel-core baris 1419) dan `Perintah kanonik Cockpit
+      Shell` (literal di asl-cockpit-shell baris 945), ditambah delapan label
+      yang kini hidup sebagai konstanta `MSG_*` (`Direktori dibuat: `, `Berkas
+      dibuat: `, `Tertulis `, `Berkas dihapus: `, `Direktori dihapus: `, `Daftar
+      isi `, `Ruang kerja: `, `Sintaks: `), plus sekuens bersih layar ESC `[2J`
+      (dua situs clear, baris 1210 dan 2016, tidak disentuh unit ini). SATU
+      penanda putus: `Perintah tidak dikenal: ` - yang tercetak sekarang
+      `Kesalahan: perintah tidak dikenal: ` dengan `p` kecil, dan alat membanding
+      dengan `[regex]::Matches($txt, [regex]::Escape($m[1]))` yang peka huruf.
+      Terukur di artefak sesi [7]: `grep -c "Perintah tidak dikenal"` = 0,
+      `grep -c "perintah tidak dikenal"` = 1 (baris 90, balasan `help zzz`).
+      Karena itu jendela berikutnya di atas ISO F3 dan sesudahnya akan MERAH pada
+      satu penanda ini kalau alat dijalankan apa adanya (entri ke-44).
+    - Nomor baris pada komentar alat sudah bergeser SEBELUM unit ini, dan itu
+      bukan akibat F3: komentar menyebut 1273/1196/1119/1151/1095/1837 sedangkan
+      pada HEAD pra-F3 string itu terukur di 1366/1289/1201/1233/1177/1936.
+      Jadi komentar itu warisan dari tree tempat alat ditulis; hanya penanda
+      `Perintah tidak dikenal: ` yang berubah MAKNA, bukan sekadar nomor.
+    - Artefak sesi pertama F3 (stamp 02-45-57) tidak ada lagi karena saya hapus,
+      dan transkrip persis sesi itu hilang untuk selamanya - termasuk langkah
+      lain yang tidak saya ulang. Kenyataan yang saya catat dari sesi itu sudah
+      dipulihkan DALAM ARTI terukur lewat sesi ulang terbatas di bagian [7b]
+      (entri ke-45), bukan dalam arti arsip asli.
+    - Batas panjang jalur pada mesin hanya diuji sampai satu tingkat di luar
+      batas (jalur 122 muat, tingkat berikutnya 183 ditolak). Penguatan pada
+      batas persis 128 belum diuji.

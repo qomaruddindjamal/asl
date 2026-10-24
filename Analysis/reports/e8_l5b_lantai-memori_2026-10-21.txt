@@ -1,0 +1,15 @@
+prompt satu-sumber : 'ASL-KERNEL> '
+ISO                : C:\asl\asl-kernel\target\asl-core-kernel.iso
+SHA256             : 18F40D2D4E18C3B46A88C13090AC1F6FCCE13B4D264A1D5B78B4D6E0A833FAD0
+
+=== [A] janji misi: -m 3M ===
+  reached=False m6=False crash=False serial=0 B stderr=0 B
+=== [B] ratchet regresi: -m 3392K ===
+  reached=True m6=True crash=False serial=2498 B stderr=0 B
+
+KEPUTUSAN: 2 (DEVIASI TERCATAT) - ratchet 3392K lulus, janji misi 3M TIDAK.
+  Gerbang Bagian 5 'gerbang -m 3M lulus' berstatus MERAH pada tree ini.
+  Status merah TIDAK diubah menjadi hijau; deviasi dicatat di
+  ACCOUNTABILITY_FAULT_LOG dan diulang di LAPORAN-FINAL v1.0.2.
+  Bukti: 3M serial=0 B reached=False; 3392K lulus penuh.
+  artefak: C:\asl\logs\ram_floor_2026-10-21_23-16-02_m3M_serial.log

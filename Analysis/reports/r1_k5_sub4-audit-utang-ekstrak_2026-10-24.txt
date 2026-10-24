@@ -1,0 +1,129 @@
+AUDIT UTANG EKSTRAK HOSTED CI - UNIT K-5 SUB-KOMIT 4 (PENUTUP UTANG G8 ATAS 65f6137 DAN 76fe9a1) - DIUKUR 2026-10-24T08:43:16Z (UTC)
+====================================================================================
+Cabang: feature/v1.0.2-r1 | Alat: scripts/r1_debt_audit.py tanpa perubahan, dijalankan dari akar repo
+| exit alat 0 | mulai 2026-10-24T08:43:16Z selesai 2026-10-24T08:43:18Z | jam mesin lokal pada saat ukur 2026-10-24 15:43:16 (UTC+7).
+Label tanggal pada berkas ini = tanggal UTC pengukuran; aturan zona ini adalah
+pelajaran entri #53 dan dinyatakan supaya label tidak dibaca sebagai salah ketik.
+
+APA YANG DITUTUP KOMIT INI. Enam baris BELUM pada tabel di bawah adalah tiga PASANGAN
+run, semuanya completed/success pada workflow asl-ci-minimal:
+  - 65f6137 (sub-komit 1, penutup utang atas 4335e41): push 40077328147, pull_request 40077331380
+  - 76fe9a1 (sub-komit 2, pemindahan jalur perkakas): push 40077819604, pull_request 40077822683
+  - 5326234 (sub-komit 3, ledger provisioning): push 40079054078, pull_request 40079057623
+Dua pasangan PERTAMA ditutup oleh commit ini: empat berkas ekstrak ikut ter-commit
+bersama berkas audit ini. Pasangan KETIGA (atas tip commit ini sendiri) secara
+konstruksi TIDAK bisa ditutup di sini - aturan G8 melarang satu commit memuat
+ekstrak untuk dirinya - dan menjadi utang yang ditutup sub-komit berikutnya.
+
+ANGKA EMPAT EKSTRAK (dihitung logs/p7_extract2.py dari log mentah `gh run view --log`,
+bukan salinan tangan):
+40077328147: 65f6137 suite=30 passed=262 failed=0 per_test_ok=262 warn1=19 compile=13 warn2=0 err2=0 -> Analysis/reports/ci_hosted_40077328147_2026-10-24.log
+40077331380: 65f6137 suite=30 passed=262 failed=0 per_test_ok=262 warn1=19 compile=13 warn2=0 err2=0 -> Analysis/reports/ci_hosted_40077331380_2026-10-24.log
+40077819604: 76fe9a1 suite=30 passed=262 failed=0 per_test_ok=262 warn1=19 compile=13 warn2=0 err2=0 -> Analysis/reports/ci_hosted_40077819604_2026-10-24.log
+40077822683: 76fe9a1 suite=30 passed=262 failed=0 per_test_ok=262 warn1=19 compile=13 warn2=0 err2=0 -> Analysis/reports/ci_hosted_40077822683_2026-10-24.log
+
+Delapan kolom itu SAMA PERSIS pada keempatnya (himpunan nilai terukur: 1 varian),
+yaitu suite=30, passed=262, failed=0, per_test_ok=262, warn1=19, compile=13,
+warn2=0, err2=0 - tidak ada regresi pada dua commit yang ditutup ini.
+
+UKURAN EMPAT BERKAS EKSTRAK YANG DIKOMIT (saat artefak ini ditulis):
+  ci_hosted_40077328147_2026-10-24.log            11192 B  baris=94  maksOrd=125  CJK=0  sha=95b4ade6c2571c7f...  (ada)
+  ci_hosted_40077331380_2026-10-24.log            11208 B  baris=94  maksOrd=125  CJK=0  sha=711344b6c31fd48e...  (ada)
+  ci_hosted_40077819604_2026-10-24.log            11192 B  baris=94  maksOrd=125  CJK=0  sha=c85ac7da9288e510...  (ada)
+  ci_hosted_40077822683_2026-10-24.log            11208 B  baris=94  maksOrd=125  CJK=0  sha=953ca6393de81a9d...  (ada)
+
+STATE PENGUKURAN: audit dijalankan SEBELUM commit, jadi baris BELUM adalah fakta
+saat ukur (empat berkas ekstrak di atas masih untracked). Detektor alat
+membaca ekstrak dari `git ls-tree -r HEAD Analysis/reports`, sehingga angka
+'ekstrak ter-commit total: 109' dan 'utang terbuka ... 6 RUN (= tiga pasang)' menggambarkan HEAD
+sebelum commit ini, bukan sesudah.
+
+SUDUT BACA: tabel di bawah adalah keluaran alat apa adanya.
+AUDIT UTANG EKSTRAK HOSTED CI - cabang feature/v1.0.2-r1
+HEAD saat audit dijalankan: 5326234 (run milik HEAD belum ter-commit, memang begitu aturan G8)
+SUMBER: `git rev-list main..HEAD`, `gh api .../actions/runs?branch=...`, `git ls-tree -r HEAD Analysis/reports`.
+SUDUT BACA: baris BELUM di bawah adalah utang yang ditutup commit BERIKUTNYA, bukan kegagalan.
+
+commit   run-id       event  koncl  ekstrak-di-repo
+007d3dd  TIDAK ADA RUN -      -      -
+54abf73  TIDAK ADA RUN -      -      -
+4e865c0  TIDAK ADA RUN -      -      -
+17570f6  39596587533  push   success ADA
+17570f6  39596659449  pull_request success ADA
+a141640  39597097768  push   success ADA
+a141640  39597103437  pull_request success ADA
+223e7f6  TIDAK ADA RUN -      -      -
+6bbd77d  TIDAK ADA RUN -      -      -
+939cc95  TIDAK ADA RUN -      -      -
+97d1834  39624903214  push   success ADA
+97d1834  39624911155  pull_request success ADA
+d6c5b12  TIDAK ADA RUN -      -      -
+093a7d6  TIDAK ADA RUN -      -      -
+b9acd5b  TIDAK ADA RUN -      -      -
+ca582fa  TIDAK ADA RUN -      -      -
+08ddd71  39632688905  push   success ADA
+08ddd71  39632700077  pull_request success ADA
+53e226f  39634616449  push   success ADA
+53e226f  39634624636  pull_request success ADA
+1e2035f  39635248616  push   success ADA
+1e2035f  39635257738  pull_request success ADA
+8f56625  39635662050  push   success ADA
+8f56625  39635669557  pull_request success ADA
+12adcf1  39637458058  push   success ADA
+12adcf1  39637464118  pull_request success ADA
+1f3e3c2  39639275684  push   success ADA
+1f3e3c2  39639284164  pull_request success ADA
+4de1dfb  39643487647  push   success ADA
+4de1dfb  39643495816  pull_request success ADA
+b17a175  39644006778  push   success ADA
+b17a175  39644011859  pull_request success ADA
+4c3e0d2  39697869147  push   success ADA
+4c3e0d2  39697876437  pull_request success ADA
+d8c002a  39698870788  push   success ADA
+d8c002a  39698875695  pull_request success ADA
+5812c77  39703399191  push   success ADA
+5812c77  39703405130  pull_request success ADA
+c94f8b0  39704463256  push   success ADA
+c94f8b0  39704468088  pull_request success ADA
+c3a9f2e  39710147801  push   success ADA
+c3a9f2e  39710152877  pull_request success ADA
+c3a8343  39714508881  push   success ADA
+c3a8343  39714514694  pull_request success ADA
+e60f0a7  39716468849  push   success ADA
+e60f0a7  39716474359  pull_request success ADA
+a44fbaf  39732124375  push   success ADA
+a44fbaf  39732130192  pull_request success ADA
+87cf8fd  39749060881  push   success ADA
+87cf8fd  39749065750  pull_request success ADA
+791a88d  39764470372  push   success ADA
+791a88d  39764476332  pull_request success ADA
+235d44b  39764997805  push   success ADA
+235d44b  39765004319  pull_request success ADA
+6f2af6e  39787427791  push   success ADA
+6f2af6e  39787438189  pull_request success ADA
+9750724  39788285251  push   success ADA
+9750724  39788292764  pull_request success ADA
+38b3bcc  39844518151  push   success ADA
+38b3bcc  39844527147  pull_request success ADA
+70431dd  39844995227  push   success ADA
+70431dd  39845003304  pull_request success ADA
+a0bbcd6  39846181176  push   success ADA
+a0bbcd6  39846195525  pull_request success ADA
+fce6c0a  39847206080  push   success ADA
+fce6c0a  39847214355  pull_request success ADA
+762cea3  39847738550  push   success ADA
+762cea3  39847746179  pull_request success ADA
+4335e41  39997986811  push   success ADA
+4335e41  39997997963  pull_request success ADA
+65f6137  40077328147  push   success BELUM
+65f6137  40077331380  pull_request success BELUM
+76fe9a1  40077819604  push   success BELUM
+76fe9a1  40077822683  pull_request success BELUM
+5326234  40079054078  push   success BELUM
+5326234  40079057623  pull_request success BELUM
+
+total commit cabang: 43
+commit tanpa run sendiri: 007d3dd, 54abf73, 4e865c0, 223e7f6, 6bbd77d, 939cc95, d6c5b12, 093a7d6, b9acd5b, ca582fa (10)
+utang terbuka (run ada, ekstrak belum di repo): [('65f6137', 40077328147, 'push'), ('65f6137', 40077331380, 'pull_request'), ('76fe9a1', 40077819604, 'push'), ('76fe9a1', 40077822683, 'pull_request'), ('5326234', 40079054078, 'push'), ('5326234', 40079057623, 'pull_request')]
+ekstrak ter-commit total: 109
+

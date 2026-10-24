@@ -1,0 +1,11 @@
+KALIBRASI BATAS WAKTU KASUS test_task - jendela E8 LANGKAH 6 (semua angka dibaca dari artefak)
+Kolom waktu berkas TSV bernama 'detik_mm' dan berisi MILIDETIK; di bawah dikonversi ke detik.
+
+2026-10-21_20-09-52      ISO aa778060 (pra-perbaikan E8)  boot segar             hasil=OK         178779 ms =  178,8 s (batas kasus 300 ds)
+2026-10-21_23-22-59      ISO 18f40d2d (sesudah higiene)   tengah sesi penuh (D13) hasil=OK         272600 ms =  272,6 s (batas kasus 300 ds)
+2026-10-21_23-58-19      ISO 18f40d2d                     boot segar             hasil=GANTUNG    300033 ms =  300,0 s (batas kasus 300 ds) | progres terakhir 75004/100.000 tukar
+2026-10-22_00-06-29      ISO 18f40d2d                     boot segar             hasil=OK         310681 ms =  310,7 s (batas kasus 600 ds)
+
+Yang tidak berubah di semua sesi: penanda crash TIDAK ada dan jendela QEMU terlihat.
+Pembanding lain pada ISO 18f40d2d: sesi 2026-10-21_23-18-46 dengan -StopKeyDelaySeconds 25
+mengembalikan prompt setelah 25499 ms = 25,5 s karena satu ketikan menghentikan rangkaian.

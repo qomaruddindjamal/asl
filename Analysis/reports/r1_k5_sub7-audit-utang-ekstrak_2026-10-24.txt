@@ -1,0 +1,206 @@
+AUDIT UTANG EKSTRAK HOSTED CI - UNIT K-5 SUB-KOMIT 7 (PENUTUP UTANG G8 ATAS 6ab0404) - DIUKUR 2026-10-24T09:57:33Z (UTC)
+====================================================================================
+Cabang: feature/v1.0.2-r1 | HEAD saat audit = 6ab0404 (commit yang ditutup unit ini) | Alat: scripts/r1_debt_audit.py tanpa
+perubahan, dijalankan dari akar repo | exit alat 0 | mulai 2026-10-24T09:57:33Z selesai 2026-10-24T09:57:35Z | jam mesin lokal
+pada saat ukur 2026-10-24 16:57:33 (UTC+7).
+Label tanggal pada berkas ini = tanggal UTC pengukuran; aturan zona ini adalah pelajaran
+entri #53 dan dinyatakan supaya label tidak dibaca sebagai salah ketik.
+
+KOMIT INI MEMILIKI DUA BAGIAN. BAGIAN PERTAMA menutup utang ekstrak G8 atas 6ab0404. BAGIAN
+KEDUA mencatat keputusan pemilik atas pertanyaan satu kata unit K-5, yang jawabannya sudah
+masuk, dengan cara append-only pada berkas handoff. Keduanya nol berkas .rs, jadi tidak ada
+gerbang yang diukur ulang.
+
+APA YANG DITUTUP KOMIT INI (BAGIAN PERTAMA). Dua baris BELUM pada tabel di bawah adalah
+SATU PASANGAN run atas 6ab0404, keduanya completed/success pada workflow asl-ci-minimal branch
+feature/v1.0.2-r1:
+  - push          40082095845  (dibuat 2026-10-24T09:28:36Z, selesai 2026-10-24T09:29:33Z)
+  - pull_request  40082099721  (dibuat 2026-10-24T09:28:40Z, selesai 2026-10-24T09:29:44Z)
+Commit yang diuji adalah 6ab0404413a62a36426ce18d1be86af1e84e2eb3 (pesan commit [V1.0.2-R1-K5-SUB6], waktu commit lokal 2026-10-24T16:28:20+07:00 = 2026-10-24T09:28:20Z UTC menurut
+git show -s --format=%cI, dikonversi ke UTC oleh naskah ini). Kedua run itu baru ada karena push sesudah commit, jadi audit
+ini SENDIRI mengukur keduanya sebagai BELUM - itu fakta saat ukur, bukan kelalaian.
+Kedua berkas ekstrak ikut ter-commit bersama berkas audit ini dan berkas handoff, dan
+sesudah commit ini satu-satunya utang yang tersisa adalah pasangan atas tip commit penutup
+ini SENDIRI, yang memang belum ada saat audit dan tidak boleh dimuat oleh commit-nya
+sendiri (aturan G8).
+
+CARA ANGKA DIPEROLEH (nol ketikan tangan). Log mentah ditangkap dengan
+`gh run view <id> --log` pada 2026-10-24T09:57:15Z sampai 2026-10-24T09:57:23Z (stderr NOL byte pada keduanya), lalu dihitung
+oleh naskah scratch logs/p7_extract2.py (gitignored, TIDAK di-commit) pada 2026-10-24T09:57:27Z sampai 2026-10-24T09:57:29Z.
+Naskah itu sendiri diukur saat artefak ini ditulis: 8800 byte, 185 baris LF, sha256 37d788da20a0f51f145ff518cd5257cd95ca53110d030e2d525c3bd8715b6edb.
+Sidik jari ini DIBANDINGKAN dengan nilai yang tercetak pada artefak sub-komit 6 yang sudah
+ter-commit: 8800 byte dan sha256 37d788da20a0f51f145ff518cd5257cd95ca53110d030e2d525c3bd8715b6edb - PERSIS SAMA, sehingga klaim 'metode tidak berubah' kini
+terukur (assert pada naskah ini), bukan diandaikan. Dua log mentah yang menjadi sumber
+hitung:
+  40082095845  log mentah 218232 B, 1481 baris
+  40082099721  log mentah 221731 B, 1513 baris
+
+ANGKA DUA EKSTRAK (keluaran alat, disalin apa adanya):
+40082095845: 6ab0404 suite=30 passed=262 failed=0 per_test_ok=262 warn1=19 compile=13 warn2=0 err2=0 -> Analysis/reports/ci_hosted_40082095845_2026-10-24.log
+40082099721: 6ab0404 suite=30 passed=262 failed=0 per_test_ok=262 warn1=19 compile=13 warn2=0 err2=0 -> Analysis/reports/ci_hosted_40082099721_2026-10-24.log
+
+8 kolom angka itu SAMA PERSIS pada keduanya (himpunan nilai terukur: 1 varian):
+suite=30, passed=262, failed=0, per_test_ok=262, warn1=19, compile=13, warn2=0, err2=0.
+NILAI YANG SAMA TERUKUR PULA pada 10 run hosted sebelumnya, dibaca ulang dari TIGA berkas
+audit yang sudah ter-commit (r1_k5_sub4-, r1_k5_sub5-, r1_k5_sub6-...): 10 baris ringkasan
+terurai, himpunan nilai = 1 varian, dan varian itu IDENTIK dengan dua run di atas (persamaan
+diuji dengan assert pada naskah ini, bukan disimpulkan). Run terdahulu itu menempati
+sha 0270817 + 5326234 + 65f6137 + 76fe9a1 + 9acc7f4. Jadi seluruh 12 run hosted pada unit K-5 memberi angka gerbang yang sama dan
+NOL REGRESI.
+
+UKURAN DUA BERKAS EKSTRAK YANG DIKOMIT (saat artefak ini ditulis; berkas .log ber-format
+LF, bukan CRLF, mengikuti konvensi ekstrak yang sudah ada; headSha 40 karakter dibaca ulang
+dari dalam tiap ekstrak, bukan diketik):
+  ci_hosted_40082095845_2026-10-24.log      11192 B  barisLF=94  headSha=6ab0404413a62a36426ce18d1be86af1e84e2eb3  sha=786ab9e1d0089309...
+  ci_hosted_40082099721_2026-10-24.log      11208 B  barisLF=94  headSha=6ab0404413a62a36426ce18d1be86af1e84e2eb3  sha=e3866542a10c2f40...
+
+METADATA DUA RUN (gh api repos/.../actions/runs/<id>, terukur saat artefak ini ditulis):
+  40082095845  push          completed success headSha=6ab0404413a62a36426ce18d1be86af1e84e2eb3  dibuat=2026-10-24T09:28:36Z  selesai=2026-10-24T09:29:33Z
+  40082099721  pull_request  completed success headSha=6ab0404413a62a36426ce18d1be86af1e84e2eb3  dibuat=2026-10-24T09:28:40Z  selesai=2026-10-24T09:29:44Z
+
+CATATAN KEPUTUSAN PEMILIK (BAGIAN KEDUA). Pertanyaan satu kata yang diajukan agen adalah
+'PR #8 dan PR #9 (patch README di main) adalah editan saya sendiri di web GitHub -
+YA/TIDAK?'. Pemilik menjawab pada 2026-10-24 dengan kalimat 'README,md saya yang edit',
+yang dibaca YA untuk kedua PR. Waktu pesan chat tidak diukur oleh agen, jadi hanya waktu
+pengukuran alat yang dicantumkan: `gh pr view --json number,title,state,author,
+baseRefName,headRefName,mergedAt,mergeCommit,files,commits` dijalankan DUA KALI untuk tiap PR
+(empat panggilan, pengulangan untuk menguji stabilitas), pertama pada 2026-10-24T10:03:10Z sampai 2026-10-24T10:03:12Z dan kedua
+pada 2026-10-24T10:03:12Z sampai 2026-10-24T10:03:13Z; keempatnya exit 0 dengan stderr NOL byte, dan keluaran dua panggilan untuk
+PR yang sama IDENTIK BYTE PER BYTE (PR #8 731 B, PR #9 731 B). Nilai terukur:
+  PR #8  author=qomaruddindjamal   base=main head=qomaruddindjamal-patch-1 berkas=['README.md'] mergedAt=2026-10-22T07:26:51Z commit=09c618f92abd53ba29a9b2a98e14349f06b7727f mergeCommit=726f137e98900e3fb08d0aff8bb3bc2868bd56a4
+  PR #9  author=qomaruddindjamal   base=main head=qomaruddindjamal-patch-2 berkas=['README.md'] mergedAt=2026-10-22T07:29:30Z commit=d4c437597c09d3dc3cd36e6546a2403ffa010674 mergeCommit=1f096edfe7b175d991d63d2c91e7641be79e7677
+Rekornya ditulis sebagai kunci baru `v1_0_2_r1_keputusan_pemilik_pr8_pr9` (3204 karakter) di docs/ROADMAP/HANDOFF_STATE.json,
+dan butir (i) pada kunci `v1_0_2_r1_k5_k6_provisioning_state` (append 1902 karakter) memuat ringkasannya; daftar MENUNGGU
+pada butir (h) kunci itu menyusut dari lima butir menjadi EMPAT karena konfirmasi ini
+sudah masuk. Integritas berkas handoff diukur ulang setelah penulisan: berkas kerja sekarang
+141790 byte dan 45 kunci (sebelumnya 44 kunci pada HEAD), butir (a) sampai (h) pada kunci lama
+TETAP ADA sebagai awalan identik (assert startswith pada 7153 karakter, bukan pembacaan
+manusia), 42 kunci lain tidak berubah, dan `next_immediate_step` persis sama dengan kunci
+provisioning.
+Kedua patch itu MERGED di main pada 2026-10-22, sebelum rantai R1, dan cabang ini tidak
+pernah menyentuh README.md; tidak ada suntingan README yang ikut ter-commit di sini
+(terukur dari git status - hanya berkas handoff yang berubah).
+
+KEADAAN POHON TERUKUR SAAT ARTEFAK INI DITULIS: tip 6ab0404 = 6ab0404413a62a36426ce18d1be86af1e84e2eb3; isi commit tip itu 3 berkas
+dengan NOL berkas .rs (git show --name-only HEAD); nol berkas .rs pada SELURUH rantai
+4335e41..HEAD (git diff --name-only 4335e41..HEAD -- '*.rs' = 0 baris); commit penutup ini
+berisi TEPAT 2 berkas ekstrak yang saat artefak ini ditulis masih untracked (terukur dari
+git status --porcelain) ditambah SATU berkas audit ini sendiri ditambah SATU berkas handoff
+yang terukur sebagai ' M', dan terpisah dari 20 artefak untracked g9_final_p8_*
+yang ditahan; origin/feature/v1.0.2-r1 == HEAD (git rev-list --left-right --count = 0 0).
+Karena nol berkas .rs, gerbang host TIDAK DIUKUR ULANG dan angkanya diwarisi dari
+pengukuran ulang di 4335e41 yang tercatat pada artefak sub-komit 3: 30 suite, 262 lulus,
+0 gagal, 19 baris warning; fmt irisan baru 0; clippy irisan baru 0 dengan 134 warisan;
+ELF rilis 312.912 B sha256 fb4eeb31e26b1cf9a289e4c697e6cea8230cd83a1ad45424cd2312ee5eee5d59.
+Nol berkas .rs berarti pula nol entri fault log baru pada commit ini (terukur: berkas
+fault log tidak termasuk yang berubah); tidak ada gerbang G1 sampai G11 yang disentuh.
+
+STATE PENGUKURAN: audit dijalankan SEBELUM commit, jadi baris BELUM adalah fakta saat ukur
+(dua berkas ekstrak di atas masih untracked). Detektor alat membaca ekstrak dari
+`git ls-tree -r HEAD Analysis/reports`, sehingga angka 'ekstrak ter-commit total: 119' dan
+'utang terbuka ... 2 entri' menggambarkan HEAD 6ab0404 sebelum commit ini, bukan sesudah.
+Jumlah baris BELUM pada tabel terukur = 2 dan cocok dengan daftar utang terbuka (2 entri);
+baris ADA terukur = 70; total commit cabang = 46; commit tanpa run sendiri = 007d3dd, 54abf73, 4e865c0, 223e7f6, 6bbd77d, 939cc95, d6c5b12, 093a7d6, b9acd5b, ca582fa (10).
+
+KELAS BUKTI: VERIFIED-ON-CI-API untuk kedua ekstrak ini dan VERIFIED-ON-HOST untuk catatan
+keputusan pemilik (keluaran gh pr view yang tertangkap). BAGIAN VM TETAP TERBLOKIR (bukan
+lulus) karena perkakas Limine belum ada; VERIFIED-ON-HARDWARE TETAP NOL. Perintah tahan
+tetap berlaku: nol merge PR #6/#7, nol tag v1.0.2, jangan hapus v1.1.0, nol LAPORAN-FINAL,
+CHECKLIST_STATE.json dan artefak g9_final_p8_* tidak disentuh, nol amend, nol force-push,
+nol rewrite riwayat.
+
+SUDUT BACA: tabel di bawah adalah keluaran alat apa adanya.
+AUDIT UTANG EKSTRAK HOSTED CI - cabang feature/v1.0.2-r1
+HEAD saat audit dijalankan: 6ab0404 (run milik HEAD belum ter-commit, memang begitu aturan G8)
+SUMBER: `git rev-list main..HEAD`, `gh api .../actions/runs?branch=...`, `git ls-tree -r HEAD Analysis/reports`.
+SUDUT BACA: baris BELUM di bawah adalah utang yang ditutup commit BERIKUTNYA, bukan kegagalan.
+
+commit   run-id       event  koncl  ekstrak-di-repo
+007d3dd  TIDAK ADA RUN -      -      -
+54abf73  TIDAK ADA RUN -      -      -
+4e865c0  TIDAK ADA RUN -      -      -
+17570f6  39596587533  push   success ADA
+17570f6  39596659449  pull_request success ADA
+a141640  39597097768  push   success ADA
+a141640  39597103437  pull_request success ADA
+223e7f6  TIDAK ADA RUN -      -      -
+6bbd77d  TIDAK ADA RUN -      -      -
+939cc95  TIDAK ADA RUN -      -      -
+97d1834  39624903214  push   success ADA
+97d1834  39624911155  pull_request success ADA
+d6c5b12  TIDAK ADA RUN -      -      -
+093a7d6  TIDAK ADA RUN -      -      -
+b9acd5b  TIDAK ADA RUN -      -      -
+ca582fa  TIDAK ADA RUN -      -      -
+08ddd71  39632688905  push   success ADA
+08ddd71  39632700077  pull_request success ADA
+53e226f  39634616449  push   success ADA
+53e226f  39634624636  pull_request success ADA
+1e2035f  39635248616  push   success ADA
+1e2035f  39635257738  pull_request success ADA
+8f56625  39635662050  push   success ADA
+8f56625  39635669557  pull_request success ADA
+12adcf1  39637458058  push   success ADA
+12adcf1  39637464118  pull_request success ADA
+1f3e3c2  39639275684  push   success ADA
+1f3e3c2  39639284164  pull_request success ADA
+4de1dfb  39643487647  push   success ADA
+4de1dfb  39643495816  pull_request success ADA
+b17a175  39644006778  push   success ADA
+b17a175  39644011859  pull_request success ADA
+4c3e0d2  39697869147  push   success ADA
+4c3e0d2  39697876437  pull_request success ADA
+d8c002a  39698870788  push   success ADA
+d8c002a  39698875695  pull_request success ADA
+5812c77  39703399191  push   success ADA
+5812c77  39703405130  pull_request success ADA
+c94f8b0  39704463256  push   success ADA
+c94f8b0  39704468088  pull_request success ADA
+c3a9f2e  39710147801  push   success ADA
+c3a9f2e  39710152877  pull_request success ADA
+c3a8343  39714508881  push   success ADA
+c3a8343  39714514694  pull_request success ADA
+e60f0a7  39716468849  push   success ADA
+e60f0a7  39716474359  pull_request success ADA
+a44fbaf  39732124375  push   success ADA
+a44fbaf  39732130192  pull_request success ADA
+87cf8fd  39749060881  push   success ADA
+87cf8fd  39749065750  pull_request success ADA
+791a88d  39764470372  push   success ADA
+791a88d  39764476332  pull_request success ADA
+235d44b  39764997805  push   success ADA
+235d44b  39765004319  pull_request success ADA
+6f2af6e  39787427791  push   success ADA
+6f2af6e  39787438189  pull_request success ADA
+9750724  39788285251  push   success ADA
+9750724  39788292764  pull_request success ADA
+38b3bcc  39844518151  push   success ADA
+38b3bcc  39844527147  pull_request success ADA
+70431dd  39844995227  push   success ADA
+70431dd  39845003304  pull_request success ADA
+a0bbcd6  39846181176  push   success ADA
+a0bbcd6  39846195525  pull_request success ADA
+fce6c0a  39847206080  push   success ADA
+fce6c0a  39847214355  pull_request success ADA
+762cea3  39847738550  push   success ADA
+762cea3  39847746179  pull_request success ADA
+4335e41  39997986811  push   success ADA
+4335e41  39997997963  pull_request success ADA
+65f6137  40077328147  push   success ADA
+65f6137  40077331380  pull_request success ADA
+76fe9a1  40077819604  push   success ADA
+76fe9a1  40077822683  pull_request success ADA
+5326234  40079054078  push   success ADA
+5326234  40079057623  pull_request success ADA
+0270817  40079435959  push   success ADA
+0270817  40079439472  pull_request success ADA
+9acc7f4  40081581100  push   success ADA
+9acc7f4  40081584934  pull_request success ADA
+6ab0404  40082095845  push   success BELUM
+6ab0404  40082099721  pull_request success BELUM
+
+total commit cabang: 46
+commit tanpa run sendiri: 007d3dd, 54abf73, 4e865c0, 223e7f6, 6bbd77d, 939cc95, d6c5b12, 093a7d6, b9acd5b, ca582fa (10)
+utang terbuka (run ada, ekstrak belum di repo): [('6ab0404', 40082095845, 'push'), ('6ab0404', 40082099721, 'pull_request')]
+ekstrak ter-commit total: 119
+

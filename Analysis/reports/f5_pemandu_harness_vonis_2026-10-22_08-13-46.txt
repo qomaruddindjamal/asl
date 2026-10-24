@@ -1,0 +1,68 @@
+boot sampai prompt akar
+blink idle: d0-d1 0 piksel bbox (1024, 768, -1, -1) | d1-d2 8 bbox (120, 302, 127, 302) | d0-d2 8 | d1-d3 0
+galat arity tercetak                           LULUS
+label Nama folder baru                         LULUS
+create-folder panduan selesai                  LULUS
+masuk /panduan                                 LULUS
+galat arity write-file                         LULUS
+label Nama berkas                              LULUS
+label baris 1                                  LULUS
+label baris 2                                  LULUS
+label baris 3                                  LULUS
+tulis 20 byte                                  LULUS
+header isi                                     LULUS
+baris pertama                                  LULUS
+baris kedua                                    LULUS
+label muncul lagi                              LULUS
+batal baris kosong                             LULUS
+label Nama berkas (panjang)                    LULUS
+nama panduan ditolak                           LULUS
+baris isi diterima: 74
+pengumuman isi penuh                           MERAH
+tulis penuh satu slot                          LULUS
+beres catat.txt                                LULUS
+beres penuh.txt                                LULUS
+kembali ke akar                                LULUS
+beres panduan                                  LULUS
+regresi: meminfo lama utuh                     LULUS
+suite dimulai                                  LULUS
+layar suite: baris glif 583 -> 585, 202788 piksel beda bbox (0, 2, 1023, 766)
+telemetri akhir                                LULUS
+durasi suite pada tree ini: 186.6 s
+prompt kembali                                 LULUS
+serial: 17416 byte -> Analysis\reports\f5_pemandu_serial_2026-10-22_08-13-46.log
+
+=== RINGKASAN ===
+MERAH  blink: dump bersebelahan berbeda pada satu sel  (bbox (1024, 768, -1, -1), 0 piksel)
+MERAH  blink: fase berulang setiap dua detik  (d0==d2 dan d1==d3 (delta 8, 0))
+LULUS  galat arity tercetak  (Kesalahan: jumlah argumen tidak sesuai - Sintaks: create-folder <nama>)
+LULUS  label Nama folder baru  (Nama folder baru: )
+LULUS  create-folder panduan selesai  (Direktori dibuat: /panduan (0 entri))
+LULUS  masuk /panduan  (Ruang kerja: /panduan)
+LULUS  galat arity write-file  (Kesalahan: jumlah argumen tidak sesuai - Sintaks: write-file <nama> <t)
+LULUS  label Nama berkas  (Nama berkas: )
+LULUS  label baris 1  (Isi catat.txt (baris 1): )
+LULUS  label baris 2  (Isi catat.txt (baris 2): )
+LULUS  label baris 3  (Isi catat.txt (baris 3): )
+LULUS  tulis 20 byte  (Tertulis 20 byte di /panduan/catat.txt (berkas baru))
+LULUS  header isi  (Isi /panduan/catat.txt (20 byte):)
+LULUS  baris pertama  (baris satu)
+LULUS  baris kedua  (baris dua)
+LULUS  label muncul lagi  (Nama folder baru: )
+LULUS  batal baris kosong  (Dibatalkan: nama folder kosong - direktori tidak dibuat)
+LULUS  label Nama berkas (panjang)  (Nama berkas: )
+LULUS  nama panduan ditolak  (Kesalahan: nama lebih panjang dari batas 64 byte - perintah tidak dija)
+MERAH  pengumuman isi penuh  (Isi berhenti pada kapasitas satu slot 8192 byte)
+LULUS  tulis penuh satu slot  (Tertulis 8192 byte di /panduan/penuh.txt (berkas baru))
+MERAH  blink aktif pada label panduan  (0 piksel bbox (1024, 768, -1, -1))
+LULUS  beres catat.txt  (Berkas dihapus: /panduan/catat.txt (20 byte dibebaskan))
+LULUS  beres penuh.txt  (Berkas dihapus: /panduan/penuh.txt (8192 byte dibebaskan))
+LULUS  kembali ke akar  (Ruang kerja: /)
+LULUS  beres panduan  (Direktori dihapus: /panduan (0 entri))
+LULUS  regresi: meminfo lama utuh  (Installed RAM: 256 MB)
+LULUS  suite dimulai  ([GATE-3D-TEST])
+LULUS  entri #38: layar bertambah saat serial bersnapshot  (snapshot=True baris 583->585 piksel beda 202788)
+LULUS  telemetri akhir  (APIC Preemptive Switches:)
+LULUS  prompt kembali  (ASL-KERNEL />_)
+TOTAL 27 LULUS / 31 periksa
+ISO SHA256 lihat berkas stderr/log build; artefak ppm: logs/f5_kursor_2026-10-22_08-13-46_*.ppm

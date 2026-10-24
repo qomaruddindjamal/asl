@@ -1,0 +1,35 @@
+prompt satu-sumber : 'ASL-KERNEL> '
+penanda crash      : ASL-CORE-PANIC | ASL EXCEPTION | FATAL
+kasus              : 41 utama + 2 sisa; dijalankan 1 kasus (diagnostik=False faultDemo=False satuToken='trap_de')
+QEMU   : QEMU emulator version 10.2.50 (v10.2.0-14086-g840320663e)
+ISO    : C:\asl\asl-kernel\target\asl-core-kernel.iso
+ISO    : 4200448 bytes SHA256=0391c41149ec66a565f03e9cada637ef7281179c5f6c820e6044dc22300b74de
+PORTA  : 127.0.0.1:14721 (chardev socket dua arah, COM1)
+
+=== FASE 1 - cold boot 256M berjendela + koneksi serial ===
+CMDLINE: "C:\Program Files\qemu\qemu-system-x86_64.exe" -machine q35 -vga std -m 256M -cdrom C:\asl\asl-kernel\target\asl-core-kernel.iso -chardev socket,id=ser0,server=on,wait=on,host=127.0.0.1,port=14721 -serial chardev:ser0 -no-reboot -no-shutdown
+PID    : 14528  (tutup dengan: e8_adversarial_run.ps1 -StopQemu)
+SERIAL : terhubung, log byte-per-byte -> C:\asl\Analysis\reports\e8_adversarial_serial_2026-10-21_23-04-58.log
+Boot   : M6=True prompt=True crash=TIDAK
+
+=== FASE 2 - sesi masukan adversarial ===
+CATATAN bangun: pada ISO ini registry kanonik berisi 11 perintah; 'up' (C15) dan 'rename' (C26,C27)
+             BELUM ada, jadi kedua kasus itu menguji jalur 'perintah tak dikenal' - bukan jalur
+             aslinya. Jalur asli keduanya diuji lagi setelah F2/F6, dan jendela E8 diulang.
+[PANIK] V01 'verifikasi satu token: trap_de' -> ASL EXCEPTION
+        balasan: trap_de | [TEST-TRIGGER] Triggering Vector 0 (#DE - Divide Error)... | ======================= [ASL EXCEPTION] ======================= | VECTOR: 0x0000 (#DE - Divide Error) | ERROR:  0x0000000000000000 | RIP:    0xFFFFFFFF8011DB82 | CS: 0x0028 | RSP:    0xFFFFFFFF801AAFC0 | SS: 0x0030 | RFLAGS: 0x0000000000010046 | RBP: 0x0000000000000000 | =============================================================== | [ASL-CORE] Secondary kernel notified. Controlled Halt Active. | 
+
+=== Keadaan akhir sesi ===
+byte masuk (serial->alat)  : 2981
+byte keluar (alat->serial) : 8
+stderr QEMU                : 197 byte
+  isi stderr = pesan 'info: QEMU waiting for connection' dari chardev socket
+  (konsekuensi wait=on agar tidak ada byte boot yang hilang). Bukan galat mesin.
+  Gerbang 'stderr 0 byte' alat G9 tetap berlaku untuk alat itu; di sesi ini
+  jumlah byte ini dilaporkan terang, bukan disembunyikan.
+serial log                 : C:\asl\Analysis\reports\e8_adversarial_serial_2026-10-21_23-04-58.log (2981 byte)
+HASIL: REPRODUKSI POSITIF - 1 kasus:
+  - V01 memicu 'ASL EXCEPTION'
+E8-STATUS: MODE VERIFIKASI token 'trap_de' - crash terlihat, ambil teks penanganannya.
+tabel kasus disimpan     : C:\asl\Analysis\reports\e8_adversarial_cases_2026-10-21_23-04-58.tsv (1 baris)
+jendela QEMU ditutup alat (sesi selesai).

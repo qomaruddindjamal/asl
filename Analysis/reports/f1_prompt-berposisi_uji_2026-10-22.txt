@@ -1,0 +1,145 @@
+ASL v1.0.2 - BAGIAN 2 - UNIT F1: POSISI AKTIF + PROMPT BERPOSISI
+================================================================
+
+Tanggal ukur: 2026-10-22. Cabang: feature/v1.0.2-r1. HEAD ter-commit sebelum
+unit ini: d8c002a (penutupan BAGIAN 1 / E8). Yang diukur adalah working tree
+dengan perubahan .rs unit F1; seluruh angka di bawah berasal dari artefak atau
+keluaran alat yang dijalankan pada tree itu, bukan dari ingatan.
+
+Acuan perangkat uji unit ini:
+  ISO 4.204.544 byte SHA256 9CCE95213EB628B7FD831E945EE3D271A86774F0BBCC74DEEF3CE9F0B25EA6FA
+  ELF kernel 329.296 byte SHA256 A2233F91137871D412F3E9587264D2B85C0894A35F85CEB6F87CEC6656769CF1
+Baseline BAGIAN 1 (E8), untuk selisih: ISO 4.200.448 byte 18F40D2D...FAD0,
+ELF 325.120 byte 74405577...7b3. Selisih terukur +4.096 byte ISO, +4.176 byte ELF.
+
+--- [1] SATU-SUMBER PROMPT -----------------------------------------------------
+Kelas bukti: VERIFIED-ON-HOST.
+Nilai dibaca dari berkas oleh verifier (logs/f1_qemu_check.py), bukan diketik
+tangan di tempat lain:
+  asl-kernel/asl-cockpit-shell/src/lib.rs
+    SHELL_PROMPT_PREFIX = "ASL-KERNEL "
+    SHELL_PROMPT_SUFFIX = ">_ "
+    SHELL_PROMPT        = "ASL-KERNEL />_ "   (bentuk AKAR, tetap satu konstanta)
+  assert verifier: PREFIX + "/" + SUFFIX == SHELL_PROMPT -> COCOK.
+Perenderan: render_prompt(posisi, penyangga) menyusun PREFIX + posisi + SUFFIX
+tanpa alokasi (no_std). Penyangga terlalu kecil -> posisi dipotong, SUFFIX tetap
+utuh; penyangga lebih kecil dari PREFIX + SUFFIX -> mengembalikan PREFIX.
+Pemakai di kernel: impl ShellCwd::prompt() di asl-kernel-core memanggil
+render_prompt; bentuk akar dipakai di boot, bentuk berposisi dicetak ke serial
+dan framebuffer sesudah setiap perintah.
+Keputusan pemilik yang mengikat bentuk ini: opsi "harfiah termasuk _", jadi
+prompt = "ASL-KERNEL " + posisi + ">_ "; contoh misi "ASL-KERNEL /hello>_ "
+dikunci di kode, test, dan dokumen. Janji misi Bagian 1.1 ("prompt polos, tanpa
+posisi") dinyatakan TERSUPERSEDE oleh F1; test penjaga lama
+test_release_identity_single_source ditulis ulang agar mengunci konstanta baru,
+bukan dihapus.
+
+--- [2] UJI UNIT SISI HOST -----------------------------------------------------
+Kelas bukti: VERIFIED-ON-HOST.
+Perintah: cargo test --workspace --lib pada tree F1.
+Terukur: 205 lulus / 0 gagal pada 30 suite (baseline E8 = 202 lulus / 0 gagal).
+Tambahan +3 test F1:
+  asl-cockpit-shell: test_f1_prompt_shows_active_position,
+                     test_f1_prompt_truncates_long_position_and_keeps_suffix
+  asl-kernel-core:   test_shell_prompt_shows_active_position
+Termasuk di dalamnya uji sinkron dokumen test_docs_command_reference_matches_registry
+(baca docs/PANDUAN/REFERENSI-PERINTAH.md lewat include_str! dan bandingkan blok
+"### nama" dengan REGISTRY) - hijau, artinya dokumen dan registry berubah pada
+commit yang sama.
+
+--- [3] BUILD RIJEL DARI NOL ---------------------------------------------------
+Kelas bukti: VERIFIED-ON-HOST.
+Ruang sasaran terpisah (CARGO_TARGET_DIR=logs/target_f1check2), jadi tidak ada
+artefak lama yang membuat hasil terasa bersih:
+  13 baris "Compiling", 0 baris "warning", 0 baris "error", selesai 7,39 s.
+ELF hasil build-dari-nol 329.296 byte SHA256 A2233F91...9CF1 = IDENTIK byte per
+byte dengan ELF yang ada di dalam ISO terukur (ELF 329.296 byte SHA256 sama).
+Artinya ISO F1 dapat direproduksi dari tree ini pada platform ini.
+
+--- [4] GERBANG fmt / clippy "NOL BARU" ----------------------------------------
+Kelas bukti: VERIFIED-ON-HOST.
+Alat: scripts/r1_new_only_gate_check.py fmt dan clippy (irisan git diff -U0
+dengan keluaran rustfmt/clippy).
+  fmt    : asl-kernel-core baris saya 39 / rustfmt 107, IRISAN BARU 0
+           asl-cockpit-shell baris saya 100 / rustfmt 28, IRISAN BARU 0
+           asl-storage/ramdisk.rs baris saya 0, IRISAN BARU 0
+           TOTAL deviasi/diagnostik BARU = 0 (keluar 0)
+  clippy : TOTAL deviasi/diagnostik BARU = 0 (keluar 0)
+Warisan yang sudah ada sebelum R1 tetap ada (140 blok deviasi fmt, 137
+diagnostik clippy) dan tidak diubah menjadi hijau harfiah; yang ditegakkan
+adalah NOL BARU pada baris hasil kerja, seperti unit-unit sebelumnya.
+
+--- [5] GERBANG LANTAI MEMORI BOOT ---------------------------------------------
+Kelas bukti: VERIFIED-ON-VM.
+Alat: scripts/test_ram_floor_3mb.ps1, tanpa argumen, pada ISO F1.
+Baris kepala keluaran alat: prompt satu-sumber 'ASL-KERNEL />_ ',
+SHA256 9CCE9521...A6FA (parser konstanta bekerja pada konstanta bentuk baru).
+  [A] janji misi -m 3M    : reached=False m6=False crash=False serial=0 byte
+                            stderr=0 byte -> TETAP MERAH
+  [B] ratchet    -m 3392K : reached=True  m6=True  crash=False serial=2.501 byte
+                            stderr=0 byte -> LULUS
+KEPUTUSAN generator: 2 (DEVIASI TERCATAT), sama seperti pada ISO baseline E8.
+Ratchet 3392K tetap lulus di atas ISO F1 -> tidak ada pertumbuhan footprint boot
+dari unit ini. Janji Bagian 5 "-m 3M lulus" TIDAK diubah menjadi hijau oleh
+unit ini.
+
+--- [6] SESI QEMU 256M - DERET PROMPT ------------------------------------------
+Kelas bukti: VERIFIED-ON-VM (emulator pada mesin pengembangan; BUKAN
+VERIFIED-ON-HARDWARE, yang konternya tetap 0).
+Alat: logs/f1_qemu_check.py (jendela QEMU q35, -m 256M, serial chardev socket).
+Artefak: Analysis/reports/f1_prompt-berposisi_serial_2026-10-22_00-50-53.log
+(2.932 byte) dan ..._qemu_stderr_2026-10-22_00-50-53.log (197 byte).
+ISO diukur ulang oleh alat yang sama pada akhir sesi: 4.204.544 byte
+SHA256 9CCE9521...A6FA.
+Deret prompt terukur (9) dibandingkan dengan deret harapan (prompt boot + satu
+prompt per perintah), hasil SESUAI:
+  1. ASL-KERNEL />_        (boot)
+  2. ASL-KERNEL />_        sesudah create-folder hello
+  3. ASL-KERNEL /hello>_   sesudah cd hello
+  4. ASL-KERNEL /hello>_   sesudah where
+  5. ASL-KERNEL /hello>_   sesudah list
+  6. ASL-KERNEL /hello>_   sesudah write-file note.txt halo f1
+  7. ASL-KERNEL /hello>_   sesudah cat note.txt
+  8. ASL-KERNEL />_        sesudah cd ..
+  9. ASL-KERNEL />_        sesudah where
+Baris keluaran terukur di serial (kutip apa adanya):
+  Direktori dibuat: /hello
+  Ruang kerja: /hello
+  /hello                 (keluaran where di subfolder)
+  Daftar isi /hello (0 entri):
+  Tertulis 7 byte di /hello/note.txt
+  /hello/note.txt:  halo f1
+  Ruang kerja: /
+  /                  (keluaran where kembali ke akar)
+Penanda crash (ASL-CORE-PANIC / ASL EXCEPTION / FATAL): False.
+Keputusan dibaca dari berkas serial, bukan dari pencocokan konstanta saja.
+
+--- [7] KONSEKUENSI CARA KERJA ALAT YANG DICATAT (TIDAK diperbaiki diam-diam) --
+Sejak F1, SHELL_PROMPT hanya cocok dengan prompt pada AKAR. Empat alat gerbang
+membaca konstanta itu untuk mendeteksi "shell sudah kembali"
+(scripts/test_ram_floor_3mb.ps1, scripts/ci_local.ps1,
+scripts/e8_adversarial_run.ps1, scripts/g9_final_p8_run.ps1 - alat terakhir ini
+SENGAJA tidak diubah pada rantai R1). Konsekuensinya:
+  a) Deteksi boot dingin tetap benar karena direktori kerja awal adalah akar;
+     bukti [5] di atas lulus dengan konstanta bentuk baru.
+  b) Sesi yang sedang berada di subfolder tidak akan terhitung "prompt kembali"
+     oleh pencocokan harfiah itu. Karena itu jendela E8/G9-LITE yang wajib diulang
+     sesudah F2 dan F6 harus dijalankan dengan -ExpectedIsoSha ISO baru, dan
+     pembacaan hasilnya memakai deret prompt dari berkas serial seperti [6].
+Penyesuaian alat ditunda ke R2 setelah fitur beku (keputusan pemilik), bukan
+dilakukan di tengah BAGIAN 2.
+
+--- [8] DAFTAR BERKAS YANG BERUBAH PADA UNIT INI -------------------------------
+Kode + test (satu commit dengan dokumen, agar uji sinkron dokumen hijau):
+  asl-kernel/asl-cockpit-shell/src/lib.rs
+  asl-kernel/asl-kernel-core/src/lib.rs
+Dokumen:
+  docs/PANDUAN/REFERENSI-PERINTAH.md (Pasal 2 prompt; blok "### where")
+  docs/PANDUAN/MULAI-CEPAT.md (Pasal 1, 3, 4)
+  docs/ROADMAP/PETA-KANONIK.md (baris Prompt)
+Bukti:
+  Analysis/reports/f1_prompt-berposisi_serial_2026-10-22_00-50-53.log
+  Analysis/reports/f1_prompt-berposisi_qemu_stderr_2026-10-22_00-50-53.log
+  berkas ini
+Registry perintah TIDAK berubah jumlah pada unit ini: tetap 11 perintah
+(CANONICAL_COMMAND_COUNT = 11); naik ke 13 pada F2 (up) dan F6 (rename).

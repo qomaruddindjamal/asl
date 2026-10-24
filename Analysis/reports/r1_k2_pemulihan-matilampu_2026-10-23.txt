@@ -1,0 +1,601 @@
+PEMULIHAN MATI LAMPU UNIT K-2 - KEADAAN MESIN LOKAL TERUKUR - DIUKUR 2026-10-23 (UTC)
+====================================================================================
+WAKTU PENGUKURAN UNIT INI: 2026-10-23T17:44:49Z (UTC) = 2026-10-24 00:44:49 lokal (UTC+7).
+Setiap blok di bawah menyebut alat, sumber, dan waktu pengukurannya sendiri;
+angka tidak dikutip dari memori dan tidak ditulis sebagai harapan; yang tidak
+terukur dinyatakan tidak terukur. Kelas bukti berkas ini VERIFIED-ON-HOST untuk
+sisi host dan VERIFIED-ON-CI-API untuk angka hosted CI yang dikutip. Kelas
+VERIFIED-ON-HARDWARE tetap 0 dan bagian VM tetap TERBLOKIR.
+
+JAM PENGUKURAN PER BLOK (UTC, dibaca dari mtime berkas keluaran):
+  blok 1  2026-10-23T17:25:32Z (pemeriksaan pertama) dan 2026-10-23T17:41:57Z (penyegaran EventLog)
+  blok 2  2026-10-23T17:37:52Z (enam perintah inventaris)
+  blok 4  test 2026-10-23T17:28:19Z, clippy 2026-10-23T17:28:25Z, build 2026-10-23T17:28:33Z; gerbang ulang 2026-10-23T17:38:51Z
+  blok 5  2026-10-23T17:37:57Z (git show dua patch README)
+  blok 7  2026-10-23T17:30:35Z (percobaan mastering ISO)
+  blok 8  ekstrak 2026-10-23T17:31:46Z; audit 2026-10-23T17:44:07Z
+
+ZONA WAKTU: seluruh label tanggal pada berkas unit ini = tanggal UTC. Jam mesin
+lokal UTC+7, jadi saat pengukuran berjalan tanggal lokal sudah 2026-10-24
+sementara UTC masih 2026-10-23. Aturan ini adalah pelajaran fault log entri
+ke-53 dan dinyatakan di sini supaya label tidak dibaca sebagai salah ketik.
+
+Tree yang diukur = isi HEAD 762cea3 (unit ekstrak di atas fce6c0a). NOL berkas
+.rs berubah sejak 38b3bcc, jadi tree ini secara perangkat keras sama dengan
+tree gerbang akhir R1.
+
+
+1. LANGKAH 0 - BUKTI PASOKAN LISTRIK DAN HASIL PEMERIKSAAN DISK
+----------------------------------------------------------------
+Windows tidak menampilkan chkdsk pada boot berikutnya, jadi tidak ada hasil
+chkdsk yang bisa dicatat sebagai "dijalankan". Yang terukur dari log kejadian
+(Get-CimInstance Win32_OperatingSystem, Get-WinEvent, Get-Volume,
+Get-Partition, Get-PhysicalDisk, fsutil, chkdsk /L) lewat dua naskah scratch
+logs/r1_matilampu_periksa.ps1 dan logs/r1_pulih_eventlog.ps1, keduanya read-only:
+
+  - Waktu boot terakhir (LastBootUpTime): 2026-10-23 17:42:57 lokal
+    = 2026-10-23T10:42:57Z.
+  - Uptime pada saat query: 24150,653708 detik (6,71 jam), konsisten dengan
+    boot di atas: 17:42:57 + 6:42:30 = 2026-10-24 00:25:27 lokal.
+  - Tulisan terakhir agen sebelum padam: mtime logs/watch_762cea3_pr.txt =
+    2026-10-23 03:20:06 lokal = 2026-10-22T20:20:06Z. Jendela padam yang bisa
+    dibuktikan oleh berkas lokal: antara 20:20:06Z dan 10:42:57Z hari
+    berikutnya; Windows tidak dapat mencatat waktu padam, hanya waktu menyala.
+  - Microsoft-Windows-Kernel-Power Event ID 41 (daya hilang tanpa shutdown
+    bersih), TimeCreated: 2026-10-23 17:42:59 lokal DAN 2026-10-22 21:20:55
+    lokal. Keduanya ditulis saat boot, bukan saat listrik padam. Kejadian
+    2026-10-22 21:20:55 lokal berada SEBELUM unit 762cea3 disusun (tulisan
+    terakhirnya 2026-10-23 03:20:06 lokal), jadi jendela 36 jam ini memuat
+    DUA pemutusan daya, bukan satu.
+  - EventLog sumber EventLog, jendela 36 jam: 9 kejadian, 4 di antaranya ID
+    6005/6008 dan NOL ID 6006 (shutdown bersih). Terukur:
+      * 6008 TimeCreated 2026-10-23 17:43:05 lokal: "The previous system
+        shutdown at 5:42:22 PM on 10/23/2026 was unexpected."
+      * 6005 TimeCreated 2026-10-23 17:43:05 lokal: "The Event log service was
+        started."
+      * 6008 TimeCreated 2026-10-22 21:21:01 lokal: "The previous system
+        shutdown at 8:38:49 PM on 10/22/2026 was unexpected."
+      * 6005 TimeCreated 2026-10-22 21:21:01 lokal, pesan sama.
+    Jadi DUA pemutusan tak bersih dalam jendela 36 jam. Catatan metode yang
+    penting: nilai "previous system shutdown" pada 6008 adalah waktu yang
+    dibaca Windows saat menyala, BUKAN waktu padam - untuk kejadian kedua
+    nilainya 17:42:22 lokal, hanya 35 detik sebelum boot 17:42:57 lokal,
+    sedangkan tulisan terakhir agen 14,4 jam sebelumnya (03:20:06 lokal).
+    Batas yang bisa dinyatakan: padam terjadi di antara 2026-10-23 03:20:06
+    lokal (= 2026-10-22T20:20:06Z) dan boot 2026-10-23 17:42:57 lokal
+    (= 2026-10-23T10:42:57Z); Windows tidak dapat mencatat waktu padam.
+    NOL kejadian 6006 berarti tidak ada shutdown bersih di antara keduanya.
+    Kutipan pesan 6008 di atas dibersihkan dari artefak konsol: lewat pipe
+    bash, tanda kutip tanggal tiba sebagai karakter "?" (mis.
+    "?10/?23/?2026"); angka jam dan tanggalnya tidak diubah.
+  - volmgr Event ID 46 (Error) 2026-10-23 17:42:59 lokal: "Crash dump
+    initialization failed!" - akibat pencabutan daya, bukan kesalahan
+    filesystem; tidak ada kejadian 46 lain di jendela itu.
+  - Microsoft-Windows-Ntfs Event ID 98 (Information): 2026-10-23 17:42:59
+    lokal "Volume C: (\Device\HarddiskVolume3) is healthy.  No action is
+    needed." dan 17:43:02 lokal untuk \Device\HarddiskVolume4 dengan pesan
+    sehat yang sama; pola yang sama terlihat pada boot 2026-10-22 21:20:55
+    dan 21:20:57 lokal.
+  - Kejadian chkdsk (Application, sumber Chkdsk, Event ID 1001) dalam 36 jam:
+    TIDAK ADA. Artinya chkdsk tidak berjalan, sehingga tidak ada laporan
+    "chkdsk selesai, bad sector nol" yang bisa dikutip.
+  - fsutil dirty query C: -> "Volume - C: is NOT Dirty".
+  - chkdsk C: /L (membaca label log, tanpa perubahan) -> "The type of the
+    file system is NTFS.", "The current log file size is 65536 KB.", "The
+    default log file size for this volume is 65536 KB." Tidak ada pernyataan
+    dirty.
+  - Get-PhysicalDisk -> "V-GEN08SM23AR256HY 256GB SSD", HealthStatus Healthy,
+    OperationalStatus OK.
+  - Get-Volume: C: (label WINDOWS, NTFS) Healthy/OK 255.060.865.024 B dengan
+    sisa 18.782.859.264 B; volume recovery NTFS Healthy/OK 770.699.264 B.
+    SATU TEMUAN LINGKUNGAN: volume FAT32 tanpa huruf drive, 205.520.896 B
+    dengan sisa 167.084.032 B, berstatus HealthStatus Warning dan
+    OperationalStatus "Full Repair Needed". Volume itu adalah EFI System
+    Partition (Get-Partition: disk 0 partisi 1, Type System, 209.715.200 B;
+    ukuran filesystem lebih kecil daripada ukuran partisi). FAT32 tidak
+    punya jurnal, maka cabut daya meninggalkan tanda itu.
+  - Yang TIDAK saya lakukan: memeriksa atau memperbaiki ESP. chkdsk /f pada
+    partisi sistem adalah operasi tulis pada jalur boot mesin ini dan bukan
+    keputusan agen; dibutuhkan perintah pemilik. Volume C: sendiri sehat dan
+    pohon kerja tidak berada di ESP.
+  - Yang hilang karena padam: NOL pada level repo. Terukur di Bagian 2 dan 3.
+
+
+2. LANGKAH 1 - ENAM KELUARAN INVENTARIS (read-only, dijalankan berurutan)
+--------------------------------------------------------------------------
+Keluaran di bawah diukur ulang pada waktu unit ini, bukan dikutip dari
+sebelum padam. git fetch origin pada pengukuran ulang tidak mencetak baris
+apa pun karena ref lokal sudah sinkron; pada eksekusi pertama setelah menyala
+fetch mencetak pembaruan refs main dan dua branch patch milik pemilik, dan
+keadaan akhir refs-nya sama dengan yang terlihat di bawah.
+
+$ git fetch origin
+
+$ git log --oneline -3 origin/feature/v1.0.2-r1
+762cea3 [V1.0.2-R1-EKSTRAK] UNIT EKSTRAK DI ATAS fce6c0a: EMPAT EKSTRAK UNTUK DUA PASANG RUN - a0bbcd6 (push 39846181176 dan pull_request 39846195525) SERTA fce6c0a (push 39847206080 dan pull_request 39847214355), KEEMPATNYA SUCCESS DENGAN 30 SUITE 262 LULUS 0 GAGAL, per_test_ok 262, 19 BARIS warning LANGKAH TEST, 13 BARIS Compiling, 0 ERROR KEDUA KALI JALAN - DITULIS DARI LOG MENTAH gh run view --log OLEH NASKAH SCRATCH logs/p7_extract2.py YANG TIDAK DI-COMMIT (gitignored), TIDAK ADA ANGKA YANG DIKETIK TANGAN - AUDIT UTANG scripts/r1_debt_audit.py MENYATAKAN KEEMPAT BARIS BELUM DITUTUP COMMIT INI DAN SATU-SATUNYA UTANG TERTINGGAL ADALAH PASANGAN ATAS TIP UNIT INI SENDIRI KARENA ATURAN G8 MELARANG SATU COMMIT MEMUAT EKSTRAK UNTUK DIRINYA - GERBANG TIDAK BERUBAH KARENA NOL BERKAS .rs: fmt NOL DEVIASI BARU DAN clippy NOL DIAGNOSTIK BARU PADA b47c24c..HEAD DENGAN 134 WARISAN, ELF RILIS TETAP 312.912 B SHA256 FB4EEB31E26B1CF9A289E4C697E6CEA8230CD83A1AD45424CD2312EE5EEE5D59 - KELAS BUKTI VERIFIED-ON-CI-API, BAGIAN VM TETAP TERBLOKIR, VERIFIED-ON-HARDWARE TETAP NOL - PERINTAH TAHAN TETAP BERLAKU DAN RANTAI MANDAT R1 BERHENTI (docs/evidence-only, nol .rs)
+fce6c0a [V1.0.2-R1-KOREKSI-WAKTU] UNIT KOREKSI HIGIENE BUKTI DI ATAS a0bbcd6: TIMESTAMP HANDOFF_STATE DITULIS DARI PERKIRAAN BUKAN JAM MESIN - 38b3bcc MEMBAWA 2026-10-22T20:05:00Z SAAT JAM COMMIT 19:56:36Z (PLUS 8,40 MENIT) DAN 70431dd SAAT 20:00:00Z (PLUS 5,00 MENIT) - DIUKUR DENGAN git show -s --format=%cI DAN git show commit:berkas - POHON KERJA UNIT INI SEBELUM KOREKSI MENGAKLAIM 20:25:00Z TERHADAP MTIME TERUKUR 20:01:05Z (PLUS 23,92 MENIT) - KOREKSI DARI JAM MESIN SEBELUM COMMIT, DUA NILAI YANG SUDAH TER-COMMIT TIDAK DITULIS ULANG KARENA ZERO-AMEND DAN APPEND-ONLY - ENTRI FAULT LOG KE-53 CLOSED violations_recorded_delta NOL (TIDAK ADA GERBANG G1 SAMPAI G11 YANG DILANGGAR, YANG DILANGGAR DISIPLIN PELAPORAN WAKTU) - KUNCI HANDOFF v1_0_2_r1_koreksi_timestamp_state DAN next_immediate_step SALINAN PERSISNYA - GERBANG DIULANG: fmt NOL DEVIASI BARU DAN clippy NOL DIAGNOSTIK BARU PADA RENTANG b47c24c..HEAD DENGAN 134 WARISAN, TIGA BERKAS .RS TIDAK DISENTUH - KELAS BUKTI VERIFIED-ON-HOST, BAGIAN VM TETAP TERBLOKIR, VERIFIED-ON-HARDWARE TETAP NOL - PERINTAH TAHAN TETAP BERLAKU DAN RANTAI MANDAT R1 BERHENTI DI SINI (docs/evidence-only, nol .rs)
+a0bbcd6 [V1.0.2-R1-PENUTUP-EKSTRAK] UNIT PENUTUP RANTAI BAGIAN 2: DUA EKSTRAK ATAS 70431dd (PUSH 39844995227 DAN PULL_REQUEST 39845003304, KEDUANYA SUCCESS, 262 LULUS 0 GAGAL, ELF RUNNER 312.968 B, COVERAGE ADVISORY LINES 89,90 PERSEN) + AUDIT UTANG EKSTRAK MENGATAKAN SATU-SATUNYA UTANG TERBUKA ADALAH PASANGAN INI + HANDOFF KUNCI STATUS BAGIAN 2 DENGAN LANGKAH BERIKUT MENUNGGU BUKAN BEKERJA + GERBANG HOST DIULANG ULANG SESUDAH GANGGUAN LISTRIK: 30 SUITE 262 LULUS 0 GAGAL, fmt 0 BARU DAN clippy 0 BARU PADA DUA RENTANG 235d44b..HEAD DAN b47c24c..HEAD DENGAN 134 WARISAN, ELF RILIS 312.912 B SHA256 FB4EEB31E26B1CF9A289E4C697E6CEA8230CD83A1AD45424CD2312EE5EEE5D59 IDENTIK DENGAN UNIT GERBANG AKHIR + BAGIAN VM TETAP TERBLOKIR BUKAN LULUS + EMPAT KEPUTUSAN PEMILIK DI docs/RND/ASL-V1.0.2-R1-STATUS-BAGIAN-2.md SECTION 7 + PERINTAH TAHAN TETAP BERLAKU (docs/evidence-only, nol .rs)
+
+$ git log --oneline -3 origin/main
+1f096ed Merge pull request #9 from qomaruddindjamal/qomaruddindjamal-patch-2
+d4c4375 Update README.md
+726f137 Merge pull request #8 from qomaruddindjamal/qomaruddindjamal-patch-1
+
+$ git branch -vv
+  feature/asl-v1.0.2        f1e786e feat(storage): complete M3 persistent RAID metadata, partition reservation safety, and fault injection
+  feature/phase7            2906e41 [origin/feature/phase7] [PHASE-7-5] CLOSEOUT T5: gerbang DIUKUR ULANG di tip + dua ekstrak menutup utang [PHASE-7-4] + laporan closeout + PR #4 di-merge dengan merge commit dua-parent (docs/evidence-only, nol .rs). Terukur di tree d2f63b7: cargo test --workspace --lib = 30 suite / 172 passed / 0 failed (172 baris roster, 21 warning profil test non-blocking, 0 error) dan build release DARI-NOL tanpa env RUSTFLAGS = 13 baris Compiling / Finished 5,70s / 0 warning / 0 error. Sidik jari tree final dibaca ulang, bukan diwarisi dari T4: ELF Windows 243.568 B SHA256 3c9c4ee9c09123398835ad0779620327dee901a0a6f5de724eceb91b207c4248; ISO dua invokasi 4.118.528 B SHA256 da5b91f95cd10ed4844c4b189717c5bfd6e71c6c225fb02a83f600f5a7abce56 identik byte, EFI PART offset 512, Disk GUID e181e879-31ec-3d41-a200-b4997a320a0d, kepala 128 B ELF hadir tepat satu kali di dalam ISO. Rantai hosted terukur saat commit ini dibuat: 35 run asl-ci-minimal conclusion=success (35 baris, 0 bukan-success) = 14 rantai yang menjadi main + 21 feature/phase7; ekstrak ter-commit 26 -> 28; 7 run success masih TANPA ekstrak dinyatakan terang (45a33c7, 5829e28, bb4a9df, 08f706a di rantai main; 5a180f6 dan dua run cc3fe28 di branch audit) supaya angka 28 tidak dibaca sebagai "semua run sudah diekstrak". Dua ekstrak baru (39511692285 push, 39511696696 pull_request @ d2f63b7) terukur DUA job hijau dengan angka identik dan blok 13 baris coverage ber-SHA256 sama dengan empat ekstrak sebelumnya (13db7b350e6f215847a8e284cf2cdc35dca64fd7a7090218597a2abe83174aa0); alasannya terukur, bukan diasumsikan: lib.rs yang berubah di T4 (5 baris string, jumlah baris tetap 2693) bukan milik tiga crate yang diinstrumentasi coverage. NOL entri ACCOUNTABILITY_FAULT_LOG baru pada commit ini karena tidak ada klaim lama yang dibatalkan oleh pengukuran closeout. append-only diverifikasi mekanis: difflib hanya equal/insert/replace dan setiap baris yang ditandai hilang di README (4.784 B -> 6.007 B dan 4.918 B -> 6.013 B) tetap utuh sebagai PREFIKS baris baru; CJK terukur 0 pada keempat dokumen. T5 TIDAK menjalankan run berjendela baru (tree .rs tidak bergerak sejak [PHASE-7-4]; jendela berikutnya = misi v1.0.2 langkah P8). G8: nol amend/rebase/reset/force-push, tanpa squash dan tanpa rebase, branch feature/phase7 tidak dihapus; hash merge commit PR #4, verifikasi GET proteksi main pasca-merge, dan ekstrak run atas tip main adalah utang yang hanya bisa diukur SESUDAH merge sehingga dicatat pada commit BERIKUTNYA, bukan diklaim selesai di sini.
+* feature/v1.0.2-r1         762cea3 [origin/feature/v1.0.2-r1] [V1.0.2-R1-EKSTRAK] UNIT EKSTRAK DI ATAS fce6c0a: EMPAT EKSTRAK UNTUK DUA PASANG RUN - a0bbcd6 (push 39846181176 dan pull_request 39846195525) SERTA fce6c0a (push 39847206080 dan pull_request 39847214355), KEEMPATNYA SUCCESS DENGAN 30 SUITE 262 LULUS 0 GAGAL, per_test_ok 262, 19 BARIS warning LANGKAH TEST, 13 BARIS Compiling, 0 ERROR KEDUA KALI JALAN - DITULIS DARI LOG MENTAH gh run view --log OLEH NASKAH SCRATCH logs/p7_extract2.py YANG TIDAK DI-COMMIT (gitignored), TIDAK ADA ANGKA YANG DIKETIK TANGAN - AUDIT UTANG scripts/r1_debt_audit.py MENYATAKAN KEEMPAT BARIS BELUM DITUTUP COMMIT INI DAN SATU-SATUNYA UTANG TERTINGGAL ADALAH PASANGAN ATAS TIP UNIT INI SENDIRI KARENA ATURAN G8 MELARANG SATU COMMIT MEMUAT EKSTRAK UNTUK DIRINYA - GERBANG TIDAK BERUBAH KARENA NOL BERKAS .rs: fmt NOL DEVIASI BARU DAN clippy NOL DIAGNOSTIK BARU PADA b47c24c..HEAD DENGAN 134 WARISAN, ELF RILIS TETAP 312.912 B SHA256 FB4EEB31E26B1CF9A289E4C697E6CEA8230CD83A1AD45424CD2312EE5EEE5D59 - KELAS BUKTI VERIFIED-ON-CI-API, BAGIAN VM TETAP TERBLOKIR, VERIFIED-ON-HARDWARE TETAP NOL - PERINTAH TAHAN TETAP BERLAKU DAN RANTAI MANDAT R1 BERHENTI (docs/evidence-only, nol .rs)
+  feature/v1.0.2-shell      4e865c0 [origin/feature/v1.0.2-shell] [V1.0.2-CO-T4R] revert tag v1.0.2 (docs-only, nol .rs)
+  main                      b47c24c [origin/main: behind 4] Merge pull request #6 from qomaruddindjamal/feature/v1.0.2-shell
+  security/asl-v1.0.2-audit cc3fe28 [PHASE-6B][prep] bukti hosted CI run ketiga terverifikasi dari log mentah, gapit pra-merge terukur: run 39400350619 (event push, headSha fff0975, success, 09:23:44->09:24:07Z) disaring dari 841 baris `gh run view --log` menjadi ekstrak ASCII 67 baris ter-commit Analysis/reports/ci_hosted_39400350619_2026-10-20.log dengan angka dihitung ulang dari teks ([1/2] 30 suite = 172 passed/0 failed di ubuntu-latest; [2/2] 13 Compiling + Finished 1,98 s, 0 warning/0 error pada langkah release; footprint ELF Linux 243560 B), melengkapi rantai tiga run berturut-turut (8b829d8, 5a180f6, fff0975) sehingga VERIFIED-ON-CI langkah [1]-[2] tidak bergantung satu run; gapit G4 diukur ulang di tree ini (host test 30 suite 172/0; release build segar 0/0 ELF 243568 B setelah touch mtime-only agar bukan cache no-op); hash addendum PHASE-6A diungkapkan sesuai G8 = fff0975 (hash commit entri ini dicatat di entri berikutnya, nol amend/rebase/reset/force-push); ci_local.ps1 sengaja tidak dijalankan ulang karena Out-File-nya menimpa artefak bukti GERBANG AKHIR yang sudah ter-commit (ISO SHA256 tidak reproducible); G9, rilis v1.1.0, branch protection, penutupan execution log dan pembersihan 9 .log sampah root tetap di luar cakupan (PHASE-6B-CLOSEOUT); tip origin = fff0975, tree tracked bersih, 2 path docs/evidence-only (+115/0, nol perubahan .rs)
+
+$ git status
+On branch feature/v1.0.2-r1
+Your branch is up to date with 'origin/feature/v1.0.2-r1'.
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+	Analysis/reports/ci_hosted_39847738550_2026-10-22.log
+	Analysis/reports/ci_hosted_39847746179_2026-10-22.log
+	Analysis/reports/g9_final_p8_qemu_stderr_2026-10-21_13-22-57.log
+	Analysis/reports/g9_final_p8_qemu_stderr_2026-10-21_13-29-30.log
+	Analysis/reports/g9_final_p8_qemu_stderr_2026-10-21_13-34-54.log
+	Analysis/reports/g9_final_p8_qemu_stderr_2026-10-21_17-24-19.log
+	Analysis/reports/g9_final_p8_qemu_stderr_2026-10-21_17-38-36.log
+	Analysis/reports/g9_final_p8_qemu_stderr_2026-10-21_17-40-41.log
+	Analysis/reports/g9_final_p8_qemu_stderr_3m_2026-10-21_17-40-41.log
+	Analysis/reports/g9_final_p8_serial_2026-10-21_13-22-57.log
+	Analysis/reports/g9_final_p8_serial_2026-10-21_13-29-30.log
+	Analysis/reports/g9_final_p8_serial_2026-10-21_13-34-54.log
+	Analysis/reports/g9_final_p8_serial_2026-10-21_17-24-19.log
+	Analysis/reports/g9_final_p8_serial_2026-10-21_17-38-36.log
+	Analysis/reports/g9_final_p8_serial_2026-10-21_17-40-41.log
+	Analysis/reports/g9_final_p8_serial_3m_2026-10-21_17-40-41.log
+	Analysis/reports/g9_final_p8_summary_2026-10-21_13-22-57.log
+	Analysis/reports/g9_final_p8_summary_2026-10-21_13-29-30.log
+	Analysis/reports/g9_final_p8_summary_2026-10-21_13-34-54.log
+	Analysis/reports/g9_final_p8_summary_2026-10-21_17-24-19.log
+	Analysis/reports/g9_final_p8_summary_2026-10-21_17-38-36.log
+	Analysis/reports/g9_final_p8_summary_2026-10-21_17-40-41.log
+	Analysis/reports/r1_k2_pemulihan-audit-utang-ekstrak_2026-10-23.txt
+
+nothing added to commit but untracked files present (use "git add" to track)
+
+$ git fsck
+dangling tag 0a809ece1f6fdabd59996b9d571b61677313a61d
+dangling blob 323084f0bf418277da391b9651afbdcdd16ccf7b
+dangling blob 8b23782c61c77a6b4ba6d96c118eaaedf36e2038
+dangling blob 1146aa1ae99f7f8a0542b3fb348ef7a46d1e88af
+dangling blob 7386da1cc432aad3f85f7a76845b68e1167c2cc8
+dangling tag 98692214b411a60c6e038e1eb62d45962ef288dd
+dangling tag c429a0c259921da3a38fc7eb8026e5a55430f3d8
+dangling blob 12bba13e3ba0f2200bc6829cbd13ba5d7e2abad6
+dangling tag 353b1d895a19adfda24c249d006eb5608c7122f6
+dangling blob c83d23a1b2ef47c4034920313dbf3dbd0d9b66be
+dangling tag fcdddfd216aebf81a02229e989010c69b4aa9031
+dangling blob 0a0fb9ca7b55333671ea5f570b94ba40bf0247cb
+dangling blob d01fb9d22a21fdc64aa7e77fe40730d11ad5beff
+
+exit_fsck=0
+
+Bacaan per baris:
+  [1] fetch: nol perubahan refs pada pengukuran ulang (sudah sinkron).
+  [2] tip origin/feature/v1.0.2-r1 = 762cea3 -> SESUAI yang pemilik verifikasi.
+  [3] tip origin/main = 1f096ed -> SESUAI (merge PR #9; di bawahnya d4c4375,
+      lalu 726f137 merge PR #8 dan 09c618f).
+  [4] branch -vv: cabang kerja feature/v1.0.2-r1 "up to date" dengan origin.
+      Local main tertinggal 4 commit (09c618f, 726f137, d4c4375, 1f096ed) -
+      itu edit README pemilik di main, BUKAN kehilangan kerja R1.
+  [5] status: nol berkas tracked yang berubah, nol perubahan staged; isi
+      untracked = 20 artefak g9_final_p8_* tanggal 2026-10-21 yang memang
+      ditahan (7 qemu_stderr termasuk 3m, 7 serial termasuk 3m, 6 summary)
+      ditambah tiga berkas bukti unit ini yang sedang disusun.
+  [6] fsck: exit 0 dengan 13 baris keluaran, SEMUANYA baris dangling - 5
+      dangling tag dan 8 dangling blob. Nol baris memuat kata error, missing,
+      broken, atau duplicated. Basis objek lokal utuh; tag menggantung itu
+      sisa operasi tag yang sudah tercatat (v1.0.2 dan v1.1.0 pernah ditarik),
+      bukan korup.
+Tag remote diukur dengan perintah ketujuh, `git ls-remote --tags origin`
+(keluarannya tidak ditempel di atas): hanya refs/tags/v1.0.0 (6f43d4b, objek
+tag 8ff19c3) dan refs/tags/v1.0.1 (b47c24c) - TIDAK ada v1.0.2 dan TIDAK ada
+v1.1.0 di origin, cocok dengan pernyataan pemilik. Tag LOKAL masih empat
+(v1.0.0, v1.0.1, v1.0.1-alfa, v1.1.0). Asimetri lokal-versus-origin ini SESUAI
+perintah tahan "JANGAN hapus tag/rilis v1.1.0", jadi tag lokal tidak disentuh.
+
+
+3. LANGKAH 2 - KLASIFIKASI TIGA KELAS DAN KEPUTUSAN
+----------------------------------------------------
+(a) Sudah di-push ke origin: SELURUH rantai R1 sampai 762cea3. Tidak disentuh.
+(b) Commit lokal belum-push: NOL. Terukur dua cara - `git rev-list
+    --left-right --count origin/feature/v1.0.2-r1...HEAD` = "0  0" (keluaran
+    [4] dan [5] di atas), dan untuk dua cabang lokal tanpa upstream
+    (feature/asl-v1.0.2 = f1e786e, security/asl-v1.0.2-audit = cc3fe28)
+    `git branch -r --contains` atas kedua tip mengembalikan ref origin, jadi
+    tip keduanya sudah termuat di server. Tidak ada yang perlu di-push dan
+    TIDAK ADA push yang saya lakukan pada Langkah 2.
+(c) Belum di-commit: NOL berkas tracked. Satu-satunya isi belum-commit saat
+    inventaris adalah 20 artefak g9_final_p8_* yang ditahan dan tidak boleh
+    disentuh. Tidak ada "satu commit pemulihan" kelas (c) yang perlu ditulis
+    karena tidak ada kerja setengah jadi di pohon: unit K-2 belum menghasilkan
+    suntingan berkas ketika listrik padam.
+Keputusan: tidak ada pemulihan isi tree yang diperlukan. Yang harus dipulihkan
+adalah PERCAYA-NOL pada artefak build, lalu mengukur ulang (Langkah 3-4) dan
+mencatat (Langkah 5).
+
+
+4. LANGKAH 3 DAN 4 - ARTEFAK DIANGGAP MUSNAH, DIBANGUN ULANG, ANGKA DIUKUR ULANG
+---------------------------------------------------------------------------------
+Dijalankan berurutan dari asl-kernel/ TANPA menyetel RUSTFLAGS (env akan
+menggantikan rustflags wajib di asl-kernel/.cargo/config.toml dan merusak
+linking):
+
+  cargo clean
+  cargo test --workspace --lib
+  cargo clippy --workspace --lib --target x86_64-unknown-none
+        --message-format=short -- -A clippy::not_unsafe_ptr_arg_deref
+        (artefak logs/clippy_r1_allow.txt)
+  cargo build --package asl-kernel-bin --target x86_64-unknown-none --release
+  powershell -File scripts/build_kernel.ps1 iso   (percobaan mastering, 7.2)
+
+Tiga exit code nol: test_exit=0, clippy_exit=0, build_exit=0. Perbandingan
+klaim ter-commit versus pengukuran ulang pada tree yang pulih:
+
+  UKURAN                              KLAIM TER-COMMIT   ULANG           SAMA?
+  baris 'test result:'                30                 30              YA
+  lulus                               262                262             YA
+  gagal                               0                  0               YA
+  baris 'error' pada log test         0                  0               YA
+  baris 'warning:' pada log build     19                 19              YA
+  - dari 19 itu: baris diagnostik     14                 14              YA
+    unik + 5 baris ringkasan
+    per crate; crate di luar cakupan
+    R1: asl-ont-gpon 5,
+    asl-do178c-cert 5,
+    asl-fleet-regression 1,
+    asl-power10-loongson 3
+  deviasi fmt BARU (235d44b..HEAD)    0                  0               YA
+  deviasi fmt BARU (b47c24c..HEAD)    0                  0               YA
+  rustfmt 'ingin diubah' tiga berkas
+    in-scope (core/shell/ramdisk)     78 / 28 / 19       78 / 28 / 19    YA
+  diagnostik clippy ber-baris         134                134             YA
+  diagnostik clippy BARU (2 rentang)  0                  0               YA
+  ukuran ELF rilis                    312.912 B          312.912 B       YA
+  SHA256 ELF                          FB4EEB31E26B1CF9A289E4C697E6CEA8230CD83A1AD45424CD2312EE5EEE5D59
+                                      diukur ulang: fb4eeb31e26b1cf9a289e4c697e6cea8230cd83a1ad45424cd2312ee5eee5d59
+                                      - IDENTIK
+
+NOL angka yang berbeda dari klaim, jadi NOL temuan pengukuran pada Langkah 4:
+build ulang bersih dari tree yang pulih menghasilkan angka gerbang dan ELF yang
+identik dengan unit gerbang akhir. Keluaran alat gerbang "hanya yang baru"
+(scripts/r1_new_only_gate_check.py diimpor oleh pembungkus scratch
+logs/r1_gerbang_akhir.py, dijalankan dengan rentang commit eksplisit):
+
+=== [1/2] gerbang fmt pada rentang 235d44b..HEAD ===
+asl-kernel/asl-kernel-core/src/lib.rs: baris unit 234, ingin diubah rustfmt 78, IRISAN BARU 0
+asl-kernel/asl-cockpit-shell/src/lib.rs: baris unit 920, ingin diubah rustfmt 28, IRISAN BARU 0
+asl-kernel/asl-storage/src/ramdisk.rs: baris unit 0, ingin diubah rustfmt 19, IRISAN BARU 0
+TOTAL deviasi fmt BARU = 0
+
+=== [2/2] gerbang clippy pada rentang 235d44b..HEAD ===
+diagnostik clippy ber-baris seluruh workspace : 134
+    16  asl-storage/src/fat32.rs
+    13  asl-kernel-core/src/lib.rs
+    11  asl-memory/src/paging.rs
+     8  asl-storage/src/raid.rs
+     7  asl-cockpit-shell/src/lib.rs
+     7  asl-hal/src/x86_fault.rs
+     6  asl-driver-pci/src/lib.rs
+     6  asl-hal/src/apic.rs
+asl-kernel/asl-kernel-core/src/lib.rs: IRISAN BARU 0
+asl-kernel/asl-cockpit-shell/src/lib.rs: IRISAN BARU 0
+asl-kernel/asl-storage/src/ramdisk.rs: IRISAN BARU 0
+TOTAL diagnostik clippy BARU = 0
+=== [1/2] gerbang fmt pada rentang b47c24c..HEAD ===
+asl-kernel/asl-kernel-core/src/lib.rs: baris unit 1809, ingin diubah rustfmt 78, IRISAN BARU 0
+asl-kernel/asl-cockpit-shell/src/lib.rs: baris unit 2540, ingin diubah rustfmt 28, IRISAN BARU 0
+asl-kernel/asl-storage/src/ramdisk.rs: baris unit 434, ingin diubah rustfmt 19, IRISAN BARU 0
+TOTAL deviasi fmt BARU = 0
+
+=== [2/2] gerbang clippy pada rentang b47c24c..HEAD ===
+diagnostik clippy ber-baris seluruh workspace : 134
+    16  asl-storage/src/fat32.rs
+    13  asl-kernel-core/src/lib.rs
+    11  asl-memory/src/paging.rs
+     8  asl-storage/src/raid.rs
+     7  asl-cockpit-shell/src/lib.rs
+     7  asl-hal/src/x86_fault.rs
+     6  asl-driver-pci/src/lib.rs
+     6  asl-hal/src/apic.rs
+asl-kernel/asl-kernel-core/src/lib.rs: IRISAN BARU 0
+asl-kernel/asl-cockpit-shell/src/lib.rs: IRISAN BARU 0
+asl-kernel/asl-storage/src/ramdisk.rs: IRISAN BARU 0
+TOTAL diagnostik clippy BARU = 0
+
+Yang musnah dan tidak bisa dibangun ulang oleh agen: direktori
+asl-kernel/target/limine_v8_binary/ (utilitas host limine.exe) dan
+asl-kernel/target/iso_root/boot/limine/ (payload boot). Keduanya terukur
+TIDAK ADA hari ini. Lihat Bagian 7.
+
+
+5. LANGKAH 6 - DUA PATCH README DI MAIN (read-only, tidak mengubah apa pun)
+-----------------------------------------------------------------------------
+$ git show --stat 09c618f -- README.md
+Qomaruddin Djamal | 2026-10-22T13:08:14+07:00 | Update README.md
+
+ README.md | 9 ---------
+ 1 file changed, 9 deletions(-)
+
+$ git show 09c618f -- README.md
+commit 09c618f92abd53ba29a9b2a98e14349f06b7727f
+Author: Qomaruddin Djamal <jamalpancur@gmail.com>
+Date:   Thu Oct 22 13:08:14 2026 +0700
+
+    Update README.md
+
+diff --git a/README.md b/README.md
+index eb03df4..fd775d3 100644
+--- a/README.md
++++ b/README.md
+@@ -1,14 +1,5 @@
+ # ASL CORE KERNEL: CANONICAL OS DEVELOPMENT ENTRY POINT
+ ================================================================================
+-**Project:** ASL Core Kernel
+-**Repository Root:** `C:\asl`
+-**Workspace:** `C:\asl\asl-kernel`
+-**Git Remote:** `https://github.com/qomaruddindjamal/asl.git`
+-**Audit Baseline Commit:** `5efedde`
+-**Audit Verification Date:** 2026-10-13
+-**Governing Standard:** DO-178C-aligned, ladder DAL-C->A (lihat ADR-002) / ARINC 653 Integrated Modular Avionics (IMA)
+-
+----
+ 
+ ## 1. PROJECT IDENTITY & PURPOSE
+ 
+
+$ git show d4c4375 -- README.md
+Qomaruddin Djamal | 2026-10-22T14:27:25+07:00 | Update README.md
+
+diff --git a/README.md b/README.md
+index fd775d3..8712aee 100644
+--- a/README.md
++++ b/README.md
+@@ -1,5 +1,5 @@
+ # ASL CORE KERNEL: CANONICAL OS DEVELOPMENT ENTRY POINT
+-================================================================================
++============================================================================
+ 
+ ## 1. PROJECT IDENTITY & PURPOSE
+
+Ringkasan satu kalimat per patch:
+  - 09c618f "Update README.md" (Qomaruddin Djamal, 2026-10-22T13:08:14+07:00):
+    menghapus blok sembilan baris metadata di bawah judul (Project, Repository
+    Root, Workspace, Git Remote, Audit Baseline Commit 5efedde, Audit
+    Verification Date 2026-10-13, Governing Standard, satu baris kosong, satu
+    garis pemisah) sehingga judul langsung disusul "## 1. PROJECT IDENTITY &
+    PURPOSE"; diff --stat = 1 berkas, 9 deletion, 0 insertion; indeks README.md
+    eb03df4 menjadi fd775d3.
+  - d4c4375 "Update README.md" (Qomaruddin Djamal, 2026-10-22T14:27:25+07:00):
+    satu baris saja - garis pemisah di bawah judul dipersingkat dari 80 karakter
+    menjadi 76 karakter; indeks fd775d3 menjadi 8712aee.
+
+Kedua patch masuk ke main lewat branch qomaruddindjamal-patch-1 (PR #8, merge
+726f137) dan qomaruddindjamal-patch-2 (PR #9, merge 1f096ed). Nama author kedua
+commit cocok dengan nama pemilik di konfigurasi git repo ini; diff satu-dua baris
+di atas branch ber-pola *-patch-N adalah ciri penyuntingan lewat web GitHub.
+Kepemilikan tetap menunggu konfirmasi pemilik - ini catatan agen, bukan kesimpulan.
+Cabang R1 tidak menyentuh README.md, jadi nol konflik dengan kerja R1; local main
+yang tertinggal 4 commit TIDAK saya sinkronkan karena bukan bagian mandat R1.
+
+
+6. LANGKAH 5 - YANG DICATAT DI LEDGER
+--------------------------------------
+Entri fault log ke-54: kelas lingkungan (mati lampu), result CLOSED,
+violations_recorded_delta 0 - tidak ada gerbang G1 sampai G11 yang dilanggar.
+Isi intinya: batas waktu yang bisa diukur (Bagian 1), hasil inventaris (nol
+kerja hilang, Bagian 2-3), hasil build ulang (nol angka berbeda, Bagian 4),
+satu temuan lingkungan baru (ESP berstatus "Full Repair Needed" sementara C:,
+disk, dan basis objek git sehat; chkdsk tidak pernah berjalan), reproduksi
+blocker #50 pada tree pulih, dan satu asumsi lama yang terbukti salah
+(Bagian 7.3).
+HANDOFF_STATE.json diberi kunci v1_0_2_r1_pemulihan_matilampu_k2_state dan
+next_immediate_step menjadi salinan persisnya; timestamp diambil dari jam mesin
+pada saat tulis, bukan dari perkiraan - itu disiplin yang dipelajari dari
+entri #53.
+
+
+7. LANGKAH 7 - STATUS K-2 SETELAH PEMULIHAN
+--------------------------------------------
+7.1 SYARAT TUNTAS K-2 (tidak berubah) dan statusnya sekarang:
+  (i)   binari limine hadir di jalur yang disusun scripts/build_kernel.ps1:100
+        dan scripts/test_hv2_stack_overflow_qemu.ps1:28
+        -> TERBLOKIR. Terukur hari ini: `git log --all --oneline -- '*limine*'`
+        menghasilkan NOL baris (perkakas tidak pernah dilacak repo), dan
+        penelusuran nama limine*.exe di C:\asl (termasuk target), Downloads,
+        Desktop, ProgramData, C:\Tools, C:\limine menemukan NOL berkas.
+        Direktori asl-kernel/target/limine_v8_binary dan
+        asl-kernel/target/iso_root terukur tidak ada. Yang tersisa hanya
+        salinan BYTE payload boot di logs/iso_recovery/boot/limine/:
+        BOOTX64.EFI 249.856 B, limine-bios-cd.bin 24.576 B, limine-bios.sys
+        216.644 B, limine-uefi-cd.bin 2.949.120 B, limine.conf 443 B,
+        kelimanya bermtime 2026-10-22 17:43:38 lokal = 10:43:38Z. Itu isi ISO,
+        bukan utilitas host - tidak bisa menjalankan 'bios-install'.
+  (ii)  ISO ter-master pada tip gerbang
+        -> BELUM BISA. Lihat 7.2.
+  (iii) Bukti VERIFIED-ON-VM (dan screendump bila mungkin) pada tree gerbang
+        akhir -> TERBLOKIR karena (ii). Kelas VERIFIED-ON-HARDWARE tetap 0.
+  (iv)  Akar penyebab hilangnya perkakas dicatat di fault log
+        -> TERCATAT (entri #50 oleh unit F6, ditambah entri #54 hari ini).
+
+7.2 REPRODUKSI BLOCKER PADA TREE PULIH (terukur, bukan dikutip)
+==> Building bootable hybrid ISO...
+    Finished `release` profile [optimized] target(s) in 0.06s
+C:\asl\scripts\build_kernel.ps1 : ERROR: Limine binary utility not found at 
+'C:\asl\asl-kernel\target\limine_v8_binary\limine.exe'.
+At C:\asl\scripts\build_kernel.ps1:102 char:13
++             Write-Error "ERROR: Limine binary utility not found at '$ ...
++             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (:) [Write-Error], WriteErrorException
+    + FullyQualifiedErrorId : Microsoft.PowerShell.Commands.WriteErrorException,build_kernel.ps1
+
+  Persis seperti yang diperkirakan docs/PANDUAN/MULAI-CEPAT.md:18: "bila berkas
+  itu tidak ada, langkah ISO berhenti dengan galat, bukan menghasilkan ISO
+  setengah jadi". Rantai mastering yang membutuhkan perkakas:
+  build_kernel.ps1:135 memanggil 'limine.exe bios-install', lalu langkah
+  peminan GUID GPT membaca ulang tabel yang dituliskan bios-install dan
+  fail-closed bila tanda "EFI PART" tidak ditemukan. Tanpa utilitas itu tidak
+  ada jalan sah menghasilkan ISO hybrid yang setara dengan ISO rilis, jadi
+  saya TIDAK membuat pengganti setengah jalan: ISO tanpa 'bios-install' akan
+  berbeda byte dan tidak sah sebagai bukti VM untuk tree gerbang.
+
+7.3 AKAR PENYEBAB DAN SATU ASUMSI YANG TERBUKTI SALAH
+  - 2026-10-21, Analysis/reports/iso_reproducible_t1_2026-10-21.log:10 mengukur
+    limine 8.7.0 ADA di asl-kernel/target/limine_v8_binary (dari keluaran
+    'limine.exe --version'), dan baris 70 berkas yang sama menyatakan
+    target/limine_v8_binary DIPERTAHANKAN "karena bukan keluaran cargo".
+  - Asumsi itu SALAH dan sudah terbukti salah dua kali: 'cargo clean'
+    menghapus SELURUH isi target/, termasuk berkas yang bukan keluaran cargo.
+    Kejadian pertama 2026-10-22 (fault #50, tercatat di
+    Analysis/reports/f6_rename_uji_2026-10-22.txt Bagian 7); kejadian kedua
+    2026-10-23 karena prompt pemulihan ini memerintahkan build ulang bersih.
+    Hari ini penghapusan itu saya lakukan lagi dengan mata terbuka, dan
+    konsekuensinya nol terhadap bukti: berkasnya sudah tidak ada sejak
+    2026-10-22, jadi tidak ada yang musnah karena mati lampu.
+  - Akar penyebab tunggal hilangnya perkakas (BUKAN akibat mati lampu):
+    perkakas dipasang pemilik di dalam direktori yang dibersihkan oleh alat
+    build, dan tidak pernah disimpan di repo maupun di jalur alat yang stabil.
+    Pemulihannya milik pemilik - aturan berjalan: agen tidak memasang alat
+    sendiri.
+  - Aturan proses yang berlaku sejak #50: periksa isi target/ sebelum
+    membersihkannya dan pakai pembersihan selektif. Hari ini pembersihan penuh
+    diwajibkan oleh prompt pemulihan, jadi aturan itu tidak bisa melindungi
+    perkakas. Yang melindunginya adalah menyimpan limine.exe di luar target/
+    (mis. C:\asl\tools) dan menyesuaikan satu jalur di dua skrip; itu
+    penyesuaian alat dan tetap masuk backlog R2 menunggu keputusan pemilik.
+
+7.4 YANG TIDAK HILANG (terukur byte)
+  Dua salinan ISO unit F6 masih cocok dengan klaim ter-commit:
+    logs/f6_iso_a.iso dan logs/f6_iso_b.iso, 4.184.064 B,
+    SHA256 6af6d9f5fb215655aa8ac75ea16f4b073b6985eb5d39bf47bdca348af8dd519b,
+    dicocokkan dengan Analysis/reports/f6_rename_uji_2026-10-22.txt:90 - sama.
+  Total berkas ISO di logs/ = 22; selain dua berkas F6 di atas ada 20 salinan
+  build lain (P2, P3, P3B, P3E, P3F, P4, F4, F5, T3, T5) dan pasangan A/B
+  masing-masing fase identik satu sama lain.
+  PERINGATAN KELAS BUKTI: ISO-ISO itu adalah tree F6/F5/P3, BUKAN tree gerbang
+  akhir R1. Memakai ISO F6 untuk sesi QEMU tidak menghasilkan bukti VM bagi
+  tree ini dan tidak akan saya klaim demikian. ISO untuk tree gerbang akhir
+  baru bisa dibuat setelah perkakas limine kembali.
+
+
+8. LANGKAH 2/G8 - UTANG EKSTRAK HOSTED CI
+------------------------------------------
+Dua ekstrak run atas 762cea3 ikut ter-commit pada unit ini (push 39847738550
+dan pull_request 39847746179, dua-duanya success; angka terukur dari log mentah
+'gh run view --log' diekstrak 2026-10-23T17:31Z: 30 suite, 262 lulus, 0 gagal,
+per_test_ok 262, 19 baris warning pada langkah test, 13 baris Compiling, 0 error
+pada langkah kedua). Audit utang dijalankan SEBELUM commit, terukur
+2026-10-23T17:44:07Z (UTC) = 2026-10-24 00:44:07 lokal (UTC+7):
+
+AUDIT UTANG EKSTRAK HOSTED CI - cabang feature/v1.0.2-r1
+HEAD saat audit dijalankan: 762cea3 (run milik HEAD belum ter-commit, memang begitu aturan G8)
+SUMBER: `git rev-list main..HEAD`, `gh api .../actions/runs?branch=...`, `git ls-tree -r HEAD Analysis/reports`.
+SUDUT BACA: baris BELUM di bawah adalah utang yang ditutup commit BERIKUTNYA, bukan kegagalan.
+
+commit   run-id       event  koncl  ekstrak-di-repo
+007d3dd  TIDAK ADA RUN -      -      -
+54abf73  TIDAK ADA RUN -      -      -
+4e865c0  TIDAK ADA RUN -      -      -
+17570f6  39596587533  push   success ADA
+17570f6  39596659449  pull_request success ADA
+a141640  39597097768  push   success ADA
+a141640  39597103437  pull_request success ADA
+223e7f6  TIDAK ADA RUN -      -      -
+6bbd77d  TIDAK ADA RUN -      -      -
+939cc95  TIDAK ADA RUN -      -      -
+97d1834  39624903214  push   success ADA
+97d1834  39624911155  pull_request success ADA
+d6c5b12  TIDAK ADA RUN -      -      -
+093a7d6  TIDAK ADA RUN -      -      -
+b9acd5b  TIDAK ADA RUN -      -      -
+ca582fa  TIDAK ADA RUN -      -      -
+08ddd71  39632688905  push   success ADA
+08ddd71  39632700077  pull_request success ADA
+53e226f  39634616449  push   success ADA
+53e226f  39634624636  pull_request success ADA
+1e2035f  39635248616  push   success ADA
+1e2035f  39635257738  pull_request success ADA
+8f56625  39635662050  push   success ADA
+8f56625  39635669557  pull_request success ADA
+12adcf1  39637458058  push   success ADA
+12adcf1  39637464118  pull_request success ADA
+1f3e3c2  39639275684  push   success ADA
+1f3e3c2  39639284164  pull_request success ADA
+4de1dfb  39643487647  push   success ADA
+4de1dfb  39643495816  pull_request success ADA
+b17a175  39644006778  push   success ADA
+b17a175  39644011859  pull_request success ADA
+4c3e0d2  39697869147  push   success ADA
+4c3e0d2  39697876437  pull_request success ADA
+d8c002a  39698870788  push   success ADA
+d8c002a  39698875695  pull_request success ADA
+5812c77  39703399191  push   success ADA
+5812c77  39703405130  pull_request success ADA
+c94f8b0  39704463256  push   success ADA
+c94f8b0  39704468088  pull_request success ADA
+c3a9f2e  39710147801  push   success ADA
+c3a9f2e  39710152877  pull_request success ADA
+c3a8343  39714508881  push   success ADA
+c3a8343  39714514694  pull_request success ADA
+e60f0a7  39716468849  push   success ADA
+e60f0a7  39716474359  pull_request success ADA
+a44fbaf  39732124375  push   success ADA
+a44fbaf  39732130192  pull_request success ADA
+87cf8fd  39749060881  push   success ADA
+87cf8fd  39749065750  pull_request success ADA
+791a88d  39764470372  push   success ADA
+791a88d  39764476332  pull_request success ADA
+235d44b  39764997805  push   success ADA
+235d44b  39765004319  pull_request success ADA
+6f2af6e  39787427791  push   success ADA
+6f2af6e  39787438189  pull_request success ADA
+9750724  39788285251  push   success ADA
+9750724  39788292764  pull_request success ADA
+38b3bcc  39844518151  push   success ADA
+38b3bcc  39844527147  pull_request success ADA
+70431dd  39844995227  push   success ADA
+70431dd  39845003304  pull_request success ADA
+a0bbcd6  39846181176  push   success ADA
+a0bbcd6  39846195525  pull_request success ADA
+fce6c0a  39847206080  push   success ADA
+fce6c0a  39847214355  pull_request success ADA
+762cea3  39847738550  push   success BELUM
+762cea3  39847746179  pull_request success BELUM
+
+total commit cabang: 39
+commit tanpa run sendiri: 007d3dd, 54abf73, 4e865c0, 223e7f6, 6bbd77d, 939cc95, d6c5b12, 093a7d6, b9acd5b, ca582fa (10)
+utang terbuka (run ada, ekstrak belum di repo): [('762cea3', 39847738550, 'push'), ('762cea3', 39847746179, 'pull_request')]
+ekstrak ter-commit total: 105
+
+Satu-satunya utang yang tetap terbuka setelah commit ini adalah pasangan atas
+tip unit ini sendiri, karena aturan G8 melarang satu commit memuat ekstrak
+untuk dirinya; itu konstruksi rantai, bukan kegagalan, dan ditutup commit
+berikutnya.
+
+
+9. TINDAKAN YANG TIDAK SAYA AMBIL (dan mengapa)
+-------------------------------------------------
+- Tidak menjalankan chkdsk /f atau bentuk perbaikan tulis pada partisi mana pun,
+  termasuk ESP: operasi tulis pada jalur boot mesin pemilik, dibutuhkan perintah.
+- Tidak memasang atau mengunduh limine maupun alat lain, tidak menyentuh jalur
+  jaringan untuk perkakas (aturan pemilik: alat dipasang pemilik).
+- Tidak menyentuh scripts/ci_local.ps1 (Out-File-nya menimpa artefak bukti yang
+  sudah ter-commit), scripts/g9_final_p8_run.ps1, CHECKLIST_STATE.json, dan 20
+  artefak g9_final_p8_* untracked.
+- Tidak me-merge PR #6/#7, tidak memotong tag v1.0.2, tidak menghapus
+  v1.1.0/v1.0.1-alfa lokal, tidak menulis LAPORAN-FINAL-v1.0.2.md, tidak
+  menyinkronkan local main.
+- Tidak menulis ulang sejarah: nol amend, nol rebase, nol reset, nol
+  force-push; koreksi selalu commit baru - unit ini adalah commit baru di atas
+  762cea3.
+- Tidak mengarang angka yang belum terukur: tidak ada klaim sesi QEMU, tidak
+  ada angka lantai memori -m 3M untuk tree ini, tidak ada screenshot, tidak ada
+  ISO tree gerbang.

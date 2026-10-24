@@ -1,0 +1,212 @@
+{
+  "schema_version": 1,
+  "tool": "limine",
+  "perintah_pemilik": "K-5: Versi dikunci Limine v8.7.0 resmi, dipasang DI LUAR target/ di C:\\asl\\tools\\limine\\v8.7.0\\; catat SHA256 limine.exe (dan payload) di ledger sebelum dipakai; pembanding byte payload selamat di logs/iso_recovery/boot/limine/, bila beda catat jangan dipaksakan.",
+  "pinned_version": "8.7.0",
+  "install_root": "C:\\asl\\tools\\limine\\v8.7.0",
+  "host_utility_expected_path": "C:\\asl\\tools\\limine\\v8.7.0\\limine.exe",
+  "host_utility_expected_version_string": "8.7.0",
+  "ledger_ditulis_utc": "2026-10-24T08:40:09Z",
+  "hash_utilitas_host_yang_dicatat": {
+    "catatan": "Diisi SEBELUM artefak dipakai (syarat pemilik K-5). null = belum dicatat karena perkakas pada versi pin belum ada.",
+    "sha256": null,
+    "bytes": null,
+    "diukur_utc": null
+  },
+  "status": "TERBLOKIR - tidak ada aset binari resmi untuk v8.7.0; pemenuhan pin menunggu keputusan pemilik (lihat pilihan)",
+  "dipakai_oleh": [
+    "scripts/build_kernel.ps1 (aksi iso, langkah 2 pemeriksaan alat lalu langkah 5 'bios-install')",
+    "scripts/test_hv2_stack_overflow_qemu.ps1 (variabel $limineExe, baris 28)"
+  ],
+  "payload_panggung_bangun": "C:\\asl\\asl-kernel\\target\\iso_root\\boot\\limine",
+  "payload_panggung_bangun_ada_saat_ukur": false,
+  "catatan_panggung": "target/ dihapus oleh cargo clean, jadi direktori ini HARUS distaging ulang setiap kali setelah clean; itulah akar fault log #50 dan #54.",
+  "aset_resmi_v8_7_0": {
+    "rilis_url": "https://github.com/Limine-Bootloader/Limine/releases/tag/v8.7.0",
+    "tag": "v8.7.0",
+    "diterbitkan_utc": "2025-01-10T13:58:05Z",
+    "daftar_aset": [
+      "ChangeLog",
+      "limine-8.7.0.tar.bz2",
+      "limine-8.7.0.tar.gz",
+      "limine-8.7.0.tar.lz",
+      "limine-8.7.0.tar.xz",
+      "limine-8.7.0.tar.zst"
+    ],
+    "aset_binari": [],
+    "unduh_pemeriksaan": {
+      "limine-8.7.0.tar.gz": {
+        "bytes": 603144,
+        "sha256": "a70a11f69b4ca5d85d11efca6f273eb26bfda0d22ab49f4bd0a15d7fafe0d047",
+        "unduh_utc": "2026-10-24T08:18:17Z"
+      }
+    },
+    "kesimpulan": "Baris v8.x TIDAK pernah menerbitkan paket binari; yang tersedia hanya 5 tarball sumber + ChangeLog, jadi limine.exe tidak bisa diunduh resmi pada versi pin."
+  },
+  "ketersediaan_paket_binari_resmi": {
+    "jumlah_rilis_diperiksa": 408,
+    "jumlah_rilis_berbinari": 8,
+    "rilis_pertua_berbinari": {
+      "tag": "v12.6.1",
+      "diterbitkan_utc": "2026-08-24T21:43:46Z",
+      "aset_binari": [
+        "limine-binary.tar.gz",
+        "limine-binary.tar.gz.sig",
+        "limine-binary.tar.xz",
+        "limine-binary.tar.xz.sig",
+        "limine-binary.zip",
+        "limine-binary.zip.sig"
+      ]
+    },
+    "rilis_v8_terdaftar": 8,
+    "rilis_v8_berbinari": [],
+    "metode": "gh api 'repos/limine-bootloader/limine/releases?per_page=100&page=N' untuk N=1..5 lalu nama aset disaring pada kata 'binary'."
+  },
+  "kandidat_v12_9_4": {
+    "rilis_url": "https://github.com/Limine-Bootloader/Limine/releases/tag/v12.9.4",
+    "limine-binary.zip": {
+      "bytes": 2110373,
+      "sha256": "5f6916d5bcae8f13e0cabebb4d6f5ea0e82e505165fa899b38195868d7853655",
+      "unduh_utc": "2026-10-24T08:17:54Z"
+    },
+    "limine-binary.zip.sig": {
+      "bytes": 566,
+      "sha256": "fcadc3d33339a7f6d7d51ff3ae05212ad9435bcdb32c2f99d69240ee7f86b4f3",
+      "unduh_utc": "2026-10-24T08:23:13Z",
+      "verifikasi": "GAGAL - kunci penanda tidak ada di ring lokal (pesan alat: 'Can't check signature: No public key', `gpg --verify` exit 2 terekam pada berkas logs/k5_gpg_verify.txt dengan mtime 2026-10-24T08:28:52Z, jam mesin UTC); kunci RSA 05D29860D0A0668AAEFB9D691F3C021BECA23821, tanggal tanda tangan 2026-10-19T23:10:35 SEAST (keluaran gpg, jam mesin lokal). Ring kunci dibuat gpg sebagai efek samping pemeriksaan (C:\\Users\\Administrator\\.gnupg); tidak ada kunci yang diimpor."
+    },
+    "anggota_dibutuhkan": {
+      "host_utility_windows": {
+        "bytes": 96256,
+        "sha256": "f68d3c2c96aca8883134016567b8ba644dfbada2ec16750d3009df288006e9ec"
+      },
+      "BOOTX64.EFI": {
+        "bytes": 385024,
+        "sha256": "8a7214bfd8b9a044b780f1e71b2752dc12ecc25c06b9cf39ac6a0a341c802282"
+      },
+      "limine-bios-cd.bin": {
+        "bytes": 26624,
+        "sha256": "05efcd37e04e18dc3e66ecc79c698aa95791f8bcd77abc2e0e994ef5e19a8b14"
+      },
+      "limine-bios.sys": {
+        "bytes": 339788,
+        "sha256": "80468d0c0485447dc790d8be4c2834af3f581d3829867f66a273256ba91b65f8"
+      },
+      "limine-uefi-cd.bin": {
+        "bytes": 3145728,
+        "sha256": "3496a6e858c2ea8fc90d1e208ffa883fe9b18d073d77aa18f146522a4d0e123c"
+      }
+    },
+    "catatan": "Unduhan HANYA untuk pengukuran dan pemeriksaan isi; tidak dipasang ke jalur pin dan tidak dipakai build apa pun saat ledger ini ditulis."
+  },
+  "rujukan_payload_v8_7_0_selamat": {
+    "lokasi": "logs/iso_recovery/boot/limine (salinan byte payload yang dipulihkan dari ISO, fault log #54)",
+    "berkas": {
+      "BOOTX64.EFI": {
+        "bytes": 249856,
+        "sha256": "51ca2b20ed14bbc678a396cdfb0c1d941acbc155cabebc9bfafabe4cdae1be73"
+      },
+      "limine-bios-cd.bin": {
+        "bytes": 24576,
+        "sha256": "a94c1cf610c67f132f53c0635bd88c7092e8bf49f792cf547a4b2254769eb5df"
+      },
+      "limine-bios.sys": {
+        "bytes": 216644,
+        "sha256": "b94bd7ae8a7faf58c7c9ba727b7becfe2f5161b2c5b60096e98853aa263f5150"
+      },
+      "limine-uefi-cd.bin": {
+        "bytes": 2949120,
+        "sha256": "0ea0aa408c464014a306840acc843dc564e54f602b2077852ceb34178488bd03"
+      },
+      "limine.conf": {
+        "bytes": 443,
+        "sha256": "93897d1376d33eb49302b7988339b2718c6fc715e9851e9d4bb748fb25ca68d9"
+      }
+    }
+  },
+  "perbandingan_payload": {
+    "BOOTX64.EFI": {
+      "rujukan_v8_7_0": {
+        "bytes": 249856,
+        "sha256": "51ca2b20ed14bbc678a396cdfb0c1d941acbc155cabebc9bfafabe4cdae1be73"
+      },
+      "kandidat_v12_9_4": {
+        "bytes": 385024,
+        "sha256": "8a7214bfd8b9a044b780f1e71b2752dc12ecc25c06b9cf39ac6a0a341c802282"
+      },
+      "delta_ukuran_b": 135168,
+      "sha256_sama": false
+    },
+    "limine-bios-cd.bin": {
+      "rujukan_v8_7_0": {
+        "bytes": 24576,
+        "sha256": "a94c1cf610c67f132f53c0635bd88c7092e8bf49f792cf547a4b2254769eb5df"
+      },
+      "kandidat_v12_9_4": {
+        "bytes": 26624,
+        "sha256": "05efcd37e04e18dc3e66ecc79c698aa95791f8bcd77abc2e0e994ef5e19a8b14"
+      },
+      "delta_ukuran_b": 2048,
+      "sha256_sama": false
+    },
+    "limine-bios.sys": {
+      "rujukan_v8_7_0": {
+        "bytes": 216644,
+        "sha256": "b94bd7ae8a7faf58c7c9ba727b7becfe2f5161b2c5b60096e98853aa263f5150"
+      },
+      "kandidat_v12_9_4": {
+        "bytes": 339788,
+        "sha256": "80468d0c0485447dc790d8be4c2834af3f581d3829867f66a273256ba91b65f8"
+      },
+      "delta_ukuran_b": 123144,
+      "sha256_sama": false
+    },
+    "limine-uefi-cd.bin": {
+      "rujukan_v8_7_0": {
+        "bytes": 2949120,
+        "sha256": "0ea0aa408c464014a306840acc843dc564e54f602b2077852ceb34178488bd03"
+      },
+      "kandidat_v12_9_4": {
+        "bytes": 3145728,
+        "sha256": "3496a6e858c2ea8fc90d1e208ffa883fe9b18d073d77aa18f146522a4d0e123c"
+      },
+      "delta_ukuran_b": 196608,
+      "sha256_sama": false
+    }
+  },
+  "perkakas_yang_diperlukan_untuk_membangun_dari_sumber": {
+    "host_utility_limine_exe": "kompilator C (gcc/clang) + make; build system v8.7.0 memakai autotools (configure, GNUmakefile.in dengan CC=@CC@) dan target 'limine'",
+    "payload_BOOTX64_EFI_dan_sys": "toolchain freestanding lintas arsitektur (clang + lld, file toolchain bios-i686 dan uefi-x86_64) - lebih berat dari utilitas host",
+    "terukur_di_mesin_ini": {
+      "gcc_di_path": false,
+      "clang_di_path": false,
+      "make_di_path": false,
+      "mingw32_make_di_path": false,
+      "ld_ar_di_path": false,
+      "wsl_ada": true,
+      "wsl_distro_terpasang": 0,
+      "rustup_toolchain": [
+        "stable-x86_64-pc-windows-msvc"
+      ],
+      "gpg": "gpg (GnuPG) 2.4.9 tersedia di Git Bash",
+      "metode": "command -v atas gcc.exe/clang.exe/cc.exe/make.exe/mingw32-make.exe/lld.exe/ld.exe/ar.exe (semua TIDAK DI JALUR PATH), wsl.exe -l -v (tidak ada distro), ls ~/.rustup/toolchains."
+    }
+  },
+  "pilihan_untuk_pemilik": [
+    {
+      "id": "A",
+      "judul": "Pindahkan pin ke v12.9.4 (paket binari resmi, termasuk limine.exe Windows)",
+      "konsekuensi_terukur": "Keempat payload BEDA hash dan BEDA ukuran terhadap salinan v8.7.0 yang selamat (lihat perbandingan_payload), jadi ISO dan ukurannya berubah dan semua dokumen yang menyebut 8.7.0 perlu dikoreksi; bootloader versi baru berarti perilaku boot baru sehingga wajib jendela bukti VM."
+    },
+    {
+      "id": "B",
+      "judul": "Bangun v8.7.0 dari tarball sumber resmi",
+      "konsekuensi_terukur": "Butuh perkakas yang terukur TIDAK ADA di mesin ini (kompilator C, make, clang+lld lintas arsitektur, atau distro WSL); pemilik memasang perkakasnya lebih dulu, lalu payload dapat dicocokkan byte-per-byte dengan salinan pemulihan."
+    },
+    {
+      "id": "C",
+      "judul": "Pemilik memasang sendiri limine.exe v8.7.0 seperti sebelumnya",
+      "konsekuensi_terukur": "Jalur pin sudah siap (sub-komit 2); setelah berkas ada, scripts/check_limine.ps1 yang membandingkan terhadap ledger jadi langkah pembuka K-2. Catatan: tuliskan asal-usul berkas (URL rilis atau berkas lokal) karena repo tidak pernah melacak perkakas ini."
+    }
+  ]
+}

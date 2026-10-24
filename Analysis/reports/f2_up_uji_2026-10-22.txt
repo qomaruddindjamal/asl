@@ -1,0 +1,191 @@
+BUKTI UNIT F2 - PERINTAH `up` (NAIK SATU TINGKAT) - DIUKUR 2026-10-22
+====================================================================
+Semua angka di bawah disalin dari keluaran alat pada hari dan mesin yang sama
+(lingkungan pengembangan, QEMU 256M, cargo 1.x profil host). Tidak ada angka
+yang dijelaskan sebagai harapan; baris yang tidak terukur ditulis tidak
+terukur.
+Tree yang diukur = isi HEAD `c94f8b0` plus suntingan unit F2 (dua berkas `.rs`,
+tiga berkas dokumen). Hash commit hasil unit ini tidak dikutip di sini karena
+satu hash hanya dirujuk pada commit berikutnya.
+
+[1] PERINTAH YANG DIUBAH
+    - Registry: `CANONICAL_COMMAND_COUNT` 11 -> 12; `CanonicalId::Up`;
+      `UpCmd { name "up", tanpa alias, syntax "up", Kelompok: Ruang kerja,
+      argumen 0..0 }`; posisi registry ke-6 (sesudah `open`).
+    - Perilaku: `up` menaiki satu tingkat memakai `split_parent` yang sudah ada
+      (satu-satunya sumber pemisah jalur di asl-kernel-core), sehingga aturan
+      akar tidak ditulis di dua tempat. Di akar perintah mengembalikan `false`
+      dan ruang kerja TIDAK berubah; keluarannya "Ruang kerja tetap di akar: /".
+    - Keluaran: `Ruang kerja: <jalur>` bila berpindah; `Sintaks: up` bila
+      dijalankan dengan argumen (jalur BadArity registry, bukan teks tangan).
+
+[2] UJI HOST
+    perintah : cargo test --workspace --lib
+    hasil    : 207 lulus / 0 gagal pada 30 suite
+    delta    : +2 test atas baseline F1 (205) =
+               tests::test_f2_up_command_is_canonical_and_takes_no_argument,
+               hardening_tests::test_shell_cwd_parent_naik_satu_tingkat_dan_tetap_di_akar
+    rename   : tests::test_registry_has_eleven_canonical_commands ->
+               tests::test_registry_has_twelve_canonical_commands (assert 12)
+    profil   : 19 baris `warning`, 0 baris `error` - identik dengan baseline,
+               seluruhnya warisan penamaan (asl-ont-gpon, asl-do178c-cert,
+               asl-power10-loongson) dan satu impor tak terpakai di
+               asl-fleet-regression. Tidak ada warning baru dari crate yang
+               disentuh.
+    GERBANG SINKRON DOKUMEN: sebelum dokumen disinkron,
+    tests::test_docs_command_reference_matches_registry MERAH dengan pesan
+    "judul blok #6: left create-folder, right up". Setelah blok `### up`
+    ditulis, test menjadi hijau. Kode dan dokumen karena itu masuk SATU commit.
+
+[3] GERBANG NOL BARU (fmt + clippy)
+    perintah : python scripts/r1_new_only_gate_check.py fmt
+    hasil    : asl-kernel-core  baris saya 62, ingin diubah rustfmt 107, IRISAN BARU 0
+               asl-cockpit-shell baris saya 57, ingin diubah rustfmt 28, IRISAN BARU 0
+               asl-storage/ramdisk baris saya 0, ingin diubah 19, IRISAN BARU 0
+               TOTAL deviasi/diagnostik BARU = 0
+    perintah : python scripts/r1_new_only_gate_check.py clippy
+    hasil    : 137 diagnostik ber-baris seluruh workspace (warisan, jumlah sama
+               dengan baseline rantai ini), IRISAN BARU 0 pada ketiga berkas.
+    Catatan: angka warisan sengaja tidak diperbaiki pada unit fitur; perbaikan
+    gaya ditunda ke R2 sesuai keputusan pemilik.
+
+[4] BUILD RELEASE DAN REPRODUSIBILITAS
+    perintah : CARGO_TARGET_DIR=<scratch-2> cargo build --release
+               --target x86_64-unknown-none -p asl-kernel-bin   (dari nol)
+    hasil    : 13 baris `Compiling`, 0 `warning`, 0 `error`, exit 0
+    ELF      : 329.600 byte
+               SHA256 82DA771FB1505770BF885F4FFF1BADB7BFA29C4F69031AFF829BC5D36AD9BCC9
+    reproduksi: tiga direktori build berbeda pada tree yang sama
+               (asl-kernel/target, logs/target_f2check, logs/target_f2check2)
+               menghasilkan SHA256 ELF yang SAMA.
+
+[5] SIDIK JARI ISO DAN SELISIH
+    ISO      : 4.204.544 byte
+               SHA256 5E5433F6816B55A1C757138DB16E1705EBBA1D976EC4B4A59BB345F9E512F46F
+               (mastering scripts/build_kernel.ps1 -Action iso; GUID GPT pin
+               e181e879-31ec-3d41-a200-b4997a320a0d)
+    isi      : byte ELF utuh ditemukan di dalam berkas ISO (pencocokan byte
+               langsung, 329.600 dari 4.204.544) - jadi ISO yang di-boot adalah
+               ELF yang diuji.
+    vs F1    : ELF 329.296 -> 329.600 (+304 byte); ISO 4.204.544 -> 4.204.544
+               (ukuran tetap, SHA256 berubah 9CCE9521 -> 5E5433F6).
+    vs basis E8: ELF 325.120 -> 329.600 (+4.480); ISO 4.200.448 -> 4.204.544
+               (+4.096).
+
+[6] LANTAI MEMORI (tidak diubah menjadi hijau)
+    perintah : powershell -File scripts/test_ram_floor_3mb.ps1
+    [A] -m 3M    : reached=False m6=False crash=False serial=0 B stderr=0 B
+    [B] -m 3392K : reached=True  m6=True  crash=False serial=2501 B stderr=0 B
+    keputusan: 2 (DEVIASI TERCATAT), sama dengan F1 dan dengan baseline E8.
+               Rantai regresi tidak rusak; janji misi 3 MB tetap MERAH dan
+               dilaporkan apa adanya. Prompt satu-sumber yang dibaca alat ini
+               masih bentuk akar sehingga parser alat tidak perlu diubah.
+
+[7] SESI QEMU UNTUK `up` (VERIFIED-ON-VM)
+    alat     : logs/f2_qemu_check.py (scratch, tidak di-commit)
+    berkas   : Analysis/reports/f2_up_serial_2026-10-22_01-24-21.log (3.014 byte)
+               Analysis/reports/f2_up_qemu_stderr_2026-10-22_01-24-21.log (197 byte)
+    deret prompt terukur (11) == deret harapan (11):
+      1 ASL-KERNEL />_            (boot)
+      2 ASL-KERNEL />_            (sesudah `up` di akar)
+      3 ASL-KERNEL />_            (sesudah `create-folder hello`)
+      4 ASL-KERNEL /hello>_       (sesudah `cd hello`)
+      5 ASL-KERNEL /hello>_       (sesudah `create-folder dalam`)
+      6 ASL-KERNEL /hello/dalam>_ (sesudah `cd dalam`)
+      7 ASL-KERNEL /hello>_       (sesudah `up` dari /hello/dalam)
+      8 ASL-KERNEL /hello>_       (sesudah `up hello` -> Sintaks:, tidak berpindah)
+      9 ASL-KERNEL />_            (sesudah `up` dari /hello)
+     10 ASL-KERNEL />_            (sesudah `up` di akar lagi)
+     11 ASL-KERNEL />_            (sesudah `where`)
+    penanda teks: 10 dari 10 tuntutan ditemukan pada potongan serial yang
+      benar, termasuk dua kali "Ruang kerja tetap di akar", satu kali
+      "Ruang kerja: /hello/dalam", dan "Sintaks: up".
+    penanda crash (ASL-CORE-PANIC / ASL EXCEPTION / FATAL): TIDAK ADA.
+    Bukan sesi yang disaksikan pemilik: sesi ini dijalankan agen, kelasnya
+    VERIFIED-ON-VM, dan tidak menaikkan kelas apa pun.
+
+[8] YANG TIDAK DIBUKTIKAN UNIT INI
+    - Tidak ada klaim VERIFIED-ON-HARDWARE; semuanya emulator.
+    - `up` belum diuji terhadap direktori bersarang sampai batas MAX_PATH_LEN
+      pada mesin; yang teruji adalah tiga tingkat (/hello/dalam) dan akar.
+    - Jendela G9-LITE/E8 diulang pada ISO 5E5433F6 sudah dijalankan; hasilnya
+      ada di bagian [9] dan berstatus BELUM DISAKSIKAN + TIDAK SAH sebagai
+      bukti kelulusan.
+    - Perintah `rename` (F6) dan navigasi keyboard (F7) belum ada; jumlah
+      perintah kanonik pada tree ini 12, bukan 13.
+
+[9] JENDELA E8 DIULANG PADA ISO F2 - HASIL, BATAS, DAN PENAFSIRANNYA
+    artefak  : Analysis/reports/e8_adversarial_summary_2026-10-22_08-29-15.log
+               Analysis/reports/e8_adversarial_serial_2026-10-22_08-29-15.log (4.461 byte)
+               Analysis/reports/e8_adversarial_cases_2026-10-22_08-29-15.tsv (4 baris)
+               Analysis/reports/e8_adversarial_qemu_stderr_2026-10-22_08-29-15.log (197 byte)
+    resep    : alat resmi scripts/e8_adversarial_run.ps1, kumpulan diagnostik
+               ikut dijalankan (59 kasus), batas per kasus 600 s, batas boot
+               240 s, fase penghenti tombol jeda 0 s (karena itu dilewati),
+               sidik jari ISO yang diharapkan = sidik jari ISO F2
+    cocok    : summary baris "ISO" mencatat 4.204.544 byte
+               SHA256 5E5433F6816B55A1C757138DB16E1705EBBA1D976EC4B4A59BB345F9E512F46F -
+               sama dengan ISO pada [5]. Gerbang pencocokan sidik jari di alat
+               tidak keluar lebih dini, jadi sesi ini berjalan di ISO F2.
+    hasil    : S01 OK (453 ms); S02 GANTUNG (600.021 ms); S03 GANTUNG
+               (600.010 ms); S04 MESIN-KELUAR; 55 kasus berikutnya tidak
+               dijalankan; kode keluar alat = 2 (alat menafsirkan "reproduksi
+               positif").
+
+    YANG MEMBUAT HASIL ALAT TIDAK BOLEH DIBACA SEBAGAI REGRESI PRODUK:
+    a) Balasan S02 dan S03 tercetak penuh dan benar di serial:
+         "open e8uji | Ruang kerja: /e8uji | ASL-KERNEL /e8uji>_ "
+         "create-file a.txt | Berkas dibuat: /e8uji/a.txt | ASL-KERNEL /e8uji>_ "
+       Shell kembali ke prompt. Yang tidak terjadi hanyalah pencocokan prompt
+       oleh alat.
+    b) Penyebabnya satu baris dan terukur: scripts/e8_adversarial_run.ps1:374
+       menghitung jumlah kemunculan literal $Prompt, dan $Prompt dibaca dari
+       konstanta SHELL_PROMPT = "ASL-KERNEL />_ " pada
+       asl-kernel/asl-cockpit-shell/src/lib.rs:40, yaitu bentuk akar. Sejak F1
+       prompt berposisi, setiap kasus di ruang kerja bukan akar tidak pernah
+       cocok lagi, jadi alat menunggu sampai batas 600 s. Bentuk akar sengaja
+       dipertahankan pada F1 supaya keempat alat gerbang masih membaca
+       konstanta yang sama; akibatnya untuk pemecah prompt jendela E8 baru
+       terlihat pada pengulangan jendela sesudah F2 ini.
+    c) Keluar tanpa penanda crash, bukan dengan panic: pada seluruh 4.461 byte
+       serial tidak ada satu pun kemunculan ASL-CORE-PANIC, ASL EXCEPTION, atau
+       FATAL; pencacahan prompt "ASL-KERNEL " = 19; 136 byte terakhir adalah
+       pesan "... kembali ke prompt, shell tetap
+       hidup" diikuti prompt sehat "ASL-KERNEL /e8uji>_ " sebagai byte
+       penutup berkas. Catatan alat "kemungkinan fault tingkat tiga"
+       karena itu TIDAK TERBUKTI, dan sebab berakhirnya proses QEMU tidak dapat
+       disimpulkan dari arsip ini sehingga tidak saya klaim.
+    d) Ada masukan yang mustahil berasal dari alat: byte keluar alat 78, yaitu
+       tepat empat baris setup (20 + 11 + 18 + 29), tetapi serial memperlihatkan
+       ketikan "clear", "restart", "shutdown", "test-task", "task", "test_task",
+       backspace, dan baris kosong berulang. Masukan itu masuk lewat papan
+       ketik pada jendela QEMU yang terlihat, bukan lewat soket serial.
+       Jendela itu menjawabnya dengan benar (clear -> urutan ANSI layar bersih;
+       restart/shutdown/test-task/task -> "Unknown command"; test_task ->
+       rangkaian berjalan lalu berhenti oleh satu ketikan dengan pesan
+       operator) tetapi sesi yang punya ketikan bebas bukan sesi terkontrol,
+       jadi keempat kenyataan itu saya catat, tidak saya jadikan uji.
+    e) Sisa proses: tidak ada proses emulator yang tinggal setelah sesi;
+       berkas PID di logs/ hanya milik sesi 2026-10-21 dan tidak disentuh.
+
+    KEPUTUSAN PEMILIK (2026-10-22, ditanyakan sebelum alat disentuh): hentikan,
+    catat, tunda penyesuaian alat ke R2. Tidak ada berkas alat yang saya ubah
+    pada unit ini; sesi sudah berakhir sendiri sebelum perintah penghenti
+    dijalankan. Konsekuensi yang saya catat apa adanya:
+    - Aturan pemilik "jendela E8 diulang setelah F2" TIDAK TERPENUHI pada R1.
+      Pemenuhannya memerlukan satu suntingan kecil pada pencocok prompt
+      e8_adversarial_run.ps1, dan penyesuaian alat ditunda ke R2 sampai fitur
+      beku. Karena itu jendela atas ISO F2 ini TIDAK SAYA NYATAKAN LULUS dan
+      tidak menutup kewajiban pengulangan jendela; kewajiban itu berpindah ke
+      R2 dengan alasan tercatat, bukan hilang.
+    - Kalimat "CATATAN bangun" pada alat (baris 415-417) masih menyatakan
+      registry berisi 11 perintah dan `up` belum ada. Pada ISO F2 pernyataan
+      itu SALAH; kalimat itu teks statis alat, bukan angka ukur, dan ikut
+      ditunda ke R2.
+    - Kelas jendela ini: VERIFIED-ON-VM sebagian + BELUM DISAKSIKAN + tidak sah
+      sebagai kelulusan. Kesimpulan yang boleh dibawa: tidak ada penanda crash
+      sampai byte terakhir pada ISO F2; sisanya tidak terukur.
+    - Bukti yang tetap sah untuk unit F2 adalah [2] 207 lulus / 0 gagal,
+      [3] IRISAN BARU 0, [4] reproduktibilitas tiga direktori, [5] sidik jari
+      ISO+ELF, [6] lantai memori KEPUTUSAN 2, dan [7] sesi QEMU khusus `up`
+      dengan 11 dari 11 deret prompt dan 10 dari 10 penanda.

@@ -1,0 +1,55 @@
+
+[ASL-LAUNCHER] M1: Entered Limine Entry Stub (profile=release) via Assembly Trampoline.
+  [MEMMAP] base: 4096 len: 335872 typ: 5
+  [MEMMAP] base: 339968 len: 311296 typ: 0
+  [MEMMAP] base: 654336 len: 1024 typ: 1
+  [MEMMAP] base: 983040 len: 65536 typ: 1
+  [MEMMAP] base: 1048576 len: 265023488 typ: 0
+  [MEMMAP] base: 266072064 len: 20480 typ: 5
+  [MEMMAP] base: 266092544 len: 1122304 typ: 6
+  [MEMMAP] base: 267214848 len: 327680 typ: 5
+  [MEMMAP] base: 267542528 len: 106496 typ: 0
+  [MEMMAP] base: 267649024 len: 651264 typ: 5
+  [MEMMAP] base: 268300288 len: 135168 typ: 1
+  [MEMMAP] base: 2952790016 len: 268435456 typ: 1
+  [MEMMAP] base: 4244635648 len: 3145728 typ: 7
+  [MEMMAP] base: 4275159040 len: 16384 typ: 1
+  [MEMMAP] base: 4294705152 len: 262144 typ: 1
+  [MEMMAP] base: 1086626725888 len: 12884901888 typ: 1
+[ASL-LAUNCHER] Inspecting Limine Requests:
+  -> Base Revision supported.
+  -> Memmap response received.
+  -> HHDM response received.
+  -> Framebuffer response received.
+  -> Framebuffer configured successfully.
+[ASL-LAUNCHER] M2: Handover Adapted & Memory Map Sanitized.
+[ASL-LAUNCHER] M3: Transferring Control to ASL Microkernel Core Entry.
+[ASL-CORE] M0: x86_64 Minimal Fault Infrastructure (IDT/TSS/IST1) Initialized.
+[ASL-CORE] M0+: Secondary carve-out validated (aligned, in-image, disjoint from stack). Failover latch ARMED.
+[ASL-CORE] M4: Buddy Allocator & Heap Memory Subsystem Initialized.
+[ASL-CORE] M4+: Kernel stack guard page enforced (non-present below 512KB stack).
+[ASL-CORE] M5: ARINC 653 Partitions & Deterministic Scheduler Active.
+[ASL-CORE] M6: Kernel Cold Boot Complete. Entering Deterministic Idle Loop.
+       ___    ____    __   
+      /   |  / __/   / /   
+     / /| |  \ \    / /    
+    / ___ | _/ /   / /___  
+   /_/  |_|/___/  /_____/  
+
+   ASL Kernel v1.0.2
+   Selamat Datang Di ASL Kernel
+
+   [ OK ] Kernel initialized: ASL Core Kernel v1.0.2
+   [ OK ] Memory manager initialized: 256 MB RAM detected
+   [ OK ] CPU architecture detected: QEMU Virtual CPU version 2.5+ | CPU Load: 20%
+
+   ASL kernel booted successfully.
+
+[ASL-CORE] Secondary Failover Core Engine: STANDBY ARMED.
+[ASL-CORE] Local APIC Timer Initialized (Release Nominal Initial Count: 0x20000).
+[ASL-CORE] PCI Discovery: Found 6 devices on Bus 0.
+[ASL-VTD] QM-01 probe: scanning ACPI for RSDP/DMAR...
+[ASL-VTD] kernel image virt=0xFFFFFFFF80100000 phys=0x000000000FDC4000
+[ASL-VTD] ACPI present, DMAR table ABSENT (no IOMMU).
+
+ASL-KERNEL />_ 

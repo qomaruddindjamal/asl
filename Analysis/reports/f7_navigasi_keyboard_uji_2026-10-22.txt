@@ -1,0 +1,198 @@
+BUKTI UNIT F7 (PARSIAL) - NAVIGASI KEYBOARD TANPA PERPINDAHAN KURSOR FRAMEBUFFER - DIUKUR 2026-10-22
+=====================================================================================================
+Semua angka di bawah disalin dari keluaran alat pada hari dan mesin yang sama
+(build rilis target bare-metal, uji unit di host, gerbang fmt/clippy di repo).
+Tidak ada angka yang ditulis sebagai harapan; yang tidak terukur ditulis tidak
+terukur. Kelas bukti unit ini VERIFIED-ON-HOST. Kelas VERIFIED-ON-HARDWARE tetap
+0.
+
+0. CAKUPAN YANG DITERIMA (keputusan pemilik)
+--------------------------------------------
+Mandat F7 penuh menuntut perpindahan kursor horizontal pada framebuffer untuk
+panah kiri/kanan, Home/End, dan redraw Delete maju. Pemilik menerima sebagian:
+"Saya kerjakan hanya bagian F7 yang tidak menuntut perpindahan kursor di
+framebuffer (riwayat, Tab, Ctrl+C/L, Esc, fallback Indonesia) plus dokumen, dan
+STOP sebelum F7 rampung supaya Bapak putuskan lagi."
+Konsekuensi yang diterima bersama keputusan itu: unit ini TIDAK menghasilkan ISO
+baru, jadi tidak ada sesi QEMU dan tidak ada jendela yang disaksikan. Bagian 4 di
+bawah menyatakan status TERBLOKIR, bukan lulus.
+
+Tree yang diukur = isi HEAD `235d44b` (unit ekstrak F6) plus suntingan unit ini
+(dua berkas `.rs`, empat berkas dokumen, berkas bukti ini). Hash commit hasil unit
+ini TIDAK dikutip di sini karena satu hash hanya dirujuk pada commit berikutnya.
+
+1. YANG DITAMBAHKAN (berkas:baris pada tree ini)
+------------------------------------------------
+`asl-kernel/asl-cockpit-shell/src/lib.rs` (mesin murni, dapat diuji dari host):
+  - `:26` `HIST_MAKS = 4`, `:30` `HIST_TIDAK_MEMANDANG = usize::MAX` - cincin
+    riwayat baris perintah; tanpa alokasi, tanpa memori dinamis.
+  - `:250` `MSG_KANDIDAT`, `:254` `MSG_CTRL_C`, `:259` `MSG_UNKNOWN_PANDUAN` -
+    tiga label satu-sumber baru; roster `MSG_*` menjadi 51 (`:2439`
+    `f3_labels() -> [(&str,&str); 51]`).
+  - `:355` field `echo_len` pada shell - hitungan byte yang SUDAH tercetak di
+    layar; dimiliki shell karena hanya shell yang tahu efek tiap langkah sunting.
+  - `:1668-1672` mesin sekuens escape empat fase (`ESC_GOT_ESC`,
+    `ESC_GOT_BRACKET`, `ESC_GOT_PARAM`, `ESC_GOT_SS3`) - panah, Home/End,
+    Delete, F1 dalam dua bentuk (`ESC O P` dan `ESC [ 11 ~`).
+  - `:1729` `catat_riwayat_terakhir`, `:1768` `slot_riwayat`, `:1776`
+    `muat_riwayat`, `:1798` `riwayat_mundur`, `:1817` `riwayat_maju`.
+  - `:1853` `edit(c)` - pintu sunting satu-satu; `:1975` `edit_escape(c)`;
+    `:1926` `tab_lengkapi`; `:1010` `kandidat_perintah` dan `:1027`
+    `perpanjangan_bersama` (awalan bersama, dibaca dari `REGISTRY`).
+  - Enumerasi `Edit` (hasil sunting) dan `Echo` (efek ke penampil) memisahkan
+    makna dari gema, sehingga kernel tidak menafsirkan ulang baris.
+`asl-kernel/asl-kernel-core/src/lib.rs` (jembatan ke dua penampil):
+  - `:1320` `gema_hapus`, `:1331` `gema_char`, `:1343` `buang_tampilan`,
+    `:1365` `cetak_baris`, `:1376` `bersihkan_layar`, `:1387`
+    `susun_ulang_titik_ketik`, `:1354` `nama_perintah`.
+  - Semua aksi F7 hanya memakai dua primitif yang sudah terbukti di layar:
+    hapus yang tercetak lalu cetak ulang `current_line()`. TIDAK ADA perpindahan
+    kursor horizontal pada framebuffer - itulah bagian yang sengaja tidak
+    dikerjakan.
+  - Dispatch `ShellCommand::Unknown` kini menyusun satu baris Indonesia dari
+    label satu-sumber (`MSG_ERROR` + `MSG_UNKNOWN` + token pertama +
+    `MSG_UNKNOWN_PANDUAN`); kalimat Inggris warisan E8 di jalur lama dihapus.
+  - `clear` kanonik, `clear` lama, dan Ctrl+L berbagi satu `bersihkan_layar()`.
+Test baru: 11 di `asl-cockpit-shell` (`test_f7_riwayat_naik_turun`,
+`test_f7_riwayat_menolak_baris_kosong`, `test_f7_tab_melengkapi_dan_mendaftar`,
+`test_f7_tab_menghasilkan_perintah_registry_sah`,
+`test_f7_kandidat_perintah_hanya_nama_kanonik`, `test_f7_ctrl_c_membatalkan_baris`,
+`test_f7_ctrl_l_dan_f1`, `test_f7_esc_kosongkan_baris`,
+`test_f7_gema_dihitung_dari_langkah_sunting`,
+`test_f7_huruf_besar_ditolak_dengan_galat_anggun`,
+`test_f7_dokumen_memuat_bagian_navigasi`) + 2 di `asl-kernel-core`
+(`test_f7_nama_perintah_hanya_token_pertama`,
+`test_f7_tidak_ada_kalimat_inggris_asing`). Total 13.
+
+2. GERBANG NOL-BARU (diukur pada tree final ini)
+------------------------------------------------
+`python scripts/r1_new_only_gate_check.py fmt`
+  asl-kernel-core/src/lib.rs   : baris saya 233, ingin diubah rustfmt 78, IRISAN BARU 0
+  asl-cockpit-shell/src/lib.rs : baris saya 918, ingin diubah rustfmt 28, IRISAN BARU 0
+  asl-storage/src/ramdisk.rs   : baris saya   0, ingin diubah rustfmt 19, IRISAN BARU 0
+  TOTAL deviasi/diagnostik BARU = 0
+`python scripts/r1_new_only_gate_check.py clippy`
+  (penangkapan lebih dulu: `cargo clippy --workspace --lib --target
+   x86_64-unknown-none --message-format=short -- -A
+   clippy::not_unsafe_ptr_arg_deref > logs/clippy_r1_allow.txt`)
+  tiga berkas cakupan: IRISAN BARU 0 pada ketiganya; TOTAL diagnostik BARU = 0.
+  Warisan dilaporkan apa adanya: 137 diagnostik ber-baris di seluruh workspace
+  (terbanyak: asl-storage/fat32.rs 16, asl-kernel-core/lib.rs 14 - seluruhnya
+  baris warisan yang tidak disentuh unit ini).
+  Sempat ada EMPAT diagnostik baru dari kode F7 saya sendiri dan sudah ditutup
+  sebelum commit: tiga `unneeded `return`` pada lengan Ctrl+C/Ctrl+L/Tab dan
+  satu `unnecessary >= y + 1` pada guard kapasitas Tab
+  (`<= SHELL_BUFFER_MAX - 1` menjadi `< SHELL_BUFFER_MAX`; batas efektif sama).
+Test host: `cargo test --workspace --lib` = 262 LULUS / 0 GAGAL, 30 baris
+  `test result`. Delta dari tree F6 (249) = +13 test baru: asl-cockpit-shell
+  37 -> 48, asl-kernel-core 33 -> 35, asl-storage tetap 57.
+Build host: `cargo build --workspace --lib` = 0 error; 14 warning yang seluruhnya
+  dihasilkan di LUAR berkas cakupan F7 (asl-ont-gpon 5, asl-do178c-cert 5,
+  asl-power10-loongson 3, asl-fleet-regression 1); nol warning pada tiga berkas
+  cakupan.
+`python scripts/r1_debt_audit.py` (dijalankan sebelum commit ini):
+  total commit cabang 32; utang terbuka pasangan atas `235d44b` = run push
+  39764997805 dan pull_request 39765004319; ekstrak ter-commit 91. Kedua ekstrak
+  sudah ditulis ke `Analysis/reports/ci_hosted_39764997805_2026-10-22.log` dan
+  `Analysis/reports/ci_hosted_39765004319_2026-10-22.log` dan ikut commit ini,
+  sehingga utang G8 pasangan itu tertutup. Angka di dalamnya, diukur dari log
+  mentah: suite=30 passed=249 failed=0 per_test_ok=249 warn1=19 compile=13
+  warn2=0 err2=0 pada kedua run.
+
+3. BUILD ELF RELEASE DAN REPRODUSIBILITAS (VERIFIED-ON-HOST)
+------------------------------------------------------------
+Perintah: `cargo build --package asl-kernel-bin --target x86_64-unknown-none
+--release` di `asl-kernel/` (tanpa RUSTFLAGS; linker dibaca dari
+`asl-kernel/.cargo/config.toml`).
+ELF final tree ini : 312.896 B  SHA256
+  3ECC107D41D8D2757CCA85C58ABD4B31BD8E2A082010E7990C30396EE5A0390D
+Reproduktibilitas : dibersihkan lalu dibangun ulang (`cargo clean -p
+  asl-kernel-bin -p asl-kernel-core -p asl-cockpit-shell`), hasil BYTE-IDENTIK
+  dengan SHA256 di atas.
+Catatan jujur: satu pengukuran SEBELUM suntingan test terakhir menghasilkan
+  312.912 B / SHA256 0A3BF5F4...FBF9, juga byte-identik pada dua build berturut.
+  Selisih keduanya 16 byte dan seluruhnya duduk di `.strtab` (24.569 -> 24.555);
+  `.text`, `.rodata`, `.data`, `.bss` identik ukuran. Saya tidak punya penyebab
+  yang terukur untuk selisih itu, jadi keduanya dilaporkan apa adanya dan angka
+  yang dipakai sebagai rujukan unit adalah ELF final di atas.
+
+Delta bagian ELF terhadap tree F6 (angka F6 dari
+`Analysis/reports/f6_rename_uji_2026-10-22.txt` Bagian 2; angka F7 dari pembacaan
+header bagian berkas ELF di atas):
+  .text    181.631 -> 186.815  delta +5.184
+  .rodata   30.950 ->  31.406  delta   +456   (tiga label MSG_* baru + teks test tidak ikut)
+  .data     tidak dicatat F6 -> 41.888  (tidak ada pembanding; tidak diklaim nol)
+  .bss     852.096 -> 852.096  delta      0   (riwayat hidup di penyangga shell, bukan .bss)
+  .symtab    8.544 ->   8.784  delta   +240
+  .strtab   23.891 ->  24.555  delta   +664
+  TOTAL DELTA berkas = +5.000 B (307.896 -> 312.896)
+
+4. BAGIAN VM: TERBLOKIR - BUKAN LULUS, BUKAN PENGGANTI
+-------------------------------------------------------
+Yang TIDAK dikerjakan pada unit ini, dan mengapa:
+- Mastering ISO: `scripts/build_kernel.ps1 -Action iso` berhenti pada
+  pemeriksaan `:100-102` karena `asl-kernel/target/limine_v8_binary/limine.exe`
+  tidak ada. Verifikasi pohon kerja 2026-10-22: direktori
+  `target/limine_v8_binary/` tidak ada; `target/iso_root/boot/limine/` berisi
+  data bootloader (`limine-bios-cd.bin`, `limine-bios.sys`, `limine-uefi-cd.bin`)
+  tetapi bukan utilitas host `limine.exe` yang dipakai tahap `bios-install`
+  (`scripts/build_kernel.ps1:142`). Ini akibat langsung dari fault #50
+  (`cargo clean` saya menghapus perkakas di luar kendali versi); pemulihan
+  perkakas adalah wewenang pemilik, bukan agen.
+- Sesi QEMU untuk riwayat/Tab/Ctrl+C/Ctrl+L/Esc/F1: TIDAK ADA. Tanpa ISO baru,
+  tidak ada layar yang disaksikan; tidak ada satu pun pernyataan di Bagian 1 dan
+  5 yang berasal dari pengamatan mesin.
+- Gerbang lantai memori `scripts/test_ram_floor_3mb.ps1`: TIDAK dijalankan pada
+  tree ini. Angka -m 3M / -m 3392K terakhir yang sah tetap milik tree F6; tidak
+  ada angka baru, tidak ada angka lama yang dikutip seolah-olah baru.
+- Jendela G9-LITE/E8: TIDAK dibuka. VERIFIED-ON-HARDWARE tetap 0.
+- Ukuran riil penyangga riwayat di rangka `kernel_main`: perkiraan ~550 byte
+  adalah HITUNGAN UKURAN STRUKTUR di host (`HIST_MAKS` x lebar baris + indeks),
+  bukan pengukuran di VM. Statusnya: tidak terukur.
+
+5. HUBUNGAN DENGAN E8 DAN SHIFT/CAPSLOCK
+----------------------------------------
+- Temuan E8 Bagian 3.2 (kalimat Inggris pada fallback perintah tak dikenal)
+  ditutup di sisi host pada unit ini: dispatch `ShellCommand::Unknown` hanya
+  menyusun label Indonesia, dan `test_f7_tidak_ada_kalimat_inggris_asing`
+  membaca berkas sumber itu sendiri sehingga penjaga tidak bergantung pada
+  ingatan penulisnya. Pengulangan E8 dengan jendela TETAP TERBUKA sampai ada ISO.
+- Shift dan CapsLock tidak dapat diverifikasi sebagai keadaan: kedua jalur
+  masukan hanya mengirim byte hasil, jadi kernel tidak melihat modifier. Yang
+  dijamin dan diuji: `find_entry` membandingkan byte apa adanya, registry berisi
+  nama huruf kecil, jadi `HELP` menjadi `Kesalahan: perintah tidak dikenal: HELP
+  - ketik help untuk daftar perintah` (test
+  `test_f7_huruf_besar_ditolak_dengan_galat_anggun`), dan huruf besar di posisi
+  argumen tetap data operator yang dikirim utuh ke VFS.
+- Galang PS/2 mengabaikan scan code terextend (`asl-driver-ps2-keyboard`), jadi
+  panah, Home/End, Delete, F1 dan riwayat hanya hidup di jalur serial ANSI.
+- Penanda kursor (F5) tetap di titik tulis; panah kiri/kanan, Home, End tidak
+  memindahkannya dan Delete maju tidak menggambar ulang kolom yang bergeser.
+  Backlog jujur yang belum dikerjakan dan belum dijanjikan: PageUp/Down, Insert,
+  F2-F12, penempelan (paste), pemisah waktu Esc, perpindahan kursor horizontal
+  di framebuffer, dan terjemahan scan code terextend PS/2.
+
+6. LAPOR DIRI (slip selama unit ini, terperinci di ACCOUNTABILITY_FAULT_LOG)
+----------------------------------------------------------------------------
+- Dua karakter CJK pernah saya tulis di dalam komentar bahasa Indonesia pada
+  berkas sumber (kekambuhan kelas G10). Sebelum commit, pemindaian pada tujuh
+  berkas yang saya sentuh menghasilkan CJK = 0 baris.
+- Dua skrip fmt bentukan saya sendiri MERUSAK berkas: satu menduplikasi lengan
+  `Echo::Candidates` di `asl-kernel-core`, satu menghapus beberapa assertion di
+  `test_f7_kandidat_perintah_hanya_nama_kanonik`. Kedua berkas dipulihkan dari
+  cadangan `lib.rs.bak-format.keep` keadaan hijau (47 dan 35 lulus) lalu suntingan
+  bentuk canonical diterapkan manual per hunk berbasis keluaran
+  `rustfmt --check`. Cadangan dan skrip sudah dihapus; tidak ada artefak yang
+  ikut commit. Pelajaran yang dicatat: pada berkas sebesar ini, otomatisasi fmt
+  tidak aman dan keluaran `rustfmt --check` hanya boleh dipakai sebagai petunjuk
+  sunting manual.
+- Satu berkas di luar cakupan ikut terformat ulang oleh operasi saya:
+  `asl-kernel/asl-kernel-core/src/vtd_boot.rs` (53 tambah / 16 hapus, seluruhnya
+  tata letak baris; file itu terakhir berubah di commit `965c3e2` PHASE-5B).
+  Versi terformat disimpan sebagai bahan audit di `logs/` (tidak masuk git),
+  berkas dikembalikan ke isi HEAD, dan `git status` pada commit ini tidak
+  memuatnya lagi.
+- Empat diagnostik clippy baru dari kode saya ditutup sebelum commit (Bagian 2).
+- Satu pernyataan dokumen F7 belum memuat Shift/CapsLock sementara mandat
+  menyebutnya; bullet dan test penjaganya ditambahkan pada unit ini sebelum
+  commit, dan kelas verifikasinya dinyatakan sebagai host.

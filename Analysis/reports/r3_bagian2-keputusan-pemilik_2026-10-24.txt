@@ -1,0 +1,93 @@
+CATATAN KEPUTUSAN PEMILIK - MASTER PROMPT R3 BAGIAN 2 - DIUKUR 2026-10-24T11:25:26Z (UTC)
+========================================================================================
+Alat: naskah scratch logs/r3_b2_tulis_keputusan.py (gitignored) membaca BERKAS MANDAT pemilik,
+dokumen misi di tree ter-commit, git, dan jam mesin pada satu kesempatan; nol angka diketik tangan.
+Jam mesin lokal 2026-10-24 18:25:26 dengan selisih terukur 7.0 jam terhadap UTC. Cabang feature/v1.0.2-r1 tip 526412dd4343f772ba983292311477175e10bef8
+(pesan commit tip: [V1.0.2-R3-BAGIAN1]), origin sinkron (left-right 0 0), nol berkas .rs pada 4335e41..HEAD (0 baris).
+
+SUMBER OTORISASI (TERUKUR, BUKAN DIINGAT)
+  berkas mandat pemilik : 10132 byte APA ADANYA, 54 baris CRLF (LFcount == CRLFcount terukur), 
+    sha256 e7c6925994bb3f01300f19fb8f9e34f06ab0904c6fdadcd091e6866159d4f472
+  (jalur direktori lampiran tidak dicatat di berkas bukti karena jalur personal; yang diikat = sidik jari byte)
+  kutipan otorisasi, disalin ke ASCII murni (non-ASCII terukur 1 karakter diganti '-'):
+    Otorisasi tertulis pemilik, 2026-10-24, disimpan apa adanya: "...saya akan bepergian agak lama, saya sudah percayakan, semua harus selesai dalam satu prompt - commit, push dan rilis... tidak perlu lagi konfirmasi dari saya lagi... semua harus dilakukan Qoder sampai tuntas... uji coba dan perbaikan, uji coba, commit, push sampai dengan rilis harus lengkap... saya ingin sesampainya di rumah pekerjaan sudah selesai, dengan rapi, tanpa ada bug, tanpa ada kesalahan, tanpa ada error."
+
+EMPAT KEPUTUSAN BUTIR 7 -> P1..P4 (pertanyaan dibaca dari docs/RND/ASL-V1.0.2-R1-STATUS-BAGIAN-2.md
+baris 128..137; jawaban dibaca dari baris 'P1:' berkas mandat)
+  P1  PERTANYAAN BUTIR 7 : 1. Apakah sisa F7 yang menuntut perpindahan kursor horizontal di framebuffer dikerjakan sebagai unit baru, atau mandat F7 ditutup sampai di sini.
+      KEPUTUSAN    : Sisa F7 (perpindahan kursor horizontal framebuffer) - mandat F7 DITUTUP di sini; sisanya tetap backlog, TIDAK dibuka pada mandat ini.
+  P2  PERTANYAAN BUTIR 7 : 2. Apakah blocker perkakas bootloader (entri #50) diselesaikan lebih dulu, supaya fitur baru dapat bukti VM. Tanpa itu, semua kerja fitur berikutnya hanya VERIFIED-ON-HOST.
+      KEPUTUSAN    : Blocker #50 (perkakas bootloader) - DISELESAIKAN LEBIH DULU lewat pin Limine varian A (BAGIAN 3), supaya kerja dapat bukti VM.
+  P3  PERTANYAAN BUTIR 7 : 3. Apakah penyesuaian alat dibuka dari backlog R2 sekarang (ikatan artefak ke hash tree dan penyapuan warisan), atau tetap menunggu fitur beku.
+      KEPUTUSAN    : Penyesuaian alat (ikatan artefak ke hash tree, sapuan warisan clippy/fmt) - di luar lingkup mandat ini; hanya yang disyaratkan alat jendela BAGIAN 6 yang boleh disiapkan. Nol clippy BARU tetap dijaga; 134 warisan TIDAK disentuh.
+  P4  PERTANYAAN BUTIR 7 : 4. Kapan jendela berikutnya dijadwalkan untuk disaksikan, karena tanpa satu jendela pun kelas VERIFIED-ON-HARDWARE tetap 0.
+      KEPUTUSAN    : Jendela disaksikan - DITUNDA dengan otorisasi tertulis 2026-10-24; diganti jendela VM tak-disaksikan (BAGIAN 6). VERIFIED-ON-HARDWARE tetap 0 dan dinyatakan terang di rilis + LAPORAN-FINAL.
+
+TAHAN YANG DICABUT OLEH MANDAT INI (4 baris, ASCII-murni hasil transkripsi)
+  1. Tahan merge PR misi - DICABUT (BAGIAN 7).
+  2. Tahan potong tag / rilis - DICABUT (BAGIAN 7).
+  3. Tahan tulis LAPORAN-FINAL - DICABUT (BAGIAN 8; tetap HARUS paling akhir).
+  4. Tahan menunggu jendela disaksikan - DIGANTI jendela VM tak-disaksikan(BAGIAN 6); kelas VERIFIED-ON-HARDWARE tetap 0 dan ditulis jujur (BAGIAN 9).
+
+YANG TETAP TERLARANG MUTLAK (fail-closed; 5 butir terukur dari satu baris mandat)
+  (a) MENULIS apa pun ke ESP/disk fisik mesin pemilik. K-6 fisik DILARANG dijalankan tanpa kehadiran pemilik (BAGIAN 4).
+  (b) Amend / rebase / reset / force-push commit mana pun. Koreksi = commit baru.
+  (c) Menyentuh artefak terproteksi: scripts/g9_final_p8_run.ps1, CHECKLIST_STATE.json, 20 artefak Analysis/reports/g9_final_p8_* tahun 2026-10-21, README.md:138 (milik pemilik), dan berkas .log di root repo.
+  (d) Memotong tag/rilis dari tree yang gagal gerbang; menyembunyikan kegagalan; mengklaim kelas bukti di atas yang benar-benar terukur.
+  (e) Menghapus tag/rilis mana pun di luar yang tercantum di BAGIAN 7.
+
+KONSEKUENSI TERUKUR PER BAGIAN BERIKUTNYA
+  BAGIAN 3 : P2 mengikat - blocker #50 didahulukan. Fakta terukur: rilis resmi v8.7.0 NOL aset
+             binari (terukur pada unit K-5: 408 rilis diperiksa, delapan tag v8.x hanya tarball
+             sumber), sehingga varian A = binari resmi stabil TERDEKAT yang terbukti kompatibel;
+             tools/limine/_inspeksi/limine-binary.zip 2.110.373 B sha256
+             5f6916d5bcae8f13e0cabebb4d6f5ea0e82e505165fa899b38195868d7853655 sudah terunduh dan
+             2 dari 3 berkas inspeksi cocok dengan blok kandidat_v12_9_4 ledger (audit BAGIAN 1).
+             RANTAI BOOT DIUKUR ULANG SEPENUHNYA; angka lama dilarang disalin.
+  BAGIAN 4 : butir (a) mengikat - K-6 fisik DITUNDA, nol tulis ESP/disk fisik; penundaan
+             berotorisasi dicatat sebagai entri fault log berikutnya.
+  BAGIAN 5 : ISO dikuasai dari tree bersih + SHA256 + boot QEMU headless (serial + screendump)
+             = VERIFIED-ON-VM; bila pin BAGIAN 3 gagal, ISO DITAHAN dan dicatat, bukan dikarang.
+  BAGIAN 6 : P4 mengikat - jendela VM TAK-DISAKSIKAN dengan alat fail-closed; bukti berprefiks
+             BARU Analysis/reports/p8_unattended_* (prefiks g9_final_p8_* tetap tidak disentuh).
+  BAGIAN 7 : tahan merge/tag/rilis dicabut, tetapi urutan teknis hasil audit BAGIAN 1 tetap:
+             SATU commit merge origin/main ke cabang -> CI hijau -> merge PR #7 -> main FF sync;
+             v1.0.2 TIDAK ADA di lokal/origin (tidak ada yang diarsip untuk versi itu); v1.1.0
+             hanya TAG LOKAL tanpa rilis GitHub -> arsip-ter-commit lalu hapus; tag ANNOTATED
+             v1.0.2 dipotong di tip yang lulus BAGIAN 6.
+  BAGIAN 8 : tahan LAPORAN-FINAL dicabut TETAPI tetap ditulis PALING AKHIR, setelah rilis.
+
+YANG TIDAK BERUBAH: kelas bukti tetap hanya VERIFIED-ON-HOST / VERIFIED-ON-CI / VERIFIED-ON-CI-API /
+VERIFIED-ON-VM / RANCANGAN; VERIFIED-ON-HARDWARE TETAP NOL dan wajib tertulis terang di kepala rilis
+dan LAPORAN-FINAL; nol clippy BARU dengan 134 warisan tidak disentuh (P3); CHECKLIST_STATE.json,
+scripts/g9_final_p8_run.ps1, README.md:138 dan 20 artefak g9_final_p8_* tetap tidak disentuh.
+
+KUNCI ROLLING HANDOFF_STATE YANG DIGANTIKAN - NILAI LAMA DISIMPAN DI SINI SUPAYA PENGGANTIAN
+BISA DIAUDIT (append-only berlaku penuh untuk fault log; kunci rolling dirancang untuk diperbarui)
+  timestamp lama                     : 2026-10-23T17:46:41Z
+  active_phase lama                  : 847 karakter, ASCII murni, dan TERUKUR tidak punya duplikat
+    di kunci mana pun -> salinan verbatim ditulis di bawah ini.
+    | MISI R1-REVISI (dokumen pemilik 2026-10-21): BAGIAN 0 selesai (rantai lama ditutup, 
+    | tag/rilis v1.0.2 ditarik, cabang feature/v1.0.2-r1 dari main b47c24c, PR #7 terbuka 
+    | sebagai wadah rantai). BAGIAN 1 = E8 kernel panic, LANGKAH 1-5 selesai dan terukur 2
+    | 026-10-21 lalu diulang seluruhnya pada LANGKAH 5b sesudah higiene compiler (gerbang 
+    | penuh + verifikasi di mesin + lantai memori diukur ulang di atas ISO final 18F40D2D)
+    | ; E8 tetap berstatus BELUM-TERREPRODUKSI-SEBAGAI-PANIC sehingga TIDAK ditutup. LANGK
+    | AH 6 (jendela G9-LITE disaksikan pemilik) dan LANGKAH 7 (laporan E8 final) belum dij
+    | alankan. BAGIAN 2 = F1-F7 belum dimulai. Rantai closeout lama (PR #6, T3/T4/T5) SENG
+    | AJA DITAHAN: jangan merge, jangan potong tag, jangan tulis LAPORAN-FINAL-v1.0.2.md. 
+    | Setelah F1-F7 tuntas dan laporan terkirim: BERHENTI menunggu prompt 'R2 CLOSEOUT (re
+    | visi)'.
+  next_immediate_step lama           : 9055 karakter; TERUKUR IDENTIK BYTE dengan nilai kunci
+    v1_0_2_r1_k5_k6_provisioning_state yang TIDAK disentuh, jadi isinya tidak hilang.
+  42 kunci lainnya                   : byte-identik, diuji dengan membandingkan json.dumps per
+    kunci terhadap berkas sebelum tulis (assert gagal sebelum satu byte pun ditulis).
+
+INTEGRITAS TULIS (DIUJI SEBELUM DAN SESUDAH): kedua berkas JSON round-trip byte-identik dengan
+kanonik json.dumps(indent=2, ensure_ascii=False)+CRLF. ACCOUNTABILITY_FAULT_LOG.json 285135 -> 290382 byte
+(BERTAMBAH, hanya SATU entri di ujung), fault_history 57 -> 58 entri dengan 57 entri lama tetap
+ada sebagai awalan identik. HANDOFF_STATE.json 141790 -> 136078 byte (SELISIH -5712 B) dengan kunci 45 -> 47:
+DUA kunci appended dan TIGA kunci rolling diperbarui; ukuran bisa menyusut justru karena
+next_immediate_step adalah penunjuk tunggal - nilai lamanya yang panjang tetap terpelihara di
+kunci khusus seperti dicatat di atas. violations_recorded tetap 0.
+

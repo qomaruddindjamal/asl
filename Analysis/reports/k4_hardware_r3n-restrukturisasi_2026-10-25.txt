@@ -1,0 +1,253 @@
+BUKTI UNIT - PROMPT R3-NOTES (TERBITAN ULANG, PRA-JENDELA K-4): RESTRUKTURISASI ISI
+RILIS v1.0.2, DOCS-ONLY - 2026-10-25
+
+MANDAT: jendela K-4 TAHAN di BAGIAN 0 menunggu prompt restrukturisasi; unit ini
+menjalankan masukan pemilik SEBELUM jendela dibuka. Objek tag dan komit terbit TIDAK
+disentuh. Setelah unit ini selesai, gerbang audit K-4 BAGIAN 1 dijalankan ulang di atas
+keadaan baru dan jendela dibuka.
+
+1. KEADAAN AWAL
+
+tip cabang sebelum unit ini: a737f1de81f21ca9b0f68662676dd0f888ae1d2f
+subjek komit induk: [V1.0.2-K4-BAGIAN1] PROMPT K-4 BAGIAN 1 (AUDIT TERUKUR SEBELUM USB APA PUN DISENTUH; PEMILIK HADIR F
+berkas .rs ter-track: 51 - tidak satu pun diubah oleh unit ini
+.rs berbeda terhadap HEAD SEBELUM stage: 0 (harus 0)
+diff nama berkas origin/main..HEAD: Analysis/reports/LAPORAN-FINAL-v1.0.2.md, Analysis/reports/T4R-ARSIP-TAG-V1.1.0-2026-10-24.md, Analysis/reports/ci_hosted_40109001959_2026-10-24.log, Analysis/reports/ci_hosted_40109006618_2026-10-24.
+diff .rs origin/main..HEAD: 0 (harus 0)
+
+2. GERBANG DASAR TIAP BUTIR CHANGELOG (mandat: DILARANG MENGARANG)
+
+semua_butir_terdukung = True
+registry identik dokumen = True | blok Pasal 4 = 13 | konstanta CANONICAL_COMMAND_COUNT = 13
+label Pasal 4 dokumen = 'tiga belas, urutan registry' | selisih perbandingan = []
+perintah terukur = 13 | alias terukur = 10
+nama (urutan registry): help, clear, where, list, open, up, create-folder, create-file, write-file, rename, delete-file, delete-folder, status
+riwayat nilai konstanta (git log -S, komit yang mengubah literal): {"11": [["c3a9f2e", "2026-10-22"], ["112fc38", "2026-10-21"]], "12": [["791a88d", "2026-10-22"], ["c3a9f2e", "2026-10-22"]], "13": [["791a88d", "2026-10-22"]]}
+ramdisk: kapasitas = 262144 B (256 KiB) | simpul = 32 | slot = 8192 B (8 KiB) | gerbang 256KiB=True slot8KiB=True
+kapasitas yang disebut dokumen PANDUAN = {"byte": 262144, "kib": 256}
+identitas: KERNEL_VERSION=v1.0.2 dirujuk 9 kali oleh asl-kernel-core | occurrence di serial VM ter-commit = {"v1.0.2": 3, "v1.1.0": 0}
+penanda mesin sunting: {"ESC_GOT_SS3": true, "HIST_MAKS": true, "PENYUNTING BARIS": true, "edit_escape": true, "kandidat_perintah": true, "perpanjangan_bersama": true}
+seksi dokumen: {"NAVIGASI KEYBOARD": true, "pasal4": true, "sintaks_label": true}
+PANDUAN ter-commit = 4 berkas:
+  docs/PANDUAN/KONFIGURASI-MEMORI.md 5351 B SHA256 5ed5fad5766cd549b7cdf279abdbe8da36d29c2bcf1be383715c487750ff64d6
+  docs/PANDUAN/MULAI-CEPAT.md 6575 B SHA256 1c097de45514149997223f02338f1bb89edd974f490e6db3308f66e016af95bd
+  docs/PANDUAN/README.md 3275 B SHA256 c67674f5561d969916f2e8315cc4b2a39f87fb1f2c323763ab633369af771a3f
+  docs/PANDUAN/REFERENSI-PERINTAH.md 26489 B SHA256 20593777cfce213f64572738ada57875dcbf8ffe0c3896e5182c22830f8f7ddc
+rantai b47c24c..700481c: komit tanpa merge = 52 | penanda E8/F8 = 19 | penanda F1..F7 = 10
+E8 dinyatakan tertutup di dokumen = True (laporan 18218 B, frasa penutup hadir = True)
+status F7 PARSIAL (tiga tempat): {"bytes_dokumen_status": 10468, "frase_di_E8_PENUTUPAN": false, "frase_di_HANDOFF_STATE": true, "frase_di_STATUS-BAGIAN-2": false}
+blocker #50 = entri ledger ke-50 result=OPEN ; entri ke-59 result=CLOSED ; entri ke-58=CLOSED
+gh api repos/.../issues/50 -> rc=1 (bukan issue GitHub)
+check_limine.ps1 = 5625 B SHA256 eca58b174b7c1b4e80bbb03ee8f7324d95c45f1ae5e87fff1a2a4145c4bcefc7 komit terakhir 5ad71ae
+
+3. ANGKA GERBANG DARI EKSTRAK HOSTED CI ATAS TIP a737f1d (parser ter-commit)
+
+run 40137397612 event=push status=completed conclusion=success headSha=a737f1de81f21ca9b0f68662676dd0f888ae1d2f
+suite=30 passed=262 failed=0 per_test_ok=262 warning[1/2]=19 error[1/2]=0 warning[2/2]=0 error[2/2]=0 Compiling=13 elf=312968
+ELF host terukur ulang pada unit ini: 312912 B | selisih runner-vs-host = 56 B DIBIARKAN TERBUKA (tidak dicocokkan paksa)
+ekstrak ci_hosted_40137397612_2026-10-24.log: 11192 B, 0 baris CRLF, LF polos 94, nonASCII 0, SHA256 129132124493e43c55849f0696c7aa978162ebece3ea6036d42e587451930629
+sumber di logs/ (ter-ignore): 11192 B SHA256 129132124493e43c55849f0696c7aa978162ebece3ea6036d42e587451930629 | identik byte dengan salinan ter-commit = True
+
+4. BAGIAN B - CATATAN RILIS BARU DITERAPKAN (gh release edit; tag/komit tidak disentuh)
+
+body lama (ter-commit): 7086 B, 108 baris, nonASCII 0, SHA256 d40dca6f878cced8a22b3b93d769dac124d0775306840f2a2a4c5b4746674ffc | API 7086 B | identik byte=True
+body baru: 15037 B, 101 baris CRLF, LF polos 0, nonASCII 0, SHA256 7159dcf1ac9d3c4ed50b4d017362cdc9efbaba9592f516ec25c100c06fbb8c28
+tujuh bagian yang diterbitkan: ["## 1. Konteks", "## 2. Apa yang baru (untuk pengguna)", "## 3. Aset + SHA256", "## 4. Cara memverifikasi", "## 5. Status verifikasi ringkas", "## 6. BATASAN JUJUR", "## 7. Rujukan berkas bukti"]
+aksi: gh release edit v1.0.2 --notes-file logs/r3n_body_baru.kirim.md
+baca ulang lewat API (base64): 15037 B, 101 baris CRLF, LF polos 0, SHA256 7159dcf1ac9d3c4ed50b4d017362cdc9efbaba9592f516ec25c100c06fbb8c28
+GERBANG: file-vs-API IDENTIK BYTE = True | non-ASCII API = 0
+baca ulang API PADA SAAT NASKAH INI JALAN (bukan pembacaan naskah ukur tadi): 15037 B, 101 baris CRLF, LF polos 0, nonASCII 0, SHA256 7159dcf1ac9d3c4ed50b4d017362cdc9efbaba9592f516ec25c100c06fbb8c28, aset 2 | identik byte dengan body yang dikirim = True | identik dengan berkas ter-commit = True | identik dengan body LAMA ter-commit = False (harus False, body memang diubah)
+pembacaan naskah ukur tadi (r3n_audit.json, jalan sebelum terbitan final): API 13811 B SHA256 7c579ff3882698f2bee886686c1a55dfe8be115d6b550a7f25778dd02d15d79d - DIBIARKAN TERCETAK sebagai jejak urutan kejadian, bukan sebagai keadaan kini
+baris VERIFIED-ON-HARDWARE: 0 dipertahankan apa adanya (mandat: jangan diubah di langkah ini) - hadir di body baru = True
+salinan ter-commit Analysis/reports/k4_r3n_catatan-rilis_2026-10-25.md: 15037 B, 101 baris CRLF, nonASCII 0, SHA256 7159dcf1ac9d3c4ed50b4d017362cdc9efbaba9592f516ec25c100c06fbb8c28 | identik byte dengan body terbit = True
+BATASAN JUJUR: butir 1-7 dipertahankan verbatim dari catatan lama, butir 8-11 ditambah (nol butir dikurangi). Butir bernomor terukur: lama=7 baru=11
+
+5. BAGIAN C - RELEASE_NOTES.md (v1.0.2 di atas, riwayat v1.1.0/v1.0.1 verbatim di bawah)
+
+sebelum: 42746 B, 164 baris CRLF, nonASCII 341, SHA256 932f73c1af965cdfa22d4889441587afe7edd705f29100790e674cbedf5b0150
+sesudah: 58769 B, 284 baris CRLF, LF polos 0, nonASCII 341, SHA256 0ead54edb7dc537c78fc3ee68c1259ee04f693d1e329b1c546e909278be7d1c8
+bertambah: 120 baris, 0 byte non-ASCII | dihapus: 0 baris
+GERBANG append-only: isi lama tetap menjadi SUFIKS IDENTIK BYTE = True
+interpretasi yang dinyatakan: mandat menyebut 'struktur sama'; yang dilakukan MENAMBAH
+bagian v1.0.2 berstruktur tujuh di atas dan MEMPERTAHANKAN seluruh teks lama di bawah
+pemisah tanpa mengubah satu baris pun (riwayat wajib utuh).
+
+6. BAGIAN D - VERIFIKASI KEADAAN REMOTE (nol penghapusan karena sudah bersih)
+
+git ls-remote --tags origin: ["v1.0.0", "v1.0.1", "v1.0.2"]
+API /tags: ["v1.0.0", "v1.0.1", "v1.0.2"]
+API /releases: 3 rilis -> v1.0.2 id=422838293 draft=False prerelease=False aset=2, v1.0.1 id=415600997 draft=False prerelease=True aset=6, v1.0.0 id=411344624 draft=False prerelease=True aset=4
+rilis ber.tag v1.0.2 tepat satu = True
+sisa v1.1.0: ls-remote origin=False | API /tags=False | tag lokal=False
+  GET /releases/tags/v1.1.0 -> rc=1 Not Found
+  GET /git/ref/tags/v1.1.0 -> rc=1 Not Found
+  git rev-parse refs/tags/v1.1.0 (galat terukur): fatal: ambiguous argument 'refs/tags/v1.1.0': unknown revision or path not in the working tree.
+objek tag v1.0.2: origin 79d581f8291650679693e6014e0ce4b73b54faf7 peel 700481c22dc98b92be5bbd2059c54ea5bf97feb3 | tag objects identik lokal/origin/API tercatat di berkas bukti BAGIAN 8 (663fe8e)
+manifes arsip T4R: ter-commit=True 8590 B SHA256 8a77c018630a4e7ddf86d8622b13494c6f9e5a4503b1c118956cf12d08796395
+KEPUTUSAN: pola arsip-lalu-hapus TIDAK dijalankan pada unit ini karena tidak ada objek
+yang tersisa; hasil verifikasi inilah buktinya. NOL penghapusan, NOL operasi tag.
+
+7. BAGIAN E - ALAT PRA-FLASH TER-COMMIT DAN CACAT VERSI SCRATCH
+
+scripts/k4_media_state.py: 5913 B, 127 baris LF, nonASCII 0, SHA256 6d1bd6d1ddaffe19fab9ee649643ebde83493287308f36fac1e1e71672a2152e, ter-commit=True
+  sifat alat: --disk WAJIB (nol nilai bawaan); tolak disk dengan IsBoot/IsSystem=true;
+  hanya Get-Disk/Get-Partition/Get-Volume/Get-CimInstance dan cmd dir - nol kata kerja tulis
+keluaran logs/k4_media_state.json: 1081 B SHA256 85d17a94da3b047d2ee67000bb6426462ad4463e816efdb35c71c743c031735b | nol_tulis=True | dir exit=0 8 baris
+CACAT (direproduksi READ-ONLY pada unit ini): daftar argumen ["dir", "F:\\ /a /-p /o:gn"] -> exit 1, baris [' Directory of F:\\ \\a \\-p ']
+PERBAIKAN: daftar argumen ["dir", "F:\\", "/a", "/-p", "/o:gn"] -> exit 0, baris [' Directory of F:\\']
+kandidat media: disk 1 SanDisk Cruzer Blade USB Device interface USB style MBR volume F:FAT32/Healthy
+  ukuran Get-Disk 15401484288 B vs Win32_DiskDrive 15397724160 B -> selisih 3760128 B DIBIARKAN TERBUKA
+  media BELUM di-flash: 8 baris keluaran dir, isi_sekarang exit=0 nol_tulis=True
+
+8. BAGIAN F - UTANG EKSTRAK G8 ATAS a737f1d DITUTUP KOMIT INI
+
+  | AUDIT UTANG EKSTRAK HOSTED CI - cabang feature/v1.0.2-r1
+  | HEAD saat audit dijalankan: a737f1d (run milik HEAD belum ter-commit, memang begitu aturan G8)
+  | SUMBER: `git rev-list main..HEAD`, `gh api .../actions/runs?branch=...`, `git ls-tree -r HEAD Analysis/reports`.
+  | SUDUT BACA: baris BELUM di bawah adalah utang yang ditutup commit BERIKUTNYA, bukan kegagalan.
+  | 
+  | commit   run-id       event  koncl  ekstrak-di-repo
+  | f213098  40112679699  push   success ADA
+  | 663fe8e  40126027590  push   success ADA
+  | a737f1d  40137397612  push   success BELUM
+  | 
+  | total commit cabang: 3
+  | commit tanpa run sendiri:  (0)
+  | utang terbuka (run ada, ekstrak belum di repo): [('a737f1d', 40137397612, 'push')]
+  | ekstrak ter-commit total: 140
+catatan: audit membaca POHON SEBELUM komit ini, jadi baris BELUM adalah utang yang ditutup
+komit ini. Aturan G8 melarang satu komit memuat ekstrak untuk dirinya sendiri, sehingga
+ekstrak atas komit unit ini menjadi residu terminal langkah berikutnya.
+ekstrak ter-commit: menurut audit pohon lama 140; menurut git ls-files sesudah stage 141
+run atas a737f1d = SATU run event push (cabang tidak punya PR terbuka), jadi yang ditutup
+satu berkas ekstrak - dinyatakan terang, bukan disembunyikan.
+
+9. RUJUKAN BUKTI DI CATATAN RILIS WAJIB TER-COMMIT
+
+p8_unattended_* = 16 berkas | ci_hosted_* (semua tanggal) = 141 | ci_hosted_* bertanggal 2026-10-24 = 32 | k4_hardware_* = 2
+berkas yang terdaftar di git tetapi tidak ada di pohon kerja: 0 []
+logs/ di-ignore oleh: .gitignore:159:**/logs/	logs - angka yang dikutip rilis berasal dari salinan ter-commit, bukan dari scratch
+
+10. ITERASI DAN DEVIASI (mandat 5.4: maksimum 3 perbaikan per kelas)
+
+kelas A 'operator format salah pada naskah bangun dokumen' = 3 butir TEPAT PADA BATAS 3:
+  (A1) satu butir body memakai %-repr sehingga dict Python 'memancar' ke teks rilis;
+  (A2) satu placeholder baris kepala RELEASE_NOTES.md tidak terhubung ke argumen, sehingga
+      tercetak sebagai %d yang tidak terisi;
+  (A3) pada revisi naskah bukti ini, operator format ditempel ke literal TERAKHIR dari satu
+      panggilan yang tidak memuat placeholder (placeholder-nya ada di literal sebelumnya,
+      yang merupakan panggilan terpisah) sehingga naskah berhenti dengan TypeError
+      'not all arguments converted' SEBELUM menulis apa pun - dibetulkan pada percobaan
+      pertama sesudah galat, tanpa artefak cacat yang tertinggal.
+kelas B 'sajian hasil ukur menyesatkan di dokumen keluaran' = 3 butir TEPAT PADA BATAS 3:
+  (B1) daftar PANDUAN dijoin dengan LF sehingga body memuat 3 LF polos di antara CRLF;
+      gerbang ASCII-CRLF menolak dan naskah pembangun RELEASE_NOTES ikut menahan;
+  (B2) SHA256 berkas rujukan dipotong 16 karakter tanpa label di berkas bukti, sedangkan
+      catatan rilis memuat pemotongan yang sama tanpa keterangan - kini kedua naskah
+      (ukur dan bukti) memakai digest 64 karakter penuh;
+  (B3) reproduksi cacat alat mencetak daftar argumen yang sudah digabung menjadi satu
+      string, sehingga versi cacat dan versi baik tercetak IDENTIK padahal exit-nya 1 vs
+      0; kini daftar argumen dicetak sebagai JSON sehingga perbedaannya terlihat.
+kelas C 'naskah tidak idempoten / sumber keadaan salah' = 1 butir: pembangun
+  RELEASE_NOTES.md membaca keadaan awal dari pohon kerja, bukan dari blob HEAD, sehingga
+  menjalankannya dua kali menumpuk kepala. Kini dibaca dari `git show HEAD:`.
+kelas D 'alat scratch salah alamat' = 1 butir dibawa dari unit K-4 BAGIAN 2 (cmd dir satu
+  argumen, exit 1) dan ditutup sebagai alat ter-commit scripts/k4_media_state.py.
+kelas E 'pola bentuk salah pada naskah pengukur dan ledger' = 3 butir TEPAT PADA BATAS 3,
+  ketiganya berhenti SEBELUM satu byte pun ditulis ke ledger:
+  (E1) pembongkaran hasil pencarian baris 'body baru:' meminta 4 nilai padahal polanya
+      menangkap 5 (LF polos ikut tertangkap) - ValueError menghentikan naskah;
+  (E2) headSha komit ditulis dengan pola 64 karakter heksadesimal (pola digest SHA256)
+      padahal panjang SHA-1 git 40 karakter, sehingga naskah menolak baris yang sejatinya
+      benar - pola dikoreksi ke 40 karakter, bukan longgarnya jadi 'cocok apa adanya';
+  (E3) satu capaian kelas E sendiri ditulis memotong angka di antara dua panggilan
+      baris ('= 2' di satu baris, 'butir' di baris berikutnya) sehingga gerbang 'kelas
+      iterasi tidak lengkap' naskah ini menolaknya - angka dan kata 'butir' kini duduk
+      pada baris yang sama supaya dapat dibaca ulang oleh naskah ledger.
+kelas F 'pembongkaran tupel keluaran perintah salah slot (stdout dari stderr)' = 3 butir
+  TEPAT PADA BATAS 3:
+  (F1) naskah ledger mengambil slot KETIGA dari helper run() untuk 'git ls-files' sehingga
+      yang dibaca adalah stderr (kosong) - alat menyimpulkan 'alat pra-flash belum masuk
+      indeks' padahal berkas itu ter-stage; berhenti karena gerbang sendiri;
+  (F2) pada baris yang sama, 'git status --porcelain --untracked-files=all' diambil dari
+      slot yang sama sehingga penghitung untracked DAN penghitung artefak g9_final_p8_*
+      yang tetap untracked akan mencetak NOL tanpa galat - ini kelas cacat 'hijau palsu':
+      tidak ada gerbang yang menangkapnya, hanya pembacaan ulang kode ketika F1 muncul.
+      Keduanya dibetulkan ke slot stdout; penghitung untracked kini DIKOYOKKAN dengan hasil
+      'git ls-files' dan dengan jumlah berkas yang benar-benar dikirim, bukan dipercaya.
+  (F3) PADA SESI LANJUTAN (K4-RESUME): naskah verifikasi body SEBELAM ada berkasnya
+      ditulis sebagai potongan sekali-jalan dan memanggil
+      rc,out,err = subprocess.run(...) - galat yang sama dengan F1/F2 di tempat yang
+      berbeda; TypeError 'cannot unpack non-iterable CompletedProcess' menghentikan
+      potongan itu SEBELUM satu byte pun tertulis. Dibetulkan ke p.returncode/.stdout/.
+      stderr, lalu seluruhnya dipindah ke naskah tetap logs/r3n_verifikasi.py supaya
+      berkas verifikasi punya penulis yang dapat dijalankan ulang (celah provenance:
+      logs/r3n_verifikasi_body.json dibaca oleh dua naskah lain padahal tidak pernah
+      ada naskah yang memproduksinya).
+kelas G 'klaim yang TERBIT tidak diukur oleh naskah - ditemukan audit K4-RESUME' = 2 butir
+  (bukan iterasi alat yang gagal: naskahnya jalan, angkanya yang salah alamat):
+  (G1) body rilis menerbitkan SATU jumlah berkas ekstrak 2026-10-24 yang TIDAK diukur;
+      terukur lebih kecil satu darinya - akar: hitungan dibaca dari INDEKS
+      (`git ls-files`) yang sudah memuat ekstrak ber-staging lalu ditambah SATU lagi -
+      berkas yang sama dihitung dua kali. Sumber kini `git ls-tree -r HEAD` + 1 yang ikut
+      komit, dengan gerbang menolak ekstrak yang sudah ada di HEAD; pasangan klaim-vs-
+      terukur dicetak pada baris 'KLAIM LAMA TERKOREKSI' di bawah, DIUKUR dari arsip body;
+  (G2) body rilis mengetik angka ledger dari ingatan (rentang entri audit pra-jendela dan
+      nomor entri unit ini). Audit menemukan salah satu rentang itu salah: entri audit
+      pra-jendela K-4 yang terukur hanyalah SATU nomor, bukan sepasang, dan nomor itu
+      dicetak terukur di baris 'KLAIM LAMA TERKOREKSI'. Seluruh penomoran kini dibaca dari
+      field gate_id (`nomor()`) dan disilang-check dengan entri yang dibaca naskah ukur;
+      angka yang tidak lagi cocok menghentikan naskah.
+kelas H 'cacat naskah yang dihentikan oleh pembacaan ulang SEBELUM eksekusi' = 2 butir
+  (nol iterasi gagal: tidak ada satu pun jalan yang menghasilkan artefak cacat, sehingga
+      tidak memakan anggaran 3 iterasi per kelas - dinyatakan di sini agar tidak terlihat
+      seperti penghindaran hitungan):
+  (H1) tambalan blok riwayat terbitan sempat ditulis dengan operator % menempel pada
+      literal terakhir dari empat panggilan A() yang berurutan - persis cacat A3;
+      ditemukan dengan membaca ulang tambalan sebelum dijalankan, lalu ditulis ulang
+      memakai satu literal tersambung per kalimat;
+  (H2) satu kalimat body lama berbunyi 'Sesudah restrukturisasi, API mengembalikan body
+      ...' padahal angka yang dicetaknya adalah pembacaan SEBELUM terbitan terakhir,
+      sehingga klaim itu menjadi salah tepat pada saat ia diterbitkan. Kalimat diganti
+      menjadi pernyataan yang tidak dapat basi: catatan yang dibaca adalah terbitan
+      PALING AKHIR, dan tiap terbitan antara didaftar di berkas bukti dari arsip byte.
+kelas I 'naskah memakai nama yang tidak diimpor (NameError) - gagal dijalankan' = 1 butir:
+  (I1) tambalan blok riwayat terbitan memakai io.open() padahal naskah bukti tidak
+      mengimpor io; naskah berhenti dengan NameError SEBELUM menulis berkas bukti, lalu
+      dibetulkan pada percobaan berikutnya (open biasa, sama seperti bagian lain naskah
+      ini). Kelas ini sengaja DIDAFTARKAN TERPISAH dari kelas A karena gejalanya berbeda
+      (nama tak dikenal, bukan operator format); walau terpisah, ia DIMASUKKAN ke
+      keluarga sintaksis di bawah bersama A dan E sehingga angka keluarganya ikut
+      melewati batas dan keluarga itu TETAP dinyatakan LEWAT - pengelompokan ini
+      dinyatakan, bukan dipakai untuk menyembunyikan.
+KELUARGA GEJALA DIBACA LEBIH KETAT (praktik yang sama dengan BAGIAN 8, bukan permintaan ulang): keluarga dihitung dari butir yang baru saja didaftar di bagian ini.
+  keluarga cacat yang dihentikan pembacaan ulang sebelum eksekusi (H) = 2 butir di bawah batas terhadap batas 3
+  keluarga klaim terbitan yang tidak diukur oleh naskah (G) = 2 butir di bawah batas terhadap batas 3
+  keluarga sajian hasil ukur di dokumen keluaran (B) = 3 butir TEPAT PADA BATAS terhadap batas 3
+  keluarga salah alamat / sumber keadaan / salah slot keluaran (C+D+F) = 5 butir LEWAT - DINYATAKAN SEBAGAI DEVIASI terhadap batas 3
+  keluarga sintaksis/operator format naskah + nama tak terimpor (A+E+I) = 7 butir LEWAT - DINYATAKAN SEBAGAI DEVIASI terhadap batas 3
+Dibaca per kelas tunggal TIDAK ada yang melewati 3 (tertinggi 3 dari 3, pada 4 kelas); dibaca per keluarga gejala ada 2 keluarga yang LEWAT terhadap 3 dan itu dinyatakan di sini serta di ledger, bukan disembunyikan di balik pilihan pengelompokan. Total butir = 19.
+NOL artefak dibuang; NOL pekerjaan ditahan. Catatan rilis v1.0.2 diterbitkan EMPAT kali pada unit ini dan keempatnya DIUKUR dari byte: body LAMA ter-commit 7086 B SHA256 d40dca6f878cced8a22b3b93d769dac124d0775306840f2a2a4c5b4746674ffc; terbitan antara 13811 B SHA256 7c579ff3882698f2bee886686c1a55dfe8be115d6b550a7f25778dd02d15d79d; terbitan sebelum koreksi angka rujukan 14278 B SHA256 2e7c431219e951f74e19c778e389808353b0f19b647dff1f56f9b70250054ee6; terbitan KINI 15037 B SHA256 7159dcf1ac9d3c4ed50b4d017362cdc9efbaba9592f516ec25c100c06fbb8c28. Dua angka tengah DIUKUR ULANG dari arsip byte-per-byte di `logs/` (logs/r3n_bukti_arsip_terbitan_antara_2026-10-25.txt serta logs/r3n_body_arsip_terbitan_kedua_2026-10-25.md) memakai fungsi meter yang sama dan parser fail-closed, bukan dari ingatan; kedua body itu sudah ditimpa di API sehingga TIDAK dapat dibaca ulang dari repo maupun dari riwayat komit - dinyatakan terang, bukan angka yang disembunyikan.
+SEBAB TERBITAN ULANG: dua klaim rujukan pada terbitan sebelum koreksi TIDAK diukur oleh naskah. Dibaca dari arsip body itu: '33 berkas' ekstrak 2026-10-24 padahal terukur 32 (pohon HEAD 31 + SATU yang ikut komit ini), dan 'ke-64/65 audit pra-jendela' padahal entri audit pra-jendela K-4 terukur ke-65 dari field gate_id ledger. Akar cacat: hitungan berkas dibaca dari INDEKS (`git ls-files`) yang sudah memuat ekstrak ber-staging untuk komit ini lalu ditambah satu lagi sehingga berkas yang sama dihitung dua kali; penomoran ledger diketik tangan. Sumber angka kini `git ls-tree -r HEAD` dan field gate_id yang diukur.
+KLAIM LAMA TERKOREKSI: berkas=33 vs terukur=32 | audit 'ke-64/65 audit pra-jendela' vs terukur ke-65
+yang TIDAK diusahakan perbaikannya (luar lingkup unit ini): -m 3M tetap MERAH (entri
+ke-23 result=OPEN), F7 tetap PARSIAL, K-6 fisik tetap DITUNDA berotorisasi (entri ke-60),
+asimetri objek tag v1.0.1 lokal-vs-origin tetap menjadi keputusan pemilik.
+
+11. TAHAN TETAK BERLAKU DAN KELAS BUKTI
+
+NOL tulis ke ESP/disk fisik (nol kata kerja tulis dipanggil; media hanya dibaca). NOL
+amend/rebase/reset/force-push. NOL tag/rilis dibuat atau dihapus pada unit ini. Artefak
+terproteksi tidak disentuh: scripts/g9_final_p8_run.ps1, CHECKLIST_STATE.json, 20 artefak
+g9_final_p8_* 2026-10-21 (tetap untracked), README.md milik pemilik, berkas .log di root.
+Kelas bukti unit ini: VERIFIED-ON-HOST + VERIFIED-ON-CI-API + VERIFIED-VIA-RELEASE-API.
+VERIFIED-ON-HARDWARE TETAP 0 - jendela K-4 belum dibuka; tidak ada satu pun klaim
+perangkat keras yang ditambahkan unit ini.
+
+12. LANGKAH BERIKUTNYA
+
+Jalankan ulang gerbang audit K-4 BAGIAN 1 (logs/k4_b1_audit.py) di atas keadaan baru
+(catatan rilis berubah sehingga angkanya diukur ulang; ISO, SHA256SUMS, tag, jam, dan
+pohon tetap diukur), wajib verdict START, lalu jendela dibuka dengan pemilik sebagai
+satu-satunya pelaku tindakan fisik.
+

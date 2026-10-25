@@ -1499,5 +1499,264 @@
       "nol_pekerjaan_ditahan": true
     },
     "langkah_berikutnya": "BAGIAN 0 (milik pemilik: jadwal, USB, listrik, kamera) -> BAGIAN 2 flash dengan metode dicatat apa adanya -> BAGIAN 3 checklist + lembar 17 baris -> BAGIAN 4 boot dan sesi dengan foto + transkrip -> BAGIAN 5 K-6 fisik bersyarat -> BAGIAN 6 hanya sesudah kata 'JENDELA LULUS' atau 'JENDELA GAGAL' di chat"
+  },
+  "v1_0_2_r3n_restrukturisasi_isi_rilis_state": {
+    "dicatat_pada_utc": "2026-10-25T17:47:50Z",
+    "komit_induk": "a737f1de81f21ca9b0f68662676dd0f888ae1d2f",
+    "mandat": "PROMPT R3-NOTES (TERBITAN ULANG, PRA-JENDELA K-4) - restrukturisasi isi rilis v1.0.2, docs-only; jendela K-4 TAHAN di BAGIAN 0 menunggu prompt ini",
+    "aksi_rilis": {
+      "perintah": "gh release edit v1.0.2 --notes-file logs/r3n_body_baru.kirim.md",
+      "id": 422838293,
+      "url": "https://github.com/qomaruddindjamal/asl/releases/tag/v1.0.2",
+      "tag": "v1.0.2",
+      "published_at": "2026-10-24T16:14:39Z",
+      "draft": false,
+      "prerelease": false,
+      "target_commitish": "main",
+      "body_lama_ter_commit": {
+        "bytes": 7086,
+        "baris": 108,
+        "nonASCII": 0,
+        "sha256": "d40dca6f878cced8a22b3b93d769dac124d0775306840f2a2a4c5b4746674ffc",
+        "api_bytes_saat_dibaca": 7086,
+        "identik_byte_dengan_api_awal": true
+      },
+      "body_terbitan_antara": {
+        "bytes": 13811,
+        "sha256": "7c579ff3882698f2bee886686c1a55dfe8be115d6b550a7f25778dd02d15d79d",
+        "diukur_dari": "logs/r3n_bukti_arsip_terbitan_antara_2026-10-25.txt"
+      },
+      "body_final": {
+        "bytes": 15037,
+        "baris_crlf": 101,
+        "lf_polos": 0,
+        "nonASCII": 0,
+        "sha256": "7159dcf1ac9d3c4ed50b4d017362cdc9efbaba9592f516ec25c100c06fbb8c28",
+        "aset": [
+          {
+            "nama": "SHA256SUMS.txt",
+            "size": 2034,
+            "state": "uploaded"
+          },
+          {
+            "nama": "asl-core-kernel-v1.0.2.iso",
+            "size": 4624384,
+            "state": "uploaded"
+          }
+        ],
+        "identik_byte_file_vs_api": true,
+        "verified_via": "gh api repos/qomaruddindjamal/asl/releases/422838293"
+      },
+      "tujuh_bagian": [
+        "## 1. Konteks",
+        "## 2. Apa yang baru (untuk pengguna)",
+        "## 3. Aset + SHA256",
+        "## 4. Cara memverifikasi",
+        "## 5. Status verifikasi ringkas",
+        "## 6. BATASAN JUJUR",
+        "## 7. Rujukan berkas bukti"
+      ],
+      "verified_on_hardware_dipertahankan": true,
+      "batasan_jujur_butir": {
+        "lama": 7,
+        "baru": 11,
+        "dikurangi": 0
+      }
+    },
+    "perubahan_dokumen": {
+      "RELEASE_NOTES.md": {
+        "sebelum": {
+          "bytes": 42746,
+          "baris_crlf": 164,
+          "nonASCII": 341,
+          "sha256": "932f73c1af965cdfa22d4889441587afe7edd705f29100790e674cbedf5b0150"
+        },
+        "sesudah": {
+          "bytes": 58769,
+          "baris_crlf": 284,
+          "nonASCII": 341,
+          "sha256": "0ead54edb7dc537c78fc3ee68c1259ee04f693d1e329b1c546e909278be7d1c8"
+        },
+        "gerbang_append_only_sufiks_identik": true,
+        "baris_dihapus": 0
+      },
+      "salinan_catatan_rilis_ter_commit": {
+        "jalur": "Analysis/reports/k4_r3n_catatan-rilis_2026-10-25.md",
+        "bytes": 15037,
+        "baris_crlf": 101,
+        "nonASCII": 0,
+        "sha256": "7159dcf1ac9d3c4ed50b4d017362cdc9efbaba9592f516ec25c100c06fbb8c28"
+      },
+      "nol_sentuh": "objek tag, pesan tag, dan seluruh komit terbit"
+    },
+    "butir_terukur_dari_registry": {
+      "perintah_kanonik": 13,
+      "alias": 10,
+      "konstanta_CANONICAL_COMMAND_COUNT": 13,
+      "blok_dokumen_pasal4": 13,
+      "identik_registry_dokumen": true,
+      "riwayat_konstanta": {
+        "11": [
+          [
+            "c3a9f2e",
+            "2026-10-22"
+          ],
+          [
+            "112fc38",
+            "2026-10-21"
+          ]
+        ],
+        "12": [
+          [
+            "791a88d",
+            "2026-10-22"
+          ],
+          [
+            "c3a9f2e",
+            "2026-10-22"
+          ]
+        ],
+        "13": [
+          [
+            "791a88d",
+            "2026-10-22"
+          ]
+        ]
+      },
+      "presisi_masukan_pemilik": "masukan menyebut 11 perintah + 9 alias; itu keadaan unit P3"
+    },
+    "verifikasi_remote": {
+      "tags_origin": [
+        "v1.0.0",
+        "v1.0.1",
+        "v1.0.2"
+      ],
+      "rilis_api": [
+        {
+          "tag": "v1.0.2",
+          "id": 422838293,
+          "draft": false,
+          "prerelease": false,
+          "n_aset": 2
+        },
+        {
+          "tag": "v1.0.1",
+          "id": 415600997,
+          "draft": false,
+          "prerelease": true,
+          "n_aset": 6
+        },
+        {
+          "tag": "v1.0.0",
+          "id": 411344624,
+          "draft": false,
+          "prerelease": true,
+          "n_aset": 4
+        }
+      ],
+      "n_rilis_ber_tag_v1_0_2": 1,
+      "sisa_v1_1_0": {
+        "di_origin_lsremote": false,
+        "di_tags_api": false,
+        "ref": {
+          "keluaran": "{\"message\":\"Not Found\",\"documentation_url\":\"https://docs.github.com/rest/git/refs#get-a-reference\",\"status\":\"404\"}",
+          "rc": 1
+        },
+        "rev_parse_lokal_galat": "fatal: ambiguous argument 'refs/tags/v1.1.0': unknown revision or path not in the working tree.\nUse '--' to separate paths from revisions, like this:\n'git <comm",
+        "rilis": {
+          "keluaran": "{\"message\":\"Not Found\",\"documentation_url\":\"https://docs.github.com/rest/releases/releases#get-a-release-by-tag-name\",\"status\":\"404\"}",
+          "rc": 1
+        },
+        "tag_lokal": false
+      },
+      "keputusan": "pola arsip-lalu-hapus TIDAK dijalankan karena tidak ada objek tersisa; nol penghapusan, nol operasi tag"
+    },
+    "tag_v1_0_2_tidak_disentuh": {
+      "objek": "79d581f8291650679693e6014e0ce4b73b54faf7",
+      "peel": "700481c22dc98b92be5bbd2059c54ea5bf97feb3",
+      "identik_lokal_vs_origin": true,
+      "objek_ref_api": "79d581f8291650679693e6014e0ce4b73b54faf7"
+    },
+    "gerbang_sisi_kompilasi": {
+      "rs_ter_track": 51,
+      "rs_berubah": 0,
+      "warisan_dengan_bukti": "run 40137397612 headSha=a737f1de81f21ca9b0f68662676dd0f888ae1d2f suite=30 passed=262 failed=0"
+    },
+    "ekstrak_penutup_utang": {
+      "run": 40137397612,
+      "atas_komit": "a737f1d",
+      "event": "push",
+      "berkas": "Analysis/reports/ci_hosted_40137397612_2026-10-24.log",
+      "bytes": 11192,
+      "baris_lf": 94,
+      "sha256": "129132124493e43c55849f0696c7aa978162ebece3ea6036d42e587451930629",
+      "utang_terbuka_sebelum_komit": "a737f1d/40137397612/push",
+      "total_commit_cabang_saat_audit": 3,
+      "ekstrak_ter_commit_pohon_lama": 140
+    },
+    "alat_pra_flash": {
+      "jalur": "scripts/k4_media_state.py",
+      "bytes": 5913,
+      "sha256": "6d1bd6d1ddaffe19fab9ee649643ebde83493287308f36fac1e1e71672a2152e",
+      "ter_commit": true,
+      "cacat_scratch": "satu argumen 'dir F:\\\\ /a /-p /o:gn' exit 1",
+      "perbaikan": "argumen dipecah -> exit 0",
+      "nol_tulis": true
+    },
+    "bukti_unit": {
+      "jalur": "Analysis/reports/k4_hardware_r3n-restrukturisasi_2026-10-25.txt",
+      "bytes": 22333,
+      "baris_crlf": 253,
+      "nonASCII": 0,
+      "sha256": "3ccfa333fc28e919e522d5a06c6d030658b2388746a31a028462be64859c8429",
+      "determinisme": {
+        "generator_dijalan_ulang": true,
+        "byte_berubah": false,
+        "sha256_sebelum": "3ccfa333fc28e919e522d5a06c6d030658b2388746a31a028462be64859c8429",
+        "sha256_sesudah": "3ccfa333fc28e919e522d5a06c6d030658b2388746a31a028462be64859c8429"
+      }
+    },
+    "iterasi_scratch": {
+      "batas_per_kelas": 3,
+      "keluarga_gejala": {
+        "sintaksis_operator_format_dan_nama_tak_terimpor_A_E_I": 7,
+        "sajian_hasil_ukur_B": 3,
+        "salah_alamat_sumber_keadaan_slot_C_D_F": 5,
+        "klaim_terbitan_tak_terukur_G": 2,
+        "cacat_berhenti_sebelum_eksekusi_H": 2,
+        "keluarga_lewat_batas": [
+          "A+E+I",
+          "C+D+F"
+        ]
+      },
+      "dipakai": {
+        "operator format salah": 3,
+        "sajian hasil ukur menyesatkan": 3,
+        "naskah tidak idempoten": 1,
+        "alat scratch salah alamat": 1,
+        "pola bentuk salah pada naskah pengukur/ledger": 3,
+        "pembongkaran tupel keluaran salah slot": 3,
+        "klaim terbit tidak diukur": 2,
+        "cacat dibaca ulang sebelum eksekusi": 2,
+        "nama tidak diimpor": 1
+      },
+      "total_perbaikan": 19,
+      "kelas_lewat_batas": 0,
+      "nol_pekerjaan_ditahan": true
+    },
+    "kelas_bukti": [
+      "VERIFIED-ON-HOST",
+      "VERIFIED-ON-CI-API",
+      "VERIFIED-VIA-RELEASE-API"
+    ],
+    "verified_on_hardware": 0,
+    "tahanan_berlaku": [
+      "nol tulis ke ESP/disk fisik (K-6 fisik tetap ditunda berotorisasi, entri ke-60)",
+      "nol amend/rebase/reset/force-push",
+      "nol tag/rilis dibuat atau dihapus pada unit ini",
+      "nol sentuh artefak g9_final_p8_* 2026-10-21 (20 untracked), CHECKLIST_STATE.json, scripts/g9_final_p8_run.ps1, README.md milik pemilik, .log root repo"
+    ],
+    "hukum_jendela": "apa pun yang gagal di tengah jendela = STOP, catat, foto, tutup jendela; dilarang memperbaiki atau improvisasi di tengah jendela",
+    "langkah_berikutnya": "jalankan ulang gerbang audit K-4 BAGIAN 1 (logs/k4_b1_audit.py) di atas keadaan baru, wajib verdict START, lalu buka jendela dengan pemilik sebagai satu-satunya pelaku tindakan fisik; BAGIAN 6 hanya sesudah kata 'JENDELA LULUS' atau 'JENDELA GAGAL' di chat"
   }
 }

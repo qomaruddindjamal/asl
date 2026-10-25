@@ -766,3 +766,75 @@ Sesuai instruksi misi: **`QODER_EXECUTION_LOG.md` dinyatakan CLOSED untuk misi P
 
 ### Status penutupan
 Misi PHASE-1..5 + GERBANG AKHIR + PHASE-6A + PHASE-6B (push → PR #3 → merge commit → verifikasi) **selesai dan terekam**. Yang masih terbuka **bukan** kegagalan misi: board fisis (HV/`DMA-ADDR-01`/`VT-D-DRV-01`/`DA-07`), HV-3..HV-8, prasyarat tangga DAL-C (MC/DC, tim verifikasi independen, DO-330 TQL), `ATOMIC-SPARC-01` OPEN, `DMA-CACHE-01` PARTIAL, ISO tidak byte-reproducible (perbaikan dijadwalkan PHASE-7 T1), serta langkah [3]–[4] CI yang hanya bisa lokal. **PHASE-7 / T0 RND_09 belum dimulai.**
+## [V1.0.2][R3-NOTES] RESTRUKTURISASI ISI RILIS v1.0.2 ATAS MASUKAN PEMILIK - DOCS-ONLY, TAG DAN COMMIT TERBIT TIDAK BERUBAH (2026-10-26)
+
+Entri ini ditulis oleh `logs/r3n_execlog.py` dan BUKAN oleh ketikan tangan: setiap byte, SHA256, nomor entri, dan verdict di bawah dibaca dari artefak ukur unit ini (`logs/r3n_verifikasi_body.json`, `logs/r3n_release_notes.json`, `logs/k4_b1_audit.json`, `logs/k4_media_state.json`, berkas bukti unit, dua ledger) atau dari `git` pada saat naskah dijalankan. Bentuk baris yang tidak dikenali menghentikan naskah, bukan dibiarkan lewat.
+
+### Status mandat R3-NOTES sebelum dan sesudah unit ini
+
+* SEBELUM (dibaca dari bukti, bukan ingatan): body rilis v1.0.2 masih berstruktur audit-first - 7086 B SHA256 d40dca6f878cced8a22b3b93d769dac124d0775306840f2a2a4c5b4746674ffc pada catatan rilis ter-commit Analysis\reports\r3_bagian7_release_notes_v1.0.2_2026-10-24.md - dan `RELEASE_NOTES.md` 42746 B 164 baris CRLF SHA256 932f73c1af965cdfa22d4889441587afe7edd705f29100790e674cbedf5b0150 belum memuat bagian v1.0.2.
+* SESUDAH: body rilis v1.0.2 berstruktur changelog-first dalam TUJUH bagian, 15037 B, 101 baris CRLF, 0 LF polos, non-ASCII 0, SHA256 7159dcf1ac9d3c4ed50b4d017362cdc9efbaba9592f516ec25c100c06fbb8c28.
+* API GitHub mengembalikan body yang IDENTIK BYTE dengan berkas yang dikirim: api 15037 B == file 15037 B, sha cocok = True, aset rilis = 2, release id = 422838293, published_at = 2026-10-24T16:14:39Z (rilis TIDAK dibuat ulang; hanya body yang disunting).
+* DOCS-ONLY TERUKUR: nol berkas `.rs` disentuh unit ini; yang berubah adalah catatan rilis ter-commit, `RELEASE_NOTES.md`, dua ledger, berkas bukti unit, ekstrak hosted CI, alat pra-flash, dan entri log eksekusi ini.
+
+### Tag dan commit terbit tidak disentuh (DIUKUR pada saat naskah berjalan)
+
+* Objek tag `v1.0.2` = 79d581f8291650679693e6014e0ce4b73b54faf7 (tipe `tag`), peel = 700481c22dc98b92be5bbd2059c54ea5bf97feb3; keduanya sama dengan yang tercatat di `logs/k4_b1_audit.json` (identik lokal vs origin = True). Tidak ada tag baru, tidak ada tag dihapus, tidak ada rilis baru pada unit ini.
+* HEAD saat entri ini ditulis = a737f1de81f21ca9b0f68662676dd0f888ae1d2f (tip `feature/v1.0.2-r1` = a737f1de81f21ca9b0f68662676dd0f888ae1d2f). Komitmen perubahan ini menjadi komit BARU di atasnya - nol amend, nol rebase, nol reset, nol force-push (larangan butir b).
+* Field `result` ledger entri ke-66 memuat frasa wajib mandat apa adanya: "restrukturisasi isi rilis atas masukan pemilik; docs-only; tag/commit tidak berubah. Jendela K-4 TAHAN di BAGIAN 0 menunggu prompt ini; unit ini menjalankannya SEBELUM je"
+
+### Isi rilis: EMPAT terbitan pada unit ini, keempatnya terukur dari byte
+
+1. body LAMA ter-commit 7086 B SHA256 d40dca6f878cced8a22b3b93d769dac124d0775306840f2a2a4c5b4746674ffc (struktur audit-first dari R3 BAGIAN 7).
+2. terbitan ANTARA 13811 B SHA256 7c579ff3882698f2bee886686c1a55dfe8be115d6b550a7f25778dd02d15d79d - struktur tujuh bagian pertama, rujukan lama masih di dalamnya.
+3. terbitan SEBELUM KOREKSI 14278 B SHA256 2e7c431219e951f74e19c778e389808353b0f19b647dff1f56f9b70250054ee6 - di sinilah dua klaim rujukan yang TIDAK diukur naskah diterbitkan, lalu ditemukan oleh audit K4-RESUME.
+4. terbitan KINI 15037 B SHA256 7159dcf1ac9d3c4ed50b4d017362cdc9efbaba9592f516ec25c100c06fbb8c28 - SATU suntingan utuh, bukan tambalan setengah-setengah, sesuai perintah khusus K4-RESUME untuk body rilis.
+
+Kedua body antara disimpan byte-per-byte di `logs/` (ter-ignore git) dan DIUKUR ULANG dengan fungsi meter yang sama; keempat angka di atas di-parse naskah ini dari baris berkas bukti unit bagian 10, bukan dari ingatan. Keduanya sudah ditimpa di API sehingga tidak dapat dibaca ulang dari repo - dinyatakan terang.
+
+### Koreksi append-only atas dua klaim rujukan (kelas G)
+
+* Jumlah berkas ekstrak `ci_hosted_*_2026-10-24.log` yang diterbitkan: 33; terukur: 32 (pohon HEAD 31 + SATU yang ikut komit ini). Akar cacat: hitungan dibaca dari INDEKS `git ls-files` yang sudah memuat ekstrak ber-staging, lalu ditambah satu lagi sehingga berkas yang sama dihitung dua kali. Sumber kini `git ls-tree -r HEAD`.
+* Penomoran ledger audit pra-jendela yang diterbitkan: ke-64/65; terukur dari field `gate_id`: ke-65. Akar cacat: penomoran diketik tangan. Sumber kini field `gate_id` yang diukur dan disilangkan dengan `type` bacaan audit.
+* Nol amend, nol rebase, nol force-push; koreksi = terbitan utuh berikutnya + catatan di berkas bukti dan di ledger.
+
+### RELEASE_NOTES.md (append-only, gerbang sufiks)
+
+Sebelum 42746 B / 164 baris CRLF / non-ASCII 341 -> sesudah 58769 B / 284 baris CRLF / 0 LF polos / non-ASCII 341 SHA256 0ead54edb7dc537c78fc3ee68c1259ee04f693d1e329b1c546e909278be7d1c8. Tambahan 120 baris, penghapusan 0 baris, tambahan non-ASCII 0. Isi lama tetap menjadi SUFIKS IDENTIK BYTE = True; bagian v1.1.0 dan v1.0.1 dibiarkan VERBATIM sebagai arsip riwayat di bawah pemisah.
+
+### Bukti yang ikut ter-commit pada komit unit ini
+
+* Catatan rilis ter-commit: `Analysis/reports/k4_r3n_catatan-rilis_2026-10-25.md` 15037 B / 101 baris / non-ASCII 0 SHA256 7159dcf1ac9d3c4ed50b4d017362cdc9efbaba9592f516ec25c100c06fbb8c28 - identik byte dengan body di API (gerbang naskah: sha catatan == sha body API).
+* Berkas bukti unit: `Analysis/reports/k4_hardware_r3n-restrukturisasi_2026-10-25.txt` 22333 B / 253 baris / 253 CRLF / 0 LF polos / non-ASCII 0 SHA256 3ccfa333fc28e919e522d5a06c6d030658b2388746a31a028462be64859c8429. Berkas ini TIDAK diubah setelah ditulis - SHA256-neya sudah dirujuk ledger entri ke-66, jadi hasil audit-ulang gerbang K-4 di bawah dicatat di sini, bukan dengan menyunting berkas bukti itu.
+* Alat pra-flash READ-ONLY: `scripts/k4_media_state.py` 5913 B / 127 baris / non-ASCII 0 SHA256 6d1bd6d1ddaffe19fab9ee649643ebde83493287308f36fac1e1e71672a2152e, terdaftar di `git ls-files` (terukur = True). Keluarannya `logs/k4_media_state.json` (SHA256 85d17a94da3b047d2ee67000bb6426462ad4463e816efdb35c71c743c031735b) ber-`nol_tulis` = True dengan `dir` exit 0 dan 8 baris. Cacat versi scratch (satu argumen `dir`, exit 1) direproduksi READ-ONLY dan dicatat di ledger, bukan dibuang.
+* Ekstrak hosted CI penutup utang G8: `Analysis/reports/ci_hosted_40137397612_2026-10-24.log` 11192 B / 94 baris / non-ASCII 0 SHA256 129132124493e43c55849f0696c7aa978162ebece3ea6036d42e587451930629; run 40137397612 event push atas headSha a737f1de81f21ca9b0f68662676dd0f888ae1d2f (== HEAD komit induk, gerbang naskah), conclusion = success. Angka DIKAJI PER LANGKAH, bukan dijumput se-berkas: langkah `[1/2] cargo test --workspace --lib` = 30 `test result: ok` dengan 262 passed / 0 failed; langkah `[2/2] cargo build --package asl-kernel-bin --target x86_64-unknown-none --release` = 13 baris `Compiling` dan ada baris `Finished` (bukan cache no-op); job coverage NON-BLOCKING = 3 suite / 80 passed / 0 failed DAN TIDAK dijumlahkan ke angka utama karena ketiganya adalah crate yang sama yang sudah dihitung di langkah utama (n_jumlah_seluruh_berkas = 33 = 30 + 3, diverifikasi naskah). Aturan G8 melarang satu komit memuat ekstrak untuk dirinya sendiri, jadi pasangan ATAS KOMIT INI menjadi residu terminal rantai - bukan kegagalan gerbang.
+* Ledger append-only: `ACCOUNTABILITY_FAULT_LOG.json` entri ke-66 dan `HANDOFF_STATE.json` 55 kunci dengan kunci baru `v1_0_2_r3n_restrukturisasi_isi_rilis_state`; isi lama diverifikasi identik sebelum tulisan (periksa prefiks + round-trip serialisasi).
+
+### Gerbang audit K-4 BAGIAN 1 diulang atas keadaan baru (verdict terukur)
+
+* ISO master: 4624384 B, SHA256 1569c17157b98c8aa29c9e9d18ccb6aeb931c883d1e1a25983864df4206c668c - cocok dengan digest aset rilis (True) dan dengan entri SHA256SUMS rilis 1569c17157b98c8aa29c9e9d18ccb6aeb931c883d1e1a25983864df4206c668c (identik byte gerbang = True), ukuran cocok aset = True.
+* Jam mesin vs UTC: UTC dari jam mesin 2026-10-25T17:50:37Z, offset terukur +0700, header `Date` dari API GitHub Date: Sun, 25 Oct 2026 17:50:22 GMT.
+* Keadaan pohon kerja saat audit: HEAD a737f1de81f21ca9b0f68662676dd0f888ae1d2f, tip origin a737f1de81f21ca9b0f68662676dd0f888ae1d2f, berkas ter-track berubah 6, untracked 42 (artefak g9_final_p8_* 2026-10-21 yang tetap untracked = 20), artefak terproteksi kotor = 0 (nol).
+* Entri ledger terakhir saat audit: ke-66 tipe F10_RESTRUKTURISASI_ISI_RILIS_V1_0_2_DOKS_ONLY_ATAS_MASU, handoff 55 kunci. Nol tulis ke media = True.
+* VERDICT AUDIT-ULANG: START: audit lolos, jendela boleh dimulai (dibaca dari field `verdict_audit` `logs/k4_b1_audit.json`; naskah berhenti bila nilainya bukan START).
+
+### Iterasi dan deviasi (mandat 5.4: maksimum 3 perbaikan per kelas)
+
+Kelas yang terdaftar di berkas bukti unit, dibaca ulang oleh naskah ini: A=3, B=3, C=1, D=1, E=3, F=3, G=2, H=2, I=1. Total butir = 19. Dibaca per kelas tunggal TIDAK ada yang melewati 3 (tertinggi 3 dari 3, pada 4 kelas). Dibaca per KELUARGA GEJALA (pembacaan lebih ketat, praktik BAGIAN 8) ada 2 keluarga yang MELEWATI batas 3, dan itu dinyatakan sebagai deviasi di berkas bukti dan di ledger, bukan disembunyikan di balik pilihan pengelompokan.
+
+ITERASI NASKAH INI SENDIRI, DIUMUMKAN TERANG: 5 butiran cacat ditemukan pada `logs/r3n_execlog.py` SESUDAH ledger entri ke-66 di-append, sehingga TIDAK ikut hitungan kelas A-I di atas (SHA256 berkas bukti sudah dirujuk ledger dan berkas itu sengaja tidak diubah):
+  (PS1) gerbang 'koreksi tidak terdaftar sebagai koreksi' membandingkan satu angka terukur dengan SEBELUM angka terbit (ke-64/65 vs ke-65) sehingga koreksi yang sah ditolak; dibetulkan dengan membandingkan kedua angka klaim terhadap angka terukur - berhenti SEBELUM satu byte pun ditulis ke log eksekusi.
+  (PS2) satu suntingan penempel membuat DUA pernyataan duduk pada SATU baris sehingga berkas tidak bisa dikompilasi; tertangkap oleh `py_compile` SEBELUM naskah dijalankan, jadi tidak ada gerbang yang terlalui dan tidak ada byte yang tertulis.
+  (PS3) angka hosted CI pada entri ini SEMULA dijumput se-berkas: 33 suite / 342 passed, padahal job coverage NON-BLOCKING menjalankan ulang tiga crate yang sudah dihitung di langkah utama sehingga crate yang sama terhitung dua kali - ini kelas cacat 'sajian hasil ukur menyesatkan' yang sama dengan kelas B di berkas bukti. Kini diurai per langkah dan naskah mewajibkan jumlah per regio == jumlah se-berkas. Ditemukan dengan membaca ulang angka SEBELUM komit; berkas log dipangkas kembali ke PREFIKS terukur (SHA256 `sebelum` dicocokkan oleh naskah pemangkas) lalu ditulis ulang oleh naskah yang sama, nol suntingan tangan.
+  (PS4) pencetak regio coverage pertama memakai teks 'cargo llvm-cov' yang TIDAK hadir di judul regio ekstrak (judul sebenarnya memuat 'coverage (non-blocking, advisory)'), sehingga gerbang 'regio tidak tepat satu' menolaknya SEBELUM satu byte pun ditulis; dibetulkan dengan membaca daftar judul regio yang terukur.
+  (PS5) satu pesan galat di naskah PEMANGKAS (`logs/r3n_execlog_trim.py`) memuat kata 'prefoks' yang tidak lengkap; dibetulkan menjadi 'prefiks' sebelum naskah itu dijalankan - cacat teks pada jalur gagal, bukan cacat angka.
+Setiap butiran berhenti karena gerbang fail-closed naskah ini sendiri, SEBELUM satu byte pun ditulis ke log eksekusi, dan dibetulkan pada percobaan berikutnya; nol artefak dibuang, nol pekerjaan ditahan.
+
+### Tahan yang tetap berlaku dan kelas bukti
+
+NOL tulis ke ESP/disk fisik (nol kata kerja tulis dipanggil; media hanya dibaca). NOL amend/rebase/reset/force-push. NOL tag atau rilis dibuat/dihapus pada unit ini. Artefak terproteksi tidak disentuh: `scripts/g9_final_p8_run.ps1`, `CHECKLIST_STATE.json`, 20 artefak `Analysis/reports/g9_final_p8_*` 2026-10-21 (tetap untracked), `README.md` milik pemilik, berkas `.log` di root repo. Kelas bukti unit ini: VERIFIED-ON-HOST + VERIFIED-ON-CI-API + VERIFIED-VIA-RELEASE-API, dengan warisan VERIFIED-ON-CI dan VERIFIED-ON-VM. VERIFIED-ON-HARDWARE TETAP 0 - jendela K-4 belum dibuka dan tidak ada klaim perangkat keras yang ditambahkan unit ini.
+
+### Langkah berikutnya
+
+Jendela K-4 dibuka setelah laporan unit ini diteruskan pemilik ke PM untuk validasi. BAGIAN 2 (flash) dipandu dengan PEMILIK sebagai satu-satunya pelaku tindakan fisik; apa pun yang gagal di tengah jendela berarti STOP, catat, foto, tutup jendela - tidak ada improvisasi di tengah jendela. Kata pembuka verdict tetap kata pemilik: "JENDELA LULUS" atau "JENDELA GAGAL".
+
